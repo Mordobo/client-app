@@ -1,12 +1,15 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Dependencies
 node_modules/
+**/node_modules/
 jspm_packages/
 bower_components
+.pnpm-store/
 
 # Expo
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
@@ -29,6 +32,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 lerna-debug.log*
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
@@ -44,11 +48,14 @@ pids
 lib-cov
 
 # Coverage
+coverage/
 coverage
 *.lcov
 .nyc_output
 
 # Build outputs
+build/
+**/build/
 build/Release
 web_modules/
 .cache
@@ -92,7 +99,11 @@ out
 !.env.example
 .env*.local
 
-# macOS
+# Editor settings
+.vscode/
+.idea/
+
+# macOS & Windows
 .DS_Store
 *.pem
 Thumbs.db
