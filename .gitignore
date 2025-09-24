@@ -2,6 +2,8 @@
 
 # dependencies
 node_modules/
+jspm_packages/
+bower_components
 
 # Expo
 .expo/
@@ -9,7 +11,7 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native assets & credentials
 .kotlin/
 *.orig.*
 *.jks
@@ -21,23 +23,90 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# Debug logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Instrumented libs
+lib-cov
+
+# Coverage
+coverage
+*.lcov
+.nyc_output
+
+# Build outputs
+build/Release
+web_modules/
+.cache
+.parcel-cache
+.next
+out
+.nuxt
+.vuepress/dist
+.temp
+.svelte-kit/
+**/.vitepress/dist
+**/.vitepress/cache
+.docusaurus
+.serverless/
+.fusebox/
+.dynamodb/
+.firebase/
+.vscode-test
+
+# Yarn v3
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Optional caches
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+
+# Package archives
+*.tgz
+
+# Local env files
+.env
+.env.*
+!.env.example
+.env*.local
 
 # macOS
 .DS_Store
 *.pem
+Thumbs.db
 
-# local env files
-.env*.local
-
-# typescript
+# TypeScript
 *.tsbuildinfo
 
+# Misc project files
 app-example
 
-# generated native folders
+# Generated native folders
 /ios
 /android
+
+# Vite timestamps
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
