@@ -19,26 +19,42 @@ import { useAuth } from '@/contexts/AuthContext';
 import { validateUser } from '@/utils/userStorage';
 import { t } from '@/i18n';
 
+const valueHasContent = (text: string) => text.trim().length > 0;
+
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPasswordTooltip, setShowPasswordTooltip] = useState(false);
+  const [identifierFocused, setIdentifierFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const { login } = useAuth();
 
-  const handleEmailLogin = async () => {
-    if (!email || !password) {
+  const trimmedIdentifier = identifier.trim();
+  const canSubmit = valueHasContent(identifier) && password.length >= 8;
+  const isButtonEnabled = canSubmit && !loading;
+
+  const handleCredentialsLogin = async () => {
+    if (!trimmedIdentifier || !password) {
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
-    
+
+    if (password.length < 8) {
+      setErrorMessage(t('errors.passwordMin'));
+      return;
+    }
+
     setLoading(true);
+    setErrorMessage(null);
+    setShowPasswordTooltip(false);
     try {
       // Validate credentials against registered users
-      const user = await validateUser(email, password);
-      
+      const user = await validateUser(trimmedIdentifier, password);
+
       if (!user) {
-        Alert.alert(t('common.error'), t('errors.loginFailed'));
-        setLoading(false);
+        setErrorMessage(t('errors.loginFailed'));
         return;
       }
       
@@ -51,10 +67,12 @@ export default function LoginScreen() {
         phone: user.phone,
         provider: user.provider,
       };
-      
+
       await login(userData);
       console.log('Login successful, user data:', userData);
-      
+      setErrorMessage(null);
+      setShowPasswordTooltip(false);
+
       // Explicit redirect to the main screen
       router.replace('/(tabs)/home');
     } catch (error) {
@@ -114,31 +132,77 @@ export default function LoginScreen() {
           {/* Login Form */}
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('auth.email')}</Text>
+              <Text style={styles.inputLabel}>{t('auth.emailOrPhone')}</Text>
               <TextInput
-                style={styles.input}
-                placeholder={t('auth.email')}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                style={[styles.input, errorMessage ? styles.inputError : undefined]}
+                placeholder={identifierFocused ? '' : t('auth.emailOrPhone')}
+                placeholderTextColor="rgba(55, 65, 81, 0.45)"
+                value={identifier}
+                onChangeText={(value) => {
+                  setIdentifier(value);
+                  if (errorMessage) {
+                    setErrorMessage(null);
+                  }
+                }}
+                keyboardType="default"
                 autoCapitalize="none"
                 autoCorrect={false}
+                onFocus={() => setIdentifierFocused(true)}
+                onBlur={() => setIdentifierFocused(false)}
               />
             </View>
+
+            {errorMessage && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={18} color="#EF4444" style={styles.errorIcon} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
 
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('auth.password')}</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>{t('auth.password')}</Text>
+                <View style={styles.tooltipWrapper}>
+                  {showPasswordTooltip && (
+                    <View style={styles.tooltipBubble}>
+                      <Text style={styles.tooltipText}>{t('errors.passwordMin')}</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.tooltipTrigger}
+                    activeOpacity={0.7}
+                    onPress={() => setShowPasswordTooltip(prev => !prev)}
+                  >
+                    <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+              </View>
               <TextInput
-                style={styles.input}
-                placeholder="••••••••"
+                style={[styles.input, errorMessage ? styles.inputError : undefined]}
+                placeholder={passwordFocused ? '' : 'password'}
+                placeholderTextColor="rgba(55, 65, 81, 0.45)"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  if (errorMessage) {
+                    setErrorMessage(null);
+                  }
+                  if (showPasswordTooltip) {
+                    setShowPasswordTooltip(false);
+                  }
+                }}
                 secureTextEntry
                 autoCapitalize="none"
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
               />
             </View>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleEmailLogin}>
+            <TouchableOpacity
+              style={[styles.loginButton, !canSubmit ? styles.loginButtonDisabled : undefined]}
+              onPress={handleCredentialsLogin}
+              disabled={!isButtonEnabled}
+            >
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
@@ -240,6 +304,21 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  tooltipWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    flexShrink: 0,
+  },
+  tooltipTrigger: {
+    padding: 4,
+    marginLeft: 6,
+  },
   input: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -249,12 +328,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: -12,
+    marginBottom: 12,
+  },
+  errorIcon: {
+    marginRight: 6,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  tooltipBubble: {
+    backgroundColor: '#1F2937',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  tooltipText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
+  },
   loginButton: {
     backgroundColor: '#10B981',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+  },
+  loginButtonDisabled: {
+    opacity: 0.5,
   },
   loginButtonText: {
     color: 'white',
