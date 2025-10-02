@@ -34,19 +34,52 @@ export const getUsers = async (): Promise<StoredUser[]> => {
   }
 };
 
+const normalizePhone = (value: string) => value.replace(/\D/g, '');
+
 export const findUserByEmail = async (email: string): Promise<StoredUser | null> => {
   try {
     const users = await getUsers();
-    return users.find(user => user.email.toLowerCase() === email.toLowerCase()) || null;
+    const normalizedEmail = email.trim().toLowerCase();
+    return users.find(user => user.email.toLowerCase() === normalizedEmail) || null;
   } catch (error) {
     console.error('Error finding user by email:', error);
     return null;
   }
 };
 
-export const validateUser = async (email: string, password: string): Promise<StoredUser | null> => {
+export const findUserByPhone = async (phone: string): Promise<StoredUser | null> => {
   try {
-    const user = await findUserByEmail(email);
+    const users = await getUsers();
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return null;
+    }
+    return (
+      users.find(user => {
+        if (!user.phone) {
+          return false;
+        }
+        return normalizePhone(user.phone) === normalizedPhone;
+      }) || null
+    );
+  } catch (error) {
+    console.error('Error finding user by phone:', error);
+    return null;
+  }
+};
+
+export const validateUser = async (identifier: string, password: string): Promise<StoredUser | null> => {
+  try {
+    const trimmedIdentifier = identifier.trim();
+    if (!trimmedIdentifier) {
+      return null;
+    }
+
+    const isEmail = trimmedIdentifier.includes('@');
+    const user = isEmail
+      ? await findUserByEmail(trimmedIdentifier)
+      : await findUserByPhone(trimmedIdentifier);
+
     if (user && user.password === password) {
       return user;
     }

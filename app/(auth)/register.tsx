@@ -20,6 +20,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { saveUser, findUserByEmail } from '@/utils/userStorage';
 import { t } from '@/i18n';
 
+const valueHasContent = (text: string) => text.trim().length > 0;
+
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -31,9 +33,17 @@ export default function RegisterScreen() {
   });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const placeholderColor = 'rgba(55, 65, 81, 0.45)';
+  const isFieldFocused = (field: string) => focusedField === field;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBlur = (field: string) => {
+    setFocusedField(prev => (prev === field ? null : prev));
   };
 
   const handleRegister = async () => {
@@ -49,7 +59,7 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       Alert.alert(t('common.error'), t('errors.passwordMin'));
       return;
     }
@@ -165,10 +175,13 @@ export default function RegisterScreen() {
                   <Text style={styles.inputLabel}>Nombre</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="John"
+                    placeholder={!isFieldFocused('firstName') && !valueHasContent(formData.firstName) ? 'John' : ''}
+                    placeholderTextColor={placeholderColor}
                     value={formData.firstName}
                     onChangeText={(value) => handleInputChange('firstName', value)}
                     autoCapitalize="words"
+                    onFocus={() => setFocusedField('firstName')}
+                    onBlur={() => handleBlur('firstName')}
                   />
                 </View>
                 
@@ -176,10 +189,13 @@ export default function RegisterScreen() {
                   <Text style={styles.inputLabel}>Apellido</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="Smith"
+                    placeholder={!isFieldFocused('lastName') && !valueHasContent(formData.lastName) ? 'Smith' : ''}
+                    placeholderTextColor={placeholderColor}
                     value={formData.lastName}
                     onChangeText={(value) => handleInputChange('lastName', value)}
                     autoCapitalize="words"
+                    onFocus={() => setFocusedField('lastName')}
+                    onBlur={() => handleBlur('lastName')}
                   />
                 </View>
               </View>
@@ -188,12 +204,15 @@ export default function RegisterScreen() {
                 <Text style={styles.inputLabel}>{t('auth.email')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="tu@email.com"
+                  placeholder={!isFieldFocused('email') && !valueHasContent(formData.email) ? 'tu@email.com' : ''}
+                  placeholderTextColor={placeholderColor}
                   value={formData.email}
                   onChangeText={(value) => handleInputChange('email', value)}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => handleBlur('email')}
                 />
               </View>
 
@@ -201,10 +220,13 @@ export default function RegisterScreen() {
                 <Text style={styles.inputLabel}>{t('auth.phone')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="+1 234 567 8900"
+                  placeholder={!isFieldFocused('phone') && !valueHasContent(formData.phone) ? '+1 234 567 8900' : ''}
+                  placeholderTextColor={placeholderColor}
                   value={formData.phone}
                   onChangeText={(value) => handleInputChange('phone', value)}
                   keyboardType="phone-pad"
+                  onFocus={() => setFocusedField('phone')}
+                  onBlur={() => handleBlur('phone')}
                 />
               </View>
 
@@ -212,11 +234,14 @@ export default function RegisterScreen() {
                 <Text style={styles.inputLabel}>{t('auth.password')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="••••••••"
+                  placeholder={!isFieldFocused('password') && !valueHasContent(formData.password) ? '••••••••' : ''}
+                  placeholderTextColor={placeholderColor}
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
                   secureTextEntry
                   autoCapitalize="none"
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => handleBlur('password')}
                 />
               </View>
 
@@ -224,11 +249,14 @@ export default function RegisterScreen() {
                 <Text style={styles.inputLabel}>{t('auth.confirmPassword')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="••••••••"
+                  placeholder={!isFieldFocused('confirmPassword') && !valueHasContent(formData.confirmPassword) ? '••••••••' : ''}
+                  placeholderTextColor={placeholderColor}
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange('confirmPassword', value)}
                   secureTextEntry
                   autoCapitalize="none"
+                  onFocus={() => setFocusedField('confirmPassword')}
+                  onBlur={() => handleBlur('confirmPassword')}
                 />
               </View>
 
