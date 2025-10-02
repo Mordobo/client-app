@@ -122,25 +122,8 @@ export default function RegisterScreen() {
     Alert.alert(t('common.ok'), t('auth.soonFacebook'));
   };
 
-  const handleGithubRegister = async () => {
-    try {
-      setLoading(true);
-      // Implement the GitHub registration logic here
-      const userData = {
-        id: '1',
-        email: 'usuario@github.com',
-        firstName: 'Usuario',
-        lastName: 'GitHub',
-        provider: 'github' as const,
-      };
-      
-      await login(userData);
-    } catch (error) {
-      console.error('GitHub Register Error:', error);
-      Alert.alert('Error', 'Error al registrarse con GitHub');
-    } finally {
-      setLoading(false);
-    }
+  const handleAppleRegister = async () => {
+    Alert.alert(t('common.ok'), t('auth.soonApple'));
   };
 
   return (
@@ -288,9 +271,9 @@ export default function RegisterScreen() {
                 <Text style={styles.socialButtonText}>{t('auth.facebook')}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton} onPress={handleGithubRegister}>
-                <Ionicons name="logo-github" size={24} color="#333" />
-                <Text style={styles.socialButtonText}>{t('auth.github')}</Text>
+              <TouchableOpacity style={styles.socialButton} onPress={handleAppleRegister}>
+                <Ionicons name="logo-apple" size={24} color="#111827" />
+                <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
               </TouchableOpacity>
             </View>
 
