@@ -91,28 +91,8 @@ export default function LoginScreen() {
     Alert.alert(t('common.ok'), t('auth.soonFacebook'));
   };
 
-  const handleGithubLogin = async () => {
-    try {
-      setLoading(true);
-      // Implement the GitHub login logic here
-      // For now we simulate the login
-      const userData = {
-        id: '1',
-        email: 'usuario@github.com',
-        firstName: 'Usuario',
-        lastName: 'GitHub',
-        provider: 'github' as const,
-      };
-      
-      await login(userData);
-      // Explicit redirect to the main screen
-      router.replace('/(tabs)/home');
-    } catch (error) {
-      console.error('GitHub Login Error:', error);
-      Alert.alert(t('common.error'), t('errors.loginGeneric'));
-    } finally {
-      setLoading(false);
-    }
+  const handleAppleLogin = async () => {
+    Alert.alert(t('common.ok'), t('auth.soonApple'));
   };
 
   return (
@@ -234,9 +214,9 @@ export default function LoginScreen() {
               <Text style={styles.socialButtonText}>{t('auth.facebook')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.socialButton} onPress={handleGithubLogin}>
-              <Ionicons name="logo-github" size={24} color="#333" />
-              <Text style={styles.socialButtonText}>{t('auth.github')}</Text>
+            <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
+              <Ionicons name="logo-apple" size={24} color="#111827" />
+              <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
             </TouchableOpacity>
           </View>
 

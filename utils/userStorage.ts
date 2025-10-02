@@ -7,7 +7,7 @@ export interface StoredUser {
   lastName: string;
   phone?: string;
   password: string; // In a real app, this should be hashed
-  provider: 'email' | 'google' | 'facebook' | 'github';
+  provider: 'email' | 'google' | 'facebook' | 'apple';
   createdAt: string;
 }
 

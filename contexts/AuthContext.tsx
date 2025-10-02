@@ -8,7 +8,7 @@ interface User {
   lastName: string;
   phone?: string;
   avatar?: string;
-  provider?: 'email' | 'google' | 'facebook' | 'github';
+  provider?: 'email' | 'google' | 'facebook' | 'apple';
 }
 
 interface AuthContextType {
