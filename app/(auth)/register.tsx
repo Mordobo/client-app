@@ -1,26 +1,128 @@
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
+  View,
 } from 'react-native';
-import { router } from 'expo-router';
 // import { GoogleSignin } from '@react-native-google-signin/google-signin';
 // import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
-import { saveUser, findUserByEmail } from '@/utils/userStorage';
 import { t } from '@/i18n';
+import { ApiError, registerUser } from '@/services/auth';
+import { Ionicons } from '@expo/vector-icons';
 
 const valueHasContent = (text: string) => text.trim().length > 0;
+
+type DuplicateField = 'email' | 'phone';
+
+const digitsOnly = (value: string) => value.replace(/\D/g, '');
+
+const normalizeFieldName = (value: string) => value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '').toLowerCase();
+
+const parseApiErrorPayload = (payload: unknown) => {
+  const messages: string[] = [];
+  const fields: string[] = [];
+
+  if (!payload || typeof payload !== 'object') {
+    return { messages, fields };
+  }
+
+  const candidate = payload as Record<string, unknown>;
+
+  if (typeof candidate.message === 'string') {
+    messages.push(candidate.message);
+  }
+
+  if (typeof candidate.error === 'string') {
+    messages.push(candidate.error);
+  }
+
+  if (candidate.errors) {
+    const errorSection = candidate.errors;
+
+    if (typeof errorSection === 'string') {
+      messages.push(errorSection);
+    } else if (Array.isArray(errorSection)) {
+      errorSection.forEach(item => {
+        if (typeof item === 'string') {
+          messages.push(item);
+        }
+      });
+    } else if (typeof errorSection === 'object') {
+      Object.entries(errorSection as Record<string, unknown>).forEach(([field, value]) => {
+        fields.push(field);
+        if (typeof value === 'string') {
+          messages.push(value);
+        } else if (Array.isArray(value)) {
+          value.forEach(entry => {
+            if (typeof entry === 'string') {
+              messages.push(entry);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  return { messages, fields };
+};
+
+const detectDuplicateField = ({ messages, fields }: { messages: string[]; fields: string[] }): DuplicateField | null => {
+  const normalizedFields = fields.map(normalizeFieldName);
+
+  if (normalizedFields.some(field => field.includes('phone') || field.includes('telefono') || field.includes('teléfono'))) {
+    return 'phone';
+  }
+
+  if (normalizedFields.some(field => field.includes('email') || field.includes('correo'))) {
+    return 'email';
+  }
+
+  const normalizedMessages = messages.map(message => message.toLowerCase());
+
+  const phoneIndicators = ['phone', 'teléfono', 'telefono', 'phone number', 'número de teléfono'];
+  if (normalizedMessages.some(message => phoneIndicators.some(indicator => message.includes(indicator)))) {
+    return 'phone';
+  }
+
+  const emailIndicators = ['email', 'correo', 'mail', 'e-mail'];
+  if (normalizedMessages.some(message => emailIndicators.some(indicator => message.includes(indicator)))) {
+    return 'email';
+  }
+
+  return null;
+};
+
+const resolveApiErrorMessage = (error: ApiError, translate: typeof t): string => {
+  const parsedPayload = parseApiErrorPayload(error.data);
+  const duplicateField = detectDuplicateField(parsedPayload);
+
+  if (duplicateField === 'phone') {
+    return translate('errors.phoneExists');
+  }
+
+  if (duplicateField === 'email') {
+    return translate('errors.emailExists');
+  }
+
+  if (parsedPayload.messages.length > 0) {
+    return parsedPayload.messages.join(' ');
+  }
+
+  if (error.message) {
+    return error.message;
+  }
+
+  return translate('errors.registerGeneric');
+};
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState({
@@ -32,14 +134,25 @@ export default function RegisterScreen() {
     phone: '',
   });
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   const placeholderColor = 'rgba(55, 65, 81, 0.45)';
   const isFieldFocused = (field: string) => focusedField === field;
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const nextValue = field === 'phone' ? digitsOnly(value) : value;
+
+    setFormData(prev => ({ ...prev, [field]: nextValue }));
+    setFormErrors(prev => {
+      if (!(field in prev)) {
+        return prev;
+      }
+      const updated = { ...prev };
+      delete updated[field as keyof typeof prev];
+      return updated;
+    });
   };
 
   const handleBlur = (field: string) => {
@@ -48,67 +161,77 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     const { firstName, lastName, email, password, confirmPassword, phone } = formData;
-    
-    if (!firstName || !lastName || !email || !password || !confirmPassword || !phone) {
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
+
+    setApiErrorMessage(null);
+    setFormErrors({});
+
+    if (
+      !trimmedFirstName ||
+      !trimmedLastName ||
+      !trimmedEmail ||
+      !password ||
+      !confirmPassword ||
+      !trimmedPhone
+    ) {
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
 
     if (password !== confirmPassword) {
+      setFormErrors(prev => ({ ...prev, confirmPassword: t('errors.passwordsDontMatch') }));
       Alert.alert(t('common.error'), t('errors.passwordsDontMatch'));
       return;
     }
 
     if (password.length < 8) {
+      setFormErrors(prev => ({ ...prev, password: t('errors.passwordMin') }));
       Alert.alert(t('common.error'), t('errors.passwordMin'));
       return;
     }
 
     // Validate basic email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimmedEmail)) {
       Alert.alert(t('common.error'), t('errors.invalidEmail'));
       return;
     }
-    
+
     setLoading(true);
     try {
-      // Check if the user already exists
-      const existingUser = await findUserByEmail(email);
-      if (existingUser) {
-        Alert.alert(t('common.error'), t('errors.emailExists'));
-        setLoading(false);
+      const normalizedFullName = `${trimmedFirstName} ${trimmedLastName}`
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      await registerUser({
+        fullName: normalizedFullName,
+        email: trimmedEmail.toLowerCase(),
+        phoneNumber: trimmedPhone,
+        password,
+      });
+
+      setApiErrorMessage(null);
+      router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+    } catch (error) {
+      console.error('Register error:', error);
+
+      if (error instanceof ApiError) {
+        const message = resolveApiErrorMessage(error, t);
+        setApiErrorMessage(message);
+        Alert.alert(t('common.error'), message);
         return;
       }
 
-      // Create a new user
-      const newUser = {
-        id: Date.now().toString(),
-        email: email.toLowerCase(),
-        firstName: firstName,
-        lastName: lastName,
-        phone: phone,
-        password: password, // In a real app, this should be hashed
-        provider: 'email' as const,
-        createdAt: new Date().toISOString(),
-      };
-      
-      // Save the user to storage
-      await saveUser(newUser);
-      
-      Alert.alert(
-        t('common.ok'), 
-        t('auth.successRegister'),
-        [
-          {
-            text: t('common.ok'),
-            onPress: () => router.push('/(auth)/login')
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Register error:', error);
-      Alert.alert(t('common.error'), t('errors.registerGeneric'));
+      const fallbackMessage =
+        error instanceof Error && error.message
+          ? error.message
+          : t('errors.registerGeneric');
+
+      setApiErrorMessage(fallbackMessage);
+      Alert.alert(t('common.error'), fallbackMessage);
     } finally {
       setLoading(false);
     }
@@ -138,7 +261,7 @@ export default function RegisterScreen() {
             <View style={styles.header}>
               <TouchableOpacity 
                 style={styles.backButton}
-                onPress={() => router.back()}
+                onPress={() => router.push('/(auth)/login')}
               >
                 <Ionicons name="arrow-back" size={24} color="#374151" />
               </TouchableOpacity>
@@ -153,9 +276,16 @@ export default function RegisterScreen() {
 
             {/* Register Form */}
             <View style={styles.form}>
+              {apiErrorMessage && (
+                <View style={styles.apiErrorContainer}>
+                  <Ionicons name="alert-circle" size={18} color="#B91C1C" style={styles.apiErrorIcon} />
+                  <Text style={styles.apiErrorText}>{apiErrorMessage}</Text>
+                </View>
+              )}
+
               <View style={styles.nameRow}>
                 <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-                  <Text style={styles.inputLabel}>Nombre</Text>
+                  <Text style={styles.inputLabel}>{t('auth.firstName')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder={!isFieldFocused('firstName') && !valueHasContent(formData.firstName) ? 'John' : ''}
@@ -169,7 +299,7 @@ export default function RegisterScreen() {
                 </View>
                 
                 <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
-                  <Text style={styles.inputLabel}>Apellido</Text>
+                  <Text style={styles.inputLabel}>{t('auth.lastName')}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder={!isFieldFocused('lastName') && !valueHasContent(formData.lastName) ? 'Smith' : ''}
@@ -216,7 +346,7 @@ export default function RegisterScreen() {
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>{t('auth.password')}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, formErrors.password ? styles.inputError : undefined]}
                   placeholder={!isFieldFocused('password') && !valueHasContent(formData.password) ? '••••••••' : ''}
                   placeholderTextColor={placeholderColor}
                   value={formData.password}
@@ -226,12 +356,13 @@ export default function RegisterScreen() {
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => handleBlur('password')}
                 />
+                {formErrors.password && <Text style={styles.inputErrorText}>{formErrors.password}</Text>}
               </View>
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>{t('auth.confirmPassword')}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, formErrors.confirmPassword ? styles.inputError : undefined]}
                   placeholder={!isFieldFocused('confirmPassword') && !valueHasContent(formData.confirmPassword) ? '••••••••' : ''}
                   placeholderTextColor={placeholderColor}
                   value={formData.confirmPassword}
@@ -241,6 +372,7 @@ export default function RegisterScreen() {
                   onFocus={() => setFocusedField('confirmPassword')}
                   onBlur={() => handleBlur('confirmPassword')}
                 />
+                {formErrors.confirmPassword && <Text style={styles.inputErrorText}>{formErrors.confirmPassword}</Text>}
               </View>
 
               <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
@@ -363,6 +495,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
+  inputError: {
+    borderColor: '#F87171',
+  },
   registerButton: {
     backgroundColor: '#10B981',
     borderRadius: 12,
@@ -426,5 +561,29 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontSize: 14,
     fontWeight: '600',
+  },
+  apiErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  apiErrorIcon: {
+    marginRight: 8,
+    marginTop: 2,
+  },
+  apiErrorText: {
+    color: '#B91C1C',
+    fontSize: 14,
+    flex: 1,
+  },
+  inputErrorText: {
+    color: '#B91C1C',
+    fontSize: 12,
+    marginTop: 6,
   },
 });

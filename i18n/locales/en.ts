@@ -5,6 +5,8 @@ export default {
     error: 'Error',
   },
   auth: {
+    firstName: 'First Name',
+    lastName: 'Last Name',
     appName: 'Mordobo',
     welcomeBack: 'Welcome back!',
     signInToContinue: 'Sign in to continue',
@@ -32,6 +34,7 @@ export default {
     soonApple: 'Apple Sign-In will be available soon. Please use email login for now.',
     successLogin: 'Login successful!',
     successRegister: 'Account created successfully! You can now sign in.',
+    registrationSuccessLogin: 'You are all set! Sign in with your new account.',
   },
   errors: {
     fillAllFields: 'Please complete all fields',
@@ -39,6 +42,7 @@ export default {
     passwordMin: 'Password must be at least 8 characters',
     invalidEmail: 'Please enter a valid email address',
     emailExists: 'An account with this email already exists',
+    phoneExists: 'An account with this phone number already exists',
     loginFailed: 'Incorrect email/phone or password',
     loginGeneric: 'Error while signing in',
     registerGeneric: 'Error while creating the account',
