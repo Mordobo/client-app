@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 // import { GoogleSignin } from '@react-native-google-signin/google-signin';
 // import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,11 +29,39 @@ export default function LoginScreen() {
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false);
   const [identifierFocused, setIdentifierFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
+  const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
   const { login } = useAuth();
+  const params = useLocalSearchParams<{ registered?: string }>();
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const trimmedIdentifier = identifier.trim();
   const canSubmit = valueHasContent(identifier) && password.length >= 8;
   const isButtonEnabled = canSubmit && !loading;
+
+  useEffect(() => {
+    if (!consumedRegistrationParam && params?.registered) {
+      setShowRegistrationSuccess(true);
+      setConsumedRegistrationParam(true);
+
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+
+      successTimeoutRef.current = setTimeout(() => {
+        setShowRegistrationSuccess(false);
+        successTimeoutRef.current = null;
+      }, 4000);
+    }
+  }, [consumedRegistrationParam, params]);
+
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleCredentialsLogin = async () => {
     if (!trimmedIdentifier || !password) {
@@ -108,6 +136,13 @@ export default function LoginScreen() {
               <Text style={styles.appName}>{t('auth.appName')}</Text>
             </View>
           </View>
+
+          {showRegistrationSuccess && (
+            <View style={styles.successToast}>
+              <Ionicons name="checkmark-circle" size={18} color="#047857" style={styles.successIcon} />
+              <Text style={styles.successText}>{t('auth.registrationSuccessLogin')}</Text>
+            </View>
+          )}
 
           {/* Login Form */}
           <View style={styles.form}>
@@ -274,6 +309,26 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 32,
+  },
+  successToast: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  successIcon: {
+    marginRight: 8,
+  },
+  successText: {
+    color: '#047857',
+    fontSize: 13,
+    fontWeight: '600',
   },
   inputContainer: {
     marginBottom: 20,
