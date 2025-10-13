@@ -36,14 +36,16 @@
 4. Create OAuth 2.0 credentials:
    - Type: Mobile application
    - Platform: Android/iOS
-5. Update `config/google-signin.ts`:
-   ```typescript
-   webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com'
+5. Define the following environment variables (e.g. in your `.env` file or shell). The same web client ID is used for the web flow:
+   ```bash
+   EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID="your-web-client-id.apps.googleusercontent.com"
+   EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID="com.googleusercontent.apps.your-ios-client-id"
+   EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID="your-android-client-id.apps.googleusercontent.com"
+   EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME="com.googleusercontent.apps.your-ios-client-id"
+   EXPO_PUBLIC_API_URL="https://<your-backend>"
    ```
-6. Update your Expo config (app.json or app.config.js):
-   ```json
-   "iosUrlScheme": "com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID"
-   ```
+6. Rebuild or restart Expo so the new config takes effect. The app now configures Google Sign-In automatically through `config/google-signin.ts` and enables the web flow with `expo-auth-session`.
+7. For web builds, add `http://localhost:19006` (or your domain) as an **Authorized JavaScript origin** in Google Cloud for the same OAuth Client ID.
 
 ### 2. Facebook Login
 
@@ -100,6 +102,6 @@ The design follows the reference screens aesthetics:
 1. Run the app: `npx expo start`
 2. The app will show the login screen automatically
 3. Register a user, then log in with those credentials
-4. Social buttons are configured but require real credentials
+4. Google Sign-In works on Android/iOS with the native module and on the web thanks to `expo-auth-session`, as long as your backend validates the returned `idToken`.
 5. After login, you'll see the main screen with user info
 6. Use the "Logout" button to go back to login

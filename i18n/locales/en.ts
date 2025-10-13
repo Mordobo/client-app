@@ -47,6 +47,28 @@ export default {
     loginGeneric: 'Error while signing in',
     registerGeneric: 'Error while creating the account',
     logoutGeneric: 'Error while signing out',
+    requestFailedStatus: 'Request failed with status {{status}}',
+    unexpectedResponse: 'Unexpected response from server.',
+    googleLoginGeneric: 'Unable to continue with Google. Please try again.',
+    googleMissingIdToken: 'We could not verify your Google account. Try again.',
+    googlePlayServices: 'Google Play Services are required to use Google Sign-In.',
+    googleUnavailable: 'Google Sign-In is not available in this build. Install a dev client with the native module.',
+  },
+  warnings: {
+    googleSignInModuleUnavailable:
+      '[GoogleSignIn] Module not available. Are you running a native build with the plugin configured?',
+    googleSignInMissingWebClientId:
+      '[GoogleSignIn] Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Google Sign-In will not work until you configure it.',
+    googleSignInWebPersistStateFailed: '[GoogleSignIn][web] Failed to persist OAuth state',
+    googleSignInWebReadStateFailed: '[GoogleSignIn][web] Failed to read OAuth state',
+    googleSignInWebClearStateFailed: '[GoogleSignIn][web] Failed to clear OAuth state',
+    googleSignInWebPersistResultFailed: '[GoogleSignIn][web] Failed to persist OAuth result',
+    googleSignInWebReadResultFailed: '[GoogleSignIn][web] Failed to read stored OAuth result',
+    googleSignInWebClearHashFailed: '[GoogleSignIn][web] Failed to clear auth hash from URL',
+    googleSignInWebDecodeIdTokenFailed: '[GoogleSignIn][web] Failed to decode ID token payload',
+    googleSignInWebFetchUserInfoFailed: '[GoogleSignIn][web] Failed to fetch user info',
+    googleSignInWebClosePopupFailed: '[GoogleSignIn][web] Failed to close popup window automatically.',
+    googleSignInWebPopupBlocked: '[GoogleSignIn][web] Popup blocked. Redirecting current window instead.',
   },
   home: {
     location: 'Santo Domingo',
