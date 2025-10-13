@@ -47,6 +47,28 @@ export default {
     loginGeneric: 'Error al iniciar sesión',
     registerGeneric: 'Error al crear la cuenta',
     logoutGeneric: 'Error al cerrar sesión',
+    requestFailedStatus: 'La solicitud falló con el estado {{status}}',
+    unexpectedResponse: 'Respuesta inesperada del servidor.',
+    googleLoginGeneric: 'No pudimos continuar con Google. Intenta de nuevo.',
+    googleMissingIdToken: 'No pudimos verificar tu cuenta de Google. Intenta nuevamente.',
+    googlePlayServices: 'Necesitas Google Play Services para usar el inicio de sesión con Google.',
+    googleUnavailable: 'El inicio de sesión con Google no está disponible en este build. Instala un cliente nativo con el módulo incluido.',
+  },
+  warnings: {
+    googleSignInModuleUnavailable:
+      '[GoogleSignIn] Módulo no disponible. ¿Estás ejecutando un build nativo con el plugin configurado?',
+    googleSignInMissingWebClientId:
+      '[GoogleSignIn] Falta la variable EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. El login con Google no funcionará hasta configurarla.',
+    googleSignInWebPersistStateFailed: '[GoogleSignIn][web] No se pudo guardar el estado de OAuth',
+    googleSignInWebReadStateFailed: '[GoogleSignIn][web] No se pudo leer el estado de OAuth',
+    googleSignInWebClearStateFailed: '[GoogleSignIn][web] No se pudo limpiar el estado de OAuth',
+    googleSignInWebPersistResultFailed: '[GoogleSignIn][web] No se pudo guardar el resultado de OAuth',
+    googleSignInWebReadResultFailed: '[GoogleSignIn][web] No se pudo leer el resultado almacenado de OAuth',
+    googleSignInWebClearHashFailed: '[GoogleSignIn][web] No se pudo limpiar el hash de autenticación en la URL',
+    googleSignInWebDecodeIdTokenFailed: '[GoogleSignIn][web] No se pudo decodificar el ID token',
+    googleSignInWebFetchUserInfoFailed: '[GoogleSignIn][web] No se pudo obtener la información del usuario',
+    googleSignInWebClosePopupFailed: '[GoogleSignIn][web] No se pudo cerrar automáticamente la ventana emergente.',
+    googleSignInWebPopupBlocked: '[GoogleSignIn][web] La ventana emergente fue bloqueada. Redirigiendo la ventana actual.',
   },
   home: {
     location: 'Santo Domingo',

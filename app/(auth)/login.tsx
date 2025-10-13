@@ -1,23 +1,34 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { t } from '@/i18n';
+import { ApiError } from '@/services/auth';
+import { type GoogleProfile } from '@/utils/authMapping';
+import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
-  View,
+  consumePendingGoogleWebResult,
+  getGoogleSignin,
+  getGoogleStatusCodes,
+  isGoogleSignInAvailable,
+  isGoogleWebAvailable,
+  signInWithGoogleWeb,
+  WEB_RESULT_STORAGE_KEY,
+  type GoogleGetTokensResponse,
+} from '@/utils/googleSignIn';
+import { validateUser } from '@/utils/userStorage';
+import { Ionicons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
-// import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext';
-import { validateUser } from '@/utils/userStorage';
-import { t } from '@/i18n';
 
 const valueHasContent = (text: string) => text.trim().length > 0;
 
@@ -25,6 +36,7 @@ export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPasswordTooltip, setShowPasswordTooltip] = useState(false);
   const [identifierFocused, setIdentifierFocused] = useState(false);
@@ -33,11 +45,134 @@ export default function LoginScreen() {
   const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
   const { login } = useAuth();
   const params = useLocalSearchParams<{ registered?: string }>();
-  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const googleSignin = getGoogleSignin();
+  const googleStatusCodes = getGoogleStatusCodes();
+  const nativeGoogleSupported = isGoogleSignInAvailable() && !!googleSignin && !!googleStatusCodes;
+  const webGoogleSupported = isGoogleWebAvailable();
+  console.log('[GoogleLogin] Computed web support:', {
+    platform: Platform.OS,
+    webGoogleSupported,
+    nativeGoogleSupported,
+  });
+  const isGoogleSupported = Platform.OS === 'web' ? webGoogleSupported : nativeGoogleSupported;
 
   const trimmedIdentifier = identifier.trim();
   const canSubmit = valueHasContent(identifier) && password.length >= 8;
   const isButtonEnabled = canSubmit && !loading;
+
+  const handleGoogleError = useCallback((error: unknown) => {
+    if (error instanceof ApiError) {
+      const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
+      Alert.alert(t('common.error'), message);
+      return;
+    }
+
+    if (error instanceof Error) {
+      switch (error.message) {
+        case 'google-web-signin-cancelled':
+          return;
+        case 'google-web-missing-id-token':
+        case 'google-missing-id-token':
+          Alert.alert(t('common.error'), t('errors.googleMissingIdToken'));
+          return;
+        case 'google-web-state-mismatch':
+          Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
+          return;
+        case 'google-missing-web-client-id':
+        case 'google-web-not-supported':
+          Alert.alert(t('common.error'), t('errors.googleUnavailable'));
+          return;
+        default:
+          Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
+          return;
+      }
+    }
+
+    Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
+  }, []);
+
+  const finalizeGoogleLogin = useCallback(
+    async (profile: GoogleProfile, tokens: GoogleAuthTokens) => {
+      console.log('[GoogleLogin] Finalizing Google login', {
+        email: profile.email,
+        hasIdToken: !!tokens.idToken,
+        hasAccessToken: !!tokens.accessToken,
+      });
+      const userData = await registerGoogleAccountOrFallback(profile, tokens);
+      console.log('[GoogleLogin] registerGoogleAccountOrFallback resolved', {
+        userId: userData.id,
+        provider: userData.provider,
+      });
+      await login(userData);
+      router.replace('/(tabs)/home');
+    },
+    [login]
+  );
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      console.log('[GoogleLogin] Skipping pending web result because platform is', Platform.OS);
+      return;
+    }
+
+    let isMounted = true;
+
+    const maybeConsumePendingLogin = async () => {
+      try {
+        const pendingResult = await consumePendingGoogleWebResult();
+        console.log('[GoogleLogin] Pending result from redirect:', pendingResult);
+        if (!pendingResult || !isMounted) {
+          if (!pendingResult) {
+            console.log('[GoogleLogin] No pending Google result detected in URL hash.');
+          }
+          return;
+        }
+        setGoogleLoading(true);
+        const profile: GoogleProfile = {
+          id: pendingResult.user.id,
+          email: pendingResult.user.email,
+          name: pendingResult.user.name,
+          givenName: pendingResult.user.givenName,
+          familyName: pendingResult.user.familyName,
+          photo: pendingResult.user.photo,
+        };
+        const tokens: GoogleAuthTokens = {
+          idToken: pendingResult.idToken,
+          accessToken: pendingResult.accessToken,
+        };
+        await finalizeGoogleLogin(profile, tokens);
+      } catch (error) {
+        if (isMounted) {
+          handleGoogleError(error);
+        }
+      } finally {
+        if (isMounted) {
+          setGoogleLoading(false);
+        }
+      }
+    };
+
+    void maybeConsumePendingLogin();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === WEB_RESULT_STORAGE_KEY && event.newValue) {
+        console.log('[GoogleLogin] Storage event detected for Google OAuth result. Retrying consumption.');
+        void maybeConsumePendingLogin();
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorage);
+    }
+
+    return () => {
+      isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorage);
+      }
+    };
+  }, [finalizeGoogleLogin, handleGoogleError]);
 
   useEffect(() => {
     if (!consumedRegistrationParam && params?.registered) {
@@ -112,7 +247,109 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonGoogle'));
+    console.log('[GoogleLogin] Platform:', Platform.OS, 'isGoogleWebAvailable:', webGoogleSupported, 'isGoogleSupported:', isGoogleSupported);
+    if (Platform.OS === 'web') {
+      setGoogleLoading(true);
+      try {
+        const result = await signInWithGoogleWeb();
+        console.log('[GoogleLogin] signInWithGoogleWeb result:', result);
+        if (!result) {
+          console.log('[GoogleLogin] Web flow initiated; waiting for storage event.');
+          return;
+        }
+        const profile: GoogleProfile = {
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          givenName: result.user.givenName,
+          familyName: result.user.familyName,
+          photo: result.user.photo,
+        };
+        const tokens: GoogleAuthTokens = {
+          idToken: result.idToken,
+          accessToken: result.accessToken,
+        };
+        await finalizeGoogleLogin(profile, tokens);
+      } catch (error) {
+        handleGoogleError(error);
+      } finally {
+        setGoogleLoading(false);
+      }
+      return;
+    }
+
+    if (!googleSignin || !googleStatusCodes) {
+      Alert.alert(t('common.error'), t('errors.googleUnavailable'));
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      await googleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const signInResponse = await googleSignin.signIn();
+
+      if (signInResponse.type !== 'success') {
+        return;
+      }
+
+      const googleUser = signInResponse.data.user;
+      let tokens: GoogleGetTokensResponse | null = null;
+      try {
+        tokens = await googleSignin.getTokens();
+      } catch (tokenError) {
+        console.warn('Google getTokens error:', tokenError);
+      }
+      const idToken = tokens?.idToken ?? signInResponse.data.idToken ?? undefined;
+      const accessToken = tokens?.accessToken;
+
+      if (!idToken) {
+        throw new Error('google-missing-id-token');
+      }
+
+      const profile: GoogleProfile = {
+        id: googleUser.id,
+        email: googleUser.email,
+        name: googleUser.name,
+        givenName: googleUser.givenName,
+        familyName: googleUser.familyName,
+        photo: googleUser.photo,
+      };
+      const tokensBundle: GoogleAuthTokens = {
+        idToken,
+        accessToken,
+      };
+      await finalizeGoogleLogin(profile, tokensBundle);
+    } catch (error) {
+      if (typeof error === 'object' && error && 'code' in error) {
+        const code = String((error as { code?: unknown }).code ?? '');
+        if (
+          code === googleStatusCodes.SIGN_IN_CANCELLED ||
+          code === googleStatusCodes.IN_PROGRESS
+        ) {
+          return;
+        }
+        if (code === googleStatusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          Alert.alert(t('common.error'), t('errors.googlePlayServices'));
+          return;
+        }
+      }
+
+      if (error instanceof ApiError) {
+        const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
+        Alert.alert(t('common.error'), message);
+        return;
+      }
+
+      if (error instanceof Error && error.message === 'google-missing-id-token') {
+        Alert.alert(t('common.error'), t('errors.googleMissingIdToken'));
+        return;
+      }
+
+      //console.error('Google login error:', error);
+      Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   const handleFacebookLogin = async () => {
@@ -239,19 +476,33 @@ export default function LoginScreen() {
 
           {/* Social Login Buttons */}
           <View style={styles.socialContainer}>
-            <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
-              <Ionicons name="logo-google" size={24} color="#DB4437" />
-              <Text style={styles.socialButtonText}>{t('auth.google')}</Text>
+            <TouchableOpacity
+              style={styles.socialButton}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading || !isGoogleSupported}
+            >
+              {googleLoading ? (
+                <ActivityIndicator color="#DB4437" />
+              ) : (
+                <View style={styles.socialButtonContent}>
+                  <Ionicons name="logo-google" size={24} color="#DB4437" />
+                  <Text style={styles.socialButtonText}>{t('auth.google')}</Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-              <Ionicons name="logo-facebook" size={24} color="#4267B2" />
-              <Text style={styles.socialButtonText}>{t('auth.facebook')}</Text>
+              <View style={styles.socialButtonContent}>
+                <Ionicons name="logo-facebook" size={24} color="#4267B2" />
+                <Text style={styles.socialButtonText}>{t('auth.facebook')}</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-              <Ionicons name="logo-apple" size={24} color="#111827" />
-              <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
+              <View style={styles.socialButtonContent}>
+                <Ionicons name="logo-apple" size={24} color="#111827" />
+                <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -446,6 +697,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  socialButtonContent: {
+    alignItems: 'center',
   },
   socialButtonText: {
     marginTop: 8,

@@ -6,7 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-// import { initializeGoogleSignIn } from '@/config/google-signin';
+import { initializeGoogleSignIn } from '@/config/google-signin';
 import { useEffect } from 'react';
 
 export const unstable_settings = {
@@ -51,9 +51,9 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  // useEffect(() => {
-  //   initializeGoogleSignIn();
-  // }, []);
+  useEffect(() => {
+    initializeGoogleSignIn();
+  }, []);
 
   return (
     <AuthProvider>

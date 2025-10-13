@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getGoogleSignin } from '@/utils/googleSignIn';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   firstName: string;
@@ -9,6 +10,8 @@ interface User {
   phone?: string;
   avatar?: string;
   provider?: 'email' | 'google' | 'facebook' | 'apple';
+  authToken?: string;
+  refreshToken?: string;
 }
 
 interface AuthContextType {
@@ -77,6 +80,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
+      const currentUser = user;
+      if (currentUser?.provider === 'google') {
+        const GoogleSignin = getGoogleSignin();
+        try {
+          if (GoogleSignin) {
+            await GoogleSignin.signOut();
+          } else {
+            console.warn('[Auth] Google Sign-In module not available during logout. Skipping native sign-out.');
+          }
+        } catch (googleError) {
+          console.warn('Error signing out from Google:', googleError);
+        }
+      }
       setUser(null);
       await AsyncStorage.removeItem('user');
     } catch (error) {
