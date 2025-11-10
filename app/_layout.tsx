@@ -7,7 +7,8 @@ import { ActivityIndicator, View } from 'react-native';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { initializeGoogleSignIn } from '@/config/google-signin';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import CustomSplashScreen from '@/components/SplashScreen';
 
 export const unstable_settings = {
   anchor: '(auth)',
@@ -51,9 +52,15 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+
   useEffect(() => {
     initializeGoogleSignIn();
   }, []);
+
+  if (isSplashVisible) {
+    return <CustomSplashScreen onFinish={() => setIsSplashVisible(false)} />;
+  }
 
   return (
     <AuthProvider>
