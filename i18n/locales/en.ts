@@ -35,6 +35,11 @@ export default {
     successLogin: 'Login successful!',
     successRegister: 'Account created successfully! You can now sign in.',
     registrationSuccessLogin: 'You are all set! Sign in with your new account.',
+    enterVerificationCode: 'Enter Verification Code',
+    verificationCodeSent: "We've sent a code to your email",
+    verifyAccount: 'Verify Account',
+    resendCode: 'Resend code',
+    resendIn: 'Resend in',
   },
   errors: {
     fillAllFields: 'Please complete all fields',
@@ -53,6 +58,8 @@ export default {
     googleMissingIdToken: 'We could not verify your Google account. Try again.',
     googlePlayServices: 'Google Play Services are required to use Google Sign-In.',
     googleUnavailable: 'Google Sign-In is not available in this build. Install a dev client with the native module.',
+    invalidVerificationCode: 'Invalid verification code. Please try again.',
+    verificationFailed: 'Verification failed. Please try again.',
   },
   warnings: {
     googleSignInModuleUnavailable:
@@ -69,6 +76,11 @@ export default {
     googleSignInWebFetchUserInfoFailed: '[GoogleSignIn][web] Failed to fetch user info',
     googleSignInWebClosePopupFailed: '[GoogleSignIn][web] Failed to close popup window automatically.',
     googleSignInWebPopupBlocked: '[GoogleSignIn][web] Popup blocked. Redirecting current window instead.',
+  },
+  splash: {
+    tagline1: 'At-home',
+    tagline2: 'services made',
+    tagline3: 'easy',
   },
   home: {
     location: 'Santo Domingo',

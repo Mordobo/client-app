@@ -35,6 +35,11 @@ export default {
     successLogin: '¡Inicio de sesión exitoso!',
     successRegister: '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.',
     registrationSuccessLogin: '¡Listo! Inicia sesión con tu nueva cuenta.',
+    enterVerificationCode: 'Ingresa el Código de Verificación',
+    verificationCodeSent: 'Hemos enviado un código a tu email',
+    verifyAccount: 'Verificar Cuenta',
+    resendCode: 'Reenviar código',
+    resendIn: 'Reenviar en',
   },
   errors: {
     fillAllFields: 'Por favor completa todos los campos',
@@ -53,6 +58,8 @@ export default {
     googleMissingIdToken: 'No pudimos verificar tu cuenta de Google. Intenta nuevamente.',
     googlePlayServices: 'Necesitas Google Play Services para usar el inicio de sesión con Google.',
     googleUnavailable: 'El inicio de sesión con Google no está disponible en este build. Instala un cliente nativo con el módulo incluido.',
+    invalidVerificationCode: 'Código de verificación inválido. Por favor intenta de nuevo.',
+    verificationFailed: 'La verificación falló. Por favor intenta de nuevo.',
   },
   warnings: {
     googleSignInModuleUnavailable:
@@ -69,6 +76,11 @@ export default {
     googleSignInWebFetchUserInfoFailed: '[GoogleSignIn][web] No se pudo obtener la información del usuario',
     googleSignInWebClosePopupFailed: '[GoogleSignIn][web] No se pudo cerrar automáticamente la ventana emergente.',
     googleSignInWebPopupBlocked: '[GoogleSignIn][web] La ventana emergente fue bloqueada. Redirigiendo la ventana actual.',
+  },
+  splash: {
+    tagline1: 'Servicios',
+    tagline2: 'a domicilio',
+    tagline3: 'fáciles',
   },
   home: {
     location: 'Santo Domingo',

@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
-import { ApiError } from '@/services/auth';
+import { ApiError, loginWithCredentials } from '@/services/auth';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
@@ -13,7 +13,6 @@ import {
   WEB_RESULT_STORAGE_KEY,
   type GoogleGetTokensResponse,
 } from '@/utils/googleSignIn';
-import { validateUser } from '@/utils/userStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -213,22 +212,32 @@ export default function LoginScreen() {
     setErrorMessage(null);
     setShowPasswordTooltip(false);
     try {
-      // Validate credentials against registered users
-      const user = await validateUser(trimmedIdentifier, password);
-
-      if (!user) {
-        setErrorMessage(t('errors.loginFailed'));
-        return;
-      }
+      // Determine if identifier is email or phone
+      const isEmail = trimmedIdentifier.includes('@');
       
-      // Log in with the user data
+      // Call API to validate credentials
+      const loginPayload = isEmail
+        ? { email: trimmedIdentifier, password }
+        : { phoneNumber: trimmedIdentifier, password };
+
+      const apiResponse = await loginWithCredentials(loginPayload);
+      
+      // Map API response to user data
+      const apiUser = apiResponse.user;
+      const fullName = apiUser.full_name || '';
+      const nameParts = fullName.split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       const userData = {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phone,
-        provider: user.provider,
+        id: apiUser.id,
+        email: apiUser.email,
+        firstName,
+        lastName,
+        phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
+        provider: 'email' as const,
+        authToken: apiResponse.token,
+        refreshToken: apiResponse.refreshToken,
       };
 
       await login(userData);
@@ -236,11 +245,26 @@ export default function LoginScreen() {
       setErrorMessage(null);
       setShowPasswordTooltip(false);
 
-      // Explicit redirect to the main screen
-      router.replace('/(tabs)/home');
+      // Redirect to verification screen after successful login
+      router.replace({
+        pathname: '/(auth)/verify',
+        params: { email: userData.email },
+      });
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert(t('common.error'), t('errors.loginGeneric'));
+      
+      if (error instanceof ApiError) {
+        // Handle API errors
+        if (error.status === 401 || error.status === 404) {
+          setErrorMessage(t('errors.loginFailed'));
+        } else {
+          const errorMessage = error.message || t('errors.loginGeneric');
+          setErrorMessage(errorMessage);
+          Alert.alert(t('common.error'), errorMessage);
+        }
+      } else {
+        Alert.alert(t('common.error'), t('errors.loginGeneric'));
+      }
     } finally {
       setLoading(false);
     }

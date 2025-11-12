@@ -150,6 +150,46 @@ export interface GoogleLoginPayload {
   deviceId?: string;
 }
 
+export interface LoginPayload {
+  email?: string;
+  phoneNumber?: string;
+  password: string;
+}
+
+export interface LoginResponse extends AuthSuccessResponse {
+  user: RegisterResponseUser;
+  token?: string;
+  refreshToken?: string;
+}
+
+export const loginWithCredentials = async (
+  payload: LoginPayload
+): Promise<LoginResponse> => {
+  const body: Record<string, unknown> = {
+    password: payload.password,
+  };
+
+  if (payload.email) {
+    body.email = payload.email.trim().toLowerCase();
+  }
+
+  if (payload.phoneNumber) {
+    body.phone_number = payload.phoneNumber.trim();
+  }
+
+  return request<LoginResponse>(
+    '/auth/login',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.loginGeneric')
+  );
+};
+
 export const loginWithGoogle = async (
   payload: GoogleLoginPayload
 ): Promise<AuthSuccessResponse> => {
