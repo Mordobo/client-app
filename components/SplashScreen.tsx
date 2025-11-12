@@ -1,6 +1,7 @@
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { t } from '@/i18n';
 
 // Keep the native splash screen visible while we load the app
 SplashScreen.preventAutoHideAsync();
@@ -49,9 +50,9 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
 
         {/* Tagline */}
         <View style={styles.taglineContainer}>
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>At-home</Text>
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>services made</Text>
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>easy</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>{t('splash.tagline1')}</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>{t('splash.tagline2')}</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>{t('splash.tagline3')}</Text>
         </View>
       </View>
     </Animated.View>
