@@ -1,15 +1,15 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import {
+    Alert,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -38,7 +38,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>{t('profile.title')}</Text>
       </View>
       
       <View style={styles.content}>
@@ -52,26 +52,26 @@ export default function ProfileScreen() {
             {user.phone && (
               <Text style={styles.userPhone}>{user.phone}</Text>
             )}
-            <Text style={styles.userProvider}>Provider: {user.provider}</Text>
+            <Text style={styles.userProvider}>{t('profile.provider')}: {user.provider}</Text>
           </View>
         )}
 
         <View style={styles.menuContainer}>
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="person-outline" size={24} color="#374151" />
-            <Text style={styles.menuText}>Edit Profile</Text>
+            <Text style={styles.menuText}>{t('profile.editProfile')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#6B7280" />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="settings-outline" size={24} color="#374151" />
-            <Text style={styles.menuText}>Settings</Text>
+            <Text style={styles.menuText}>{t('profile.settings')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#6B7280" />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
             <Ionicons name="help-circle-outline" size={24} color="#374151" />
-            <Text style={styles.menuText}>Help</Text>
+            <Text style={styles.menuText}>{t('profile.help')}</Text>
             <Ionicons name="chevron-forward" size={20} color="#6B7280" />
           </TouchableOpacity>
         </View>

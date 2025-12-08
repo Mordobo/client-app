@@ -1,18 +1,18 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { t } from '@/i18n';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import {
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 export default function HomeScreen() {
   const { user, logout } = useAuth();
@@ -23,14 +23,14 @@ export default function HomeScreen() {
   };
 
   const serviceCategories = [
-    { id: 1, name: 'Cleaning', icon: 'broom', color: '#3B82F6' },
-    { id: 2, name: 'Plumbing', icon: 'construct', color: '#6B7280' },
-    { id: 3, name: 'Car Wash', icon: 'car', color: '#3B82F6' },
-    { id: 4, name: 'Haircut', icon: 'cut', color: '#EC4899' },
-    { id: 5, name: 'Electrical', icon: 'flash', color: '#F59E0B' },
-    { id: 6, name: 'Painting', icon: 'car', color: '#F97316' },
-    { id: 7, name: 'Moving', icon: 'home', color: '#A78BFA' },
-    { id: 8, name: 'Appliance Repair', icon: 'settings', color: '#6B7280' },
+    { id: 1, nameKey: 'cleaning', icon: 'broom', color: '#3B82F6' },
+    { id: 2, nameKey: 'plumbing', icon: 'construct', color: '#6B7280' },
+    { id: 3, nameKey: 'carWash', icon: 'car', color: '#3B82F6' },
+    { id: 4, nameKey: 'haircut', icon: 'cut', color: '#EC4899' },
+    { id: 5, nameKey: 'electrical', icon: 'flash', color: '#F59E0B' },
+    { id: 6, nameKey: 'painting', icon: 'car', color: '#F97316' },
+    { id: 7, nameKey: 'moving', icon: 'home', color: '#A78BFA' },
+    { id: 8, nameKey: 'applianceRepair', icon: 'settings', color: '#6B7280' },
   ];
 
   const upcomingAppointments = [
@@ -87,7 +87,7 @@ export default function HomeScreen() {
                 <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
                   <Ionicons name={category.icon as any} size={24} color="white" />
                 </View>
-                <Text style={styles.categoryText}>{category.name}</Text>
+                <Text style={styles.categoryText}>{t(`home.serviceCategories.${category.nameKey}`)}</Text>
               </TouchableOpacity>
             ))}
           </View>

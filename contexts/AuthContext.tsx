@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { refreshTokens, setTokenUpdateCallback } from '@/services/auth';
 import { getGoogleSignin } from '@/utils/googleSignIn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,7 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error(t('errors.useAuthHookError'));
   }
   return context;
 };
