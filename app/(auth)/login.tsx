@@ -38,7 +38,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showPasswordTooltip, setShowPasswordTooltip] = useState(false);
   const [identifierFocused, setIdentifierFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
@@ -211,7 +210,6 @@ export default function LoginScreen() {
 
     setLoading(true);
     setErrorMessage(null);
-    setShowPasswordTooltip(false);
     try {
       // Determine if identifier is email or phone
       const isEmail = trimmedIdentifier.includes('@');
@@ -272,7 +270,6 @@ export default function LoginScreen() {
       }
       
       setErrorMessage(null);
-      setShowPasswordTooltip(false);
     } catch (error) {
       console.error('Login error:', error);
       
@@ -414,12 +411,8 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Text style={styles.appName}>{t('auth.appName')}</Text>
-            </View>
-          </View>
+          {/* Title */}
+          <Text style={styles.title}>{t('auth.loginTitle')}</Text>
 
           {showRegistrationSuccess && (
             <View style={styles.successToast}>
@@ -431,10 +424,10 @@ export default function LoginScreen() {
           {/* Login Form */}
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>{t('auth.emailOrPhone')}</Text>
+              <Text style={styles.inputLabel}>{t('auth.email')}</Text>
               <TextInput
                 style={[styles.input, errorMessage ? styles.inputError : undefined]}
-                placeholder={identifierFocused ? '' : t('auth.emailOrPhone')}
+                placeholder=""
                 placeholderTextColor="rgba(55, 65, 81, 0.45)"
                 value={identifier}
                 onChangeText={(value) => {
@@ -443,7 +436,7 @@ export default function LoginScreen() {
                     setErrorMessage(null);
                   }
                 }}
-                keyboardType="default"
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 onFocus={() => setIdentifierFocused(true)}
@@ -459,35 +452,16 @@ export default function LoginScreen() {
             )}
 
             <View style={styles.inputContainer}>
-              <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>{t('auth.password')}</Text>
-                <View style={styles.tooltipWrapper}>
-                  {showPasswordTooltip && (
-                    <View style={styles.tooltipBubble}>
-                      <Text style={styles.tooltipText}>{t('errors.passwordMin')}</Text>
-                    </View>
-                  )}
-                  <TouchableOpacity
-                    style={styles.tooltipTrigger}
-                    activeOpacity={0.7}
-                    onPress={() => setShowPasswordTooltip(prev => !prev)}
-                  >
-                    <Ionicons name="information-circle-outline" size={18} color="#6B7280" />
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <Text style={styles.inputLabel}>{t('auth.password')}</Text>
               <TextInput
                 style={[styles.input, errorMessage ? styles.inputError : undefined]}
-                placeholder={passwordFocused ? '' : 'password'}
+                placeholder=""
                 placeholderTextColor="rgba(55, 65, 81, 0.45)"
                 value={password}
                 onChangeText={(value) => {
                   setPassword(value);
                   if (errorMessage) {
                     setErrorMessage(null);
-                  }
-                  if (showPasswordTooltip) {
-                    setShowPasswordTooltip(false);
                   }
                 }}
                 secureTextEntry
@@ -496,6 +470,10 @@ export default function LoginScreen() {
                 onBlur={() => setPasswordFocused(false)}
               />
             </View>
+
+            <TouchableOpacity style={styles.forgotPassword}>
+              <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.loginButton, !canSubmit ? styles.loginButtonDisabled : undefined]}
@@ -508,17 +486,6 @@ export default function LoginScreen() {
                 <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
               )}
             </TouchableOpacity>
-
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
-            <View style={styles.dividerLine} />
           </View>
 
           {/* Social Login Buttons */}
@@ -532,23 +499,16 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#DB4437" />
               ) : (
                 <View style={styles.socialButtonContent}>
-                  <Ionicons name="logo-google" size={24} color="#DB4437" />
-                  <Text style={styles.socialButtonText}>{t('auth.google')}</Text>
+                  <Ionicons name="logo-google" size={20} color="#4285F4" />
+                  <Text style={styles.socialButtonText}>{t('auth.continueWithGoogle')}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.socialButton} onPress={handleFacebookLogin}>
-              <View style={styles.socialButtonContent}>
-                <Ionicons name="logo-facebook" size={24} color="#4267B2" />
-                <Text style={styles.socialButtonText}>{t('auth.facebook')}</Text>
-              </View>
-            </TouchableOpacity>
-
             <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
               <View style={styles.socialButtonContent}>
-                <Ionicons name="logo-apple" size={24} color="#111827" />
-                <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
+                <Ionicons name="logo-apple" size={20} color="#000000" />
+                <Text style={styles.socialButtonText}>{t('auth.continueWithApple')}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -557,7 +517,7 @@ export default function LoginScreen() {
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>{t('auth.noAccount')}</Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.registerLink}>{t('auth.registerCta')}</Text>
+              <Text style={styles.registerLink}>{t('auth.signUp')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -569,7 +529,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#FFFFFF',
   },
   keyboardView: {
     flex: 1,
@@ -579,31 +539,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoIcon: {
-    marginRight: 12,
-  },
-  appName: {
-    fontSize: 28,
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 40,
   },
   form: {
     marginBottom: 32,
@@ -634,23 +575,9 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#374151',
+    color: '#000000',
     marginBottom: 8,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  tooltipWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 8,
-    flexShrink: 0,
-  },
-  tooltipTrigger: {
-    padding: 4,
-    marginLeft: 6,
+    marginLeft: 4,
   },
   input: {
     backgroundColor: 'white',
@@ -660,6 +587,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    color: '#000000',
   },
   inputError: {
     borderColor: '#EF4444',
@@ -679,23 +607,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  tooltipBubble: {
-    backgroundColor: '#1F2937',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
+  forgotPassword: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    marginBottom: 24,
+    marginLeft: 4,
   },
-  tooltipText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
+  forgotPasswordText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '400',
   },
   loginButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#3B82F6',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 32,
   },
   loginButtonDisabled: {
     opacity: 0.5,
@@ -705,67 +633,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  forgotPassword: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  forgotPasswordText: {
-    color: '#10B981',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E5E7EB',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#6B7280',
-    fontSize: 14,
-  },
   socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
     marginBottom: 32,
   },
   socialButton: {
-    flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    alignItems: 'center',
-    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   socialButtonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
   },
   socialButtonText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#374151',
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#000000',
   },
   registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    gap: 4,
   },
   registerText: {
-    color: '#6B7280',
+    color: '#000000',
     fontSize: 14,
   },
   registerLink: {
-    color: '#10B981',
+    color: '#3B82F6',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '400',
   },
 });
