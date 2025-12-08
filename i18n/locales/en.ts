@@ -47,6 +47,7 @@ export default {
     smtpNotConfiguredHint: 'SMTP not configured. Use this code to verify.',
   },
   errors: {
+    useAuthHookError: 'useAuth must be used within an AuthProvider',
     fillAllFields: 'Please complete all fields',
     passwordsDontMatch: "Passwords don't match",
     passwordMin: 'Password must be at least 8 characters',
@@ -103,5 +104,22 @@ export default {
     hello: 'Hello, {{name}}! ',
     logout: 'Sign Out',
     colorScheme: 'Color scheme',
+    serviceCategories: {
+      cleaning: 'Cleaning',
+      plumbing: 'Plumbing',
+      carWash: 'Car Wash',
+      haircut: 'Haircut',
+      electrical: 'Electrical',
+      painting: 'Painting',
+      moving: 'Moving',
+      applianceRepair: 'Appliance Repair',
+    },
+  },
+  profile: {
+    title: 'Profile',
+    editProfile: 'Edit Profile',
+    settings: 'Settings',
+    help: 'Help',
+    provider: 'Provider',
   },
 };
