@@ -25,27 +25,15 @@ const CODE_INPUT_GAP = 12;
 const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 
 export default function VerifyScreen() {
-  const params = useLocalSearchParams<{ email?: string; devCode?: string }>();
+  const params = useLocalSearchParams<{ email?: string }>();
   const { login } = useAuth();
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
-  const [devCode, setDevCode] = useState<string | null>(params.devCode || null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Load dev code from AsyncStorage on mount
-  useEffect(() => {
-    const loadDevCode = async () => {
-      const storedCode = await AsyncStorage.getItem('dev_verification_code');
-      if (storedCode) {
-        setDevCode(storedCode);
-      }
-    };
-    loadDevCode();
-  }, []);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -178,7 +166,6 @@ export default function VerifyScreen() {
       await AsyncStorage.multiRemove([
         'pending_verification_email', 
         'pending_verification_password',
-        'dev_verification_code',
       ]);
 
       // Navigate to home on success
@@ -315,14 +302,6 @@ export default function VerifyScreen() {
                 : t('auth.verificationCodeSent')
               }
             </Text>
-            {/* Development mode: Show code if SMTP not configured */}
-            {devCode && (
-              <View style={styles.devCodeContainer}>
-                <Text style={styles.devCodeLabel}>{t('auth.developmentModeCode')}</Text>
-                <Text style={styles.devCode}>{devCode}</Text>
-                <Text style={styles.devCodeHint}>{t('auth.smtpNotConfiguredHint')}</Text>
-              </View>
-            )}
           </View>
 
           {/* Code Input Fields */}
@@ -481,34 +460,6 @@ const styles = StyleSheet.create({
   resendCooldown: {
     color: '#9CA3AF',
     fontSize: 14,
-  },
-  devCodeContainer: {
-    marginTop: 20,
-    padding: 16,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FCD34D',
-    alignItems: 'center',
-  },
-  devCodeLabel: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  devCode: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#92400E',
-    letterSpacing: 4,
-    marginBottom: 4,
-  },
-  devCodeHint: {
-    fontSize: 11,
-    color: '#92400E',
-    textAlign: 'center',
-    marginTop: 4,
   },
 });
 

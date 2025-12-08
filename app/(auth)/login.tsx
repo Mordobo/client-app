@@ -225,18 +225,12 @@ export default function LoginScreen() {
         // Store email and password temporarily for resend code and verification
         await AsyncStorage.setItem('pending_verification_email', trimmedIdentifier.trim().toLowerCase());
         await AsyncStorage.setItem('pending_verification_password', password);
-        
-        // If code is returned (development mode without SMTP), store it for display
-        if (validateResponse.code) {
-          await AsyncStorage.setItem('dev_verification_code', validateResponse.code);
-        }
 
         // Redirect to verification screen
         router.replace({
           pathname: '/(auth)/verify',
           params: { 
             email: trimmedIdentifier.trim().toLowerCase(),
-            ...(validateResponse.code ? { devCode: validateResponse.code } : {}),
           },
         });
       } else {
