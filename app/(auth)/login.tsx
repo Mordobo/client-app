@@ -1,32 +1,33 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
-import { ApiError, loginWithCredentials } from '@/services/auth';
+import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
-  consumePendingGoogleWebResult,
-  getGoogleSignin,
-  getGoogleStatusCodes,
-  isGoogleSignInAvailable,
-  isGoogleWebAvailable,
-  signInWithGoogleWeb,
-  WEB_RESULT_STORAGE_KEY,
-  type GoogleGetTokensResponse,
+    consumePendingGoogleWebResult,
+    getGoogleSignin,
+    getGoogleStatusCodes,
+    isGoogleSignInAvailable,
+    isGoogleWebAvailable,
+    signInWithGoogleWeb,
+    WEB_RESULT_STORAGE_KEY,
+    type GoogleGetTokensResponse,
 } from '@/utils/googleSignIn';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const valueHasContent = (text: string) => text.trim().length > 0;
@@ -215,41 +216,63 @@ export default function LoginScreen() {
       // Determine if identifier is email or phone
       const isEmail = trimmedIdentifier.includes('@');
       
-      // Call API to validate credentials
-      const loginPayload = isEmail
-        ? { email: trimmedIdentifier, password }
-        : { phoneNumber: trimmedIdentifier, password };
+      if (isEmail) {
+        // For email login, use verification flow
+        // Call validate-email endpoint to generate and send verification code
+        const validateResponse = await validateEmail({
+          email: trimmedIdentifier,
+          password,
+        });
 
-      const apiResponse = await loginWithCredentials(loginPayload);
+        // Store email and password temporarily for resend code and verification
+        await AsyncStorage.setItem('pending_verification_email', trimmedIdentifier.trim().toLowerCase());
+        await AsyncStorage.setItem('pending_verification_password', password);
+        
+        // If code is returned (development mode without SMTP), store it for display
+        if (validateResponse.code) {
+          await AsyncStorage.setItem('dev_verification_code', validateResponse.code);
+        }
+
+        // Redirect to verification screen
+        router.replace({
+          pathname: '/(auth)/verify',
+          params: { 
+            email: trimmedIdentifier.trim().toLowerCase(),
+            ...(validateResponse.code ? { devCode: validateResponse.code } : {}),
+          },
+        });
+      } else {
+        // For phone login, use direct login (no verification)
+        const loginPayload = { phoneNumber: trimmedIdentifier, password };
+        const apiResponse = await loginWithCredentials(loginPayload);
+        
+        // Map API response to user data
+        const apiUser = apiResponse.user;
+        const fullName = apiUser.full_name || '';
+        const nameParts = fullName.split(/\s+/).filter(Boolean);
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const userData = {
+          id: apiUser.id,
+          email: apiUser.email,
+          firstName,
+          lastName,
+          phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
+          provider: 'email' as const,
+          authToken: apiResponse.token,
+          refreshToken: apiResponse.refreshToken,
+        };
+
+        await login(userData);
+        console.log('Login successful, user data:', userData);
+        
+        // Navigate to home after successful login
+        router.replace('/(tabs)/home');
+      }
       
-      // Map API response to user data
-      const apiUser = apiResponse.user;
-      const fullName = apiUser.full_name || '';
-      const nameParts = fullName.split(/\s+/).filter(Boolean);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      const userData = {
-        id: apiUser.id,
-        email: apiUser.email,
-        firstName,
-        lastName,
-        phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
-        provider: 'email' as const,
-        authToken: apiResponse.token,
-        refreshToken: apiResponse.refreshToken,
-      };
-
-      await login(userData);
-      console.log('Login successful, user data:', userData);
       setErrorMessage(null);
       setShowPasswordTooltip(false);
-
-      // Redirect to verification screen after successful login
-      router.replace({
-        pathname: '/(auth)/verify',
-        params: { email: userData.email },
-      });
     } catch (error) {
       console.error('Login error:', error);
       

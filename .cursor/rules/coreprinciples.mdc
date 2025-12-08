@@ -1,0 +1,6 @@
+---
+name: Core Principles
+alwaysApply: true
+---
+Always follow KISS (Keep It Simple), YAGNI (You Aren't Gonna Need It), and DRY (Don't Repeat Yourself) principles.
+Prioritize simplicity over complexity. Implement only what's necessary. Avoid over-engineering.

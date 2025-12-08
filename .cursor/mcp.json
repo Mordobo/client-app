@@ -6,6 +6,59 @@
       "headers": {
         "nonce": "7a6ba1e0-1f15-4d68-90df-3a71371f2694"
       }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/mcp-chrome-devtools"
+      ]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=uhrqekrzzpmrmwcoxdqj"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_c43d0ea70a0a4239fc8a3e3068531706eb31a0fc"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN"
+      }
+    },
+    "openapi": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@reapi/mcp-openapi"
+      ],
+      "env": {
+        "OPENAPI_SPEC_URL": "YOUR_OPENAPI_SPEC_URL"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo"
+      ]
+    },
+    "filesystem-api": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API"
+      ]
     }
   }
 }

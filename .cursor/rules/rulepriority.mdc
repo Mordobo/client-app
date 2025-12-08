@@ -1,0 +1,19 @@
+---
+name: Rule Priority & CLAUDE.md
+alwaysApply: true
+---
+CLAUDE.md files have the HIGHEST priority. Hierarchy:
+
+1. CLAUDE.md rules (highest priority) - This document has absolute precedence
+2. Configuration files - package.json, app.json, tsconfig.json, .env
+3. Project structure - Respect established folder organization
+4. Project conventions - Patterns established in existing code
+5. General best practices - React Native, Expo, TypeScript standards
+
+When there's a conflict between sources, always follow CLAUDE.md first.
+
+CLAUDE.md files exist in:
+- Mobile: /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile/CLAUDE.md
+- API: /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API/CLAUDE.md
+
+Always consult relevant CLAUDE.md before making changes.

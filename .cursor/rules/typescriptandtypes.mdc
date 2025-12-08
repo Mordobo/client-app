@@ -1,0 +1,6 @@
+---
+name: TypeScript & Types
+alwaysApply: true
+---
+Always use TypeScript with explicit types. NEVER use 'any'. Prefer 'unknown' if necessary, then use type guards.
+Use interfaces for object shapes, types for unions and primitives. Maintain strict type safety.

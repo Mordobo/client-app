@@ -1,20 +1,23 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
+import { ApiError, resendCode, verifyCode } from '@/services/auth';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 const CODE_LENGTH = 4;
 const RESEND_COOLDOWN_SECONDS = 120; // 2 minutes
@@ -22,14 +25,27 @@ const CODE_INPUT_GAP = 12;
 const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 
 export default function VerifyScreen() {
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; devCode?: string }>();
+  const { login } = useAuth();
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [devCode, setDevCode] = useState<string | null>(params.devCode || null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load dev code from AsyncStorage on mount
+  useEffect(() => {
+    const loadDevCode = async () => {
+      const storedCode = await AsyncStorage.getItem('dev_verification_code');
+      if (storedCode) {
+        setDevCode(storedCode);
+      }
+    };
+    loadDevCode();
+  }, []);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -122,23 +138,96 @@ export default function VerifyScreen() {
       return;
     }
 
+    const email = params.email;
+    if (!email) {
+      Alert.alert(t('common.error'), t('errors.verificationFailed'));
+      router.back();
+      return;
+    }
+
     setLoading(true);
     try {
-      // TODO: Implement actual verification API call
-      // For now, simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // Simulate success - replace with actual API call
-      console.log('Verifying code:', verificationCode);
-      
-      // Navigate to home or login on success
+      // Call API to verify code
+      const apiResponse = await verifyCode({
+        email,
+        code: verificationCode,
+      });
+
+      // Map API response to user data
+      const apiUser = apiResponse.user;
+      const fullName = apiUser.full_name || '';
+      const nameParts = fullName.split(/\s+/).filter(Boolean);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
+      const userData = {
+        id: apiUser.id,
+        email: apiUser.email,
+        firstName,
+        lastName,
+        phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
+        provider: 'email' as const,
+        authToken: apiResponse.accessToken || apiResponse.token,
+        refreshToken: apiResponse.refreshToken,
+      };
+
+      // Login user
+      await login(userData);
+
+      // Clear temporary verification data
+      await AsyncStorage.multiRemove([
+        'pending_verification_email', 
+        'pending_verification_password',
+        'dev_verification_code',
+      ]);
+
+      // Navigate to home on success
       router.replace('/(tabs)/home');
     } catch (error) {
       console.error('Verification error:', error);
-      Alert.alert(t('common.error'), t('errors.verificationFailed'));
-      // Clear code on error
-      setCode(Array(CODE_LENGTH).fill(''));
-      inputRefs.current[0]?.focus();
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        status: error instanceof ApiError ? error.status : undefined,
+        data: error instanceof ApiError ? error.data : undefined,
+      });
+      
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          Alert.alert(
+            t('common.error'), 
+            t('errors.invalidVerificationCode'),
+            [
+              {
+                text: t('common.ok'),
+                onPress: () => {
+                  setCode(Array(CODE_LENGTH).fill(''));
+                  inputRefs.current[0]?.focus();
+                },
+              },
+            ]
+          );
+        } else if (error.status === 404) {
+          Alert.alert(
+            t('common.error'),
+            t('errors.userNotFound'),
+            [
+              {
+                text: t('common.ok'),
+                onPress: () => router.back(),
+              },
+            ]
+          );
+        } else {
+          const errorMessage = error.message || t('errors.verificationFailed');
+          Alert.alert(t('common.error'), errorMessage);
+          setCode(Array(CODE_LENGTH).fill(''));
+          inputRefs.current[0]?.focus();
+        }
+      } else {
+        Alert.alert(t('common.error'), t('errors.verificationFailed'));
+        setCode(Array(CODE_LENGTH).fill(''));
+        inputRefs.current[0]?.focus();
+      }
     } finally {
       setLoading(false);
     }
@@ -149,9 +238,30 @@ export default function VerifyScreen() {
       return;
     }
 
+    const email = params.email;
+    if (!email) {
+      Alert.alert(t('common.error'), t('errors.verificationFailed'));
+      return;
+    }
+
     try {
-      // TODO: Implement actual resend API call
-      console.log('Resending verification code to:', params.email);
+      // Get stored password from AsyncStorage
+      const password = await AsyncStorage.getItem('pending_verification_password');
+      
+      if (!password) {
+        Alert.alert(
+          t('common.error'),
+          t('errors.unableToResendCode')
+        );
+        router.back();
+        return;
+      }
+
+      // Call API to resend code
+      await resendCode({
+        email,
+        password,
+      });
       
       // Reset cooldown
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
@@ -161,10 +271,19 @@ export default function VerifyScreen() {
       setCode(Array(CODE_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
       
-      Alert.alert(t('common.ok'), 'Verification code sent!');
+      Alert.alert(t('common.ok'), t('auth.verificationCodeSent'));
     } catch (error) {
       console.error('Resend error:', error);
-      Alert.alert(t('common.error'), 'Failed to resend code. Please try again.');
+      
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          Alert.alert(t('common.error'), t('errors.loginFailed'));
+        } else {
+          Alert.alert(t('common.error'), error.message || t('errors.resendCodeFailed'));
+        }
+      } else {
+        Alert.alert(t('common.error'), t('errors.resendCodeFailed'));
+      }
     }
   };
 
@@ -196,6 +315,14 @@ export default function VerifyScreen() {
                 : t('auth.verificationCodeSent')
               }
             </Text>
+            {/* Development mode: Show code if SMTP not configured */}
+            {devCode && (
+              <View style={styles.devCodeContainer}>
+                <Text style={styles.devCodeLabel}>{t('auth.developmentModeCode')}</Text>
+                <Text style={styles.devCode}>{devCode}</Text>
+                <Text style={styles.devCodeHint}>{t('auth.smtpNotConfiguredHint')}</Text>
+              </View>
+            )}
           </View>
 
           {/* Code Input Fields */}
@@ -354,6 +481,34 @@ const styles = StyleSheet.create({
   resendCooldown: {
     color: '#9CA3AF',
     fontSize: 14,
+  },
+  devCodeContainer: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    alignItems: 'center',
+  },
+  devCodeLabel: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  devCode: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#92400E',
+    letterSpacing: 4,
+    marginBottom: 4,
+  },
+  devCodeHint: {
+    fontSize: 11,
+    color: '#92400E',
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
 
