@@ -1,0 +1,21 @@
+---
+name: Cross-Repo Architecture
+alwaysApply: true
+---
+This is a multi-repository project:
+
+MOBILE (This repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile
+- Contains React Native/Expo frontend
+- mobile/services/ contains API CLIENT code (calls backend)
+- mobile/services/auth.ts calls POST /auth/login from backend
+
+API (Separate repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API
+- Contains Express.js backend
+- API/src/routes/ contains API ENDPOINTS
+- API/src/routes/auth.ts defines POST /auth/login endpoint
+
+When implementing features:
+1. Backend endpoints go in Mordobo/API/src/routes/
+2. Frontend API clients go in mobile/services/
+3. Always verify which repo you're working in before creating files
+4. Never create API endpoints in mobile/services/ - those belong in API repo

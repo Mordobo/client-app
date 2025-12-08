@@ -1,0 +1,18 @@
+---
+name: Mobile Project Structure
+alwaysApply: true
+---
+Respect the mobile project structure:
+- app/ for Expo Router routes
+- components/ for reusable UI components
+- services/ for API client services (consuming APIs from backend)
+- utils/ for utility functions
+- hooks/ for custom hooks
+- contexts/ for React Contexts
+- i18n/ for internationalization
+
+IMPORTANT: Backend APIs are in a SEPARATE repository at /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API
+- Do NOT create API endpoints in mobile/services/
+- mobile/services/ contains CLIENT code that calls the backend APIs
+- Backend API endpoints belong in Mordobo/API/src/routes/
+Place files in the correct folders according to their purpose.

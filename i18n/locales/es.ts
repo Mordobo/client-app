@@ -40,6 +40,8 @@ export default {
     verifyAccount: 'Verificar Cuenta',
     resendCode: 'Reenviar código',
     resendIn: 'Reenviar en',
+    developmentModeCode: 'Modo desarrollo - Código:',
+    smtpNotConfiguredHint: 'SMTP no configurado. Usa este código para verificar.',
   },
   errors: {
     fillAllFields: 'Por favor completa todos los campos',
@@ -60,6 +62,9 @@ export default {
     googleUnavailable: 'El inicio de sesión con Google no está disponible en este build. Instala un cliente nativo con el módulo incluido.',
     invalidVerificationCode: 'Código de verificación inválido. Por favor intenta de nuevo.',
     verificationFailed: 'La verificación falló. Por favor intenta de nuevo.',
+    userNotFound: 'Usuario no encontrado. Por favor, vuelve a iniciar sesión.',
+    unableToResendCode: 'No se pudo reenviar el código. Por favor, vuelve al login e intenta de nuevo.',
+    resendCodeFailed: 'Error al reenviar el código. Por favor intenta de nuevo.',
   },
   warnings: {
     googleSignInModuleUnavailable:

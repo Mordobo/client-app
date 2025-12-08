@@ -1,0 +1,30 @@
+---
+name: Cross-Repo Feature Development
+alwaysApply: true
+---
+When a feature affects both mobile and API repositories:
+
+1. BACKEND FIRST (Mordobo/API):
+   - Implement endpoint in API/src/routes/
+   - Validate with Zod schemas
+   - Test with Bruno/Postman
+   - Document in API/BRUNO_API_DOCUMENTATION.md
+   - Define TypeScript types for request/response
+
+2. SYNCHRONIZE TYPES:
+   - Backend defines base types in API responses
+   - Frontend creates equivalent types in mobile/services/
+   - Create mapping functions if needed (snake_case → camelCase)
+
+3. FRONTEND SECOND (Mordobo/mobile):
+   - Create API client function in mobile/services/
+   - Implement call to backend endpoint
+   - Handle loading and error states
+   - Update components that consume the service
+
+4. VERIFY:
+   - Test end-to-end flow
+   - Verify type synchronization
+   - Check error handling
+
+Always check if changes require backend modifications BEFORE starting implementation.

@@ -40,6 +40,8 @@ export default {
     verifyAccount: 'Verify Account',
     resendCode: 'Resend code',
     resendIn: 'Resend in',
+    developmentModeCode: 'Development Mode - Code:',
+    smtpNotConfiguredHint: 'SMTP not configured. Use this code to verify.',
   },
   errors: {
     fillAllFields: 'Please complete all fields',
@@ -60,6 +62,9 @@ export default {
     googleUnavailable: 'Google Sign-In is not available in this build. Install a dev client with the native module.',
     invalidVerificationCode: 'Invalid verification code. Please try again.',
     verificationFailed: 'Verification failed. Please try again.',
+    userNotFound: 'User not found. Please log in again.',
+    unableToResendCode: 'Unable to resend code. Please return to login and try again.',
+    resendCodeFailed: 'Failed to resend code. Please try again.',
   },
   warnings: {
     googleSignInModuleUnavailable:

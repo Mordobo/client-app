@@ -1,0 +1,25 @@
+---
+name: Mobile Performance Guidelines
+alwaysApply: true
+---
+Optimize for mobile devices with limited resources:
+
+- Use @shopify/flash-list for large lists (not FlatList)
+- Use expo-image with lazy loading and placeholders
+- Implement memoization: React.memo, useMemo, useCallback for heavy components
+- Minimize re-renders using specific Zustand selectors
+- Avoid heavy operations on the main thread
+- Use code splitting with Expo Router lazy loading
+- Monitor bundle size, avoid unnecessary imports
+
+React Query:
+- Configure staleTime and cacheTime appropriately
+- Use useQuery for read operations, useMutation for write operations
+- Implement optimistic updates when appropriate
+- Invalidate related queries after mutations
+
+Network:
+- Implement retry logic with exponential backoff
+- Cache responses when appropriate
+- Use debounce/throttle for frequent searches and inputs
+- Handle offline states gracefully

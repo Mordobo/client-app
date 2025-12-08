@@ -1,0 +1,23 @@
+---
+name: API Project Structure
+alwaysApply: true
+---
+For backend API (Mordobo/API repository):
+
+Structure:
+- API/src/routes/ for API endpoints organized by domain
+- API/src/db.ts for database connection
+- API/src/index.ts for Express server setup
+
+Conventions:
+- Always use prepared statements in SQL ($1, $2, ...), never concatenate strings
+- Validate all inputs with Zod before processing
+- Use structured error responses: { code, message, issues? }
+- Implement rate limiting on public endpoints
+- Use connection pooling, don't create new connections per request
+
+When working on backend:
+- Verify you're in Mordobo/API directory
+- Endpoints go in src/routes/
+- Database queries use pg pool with prepared statements
+- Document endpoints in BRUNO_API_DOCUMENTATION.md

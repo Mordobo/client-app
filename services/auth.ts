@@ -69,7 +69,7 @@ export class ApiError extends Error {
 const request = async <T>(path: string, init: RequestInit, defaultErrorMessage: string): Promise<T> => {
   try {
     const url = buildUrl(path);
-    console.log('[API] Request', url, init);
+    console.log('[API] Request', url, init.method || 'GET', init.body ? JSON.parse(init.body as string) : '');
     const response = await fetch(url, { ...init, mode: 'cors' });
     console.log('[API] Response status', response.status, response.statusText, 'for', url);
 
@@ -203,5 +203,101 @@ export const loginWithGoogle = async (
       body: JSON.stringify(payload),
     },
     t('errors.googleLoginGeneric')
+  );
+};
+
+export interface ValidateEmailPayload {
+  email: string;
+  password: string;
+}
+
+export interface ValidateEmailResponse {
+  message: string;
+  email: string;
+  code?: string; // Only in development when SMTP is not configured
+  warning?: string;
+}
+
+export const validateEmail = async (
+  payload: ValidateEmailPayload
+): Promise<ValidateEmailResponse> => {
+  const body = {
+    email: payload.email.trim().toLowerCase(),
+    password: payload.password,
+  };
+
+  return request<ValidateEmailResponse>(
+    '/auth/validate-email',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.verificationFailed')
+  );
+};
+
+export interface VerifyCodePayload {
+  email: string;
+  code: string;
+}
+
+export interface VerifyCodeResponse extends AuthSuccessResponse {
+  user: RegisterResponseUser;
+  accessToken?: string;
+  refreshToken?: string;
+}
+
+export const verifyCode = async (
+  payload: VerifyCodePayload
+): Promise<VerifyCodeResponse> => {
+  const body = {
+    email: payload.email.trim().toLowerCase(),
+    code: payload.code,
+  };
+
+  return request<VerifyCodeResponse>(
+    '/auth/authenticate',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.verificationFailed')
+  );
+};
+
+export interface ResendCodePayload {
+  email: string;
+  password: string;
+}
+
+export interface ResendCodeResponse {
+  message: string;
+  email: string;
+}
+
+export const resendCode = async (
+  payload: ResendCodePayload
+): Promise<ResendCodeResponse> => {
+  const body = {
+    email: payload.email.trim().toLowerCase(),
+    password: payload.password,
+  };
+
+  return request<ResendCodeResponse>(
+    '/auth/resend-code',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.verificationFailed')
   );
 };

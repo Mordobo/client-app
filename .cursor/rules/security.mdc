@@ -1,0 +1,22 @@
+---
+name: Security Best Practices
+alwaysApply: true
+---
+NEVER log sensitive data (tokens, passwords, personal information).
+
+Mobile (React Native):
+- Use Keychain for tokens and credentials
+- AsyncStorage only for non-sensitive data
+- Always use HTTPS for API communications
+- Validate and sanitize all user inputs
+
+Backend (Express.js):
+- Use bcrypt with 12 salt rounds for passwords
+- Implement rate limiting on public endpoints (5 req/min for login)
+- Always use prepared statements in SQL ($1, $2, ...), never concatenate strings
+- Use structured error responses: { code, message, issues? }
+- Never expose internal error details in production
+
+Environment variables:
+- Mobile: Use EXPO_PUBLIC_* for public vars, never expose secrets
+- Backend: Use .env for secrets, never commit to git
