@@ -66,6 +66,7 @@ export default {
     invalidVerificationCode: 'Invalid verification code. Please try again.',
     verificationFailed: 'Verification failed. Please try again.',
     userNotFound: 'User not found. Please log in again.',
+    tokenRefreshFailed: 'Session expired. Please log in again.',
     unableToResendCode: 'Unable to resend code. Please return to login and try again.',
     resendCodeFailed: 'Failed to resend code. Please try again.',
   },

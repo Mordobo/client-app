@@ -66,6 +66,7 @@ export default {
     invalidVerificationCode: 'Código de verificación inválido. Por favor intenta de nuevo.',
     verificationFailed: 'La verificación falló. Por favor intenta de nuevo.',
     userNotFound: 'Usuario no encontrado. Por favor, vuelve a iniciar sesión.',
+    tokenRefreshFailed: 'Sesión expirada. Por favor, inicia sesión nuevamente.',
     unableToResendCode: 'No se pudo reenviar el código. Por favor, vuelve al login e intenta de nuevo.',
     resendCodeFailed: 'Error al reenviar el código. Por favor intenta de nuevo.',
   },
