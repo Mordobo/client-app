@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { refreshTokens, setTokenUpdateCallback } from '@/services/auth';
 import { getGoogleSignin } from '@/utils/googleSignIn';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 export interface User {
   id: string;
@@ -44,6 +45,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     loadUserFromStorage();
   }, []);
+
+  useEffect(() => {
+    // Register token update callback for automatic refresh
+    setTokenUpdateCallback(async (tokens) => {
+      if (user) {
+        const updatedUser = { ...user, authToken: tokens.accessToken, refreshToken: tokens.refreshToken } as User;
+        setUser(updatedUser);
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    });
+  }, [user]);
 
   const loadUserFromStorage = async () => {
     try {
@@ -109,6 +121,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error updating user:', error);
       throw error;
+    }
+  };
+
+  const refreshUserTokens = async (): Promise<boolean> => {
+    try {
+      if (!user?.refreshToken) {
+        console.log('[AuthContext] No refresh token available');
+        return false;
+      }
+
+      const refreshResponse = await refreshTokens(user.refreshToken);
+      await updateUser({
+        authToken: refreshResponse.accessToken,
+        refreshToken: refreshResponse.refreshToken,
+      });
+      return true;
+    } catch (error) {
+      console.error('[AuthContext] Token refresh failed:', error);
+      // If refresh fails, logout user
+      await logout();
+      return false;
     }
   };
 
