@@ -43,8 +43,6 @@ export default {
     verifyAccount: 'Verificar Cuenta',
     resendCode: 'Reenviar código',
     resendIn: 'Reenviar en',
-    developmentModeCode: 'Modo desarrollo - Código:',
-    smtpNotConfiguredHint: 'SMTP no configurado. Usa este código para verificar.',
   },
   errors: {
     useAuthHookError: 'useAuth debe ser usado dentro de un AuthProvider',
