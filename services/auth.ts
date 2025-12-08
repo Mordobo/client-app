@@ -66,11 +66,126 @@ export class ApiError extends Error {
   }
 }
 
-const request = async <T>(path: string, init: RequestInit, defaultErrorMessage: string): Promise<T> => {
+// Token refresh management
+let refreshPromise: Promise<{ accessToken: string; refreshToken: string } | null> | null = null;
+let tokenUpdateCallback: ((tokens: { accessToken: string; refreshToken: string }) => Promise<void>) | null = null;
+
+export const setTokenUpdateCallback = (
+  callback: (tokens: { accessToken: string; refreshToken: string }) => Promise<void>
+) => {
+  tokenUpdateCallback = callback;
+};
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: RegisterResponseUser;
+}
+
+export const refreshTokens = async (
+  refreshToken: string
+): Promise<RefreshTokenResponse> => {
+  const body = {
+    refreshToken,
+  };
+
+  // Don't retry on 401 for refresh endpoint to avoid infinite loop
+  return request<RefreshTokenResponse>(
+    '/auth/refresh',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.tokenRefreshFailed'),
+    false // retryOn401 = false
+  );
+};
+
+// Helper to get current tokens from storage (to avoid circular dependency)
+const getCurrentTokens = async (): Promise<{ accessToken?: string; refreshToken?: string } | null> => {
   try {
+    const AsyncStorage = await import('@react-native-async-storage/async-storage');
+    const userData = await AsyncStorage.default.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      return {
+        accessToken: parsedUser.authToken,
+        refreshToken: parsedUser.refreshToken,
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('[API] Error getting current tokens:', error);
+    return null;
+  }
+};
+
+// Helper to attempt token refresh
+const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToken: string } | null> => {
+  // If refresh is already in progress, wait for it
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  // Start new refresh
+  refreshPromise = (async () => {
+    try {
+      const tokens = await getCurrentTokens();
+      if (!tokens?.refreshToken) {
+        console.log('[API] No refresh token available');
+        return null;
+      }
+
+      console.log('[API] Attempting token refresh...');
+      const refreshResponse = await refreshTokens(tokens.refreshToken);
+
+      // Update tokens via callback if available
+      if (tokenUpdateCallback) {
+        await tokenUpdateCallback({
+          accessToken: refreshResponse.accessToken,
+          refreshToken: refreshResponse.refreshToken,
+        });
+      }
+
+      console.log('[API] Token refresh successful');
+      return {
+        accessToken: refreshResponse.accessToken,
+        refreshToken: refreshResponse.refreshToken,
+      };
+    } catch (error) {
+      console.error('[API] Token refresh failed:', error);
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+const request = async <T>(
+  path: string,
+  init: RequestInit,
+  defaultErrorMessage: string,
+  retryOn401 = true
+): Promise<T> => {
+  try {
+    // Get current access token for authorization header
+    const tokens = await getCurrentTokens();
+    const headers: Record<string, string> = {
+      ...(init.headers as Record<string, string>),
+    };
+
+    if (tokens?.accessToken && !headers['Authorization']) {
+      headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+    }
+
     const url = buildUrl(path);
     console.log('[API] Request', url, init.method || 'GET', init.body ? JSON.parse(init.body as string) : '');
-    const response = await fetch(url, { ...init, mode: 'cors' });
+    const response = await fetch(url, { ...init, headers, mode: 'cors' });
     console.log('[API] Response status', response.status, response.statusText, 'for', url);
 
     const responseText = await response.text();
@@ -80,6 +195,54 @@ const request = async <T>(path: string, init: RequestInit, defaultErrorMessage: 
         responseData = JSON.parse(responseText);
       } catch (parseError) {
         responseData = responseText;
+      }
+    }
+
+    // Handle 401 Unauthorized - attempt token refresh
+    if (response.status === 401 && retryOn401 && path !== '/auth/refresh') {
+      console.log('[API] Received 401, attempting token refresh...');
+      const newTokens = await attemptTokenRefresh();
+
+      if (newTokens) {
+        // Retry the original request with new token
+        console.log('[API] Retrying request with new token...');
+        const retryHeaders: Record<string, string> = {
+          ...(init.headers as Record<string, string>),
+          Authorization: `Bearer ${newTokens.accessToken}`,
+        };
+        const retryResponse = await fetch(url, { ...init, headers: retryHeaders, mode: 'cors' });
+        const retryText = await retryResponse.text();
+        let retryData: unknown = undefined;
+        if (retryText) {
+          try {
+            retryData = JSON.parse(retryText);
+          } catch (parseError) {
+            retryData = retryText;
+          }
+        }
+
+        if (!retryResponse.ok) {
+          const message =
+            typeof retryData === 'object' && retryData && 'message' in retryData
+              ? String((retryData as { message: unknown }).message)
+              : t('errors.requestFailedStatus', { status: retryResponse.status });
+          console.error('[API] Retry error response body', retryData);
+          throw new ApiError(message, retryResponse.status, retryData);
+        }
+
+        if (!retryData || typeof retryData !== 'object') {
+          throw new ApiError(t('errors.unexpectedResponse'), retryResponse.status, retryData);
+        }
+
+        return retryData as T;
+      } else {
+        // Refresh failed, throw original 401 error
+        const message =
+          typeof responseData === 'object' && responseData && 'message' in responseData
+            ? String((responseData as { message: unknown }).message)
+            : t('errors.requestFailedStatus', { status: response.status });
+        console.error('[API] Error response body', responseData);
+        throw new ApiError(message, response.status, responseData);
       }
     }
 
