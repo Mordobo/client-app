@@ -89,3 +89,18 @@ export const validateUser = async (identifier: string, password: string): Promis
     return null;
   }
 };
+
+// Get the authentication token from the logged-in user
+export const getToken = async (): Promise<string | null> => {
+  try {
+    const userData = await AsyncStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      return user.authToken || null;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};

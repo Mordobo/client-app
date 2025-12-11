@@ -1,8 +1,10 @@
 import { t } from '@/i18n';
 import { refreshTokens, setTokenUpdateCallback } from '@/services/auth';
+import { authEvents } from '@/utils/authEvents';
 import { getGoogleSignin } from '@/utils/googleSignIn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
 export interface User {
   id: string;
@@ -57,6 +59,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     });
   }, [user]);
+
+  // Listen for session expired events from services
+  useEffect(() => {
+    const unsubscribe = authEvents.onSessionExpired(async () => {
+      console.log('[AuthContext] Session expired event received, logging out...');
+      Alert.alert(
+        'Session Expired',
+        'Your session has expired. Please log in again.',
+        [{ text: 'OK' }]
+      );
+      await logout();
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const loadUserFromStorage = async () => {
     try {
