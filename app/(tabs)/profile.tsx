@@ -5,6 +5,7 @@ import React from 'react';
 import {
     Alert,
     SafeAreaView,
+    ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -17,7 +18,7 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert(
       t('home.logout'),
-      t('errors.logoutGeneric'),
+      'Are you sure you want to logout?',
       [
         { text: t('common.cancel'), style: 'cancel' },
         { 
@@ -27,7 +28,7 @@ export default function ProfileScreen() {
             try {
               await logout();
             } catch (error) {
-              Alert.alert(t('common.error'), t('errors.logoutGeneric'));
+              Alert.alert(t('common.error'), 'Failed to logout');
             }
           }
         }
@@ -35,13 +36,34 @@ export default function ProfileScreen() {
     );
   };
 
+  const menuSections = [
+    {
+      title: 'Account',
+      items: [
+        { icon: 'person-outline', label: 'Edit Profile', route: '/profile/edit' },
+        { icon: 'card-outline', label: 'Payment Methods', route: '/profile/payment-methods' },
+        { icon: 'calendar-outline', label: 'My Bookings', route: '/orders' },
+        { icon: 'chatbubble-outline', label: 'Chat History', route: '/profile/chat-history' },
+        { icon: 'document-text-outline', label: 'Invoices', route: '/profile/invoices' },
+      ],
+    },
+    {
+      title: 'Support',
+      items: [
+        { icon: 'help-circle-outline', label: 'Help Center', route: '/profile/support' },
+        { icon: 'settings-outline', label: 'Settings', route: '/profile/settings' },
+      ],
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('profile.title')}</Text>
       </View>
       
-      <View style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* User Info Card */}
         {user && (
           <View style={styles.userInfoContainer}>
             <View style={styles.avatarContainer}>
@@ -52,35 +74,40 @@ export default function ProfileScreen() {
             {user.phone && (
               <Text style={styles.userPhone}>{user.phone}</Text>
             )}
-            <Text style={styles.userProvider}>{t('profile.provider')}: {user.provider}</Text>
+            <TouchableOpacity style={styles.editProfileChip}>
+              <Text style={styles.editProfileText}>Edit Profile</Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="person-outline" size={24} color="#374151" />
-            <Text style={styles.menuText}>{t('profile.editProfile')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={24} color="#374151" />
-            <Text style={styles.menuText}>{t('profile.settings')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="help-circle-outline" size={24} color="#374151" />
-            <Text style={styles.menuText}>{t('profile.help')}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
-          </TouchableOpacity>
-        </View>
+        {/* Menu Sections */}
+        {menuSections.map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.menuSection}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.menuContainer}>
+              {section.items.map((item, itemIndex) => (
+                <TouchableOpacity
+                  key={itemIndex}
+                  style={[
+                    styles.menuItem,
+                    itemIndex === section.items.length - 1 && styles.menuItemLast,
+                  ]}
+                >
+                  <Ionicons name={item.icon as any} size={24} color="#374151" />
+                  <Text style={styles.menuText}>{item.label}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
 
+        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>{t('home.logout')}</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -93,7 +120,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
@@ -104,22 +131,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
   },
   userInfoContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: '#FFFFFF',
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    marginBottom: 8,
   },
   avatarContainer: {
     width: 80,
@@ -131,7 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   userName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '600',
     color: '#1F2937',
     marginBottom: 4,
@@ -144,25 +161,33 @@ const styles = StyleSheet.create({
   userPhone: {
     fontSize: 16,
     color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  userProvider: {
+  editProfileChip: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+  },
+  editProfileText: {
     fontSize: 14,
-    color: '#10B981',
     fontWeight: '500',
+    color: '#3B82F6',
+  },
+  menuSection: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   menuContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: '#FFFFFF',
   },
   menuItem: {
     flexDirection: 'row',
@@ -171,6 +196,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+  },
+  menuItemLast: {
+    borderBottomWidth: 0,
   },
   menuText: {
     flex: 1,
@@ -183,7 +211,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FEF2F2',
-    paddingHorizontal: 20,
+    marginHorizontal: 20,
+    marginVertical: 24,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
