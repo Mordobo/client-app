@@ -1,5 +1,5 @@
-import type { AuthSuccessResponse, RegisterResponseUser } from '@/services/auth';
 import type { User } from '@/contexts/AuthContext';
+import type { AuthSuccessResponse, RegisterResponseUser } from '@/services/auth';
 
 export interface GoogleProfile {
   id: string;
@@ -79,6 +79,7 @@ export const mapAuthResponseToUser = (
       stringOrUndefined((apiUser as Record<string, unknown>).phone_number) ??
       stringOrUndefined((apiUser as Record<string, unknown>).phone),
     avatar:
+      stringOrUndefined((apiUser as Record<string, unknown>).profile_image) ??
       stringOrUndefined((apiUser as Record<string, unknown>).avatar) ??
       stringOrUndefined(googleUser?.photo),
     provider,

@@ -1,6 +1,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
     Alert,
@@ -13,6 +15,7 @@ import {
 } from 'react-native';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -40,7 +43,6 @@ export default function ProfileScreen() {
     {
       title: 'Account',
       items: [
-        { icon: 'person-outline', label: 'Edit Profile', route: '/profile/edit' },
         { icon: 'card-outline', label: 'Payment Methods', route: '/profile/payment-methods' },
         { icon: 'calendar-outline', label: 'My Bookings', route: '/orders' },
         { icon: 'chatbubble-outline', label: 'Chat History', route: '/profile/chat-history' },
@@ -67,15 +69,26 @@ export default function ProfileScreen() {
         {user && (
           <View style={styles.userInfoContainer}>
             <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={40} color="#10B981" />
+              {user.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                />
+              ) : (
+                <Ionicons name="person" size={40} color="#10B981" />
+              )}
             </View>
             <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
             <Text style={styles.userEmail}>{user.email}</Text>
             {user.phone && (
               <Text style={styles.userPhone}>{user.phone}</Text>
             )}
-            <TouchableOpacity style={styles.editProfileChip}>
-              <Text style={styles.editProfileText}>Edit Profile</Text>
+            <TouchableOpacity
+              style={styles.editProfileChip}
+              onPress={() => router.push('/profile/edit')}
+            >
+              <Text style={styles.editProfileText}>{t('profile.editProfile')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -92,6 +105,11 @@ export default function ProfileScreen() {
                     styles.menuItem,
                     itemIndex === section.items.length - 1 && styles.menuItemLast,
                   ]}
+                  onPress={() => {
+                    if (item.route) {
+                      router.push(item.route as any);
+                    }
+                  }}
                 >
                   <Ionicons name={item.icon as any} size={24} color="#374151" />
                   <Text style={styles.menuText}>{item.label}</Text>
@@ -146,6 +164,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
   },
   userName: {
     fontSize: 22,

@@ -154,6 +154,7 @@ export default function VerifyScreen() {
         firstName,
         lastName,
         phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
+        avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined,
         provider: 'email' as const,
         authToken: apiResponse.accessToken || apiResponse.token,
         refreshToken: apiResponse.refreshToken,
