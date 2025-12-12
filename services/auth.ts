@@ -166,7 +166,7 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
   return refreshPromise;
 };
 
-const request = async <T>(
+export const request = async <T>(
   path: string,
   init: RequestInit,
   defaultErrorMessage: string,
