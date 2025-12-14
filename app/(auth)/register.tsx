@@ -19,6 +19,7 @@ import { type GoogleProfile } from '@/utils/authMapping';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { CountryPicker, type Country } from '@/components/CountryPicker';
+import { PhoneInput } from '@/components/PhoneInput';
 import {
   getGoogleSignin,
   getGoogleStatusCodes,
@@ -144,7 +145,8 @@ export default function RegisterScreen() {
     email: '',
     password: '',
     confirmPassword: '',
-    phone: '',
+    phoneExtension: '',
+    phoneNumber: '',
     country: null as Country | null,
   });
   const [loading, setLoading] = useState(false);
@@ -265,9 +267,7 @@ export default function RegisterScreen() {
   }, [handleGoogleRegisterError, login, router]);
 
   const handleInputChange = (field: string, value: string) => {
-    const nextValue = field === 'phone' ? digitsOnly(value) : value;
-
-    setFormData(prev => ({ ...prev, [field]: nextValue }));
+    setFormData(prev => ({ ...prev, [field]: value }));
     setFormErrors(prev => {
       if (!(field in prev)) {
         return prev;
@@ -292,11 +292,12 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    const { firstName, lastName, email, password, confirmPassword, phone, country } = formData;
+    const { firstName, lastName, email, password, confirmPassword, phoneExtension, phoneNumber, country } = formData;
     const trimmedFirstName = firstName.trim();
     const trimmedLastName = lastName.trim();
     const trimmedEmail = email.trim();
-    const trimmedPhone = phone.trim();
+    const trimmedPhoneExtension = phoneExtension.trim();
+    const trimmedPhoneNumber = phoneNumber.trim();
 
     setApiErrorMessage(null);
     setFormErrors({});
@@ -307,7 +308,8 @@ export default function RegisterScreen() {
       !trimmedEmail ||
       !password ||
       !confirmPassword ||
-      !trimmedPhone ||
+      !trimmedPhoneExtension ||
+      !trimmedPhoneNumber ||
       !country
     ) {
       if (!country) {
@@ -342,10 +344,13 @@ export default function RegisterScreen() {
         .replace(/\s+/g, ' ')
         .trim();
 
+      // Combine extension and number for backend (backend expects single phone_number string)
+      const fullPhoneNumber = `${trimmedPhoneExtension}${trimmedPhoneNumber}`;
+
       await registerUser({
         fullName: normalizedFullName,
         email: trimmedEmail.toLowerCase(),
-        phoneNumber: trimmedPhone,
+        phoneNumber: fullPhoneNumber,
         password,
         country: country.name,
       });
@@ -583,15 +588,12 @@ export default function RegisterScreen() {
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>{t('auth.phone')}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={!isFieldFocused('phone') && !valueHasContent(formData.phone) ? '+1 234 567 8900' : ''}
-                  placeholderTextColor={placeholderColor}
-                  value={formData.phone}
-                  onChangeText={(value) => handleInputChange('phone', value)}
-                  keyboardType="phone-pad"
-                  onFocus={() => setFocusedField('phone')}
-                  onBlur={() => handleBlur('phone')}
+                <PhoneInput
+                  selectedCountry={formData.country}
+                  phoneExtension={formData.phoneExtension}
+                  phoneNumber={formData.phoneNumber}
+                  onExtensionChange={(extension) => handleInputChange('phoneExtension', extension)}
+                  onPhoneNumberChange={(number) => handleInputChange('phoneNumber', number)}
                 />
               </View>
 
