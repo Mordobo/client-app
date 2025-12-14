@@ -29,7 +29,9 @@ const buildUrl = (path: string) => {
 export interface RegisterPayload {
   fullName: string;
   email: string;
-  phoneNumber?: string | null;
+  phoneNumber?: string | null; // Old format: combined phone number (for backward compatibility)
+  phoneExtension?: string; // New format: phone extension (e.g., +1, +34)
+  phoneNumberOnly?: string; // New format: phone number without extension
   password: string;
   country: string;
 }
@@ -297,15 +299,23 @@ export const request = async <T>(
 export const registerUser = async (
   payload: RegisterPayload
 ): Promise<RegisterResponse> => {
-  const trimmedPhone = payload.phoneNumber?.trim();
   const body: Record<string, unknown> = {
     full_name: payload.fullName,
     email: payload.email,
     password: payload.password,
     country: payload.country,
   };
-  if (trimmedPhone) {
-    body.phone_number = trimmedPhone;
+
+  // New format: send phoneExtension and phoneNumber separately
+  if (payload.phoneExtension && payload.phoneNumberOnly) {
+    body.phoneExtension = payload.phoneExtension;
+    body.phoneNumber = payload.phoneNumberOnly;
+  } else if (payload.phoneNumber) {
+    // Old format: send combined phone_number (backward compatibility)
+    const trimmedPhone = payload.phoneNumber.trim();
+    if (trimmedPhone) {
+      body.phone_number = trimmedPhone;
+    }
   }
 
   return request<RegisterResponse>(

@@ -4,7 +4,9 @@ import { RegisterResponseUser, request } from './auth';
 export interface UpdateProfilePayload {
   fullName?: string;
   email?: string;
-  phoneNumber?: string;
+  phoneNumber?: string; // Old format: combined phone number (for backward compatibility)
+  phoneExtension?: string; // New format: phone extension (e.g., +1, +34)
+  phoneNumberOnly?: string; // New format: phone number without extension
   address?: string;
   profileImage?: string;
   country?: string;
@@ -33,7 +35,12 @@ export const updateProfile = async (
   if (payload.email !== undefined) {
     body.email = payload.email.trim().toLowerCase();
   }
-  if (payload.phoneNumber !== undefined) {
+  // New format: send phoneExtension and phoneNumber separately
+  if (payload.phoneExtension !== undefined && payload.phoneNumberOnly !== undefined) {
+    body.phoneExtension = payload.phoneExtension;
+    body.phoneNumber = payload.phoneNumberOnly;
+  } else if (payload.phoneNumber !== undefined) {
+    // Old format: send combined phone_number (backward compatibility)
     body.phone_number = payload.phoneNumber.trim();
   }
   if (payload.address !== undefined) {
