@@ -1,5 +1,6 @@
 import { t } from '@/i18n';
 import { refreshTokens, setTokenUpdateCallback } from '@/services/auth';
+import { getProfile } from '@/services/profile';
 import { authEvents } from '@/utils/authEvents';
 import { getGoogleSignin } from '@/utils/googleSignIn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +14,7 @@ export interface User {
   lastName: string;
   phone?: string;
   avatar?: string;
+  country?: string;
   provider?: 'email' | 'google' | 'facebook' | 'apple';
   authToken?: string;
   refreshToken?: string;
@@ -84,6 +86,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const parsedUser = JSON.parse(userData);
         console.log('AuthContext - Parsed user:', parsedUser);
         setUser(parsedUser);
+        
+        // If user has auth token, sync profile from backend to get latest data (including country)
+        if (parsedUser.authToken) {
+          try {
+            const profileResponse = await getProfile();
+            const apiUser = profileResponse.user;
+            
+            // Map backend response to User format
+            const fullNameParts = (apiUser.full_name || `${parsedUser.firstName} ${parsedUser.lastName}`).split(/\s+/);
+            const firstName = fullNameParts[0] || parsedUser.firstName;
+            const lastName = fullNameParts.slice(1).join(' ') || parsedUser.lastName;
+            
+            const apiCountry = (apiUser as Record<string, unknown>).country as string | undefined;
+            const syncedUser: User = {
+              ...parsedUser,
+              firstName,
+              lastName,
+              email: apiUser.email || parsedUser.email,
+              phone: (apiUser as Record<string, unknown>).phone_number as string | undefined || parsedUser.phone,
+              avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined || parsedUser.avatar,
+              country: apiCountry !== undefined ? apiCountry : parsedUser.country,
+            };
+            
+            console.log('AuthContext - Syncing user from backend - apiCountry:', apiCountry, 'syncedUser.country:', syncedUser.country);
+            setUser(syncedUser);
+            await AsyncStorage.setItem('user', JSON.stringify(syncedUser));
+            console.log('AuthContext - User synced from backend');
+          } catch (syncError) {
+            console.warn('AuthContext - Failed to sync user from backend, using stored data:', syncError);
+            // Continue with stored user data if sync fails
+          }
+        }
       } else {
         console.log('AuthContext - No user data found, setting to null');
         setUser(null);

@@ -361,4 +361,3 @@ export const fetchUnreadCount = async (): Promise<number> => {
   }
 };
 
-

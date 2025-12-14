@@ -17,6 +17,9 @@ export default {
     password: 'Password',
     confirmPassword: 'Confirm Password',
     phone: 'Phone',
+    country: 'Country',
+    selectCountry: 'Select country',
+    searchCountry: 'Search country...',
     loginTitle: 'Login',
     signIn: 'Log in',
     signUp: 'Sign up',
@@ -47,6 +50,7 @@ export default {
   errors: {
     useAuthHookError: 'useAuth must be used within an AuthProvider',
     fillAllFields: 'Please complete all fields',
+    countryRequired: 'Please select a country',
     passwordsDontMatch: "Passwords don't match",
     passwordMin: 'Password must be at least 8 characters',
     invalidEmail: 'Please enter a valid email address',
@@ -72,6 +76,7 @@ export default {
     getProfileFailed: 'Failed to load profile. Please try again.',
     imageUploadFailed: 'Failed to upload image. Please try again.',
     invalidImage: 'Please select a valid image',
+    connectionFailed: 'Cannot connect to server. Please check your internet connection and ensure the backend is running.',
   },
   warnings: {
     googleSignInModuleUnavailable:
