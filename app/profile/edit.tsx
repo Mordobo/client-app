@@ -1,5 +1,6 @@
 import { COUNTRIES, CountryPicker, type Country } from '@/components/CountryPicker';
 import { PhoneInput } from '@/components/PhoneInput';
+import { Toast } from '@/components/Toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { updateProfile } from '@/services/profile';
@@ -28,6 +29,8 @@ export default function EditProfileScreen() {
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(user?.avatar || null);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   
   // Helper to find country by name (supports partial matches for flexibility)
   const findCountryByName = (countryName: string | undefined): Country | null => {
@@ -293,6 +296,8 @@ export default function EditProfileScreen() {
         fullName?: string;
         email?: string;
         phoneNumber?: string;
+        phoneExtension?: string;
+        phoneNumberOnly?: string;
         address?: string;
         profileImage?: string;
         country?: string;
@@ -309,23 +314,31 @@ export default function EditProfileScreen() {
       if (formData.email.trim() && formData.email.trim() !== user.email) {
         updatePayload.email = formData.email.trim();
       }
-      // Combine extension and number for backend
-      const fullPhoneNumber = formData.phoneExtension && formData.phoneNumber
-        ? `${formData.phoneExtension}${formData.phoneNumber}`
-        : formData.phoneNumber;
-      
-      // Validate phone number length (backend requires at least 6 characters)
-      if (fullPhoneNumber.trim() && fullPhoneNumber.trim().length < 6) {
-        Alert.alert(
-          t('common.error'),
-          t('errors.phoneNumberTooShort') || 'Phone number must be at least 6 characters'
-        );
-        setLoading(false);
-        return;
-      }
-      
-      if (fullPhoneNumber.trim() !== (user.phone || '')) {
-        updatePayload.phoneNumber = fullPhoneNumber.trim();
+      // Send extension and number separately to backend (new format)
+      if (formData.phoneExtension && formData.phoneNumber) {
+        // Validate phone number length (backend requires at least 6 characters for number only)
+        if (formData.phoneNumber.trim().length < 6) {
+          Alert.alert(
+            t('common.error'),
+            t('errors.phoneNumberTooShort') || 'Phone number must be at least 6 characters'
+          );
+          setLoading(false);
+          return;
+        }
+        
+        // Check if phone changed
+        const currentPhone = user.phone || '';
+        const newFullPhone = `${formData.phoneExtension}${formData.phoneNumber}`;
+        if (newFullPhone !== currentPhone) {
+          updatePayload.phoneExtension = formData.phoneExtension;
+          updatePayload.phoneNumberOnly = formData.phoneNumber;
+        }
+      } else if (formData.phoneNumber) {
+        // Fallback: if no extension but has number, send as old format
+        const currentPhone = user.phone || '';
+        if (formData.phoneNumber.trim() !== currentPhone) {
+          updatePayload.phoneNumber = formData.phoneNumber.trim();
+        }
       }
       // Handle country: send if country is selected and different from current, or if country was removed
       const currentCountry = user.country || '';
@@ -381,16 +394,15 @@ export default function EditProfileScreen() {
 
       await updateUser(updatedUser);
 
-      Alert.alert(
-        t('common.ok'),
-        t('profile.profileUpdated'),
-        [
-          {
-            text: t('common.ok'),
-            onPress: () => router.back(),
-          },
-        ]
-      );
+      // Show success toast with message from backend
+      const successMessage = response.message || t('profile.profileUpdated');
+      setToastMessage(successMessage);
+      setToastVisible(true);
+      
+      // Navigate back after toast is visible (allow user to see the message)
+      setTimeout(() => {
+        router.back();
+      }, 2500);
     } catch (error: any) {
       console.error('Error updating profile:', error);
       const errorMessage =
@@ -409,6 +421,15 @@ export default function EditProfileScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
+        {/* Success Toast */}
+        <Toast
+          message={toastMessage}
+          visible={toastVisible}
+          onHide={() => setToastVisible(false)}
+          type="success"
+          duration={3000}
+        />
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity

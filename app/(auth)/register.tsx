@@ -344,13 +344,12 @@ export default function RegisterScreen() {
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Combine extension and number for backend (backend expects single phone_number string)
-      const fullPhoneNumber = `${trimmedPhoneExtension}${trimmedPhoneNumber}`;
-
+      // Send extension and number separately to backend (new format)
       await registerUser({
         fullName: normalizedFullName,
         email: trimmedEmail.toLowerCase(),
-        phoneNumber: fullPhoneNumber,
+        phoneExtension: trimmedPhoneExtension,
+        phoneNumberOnly: trimmedPhoneNumber,
         password,
         country: country.name,
       });
