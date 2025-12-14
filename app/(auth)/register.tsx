@@ -18,6 +18,7 @@ import { ApiError, registerUser } from '@/services/auth';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { CountryPicker, type Country } from '@/components/CountryPicker';
 import {
   getGoogleSignin,
   getGoogleStatusCodes,
@@ -144,11 +145,12 @@ export default function RegisterScreen() {
     password: '',
     confirmPassword: '',
     phone: '',
+    country: null as Country | null,
   });
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
-  const [formErrors, setFormErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const [formErrors, setFormErrors] = useState<{ password?: string; confirmPassword?: string; country?: string }>({});
   const [googleLoading, setGoogleLoading] = useState(false);
   const googleSignin = getGoogleSignin();
   const googleStatusCodes = getGoogleStatusCodes();
@@ -276,12 +278,21 @@ export default function RegisterScreen() {
     });
   };
 
+  const handleCountrySelect = (country: Country) => {
+    setFormData(prev => ({ ...prev, country }));
+    setFormErrors(prev => {
+      const updated = { ...prev };
+      delete updated.country;
+      return updated;
+    });
+  };
+
   const handleBlur = (field: string) => {
     setFocusedField(prev => (prev === field ? null : prev));
   };
 
   const handleRegister = async () => {
-    const { firstName, lastName, email, password, confirmPassword, phone } = formData;
+    const { firstName, lastName, email, password, confirmPassword, phone, country } = formData;
     const trimmedFirstName = firstName.trim();
     const trimmedLastName = lastName.trim();
     const trimmedEmail = email.trim();
@@ -296,8 +307,12 @@ export default function RegisterScreen() {
       !trimmedEmail ||
       !password ||
       !confirmPassword ||
-      !trimmedPhone
+      !trimmedPhone ||
+      !country
     ) {
+      if (!country) {
+        setFormErrors(prev => ({ ...prev, country: t('errors.countryRequired') }));
+      }
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
@@ -332,6 +347,7 @@ export default function RegisterScreen() {
         email: trimmedEmail.toLowerCase(),
         phoneNumber: trimmedPhone,
         password,
+        country: country.name,
       });
 
       setApiErrorMessage(null);
@@ -552,6 +568,16 @@ export default function RegisterScreen() {
                   autoCorrect={false}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => handleBlur('email')}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>{t('auth.country')}</Text>
+                <CountryPicker
+                  selectedCountry={formData.country}
+                  onSelectCountry={handleCountrySelect}
+                  error={formErrors.country}
+                  placeholder={t('auth.selectCountry')}
                 />
               </View>
 

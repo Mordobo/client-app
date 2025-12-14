@@ -1,3 +1,4 @@
+import { COUNTRIES, CountryPicker, type Country } from '@/components/CountryPicker';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { updateProfile } from '@/services/profile';
@@ -27,28 +28,117 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(user?.avatar || null);
   
+  // Helper to find country by name (supports partial matches for flexibility)
+  const findCountryByName = (countryName: string | undefined): Country | null => {
+    if (!countryName) return null;
+    const normalizedName = countryName.trim();
+    
+    // First try exact match
+    let found = COUNTRIES.find(c => c.name === normalizedName);
+    if (found) return found;
+    
+    // Try case-insensitive match
+    found = COUNTRIES.find(c => c.name.toLowerCase() === normalizedName.toLowerCase());
+    if (found) return found;
+    
+    // Try partial match (e.g., "Dominican" matches "Dominican Republic")
+    found = COUNTRIES.find(c => 
+      c.name.toLowerCase().includes(normalizedName.toLowerCase()) ||
+      normalizedName.toLowerCase().includes(c.name.toLowerCase())
+    );
+    
+    return found || null;
+  };
+
+  // Initialize formData with user data
+  const initializeFormData = (userData: typeof user) => {
+    if (!userData) {
+      return {
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        address: '',
+        country: null as Country | null,
+      };
+    }
+    
+    const foundCountry = findCountryByName(userData.country);
+    console.log('[EditProfile] Initializing formData - user.country:', userData.country, 'foundCountry:', foundCountry?.name || 'null');
+    
+    return {
+      fullName: `${userData.firstName} ${userData.lastName}`.trim(),
+      email: userData.email || '',
+      phoneNumber: userData.phone || '',
+      address: '',
+      country: foundCountry || null,
+    };
+  };
+
+  const [formData, setFormData] = useState(() => initializeFormData(user));
+
   // Update imageUri when user.avatar changes (e.g., after loading from storage)
   React.useEffect(() => {
     if (user?.avatar && user.avatar !== imageUri) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:32',message:'Updating imageUri from user.avatar',data:{hasUserAvatar:!!user?.avatar,avatarType:user?.avatar?.startsWith('data:')?'base64':user?.avatar?.startsWith('blob:')?'blob':user?.avatar?.startsWith('http')?'url':'other'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'O'})}).catch(()=>{});
-      // #endregion
       setImageUri(user.avatar);
     }
-  }, [user?.avatar]);
-  
-  // #region agent log
-  React.useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:40',message:'Component mounted, checking user avatar',data:{hasUser:!!user,hasAvatar:!!user?.avatar,avatarType:user?.avatar?.startsWith('data:')?'base64':user?.avatar?.startsWith('blob:')?'blob':user?.avatar?.startsWith('http')?'url':'other',avatarLength:user?.avatar?.length,imageUriType:imageUri?.startsWith('data:')?'base64':imageUri?.startsWith('blob:')?'blob':'other'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'O'})}).catch(()=>{});
-  }, [user, imageUri]);
-  // #endregion
+  }, [user?.avatar, imageUri]);
 
-  const [formData, setFormData] = useState({
-    fullName: user ? `${user.firstName} ${user.lastName}`.trim() : '',
-    email: user?.email || '',
-    phoneNumber: user?.phone || '',
-    address: '',
-  });
+  // Update formData when user data changes (especially after sync from backend)
+  React.useEffect(() => {
+    console.log('[EditProfile] useEffect triggered - user changed:', {
+      hasUser: !!user,
+      userId: user?.id,
+      country: user?.country,
+      countryType: typeof user?.country,
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+    });
+    
+    if (user) {
+      const foundCountry = findCountryByName(user.country);
+      console.log('[EditProfile] findCountryByName - input:', JSON.stringify(user.country), 'output:', foundCountry ? JSON.stringify(foundCountry) : 'null');
+      
+      // Log all countries for debugging
+      if (!foundCountry && user.country) {
+        console.log('[EditProfile] Country not found in list. Available countries:', COUNTRIES.slice(0, 10).map(c => c.name).join(', '), '...');
+        console.log('[EditProfile] Searching for partial match of:', user.country);
+      }
+      
+      const newFullName = `${user.firstName} ${user.lastName}`.trim();
+      const newCountry = foundCountry || null;
+      
+      setFormData(prev => {
+        const shouldUpdate = 
+          prev.fullName !== newFullName ||
+          prev.email !== (user.email || '') ||
+          prev.phoneNumber !== (user.phone || '') ||
+          prev.country?.name !== newCountry?.name;
+        
+        if (shouldUpdate) {
+          console.log('[EditProfile] Updating formData - prev.country:', prev.country?.name || 'null', 'newCountry:', newCountry?.name || 'null');
+          return {
+            fullName: newFullName,
+            email: user.email || '',
+            phoneNumber: user.phone || '',
+            address: prev.address, // Preserve address if user hasn't set it
+            country: newCountry,
+          };
+        }
+        
+        console.log('[EditProfile] No update needed - formData already matches user');
+        return prev;
+      });
+    } else {
+      console.log('[EditProfile] useEffect triggered but user is null - resetting formData');
+      setFormData({
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        address: '',
+        country: null,
+      });
+    }
+  }, [user?.id, user?.country, user?.firstName, user?.lastName, user?.email, user?.phone]);
 
   const handleImagePicker = async () => {
     try {
@@ -70,9 +160,6 @@ export default function EditProfileScreen() {
 
       if (!result.canceled && result.assets[0]) {
         const uri = result.assets[0].uri;
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:72',message:'Image selected',data:{uri,isBlob:uri.startsWith('blob:'),isDataUri:uri.startsWith('data:'),isFileUri:uri.startsWith('file:'),platform:Platform.OS,hasFileSystem:typeof FileSystem !== 'undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         
         // Convert image to base64 for persistence
         try {
@@ -80,9 +167,6 @@ export default function EditProfileScreen() {
           
           // For web with blob URIs, use fetch to convert to base64
           if (Platform.OS === 'web' && uri.startsWith('blob:')) {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:80',message:'Web blob URI detected, using fetch',data:{uri},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             const response = await fetch(uri);
             const blob = await response.blob();
             const reader = new FileReader();
@@ -98,20 +182,11 @@ export default function EditProfileScreen() {
             reader.readAsDataURL(blob);
             const base64Data = await base64Promise;
             dataUri = `data:image/jpeg;base64,${base64Data}`;
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:95',message:'Web blob conversion successful',data:{dataUriLength:dataUri.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
           } else if (uri.startsWith('data:')) {
             // Already a data URI, use it directly
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:99',message:'Already data URI, using directly',data:{uri},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
             dataUri = uri;
           } else {
             // For native platforms, use FileSystem
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:104',message:'Using FileSystem for native',data:{uri},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
             if (typeof FileSystem === 'undefined') {
               throw new Error('FileSystem is not available');
             }
@@ -121,20 +196,11 @@ export default function EditProfileScreen() {
               encoding: 'base64',
             } as { encoding: 'base64' });
             dataUri = `data:image/jpeg;base64,${base64}`;
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:112',message:'FileSystem conversion successful',data:{dataUriLength:dataUri.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'D'})}).catch(()=>{});
-            // #endregion
           }
           
           setImageUri(dataUri);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:117',message:'Image URI set successfully',data:{dataUriLength:dataUri.length,startsWithData:dataUri.startsWith('data:')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
         } catch (error) {
           console.error('Error converting image to base64:', error);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:121',message:'Base64 conversion failed',data:{error:error instanceof Error?error.message:String(error),errorStack:error instanceof Error?error.stack:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'})}).catch(()=>{});
-          // #endregion
           Alert.alert(t('common.error'), t('errors.imageUploadFailed'));
         }
       }
@@ -153,13 +219,7 @@ export default function EditProfileScreen() {
   };
 
   const handleSave = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:109',message:'handleSave called',data:{hasUser:!!user,formDataFullName:formData.fullName,userFullName:`${user?.firstName} ${user?.lastName}`,hasImageUri:!!imageUri,imageUriType:imageUri?.startsWith('data:')?'base64':imageUri?.startsWith('blob:')?'blob':'other'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
-    // #endregion
     if (!user) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:111',message:'No user found',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'P'})}).catch(()=>{});
-      // #endregion
       Alert.alert(t('common.error'), t('errors.userNotFound'));
       return;
     }
@@ -172,15 +232,13 @@ export default function EditProfileScreen() {
         phoneNumber?: string;
         address?: string;
         profileImage?: string;
+        country?: string;
       } = {};
 
       // Only include fields that have changed and are not empty
       const currentFullName = `${user.firstName} ${user.lastName}`.trim();
       const newFullName = formData.fullName.trim();
       const fullNameChanged = newFullName && newFullName !== currentFullName;
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:130',message:'Checking field changes',data:{currentFullName,newFullName,fullNameChanged,emailChanged:formData.email.trim() !== user.email,phoneChanged:formData.phoneNumber.trim() !== (user.phone || ''),imageChanged:imageUri && imageUri !== user.avatar},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'Q'})}).catch(()=>{});
-      // #endregion
       
       if (fullNameChanged) {
         updatePayload.fullName = newFullName;
@@ -190,6 +248,13 @@ export default function EditProfileScreen() {
       }
       if (formData.phoneNumber.trim() !== (user.phone || '')) {
         updatePayload.phoneNumber = formData.phoneNumber.trim();
+      }
+      // Handle country: send if country is selected and different from current, or if country was removed
+      const currentCountry = user.country || '';
+      const newCountry = formData.country?.name || '';
+      if (newCountry !== currentCountry) {
+        // Only send country if it's not empty, otherwise send empty string to clear it
+        updatePayload.country = newCountry || '';
       }
       // Address is optional - only send if provided and not empty
       // Note: address column may not exist in database yet
@@ -205,24 +270,14 @@ export default function EditProfileScreen() {
       }
       
       const hasChanges = Object.keys(updatePayload).length > 0;
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:148',message:'Payload built',data:{payloadKeys:Object.keys(updatePayload),payload:updatePayload,imageChanged,hasChanges},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'Q'})}).catch(()=>{});
-      // #endregion
 
       if (!hasChanges) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:153',message:'No changes detected, returning early',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'R'})}).catch(()=>{});
-        // #endregion
         Alert.alert('No Changes', 'No changes to save');
         setLoading(false);
         return;
       }
 
       // Call the API with all changes (including image if changed)
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:162',message:'Calling updateProfile API',data:{payload:updatePayload,hasImage:!!updatePayload.profileImage},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'S'})}).catch(()=>{});
-      // #endregion
       const response = await updateProfile(updatePayload);
 
       // Map backend response (snake_case) to app user format (camelCase)
@@ -235,9 +290,6 @@ export default function EditProfileScreen() {
       // Use profile_image from backend if available, otherwise use imageUri if it was updated, otherwise keep existing avatar
       const updatedAvatar = (apiUser.profile_image as string | undefined) || 
                            (imageUri && imageUri !== user.avatar ? imageUri : user.avatar);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:137',message:'Saving avatar to user',data:{hasImageUri:!!imageUri,imageUriType:imageUri?.startsWith('data:')?'base64':imageUri?.startsWith('blob:')?'blob':'other',updatedAvatarType:updatedAvatar?.startsWith('data:')?'base64':updatedAvatar?.startsWith('blob:')?'blob':'other',updatedAvatarLength:updatedAvatar?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'N'})}).catch(()=>{});
-      // #endregion
       
       const updatedUser = {
         ...user,
@@ -245,13 +297,11 @@ export default function EditProfileScreen() {
         lastName,
         email: apiUser.email || user.email,
         phone: apiUser.phone_number || user.phone,
+        country: (apiUser.country as string | undefined) ?? user.country,
         avatar: updatedAvatar, // This will be base64 data URI if image was selected
       };
 
       await updateUser(updatedUser);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'edit.tsx:149',message:'User updated in AsyncStorage',data:{avatarSaved:!!updatedUser.avatar,avatarType:updatedUser.avatar?.startsWith('data:')?'base64':updatedUser.avatar?.startsWith('blob:')?'blob':'other'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'N'})}).catch(()=>{});
-      // #endregion
 
       Alert.alert(
         t('common.ok'),
@@ -351,6 +401,17 @@ export default function EditProfileScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t('auth.country')}</Text>
+              <CountryPicker
+                selectedCountry={formData.country}
+                onSelectCountry={(country) =>
+                  setFormData({ ...formData, country })
+                }
+                placeholder={t('auth.selectCountry')}
               />
             </View>
 

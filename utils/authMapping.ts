@@ -82,6 +82,7 @@ export const mapAuthResponseToUser = (
       stringOrUndefined((apiUser as Record<string, unknown>).profile_image) ??
       stringOrUndefined((apiUser as Record<string, unknown>).avatar) ??
       stringOrUndefined(googleUser?.photo),
+    country: stringOrUndefined((apiUser as Record<string, unknown>).country),
     provider,
     authToken: stringOrUndefined(response.token),
     refreshToken: stringOrUndefined(response.refreshToken),

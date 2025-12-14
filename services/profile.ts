@@ -7,6 +7,7 @@ export interface UpdateProfilePayload {
   phoneNumber?: string;
   address?: string;
   profileImage?: string;
+  country?: string;
 }
 
 export interface UpdateProfileResponse {
@@ -40,6 +41,9 @@ export const updateProfile = async (
   }
   if (payload.profileImage !== undefined) {
     body.profile_image = payload.profileImage;
+  }
+  if (payload.country !== undefined) {
+    body.country = payload.country;
   }
 
   return request<UpdateProfileResponse>(

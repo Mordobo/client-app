@@ -31,6 +31,7 @@ export interface RegisterPayload {
   email: string;
   phoneNumber?: string | null;
   password: string;
+  country: string;
 }
 
 export interface RegisterResponseUser {
@@ -265,6 +266,25 @@ export const request = async <T>(
       throw error;
     }
 
+    // Handle network/DNS errors
+    if (error instanceof Error) {
+      const errorMessage = error.message || '';
+      
+      // Detect DNS/connection errors
+      if (
+        errorMessage.includes('getaddrinfo ENOTFOUND') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('Network request failed') ||
+        errorMessage.includes('Failed to fetch')
+      ) {
+        throw new ApiError(
+          t('errors.connectionFailed'),
+          0,
+          error
+        );
+      }
+    }
+
     const message =
       error instanceof Error
         ? error.message || defaultErrorMessage
@@ -282,6 +302,7 @@ export const registerUser = async (
     full_name: payload.fullName,
     email: payload.email,
     password: payload.password,
+    country: payload.country,
   };
   if (trimmedPhone) {
     body.phone_number = trimmedPhone;
