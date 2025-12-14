@@ -392,10 +392,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleFacebookLogin = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonFacebook'));
-  };
-
   const handleAppleLogin = async () => {
     Alert.alert(t('common.ok'), t('auth.soonApple'));
   };

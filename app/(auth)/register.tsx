@@ -487,10 +487,6 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleFacebookRegister = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonFacebook'));
-  };
-
   const handleAppleRegister = async () => {
     Alert.alert(t('common.ok'), t('auth.soonApple'));
   };
@@ -659,13 +655,6 @@ export default function RegisterScreen() {
                     <Text style={styles.socialButtonText}>{t('auth.google')}</Text>
                   </View>
                 )}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton} onPress={handleFacebookRegister}>
-                <View style={styles.socialButtonContent}>
-                  <Ionicons name="logo-facebook" size={24} color="#4267B2" />
-                  <Text style={styles.socialButtonText}>{t('auth.facebook')}</Text>
-                </View>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.socialButton} onPress={handleAppleRegister}>
