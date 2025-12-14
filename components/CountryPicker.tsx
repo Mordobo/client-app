@@ -16,33 +16,34 @@ export interface Country {
   code: string;
   name: string;
   flag?: string;
+  phoneExtension: string; // e.g., "+1", "+34", "+52"
 }
 
-// MVP: Predefined list of countries
+// MVP: Predefined list of countries with phone extensions
 export const COUNTRIES: Country[] = [
-  { code: 'US', name: 'United States', flag: '🇺🇸' },
-  { code: 'DO', name: 'Dominican Republic', flag: '🇩🇴' },
-  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
-  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
-  { code: 'CO', name: 'Colombia', flag: '🇨🇴' },
-  { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
-  { code: 'CL', name: 'Chile', flag: '🇨🇱' },
-  { code: 'PE', name: 'Peru', flag: '🇵🇪' },
-  { code: 'VE', name: 'Venezuela', flag: '🇻🇪' },
-  { code: 'EC', name: 'Ecuador', flag: '🇪🇨' },
-  { code: 'GT', name: 'Guatemala', flag: '🇬🇹' },
-  { code: 'CR', name: 'Costa Rica', flag: '🇨🇷' },
-  { code: 'PA', name: 'Panama', flag: '🇵🇦' },
-  { code: 'HN', name: 'Honduras', flag: '🇭🇳' },
-  { code: 'NI', name: 'Nicaragua', flag: '🇳🇮' },
-  { code: 'SV', name: 'El Salvador', flag: '🇸🇻' },
-  { code: 'CU', name: 'Cuba', flag: '🇨🇺' },
-  { code: 'PR', name: 'Puerto Rico', flag: '🇵🇷' },
-  { code: 'BO', name: 'Bolivia', flag: '🇧🇴' },
-  { code: 'PY', name: 'Paraguay', flag: '🇵🇾' },
-  { code: 'UY', name: 'Uruguay', flag: '🇺🇾' },
-  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
-  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+  { code: 'US', name: 'United States', flag: '🇺🇸', phoneExtension: '+1' },
+  { code: 'DO', name: 'Dominican Republic', flag: '🇩🇴', phoneExtension: '+1' },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽', phoneExtension: '+52' },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸', phoneExtension: '+34' },
+  { code: 'CO', name: 'Colombia', flag: '🇨🇴', phoneExtension: '+57' },
+  { code: 'AR', name: 'Argentina', flag: '🇦🇷', phoneExtension: '+54' },
+  { code: 'CL', name: 'Chile', flag: '🇨🇱', phoneExtension: '+56' },
+  { code: 'PE', name: 'Peru', flag: '🇵🇪', phoneExtension: '+51' },
+  { code: 'VE', name: 'Venezuela', flag: '🇻🇪', phoneExtension: '+58' },
+  { code: 'EC', name: 'Ecuador', flag: '🇪🇨', phoneExtension: '+593' },
+  { code: 'GT', name: 'Guatemala', flag: '🇬🇹', phoneExtension: '+502' },
+  { code: 'CR', name: 'Costa Rica', flag: '🇨🇷', phoneExtension: '+506' },
+  { code: 'PA', name: 'Panama', flag: '🇵🇦', phoneExtension: '+507' },
+  { code: 'HN', name: 'Honduras', flag: '🇭🇳', phoneExtension: '+504' },
+  { code: 'NI', name: 'Nicaragua', flag: '🇳🇮', phoneExtension: '+505' },
+  { code: 'SV', name: 'El Salvador', flag: '🇸🇻', phoneExtension: '+503' },
+  { code: 'CU', name: 'Cuba', flag: '🇨🇺', phoneExtension: '+53' },
+  { code: 'PR', name: 'Puerto Rico', flag: '🇵🇷', phoneExtension: '+1' },
+  { code: 'BO', name: 'Bolivia', flag: '🇧🇴', phoneExtension: '+591' },
+  { code: 'PY', name: 'Paraguay', flag: '🇵🇾', phoneExtension: '+595' },
+  { code: 'UY', name: 'Uruguay', flag: '🇺🇾', phoneExtension: '+598' },
+  { code: 'BR', name: 'Brazil', flag: '🇧🇷', phoneExtension: '+55' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦', phoneExtension: '+1' },
 ];
 
 interface CountryPickerProps {

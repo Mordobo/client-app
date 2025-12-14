@@ -1,4 +1,5 @@
 import { COUNTRIES, CountryPicker, type Country } from '@/components/CountryPicker';
+import { PhoneInput } from '@/components/PhoneInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { updateProfile } from '@/services/profile';
@@ -50,12 +51,29 @@ export default function EditProfileScreen() {
     return found || null;
   };
 
+  // Helper to parse phone number (extract extension and number)
+  const parsePhoneNumber = (phone: string | undefined): { extension: string; number: string } => {
+    if (!phone) return { extension: '', number: '' };
+    
+    // Try to match phone extension pattern (e.g., +1, +34, +52)
+    const extensionMatch = phone.match(/^(\+\d{1,4})/);
+    if (extensionMatch) {
+      const extension = extensionMatch[1];
+      const number = phone.substring(extension.length).replace(/\D/g, '');
+      return { extension, number };
+    }
+    
+    // If no extension found, return empty extension and all digits as number
+    return { extension: '', number: phone.replace(/\D/g, '') };
+  };
+
   // Initialize formData with user data
   const initializeFormData = (userData: typeof user) => {
     if (!userData) {
       return {
         fullName: '',
         email: '',
+        phoneExtension: '',
         phoneNumber: '',
         address: '',
         country: null as Country | null,
@@ -65,10 +83,16 @@ export default function EditProfileScreen() {
     const foundCountry = findCountryByName(userData.country);
     console.log('[EditProfile] Initializing formData - user.country:', userData.country, 'foundCountry:', foundCountry?.name || 'null');
     
+    // Parse phone number to extract extension and number
+    const parsedPhone = parsePhoneNumber(userData.phone);
+    const phoneExtension = parsedPhone.extension || foundCountry?.phoneExtension || '';
+    const phoneNumber = parsedPhone.number;
+    
     return {
       fullName: `${userData.firstName} ${userData.lastName}`.trim(),
       email: userData.email || '',
-      phoneNumber: userData.phone || '',
+      phoneExtension,
+      phoneNumber,
       address: '',
       country: foundCountry || null,
     };
@@ -81,7 +105,7 @@ export default function EditProfileScreen() {
     if (user?.avatar && user.avatar !== imageUri) {
       setImageUri(user.avatar);
     }
-  }, [user?.avatar, imageUri]);
+  }, [user?.avatar]);
 
   // Update formData when user data changes (especially after sync from backend)
   React.useEffect(() => {
@@ -107,11 +131,17 @@ export default function EditProfileScreen() {
       const newFullName = `${user.firstName} ${user.lastName}`.trim();
       const newCountry = foundCountry || null;
       
+      // Parse phone number to extract extension and number
+      const parsedPhone = parsePhoneNumber(user.phone);
+      const phoneExtension = parsedPhone.extension || foundCountry?.phoneExtension || '';
+      const phoneNumber = parsedPhone.number;
+      
       setFormData(prev => {
         const shouldUpdate = 
           prev.fullName !== newFullName ||
           prev.email !== (user.email || '') ||
-          prev.phoneNumber !== (user.phone || '') ||
+          prev.phoneExtension !== phoneExtension ||
+          prev.phoneNumber !== phoneNumber ||
           prev.country?.name !== newCountry?.name;
         
         if (shouldUpdate) {
@@ -119,7 +149,8 @@ export default function EditProfileScreen() {
           return {
             fullName: newFullName,
             email: user.email || '',
-            phoneNumber: user.phone || '',
+            phoneExtension,
+            phoneNumber,
             address: prev.address, // Preserve address if user hasn't set it
             country: newCountry,
           };
@@ -133,6 +164,7 @@ export default function EditProfileScreen() {
       setFormData({
         fullName: '',
         email: '',
+        phoneExtension: '',
         phoneNumber: '',
         address: '',
         country: null,
@@ -246,8 +278,12 @@ export default function EditProfileScreen() {
       if (formData.email.trim() && formData.email.trim() !== user.email) {
         updatePayload.email = formData.email.trim();
       }
-      if (formData.phoneNumber.trim() !== (user.phone || '')) {
-        updatePayload.phoneNumber = formData.phoneNumber.trim();
+      // Combine extension and number for backend
+      const fullPhoneNumber = formData.phoneExtension && formData.phoneNumber
+        ? `${formData.phoneExtension}${formData.phoneNumber}`
+        : formData.phoneNumber;
+      if (fullPhoneNumber.trim() !== (user.phone || '')) {
+        updatePayload.phoneNumber = fullPhoneNumber.trim();
       }
       // Handle country: send if country is selected and different from current, or if country was removed
       const currentCountry = user.country || '';
@@ -424,15 +460,16 @@ export default function EditProfileScreen() {
                   </Text>
                 </TouchableOpacity>
               </View>
-              <TextInput
-                style={styles.input}
-                value={formData.phoneNumber}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, phoneNumber: text })
+              <PhoneInput
+                selectedCountry={formData.country}
+                phoneExtension={formData.phoneExtension}
+                phoneNumber={formData.phoneNumber}
+                onExtensionChange={(extension) =>
+                  setFormData({ ...formData, phoneExtension: extension })
                 }
-                placeholder={t('profile.phoneNumber')}
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
+                onPhoneNumberChange={(number) =>
+                  setFormData({ ...formData, phoneNumber: number })
+                }
               />
             </View>
 

@@ -99,13 +99,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const lastName = fullNameParts.slice(1).join(' ') || parsedUser.lastName;
             
             const apiCountry = (apiUser as Record<string, unknown>).country as string | undefined;
+            const apiPhone = (apiUser as Record<string, unknown>).phone_number as string | undefined;
+            const apiAvatar = (apiUser as Record<string, unknown>).profile_image as string | undefined;
             const syncedUser: User = {
               ...parsedUser,
               firstName,
               lastName,
-              email: apiUser.email || parsedUser.email,
-              phone: (apiUser as Record<string, unknown>).phone_number as string | undefined || parsedUser.phone,
-              avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined || parsedUser.avatar,
+              email: apiUser.email ?? parsedUser.email,
+              phone: apiPhone !== undefined ? apiPhone : parsedUser.phone,
+              avatar: apiAvatar !== undefined ? apiAvatar : parsedUser.avatar,
               country: apiCountry !== undefined ? apiCountry : parsedUser.country,
             };
             
