@@ -79,6 +79,7 @@ export default {
     getProfileFailed: 'Error al cargar perfil. Por favor intenta de nuevo.',
     imageUploadFailed: 'Error al subir imagen. Por favor intenta de nuevo.',
     invalidImage: 'Por favor selecciona una imagen válida',
+    phoneNumberTooShort: 'El número de teléfono debe tener al menos 6 caracteres',
     connectionFailed: 'No se puede conectar al servidor. Por favor verifica tu conexión a internet y asegúrate de que el backend esté corriendo.',
   },
   warnings: {

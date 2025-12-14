@@ -52,19 +52,50 @@ export default function EditProfileScreen() {
   };
 
   // Helper to parse phone number (extract extension and number)
-  const parsePhoneNumber = (phone: string | undefined): { extension: string; number: string } => {
+  const parsePhoneNumber = (phone: string | undefined, country: Country | null): { extension: string; number: string } => {
     if (!phone) return { extension: '', number: '' };
     
-    // Try to match phone extension pattern (e.g., +1, +34, +52)
-    const extensionMatch = phone.match(/^(\+\d{1,4})/);
+    // Remove all non-digit characters except the leading +
+    const cleanedPhone = phone.trim();
+    
+    // Get all unique phone extensions from COUNTRIES, sorted by length (longest first)
+    // This ensures we match longer extensions first (e.g., +593 before +5)
+    const allExtensions = Array.from(new Set(COUNTRIES.map(c => c.phoneExtension)))
+      .sort((a, b) => b.length - a.length);
+    
+    // Try to match against known extensions (longest first)
+    for (const ext of allExtensions) {
+      if (cleanedPhone.startsWith(ext)) {
+        const number = cleanedPhone.substring(ext.length).replace(/\D/g, '');
+        return { extension: ext, number };
+      }
+    }
+    
+    // If no known extension matches, try to use country's extension if available
+    if (country?.phoneExtension && cleanedPhone.startsWith(country.phoneExtension)) {
+      const number = cleanedPhone.substring(country.phoneExtension.length).replace(/\D/g, '');
+      return { extension: country.phoneExtension, number };
+    }
+    
+    // If country has extension but phone doesn't start with it, assume extension is missing
+    if (country?.phoneExtension) {
+      // If phone is all digits (no +), assume it's just the number
+      const digitsOnly = cleanedPhone.replace(/\D/g, '');
+      if (digitsOnly === cleanedPhone.replace(/\+/g, '')) {
+        return { extension: country.phoneExtension, number: digitsOnly };
+      }
+    }
+    
+    // Fallback: try generic pattern match (1-4 digits after +)
+    const extensionMatch = cleanedPhone.match(/^(\+\d{1,4})/);
     if (extensionMatch) {
       const extension = extensionMatch[1];
-      const number = phone.substring(extension.length).replace(/\D/g, '');
+      const number = cleanedPhone.substring(extension.length).replace(/\D/g, '');
       return { extension, number };
     }
     
     // If no extension found, return empty extension and all digits as number
-    return { extension: '', number: phone.replace(/\D/g, '') };
+    return { extension: '', number: cleanedPhone.replace(/\D/g, '') };
   };
 
   // Initialize formData with user data
@@ -83,8 +114,8 @@ export default function EditProfileScreen() {
     const foundCountry = findCountryByName(userData.country);
     console.log('[EditProfile] Initializing formData - user.country:', userData.country, 'foundCountry:', foundCountry?.name || 'null');
     
-    // Parse phone number to extract extension and number
-    const parsedPhone = parsePhoneNumber(userData.phone);
+    // Parse phone number to extract extension and number (pass country for better parsing)
+    const parsedPhone = parsePhoneNumber(userData.phone, foundCountry);
     const phoneExtension = parsedPhone.extension || foundCountry?.phoneExtension || '';
     const phoneNumber = parsedPhone.number;
     
@@ -131,8 +162,8 @@ export default function EditProfileScreen() {
       const newFullName = `${user.firstName} ${user.lastName}`.trim();
       const newCountry = foundCountry || null;
       
-      // Parse phone number to extract extension and number
-      const parsedPhone = parsePhoneNumber(user.phone);
+      // Parse phone number to extract extension and number (pass country for better parsing)
+      const parsedPhone = parsePhoneNumber(user.phone, newCountry);
       const phoneExtension = parsedPhone.extension || foundCountry?.phoneExtension || '';
       const phoneNumber = parsedPhone.number;
       
@@ -282,6 +313,17 @@ export default function EditProfileScreen() {
       const fullPhoneNumber = formData.phoneExtension && formData.phoneNumber
         ? `${formData.phoneExtension}${formData.phoneNumber}`
         : formData.phoneNumber;
+      
+      // Validate phone number length (backend requires at least 6 characters)
+      if (fullPhoneNumber.trim() && fullPhoneNumber.trim().length < 6) {
+        Alert.alert(
+          t('common.error'),
+          t('errors.phoneNumberTooShort') || 'Phone number must be at least 6 characters'
+        );
+        setLoading(false);
+        return;
+      }
+      
       if (fullPhoneNumber.trim() !== (user.phone || '')) {
         updatePayload.phoneNumber = fullPhoneNumber.trim();
       }

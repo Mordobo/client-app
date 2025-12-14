@@ -79,6 +79,7 @@ export default {
     getProfileFailed: 'Failed to load profile. Please try again.',
     imageUploadFailed: 'Failed to upload image. Please try again.',
     invalidImage: 'Please select a valid image',
+    phoneNumberTooShort: 'Phone number must be at least 6 characters long',
     connectionFailed: 'Cannot connect to server. Please check your internet connection and ensure the backend is running.',
   },
   warnings: {
