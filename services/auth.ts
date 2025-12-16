@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n';
+import { authEvents } from '@/utils/authEvents';
 
 const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, '');
 
@@ -92,19 +93,28 @@ export const refreshTokens = async (
     refreshToken,
   };
 
-  // Don't retry on 401 for refresh endpoint to avoid infinite loop
-  return request<RefreshTokenResponse>(
-    '/auth/refresh',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+  try {
+    // Don't retry on 401 for refresh endpoint to avoid infinite loop
+    return await request<RefreshTokenResponse>(
+      '/auth/refresh',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-    t('errors.tokenRefreshFailed'),
-    false // retryOn401 = false
-  );
+      t('errors.tokenRefreshFailed'),
+      false // retryOn401 = false
+    );
+  } catch (error: any) {
+    // If refresh token is invalid/expired, emit session expired event
+    if (error?.status === 401 || error?.status === 403) {
+      console.log('[API] Refresh token invalid/expired, emitting session expired event');
+      authEvents.emitSessionExpired();
+    }
+    throw error;
+  }
 };
 
 // Helper to get current tokens from storage (to avoid circular dependency)
@@ -138,7 +148,9 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
     try {
       const tokens = await getCurrentTokens();
       if (!tokens?.refreshToken) {
-        console.log('[API] No refresh token available');
+        console.log('[API] No refresh token available, session expired');
+        // No refresh token means session is expired
+        authEvents.emitSessionExpired();
         return null;
       }
 
@@ -160,6 +172,9 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
       };
     } catch (error) {
       console.error('[API] Token refresh failed:', error);
+      // If refresh token is invalid/expired, emit session expired event
+      // This will trigger logout and redirect to login
+      authEvents.emitSessionExpired();
       return null;
     } finally {
       refreshPromise = null;
@@ -239,11 +254,13 @@ export const request = async <T>(
 
         return retryData as T;
       } else {
-        // Refresh failed, throw original 401 error
+        // Refresh failed - token expired, emit session expired event
+        console.log('[API] Token refresh failed, session expired');
+        authEvents.emitSessionExpired();
         const message =
           typeof responseData === 'object' && responseData && 'message' in responseData
             ? String((responseData as { message: unknown }).message)
-            : t('errors.requestFailedStatus', { status: response.status });
+            : t('errors.tokenRefreshFailed');
         console.error('[API] Error response body', responseData);
         throw new ApiError(message, response.status, responseData);
       }
@@ -417,7 +434,7 @@ export const validateEmail = async (
 ): Promise<ValidateEmailResponse> => {
   const body = {
     email: payload.email.trim().toLowerCase(),
-    password: payload.password,
+    password: payload.password.trim(), // Ensure password is trimmed
   };
 
   return request<ValidateEmailResponse>(

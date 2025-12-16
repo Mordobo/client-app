@@ -4,7 +4,7 @@ import { getProfile } from '@/services/profile';
 import { authEvents } from '@/utils/authEvents';
 import { getGoogleSignin } from '@/utils/googleSignIn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
 export interface User {
@@ -61,21 +61,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     });
   }, [user]);
-
-  // Listen for session expired events from services
-  useEffect(() => {
-    const unsubscribe = authEvents.onSessionExpired(async () => {
-      console.log('[AuthContext] Session expired event received, logging out...');
-      Alert.alert(
-        'Session Expired',
-        'Your session has expired. Please log in again.',
-        [{ text: 'OK' }]
-      );
-      await logout();
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const loadUserFromStorage = async () => {
     try {
@@ -144,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const currentUser = user;
       if (currentUser?.provider === 'google') {
@@ -165,7 +150,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Error removing user from storage:', error);
       throw error;
     }
-  };
+  }, [user]);
+
+  // Listen for session expired events from services
+  useEffect(() => {
+    const unsubscribe = authEvents.onSessionExpired(async () => {
+      console.log('[AuthContext] Session expired event received, logging out...');
+      // Logout will clear user state, which will trigger navigation to login via RootLayoutNav
+      // No need to show alert - just redirect to login
+      await logout();
+    });
+
+    return () => unsubscribe();
+  }, [logout]);
 
   const updateUser = async (userData: Partial<User>) => {
     try {
