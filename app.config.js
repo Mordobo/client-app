@@ -1,7 +1,23 @@
 // app.config.js - Expo configuration with environment variables support
+const IS_DEV = process.env.EXPO_PUBLIC_ENV === 'development';
+const IS_STAGING = process.env.EXPO_PUBLIC_ENV === 'staging';
+const IS_PRODUCTION = process.env.EXPO_PUBLIC_ENV === 'production';
+
+// Determine app name suffix based on environment
+const getAppName = () => {
+  if (IS_DEV) return 'Mordobo (Dev)';
+  if (IS_STAGING) return 'Mordobo (Staging)';
+  return 'Mordobo';
+};
+
+// Get build number from environment or use timestamp
+const getBuildNumber = () => {
+  return process.env.EAS_BUILD_NUMBER || process.env.BUILD_NUMBER || '1';
+};
+
 export default {
   expo: {
-    name: 'Mordobo',
+    name: getAppName(),
     slug: 'mordobo',
     version: '1.0.0',
     orientation: 'portrait',
@@ -12,6 +28,9 @@ export default {
     ios: {
       bundleIdentifier: 'com.mordobo.client',
       supportsTablet: true,
+      config: {
+        usesNonExemptEncryption: false,
+      },
     },
     android: {
       package: 'com.mordobo.client',
@@ -66,6 +85,13 @@ export default {
       googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
       googleIosUrlScheme: process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME || '',
       expoPublicApiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
+      environment: process.env.EXPO_PUBLIC_ENV || 'development',
+      buildNumber: getBuildNumber(),
+      buildDate: new Date().toISOString(),
+      commitHash: process.env.GITHUB_SHA || process.env.EAS_BUILD_GIT_COMMIT_HASH || 'unknown',
+      eas: {
+        projectId: '21e61254-7e8d-4586-b2e1-6e31f2003675',
+      },
     },
   },
 };

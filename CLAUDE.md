@@ -95,6 +95,14 @@ Mordobo es una aplicación móvil multiplataforma (iOS, Android, Web) que permit
 - **Componentes funcionales** – Siempre usar componentes funcionales con hooks
 - **Type safety** – Validar tipos en runtime con Zod cuando sea necesario
 
+### Documentation Policy
+
+- **NO crear archivos .md innecesarios** – Evitar crear documentación que no sea estrictamente necesaria para el proyecto
+- **Comunicar directamente** – Si se necesita información o configuración, decirlo directamente en el chat en lugar de crear archivos de documentación
+- **Implementar directamente** – Si es necesario hacer algo (configuración, setup, etc.), hacerlo directamente en lugar de solo documentarlo
+- **Documentación solo cuando sea esencial** – Crear archivos .md únicamente cuando sean absolutamente necesarios para el funcionamiento del proyecto (ej: README.md, CLAUDE.md, documentación de API crítica)
+- **Preferir código sobre documentación** – Implementar la solución directamente en lugar de crear guías extensas
+
 ### Priority Order (Context Hierarchy)
 
 1. **CLAUDE.md rules** (highest priority) – Este documento tiene precedencia absoluta
