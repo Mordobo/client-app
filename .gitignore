@@ -81,7 +81,6 @@ out
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
-!.yarn/sdks
 !.yarn/versions
 
 # Optional caches
@@ -121,3 +120,15 @@ app-example
 # Vite timestamps
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Firebase & Distribution
+google-service-account.json
+GoogleService-Info.plist
+google-services.json
+firebase-service-account.json
+*.ipa
+*.apk
+*.aab
+
+# QR Codes
+build/qr-code.png
