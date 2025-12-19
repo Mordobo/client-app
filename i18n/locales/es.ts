@@ -242,6 +242,114 @@ export default {
     account: 'Cuenta',
     support: 'Soporte',
   },
+  helpCenter: {
+    title: 'Centro de Ayuda',
+    searchPlaceholder: 'Buscar ayuda...',
+    noResults: 'No se encontraron resultados',
+    categories: {
+      account: 'Cuenta y Perfil',
+      bookings: 'Reservas y Servicios',
+      payments: 'Pagos y Facturación',
+      technical: 'Problemas Técnicos',
+    },
+    contactSupport: 'Contactar Soporte',
+    liveChat: 'Chat en Vivo',
+    emailSupport: 'Soporte por Email',
+    phoneSupport: 'Soporte por Teléfono',
+    quickActions: 'Acciones Rápidas',
+    reportProblem: 'Reportar un Problema',
+    giveFeedback: 'Dar Opinión',
+    legal: 'Legal',
+    termsOfService: 'Términos de Servicio',
+    privacyPolicy: 'Política de Privacidad',
+    aboutUs: 'Acerca de Nosotros',
+    faq: {
+      account: {
+        title: 'Cuenta y Perfil',
+        items: [
+          {
+            question: '¿Cómo actualizo la información de mi perfil?',
+            answer: 'Puedes actualizar tu perfil yendo a Perfil > Editar Perfil. Desde ahí puedes cambiar tu nombre, correo, número de teléfono y dirección.',
+          },
+          {
+            question: '¿Cómo cambio mi contraseña?',
+            answer: 'Ve a Perfil > Configuración > Privacidad y Seguridad > Cambiar Contraseña. Ingresa tu contraseña actual y tu nueva contraseña.',
+          },
+          {
+            question: '¿Puedo eliminar mi cuenta?',
+            answer: 'Sí, puedes eliminar tu cuenta yendo a Perfil > Configuración > Cuenta > Eliminar Cuenta. Esta acción no se puede deshacer.',
+          },
+          {
+            question: '¿Cómo habilito la autenticación de dos factores?',
+            answer: 'Ve a Perfil > Configuración > Privacidad y Seguridad > Autenticación de Dos Factores. Sigue las instrucciones de configuración para habilitar 2FA.',
+          },
+        ],
+      },
+      bookings: {
+        title: 'Reservas y Servicios',
+        items: [
+          {
+            question: '¿Cómo reservo un servicio?',
+            answer: 'Navega por las categorías, selecciona un proveedor de servicios, elige una fecha y hora, y confirma tu reserva. También puedes solicitar una cotización primero.',
+          },
+          {
+            question: '¿Puedo cancelar o reprogramar una reserva?',
+            answer: 'Sí, puedes cancelar o reprogramar desde la página de detalles de la reserva. Las políticas de cancelación pueden variar según el proveedor de servicios.',
+          },
+          {
+            question: '¿Cómo rastreo el estado de mi reserva?',
+            answer: 'Ve a Perfil > Mis Reservas para ver todas tus reservas y su estado actual.',
+          },
+          {
+            question: '¿Qué pasa si necesito contactar a mi proveedor de servicios?',
+            answer: 'Puedes enviar un mensaje a tu proveedor directamente a través de la función de chat en los detalles de la reserva o desde la pestaña Chat.',
+          },
+        ],
+      },
+      payments: {
+        title: 'Pagos y Facturación',
+        items: [
+          {
+            question: '¿Qué métodos de pago se aceptan?',
+            answer: 'Aceptamos tarjetas de crédito, tarjetas de débito y billeteras digitales. Puedes agregar métodos de pago en Perfil > Métodos de Pago.',
+          },
+          {
+            question: '¿Cuándo se me cobra?',
+            answer: 'Se te cobra cuando apruebas una cotización y completas el pago. Para servicios programados, el pago se procesa antes de la fecha del servicio.',
+          },
+          {
+            question: '¿Cómo obtengo un recibo o factura?',
+            answer: 'Los recibos se envían automáticamente a tu correo. También puedes ver las facturas en Perfil > Facturas.',
+          },
+          {
+            question: '¿Puedo obtener un reembolso?',
+            answer: 'Las políticas de reembolso varían según el proveedor de servicios. Contacta al soporte o a tu proveedor de servicios para solicitudes de reembolso.',
+          },
+        ],
+      },
+      technical: {
+        title: 'Problemas Técnicos',
+        items: [
+          {
+            question: 'La aplicación no se carga correctamente',
+            answer: 'Intenta cerrar y volver a abrir la aplicación. Si el problema persiste, verifica tu conexión a internet o reinicia tu dispositivo.',
+          },
+          {
+            question: 'No puedo recibir notificaciones',
+            answer: 'Ve a Perfil > Configuración > Notificaciones y asegúrate de que las notificaciones push estén habilitadas. También verifica la configuración de notificaciones de tu dispositivo.',
+          },
+          {
+            question: '¿Cómo reporto un error?',
+            answer: 'Usa el botón "Reportar un Problema" en el Centro de Ayuda o contacta al soporte directamente con detalles sobre el problema.',
+          },
+          {
+            question: 'La aplicación se cierra frecuentemente',
+            answer: 'Asegúrate de tener la última versión de la aplicación. Si los cierres continúan, reporta el problema con detalles sobre cuándo ocurre.',
+          },
+        ],
+      },
+    },
+  },
   settings: {
     title: 'Configuración',
     notifications: 'Notificaciones',
