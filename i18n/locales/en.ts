@@ -242,6 +242,114 @@ export default {
     account: 'Account',
     support: 'Support',
   },
+  helpCenter: {
+    title: 'Help Center',
+    searchPlaceholder: 'Search for help...',
+    noResults: 'No results found',
+    categories: {
+      account: 'Account & Profile',
+      bookings: 'Bookings & Services',
+      payments: 'Payments & Billing',
+      technical: 'Technical Issues',
+    },
+    contactSupport: 'Contact Support',
+    liveChat: 'Live Chat',
+    emailSupport: 'Email Support',
+    phoneSupport: 'Phone Support',
+    quickActions: 'Quick Actions',
+    reportProblem: 'Report a Problem',
+    giveFeedback: 'Give Feedback',
+    legal: 'Legal',
+    termsOfService: 'Terms of Service',
+    privacyPolicy: 'Privacy Policy',
+    aboutUs: 'About Us',
+    faq: {
+      account: {
+        title: 'Account & Profile',
+        items: [
+          {
+            question: 'How do I update my profile information?',
+            answer: 'You can update your profile by going to Profile > Edit Profile. From there, you can change your name, email, phone number, and address.',
+          },
+          {
+            question: 'How do I change my password?',
+            answer: 'Go to Profile > Settings > Privacy & Security > Change Password. Enter your current password and your new password.',
+          },
+          {
+            question: 'Can I delete my account?',
+            answer: 'Yes, you can delete your account by going to Profile > Settings > Account > Delete Account. This action cannot be undone.',
+          },
+          {
+            question: 'How do I enable two-factor authentication?',
+            answer: 'Go to Profile > Settings > Privacy & Security > Two-Factor Authentication. Follow the setup instructions to enable 2FA.',
+          },
+        ],
+      },
+      bookings: {
+        title: 'Bookings & Services',
+        items: [
+          {
+            question: 'How do I book a service?',
+            answer: 'Browse categories, select a service provider, choose a date and time, and confirm your booking. You can also request a quote first.',
+          },
+          {
+            question: 'Can I cancel or reschedule a booking?',
+            answer: 'Yes, you can cancel or reschedule from the booking details page. Cancellation policies may vary by service provider.',
+          },
+          {
+            question: 'How do I track my booking status?',
+            answer: 'Go to Profile > My Bookings to see all your bookings and their current status.',
+          },
+          {
+            question: 'What if I need to contact my service provider?',
+            answer: 'You can message your provider directly through the chat feature in the booking details or from the Chat tab.',
+          },
+        ],
+      },
+      payments: {
+        title: 'Payments & Billing',
+        items: [
+          {
+            question: 'What payment methods are accepted?',
+            answer: 'We accept credit cards, debit cards, and digital wallets. You can add payment methods in Profile > Payment Methods.',
+          },
+          {
+            question: 'When am I charged?',
+            answer: 'You are charged when you approve a quote and complete the payment. For scheduled services, payment is processed before the service date.',
+          },
+          {
+            question: 'How do I get a receipt or invoice?',
+            answer: 'Receipts are automatically sent to your email. You can also view invoices in Profile > Invoices.',
+          },
+          {
+            question: 'Can I get a refund?',
+            answer: 'Refund policies vary by service provider. Contact support or your service provider for refund requests.',
+          },
+        ],
+      },
+      technical: {
+        title: 'Technical Issues',
+        items: [
+          {
+            question: 'The app is not loading properly',
+            answer: 'Try closing and reopening the app. If the issue persists, check your internet connection or restart your device.',
+          },
+          {
+            question: 'I cannot receive notifications',
+            answer: 'Go to Profile > Settings > Notifications and ensure push notifications are enabled. Also check your device notification settings.',
+          },
+          {
+            question: 'How do I report a bug?',
+            answer: 'Use the "Report a Problem" button in the Help Center or contact support directly with details about the issue.',
+          },
+          {
+            question: 'The app crashes frequently',
+            answer: 'Make sure you have the latest version of the app. If crashes continue, report the issue with details about when it occurs.',
+          },
+        ],
+      },
+    },
+  },
   settings: {
     title: 'Settings',
     notifications: 'Notifications',
