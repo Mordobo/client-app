@@ -103,7 +103,7 @@ export default function QuoteScreen() {
         {/* Service Info */}
         <View style={styles.section}>
           <View style={styles.serviceHeader}>
-            <Ionicons name="broom" size={24} color="#3B82F6" />
+            <Ionicons name="home" size={24} color="#3B82F6" />
             <Text style={styles.serviceTitle}>House Cleaning</Text>
           </View>
           {quote.description && (

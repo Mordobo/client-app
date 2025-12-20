@@ -65,7 +65,7 @@ export function Toast({
     });
   };
 
-  if (!visible && fadeAnim._value === 0) {
+  if (!visible && (fadeAnim as any)._value === 0) {
     return null;
   }
 
