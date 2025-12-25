@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { createApiHeaders } from '../utils/apiHeaders';
 
 // API base URL configuration
 const getApiUrl = (): string => {
@@ -49,9 +50,7 @@ export const fetchCategories = async (): Promise<Category[]> => {
   try {
     const response = await fetch(`${API_BASE}/services/categories`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createApiHeaders(),
     });
 
     if (!response.ok) {
@@ -83,9 +82,7 @@ export const fetchCategoryWithSubcategories = async (
   try {
     const response = await fetch(`${API_BASE}/services/categories/${categoryId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: createApiHeaders(),
     });
 
     if (!response.ok) {
@@ -109,6 +106,7 @@ export const fetchCategoryWithSubcategories = async (
     );
   }
 };
+
 
 
 

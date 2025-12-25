@@ -1,7 +1,7 @@
+import { t } from '@/i18n';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
-import { t } from '@/i18n';
 
 // Keep the native splash screen visible while we load the app
 SplashScreen.preventAutoHideAsync();
@@ -19,6 +19,22 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
   const taglineSize = Math.min(width * 0.08, 28);
 
   useEffect(() => {
+    let isMounted = true;
+    let timer: NodeJS.Timeout;
+    
+    const finishSplash = async () => {
+      if (!isMounted) return;
+      try {
+        await SplashScreen.hideAsync();
+      } catch (error) {
+        console.error('Error hiding splash screen:', error);
+        // Continue even if hideAsync fails
+      }
+      if (isMounted) {
+        onFinish();
+      }
+    };
+    
     // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -26,21 +42,27 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
       useNativeDriver: true,
     }).start();
 
-    // Hide after 1.5 seconds
-    const timer = setTimeout(async () => {
+    // Hide after 1.5 seconds - ensure it always finishes
+    timer = setTimeout(() => {
+      if (!isMounted) return;
+      
       // Fade out animation
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
-      }).start(async () => {
-        await SplashScreen.hideAsync();
-        onFinish();
+      }).start(() => {
+        finishSplash();
       });
     }, 1500);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      isMounted = false;
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [fadeAnim, onFinish]);
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
@@ -50,9 +72,33 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
 
         {/* Tagline */}
         <View style={styles.taglineContainer}>
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>{t('splash.tagline1')}</Text>
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>{t('splash.tagline2')}</Text>
-          <Text style={[styles.tagline, { fontSize: taglineSize }]}>{t('splash.tagline3')}</Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>
+            {(() => {
+              try {
+                return t('splash.tagline1');
+              } catch {
+                return 'At-home';
+              }
+            })()}
+          </Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>
+            {(() => {
+              try {
+                return t('splash.tagline2');
+              } catch {
+                return 'services made';
+              }
+            })()}
+          </Text>
+          <Text style={[styles.tagline, { fontSize: taglineSize }]}>
+            {(() => {
+              try {
+                return t('splash.tagline3');
+              } catch {
+                return 'easy';
+              }
+            })()}
+          </Text>
         </View>
       </View>
     </Animated.View>

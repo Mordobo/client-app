@@ -2,10 +2,8 @@ import { t } from '@/i18n';
 import { refreshTokens, setTokenUpdateCallback } from '@/services/auth';
 import { getProfile } from '@/services/profile';
 import { authEvents } from '@/utils/authEvents';
-import { getGoogleSignin } from '@/utils/googleSignIn';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 
 export interface User {
   id: string;
@@ -65,17 +63,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loadUserFromStorage = async () => {
     try {
       console.log('AuthContext - Loading user from storage...');
-      const userData = await AsyncStorage.getItem('user');
-      console.log('AuthContext - User data from storage:', userData);
+      // Add timeout to prevent blocking if AsyncStorage is slow
+      const userData = await Promise.race([
+        AsyncStorage.getItem('user'),
+        new Promise<string | null>((resolve) => 
+          setTimeout(() => {
+            console.warn('AuthContext - Storage read timeout, continuing without user data');
+            resolve(null);
+          }, 2000)
+        ),
+      ]);
+      console.log('AuthContext - User data from storage:', userData ? 'found' : 'not found');
       if (userData) {
         const parsedUser = JSON.parse(userData);
         console.log('AuthContext - Parsed user:', parsedUser);
         setUser(parsedUser);
         
         // If user has auth token, sync profile from backend to get latest data (including country)
+        // Add timeout to prevent blocking if backend is unavailable
         if (parsedUser.authToken) {
           try {
-            const profileResponse = await getProfile();
+            const profileResponse = await Promise.race([
+              getProfile(),
+              new Promise<never>((_, reject) => 
+                setTimeout(() => reject(new Error('Profile sync timeout')), 5000)
+              ),
+            ]);
             const apiUser = profileResponse.user;
             
             // Map backend response to User format
@@ -131,26 +144,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      const currentUser = user;
-      if (currentUser?.provider === 'google') {
-        const GoogleSignin = getGoogleSignin();
-        try {
-          if (GoogleSignin) {
-            await GoogleSignin.signOut();
-          } else {
-            console.warn('[Auth] Google Sign-In module not available during logout. Skipping native sign-out.');
-          }
-        } catch (googleError) {
-          console.warn('Error signing out from Google:', googleError);
-        }
-      }
+      // Google Sign-In ahora usa expo-auth-session, no requiere signOut nativo
+      // El logout se maneja limpiando los tokens locales
       setUser(null);
       await AsyncStorage.removeItem('user');
     } catch (error) {
       console.error('Error removing user from storage:', error);
       throw error;
     }
-  }, [user]);
+  }, []);
 
   // Listen for session expired events from services
   useEffect(() => {

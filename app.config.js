@@ -24,7 +24,7 @@ export default {
     icon: './assets/images/icon.png',
     scheme: 'mordobo',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: true,
+    newArchEnabled: false, // Deshabilitado - reanimated removido temporalmente
     ios: {
       bundleIdentifier: 'com.mordobo.client',
       supportsTablet: true,
@@ -50,6 +50,8 @@ export default {
     },
     plugins: [
       'expo-router',
+      'expo-localization',
+      'expo-web-browser',
       [
         'expo-splash-screen',
         {
@@ -62,22 +64,12 @@ export default {
           },
         },
       ],
-      // Only include Google Sign-In plugin if iosUrlScheme is provided
-      // For web builds, this plugin may not be needed
-      ...(process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME
-        ? [
-            [
-              '@react-native-google-signin/google-signin',
-              {
-                iosUrlScheme: process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME,
-              },
-            ],
-          ]
-        : []),
+      // expo-build-properties removido temporalmente para evitar errores de Kotlin compiler
+      // Google Sign-In ahora usa expo-auth-session (compatible con Expo Go)
     ],
     experiments: {
       typedRoutes: true,
-      reactCompiler: true,
+      // reactCompiler: true, // TEST: Deshabilitado para debugging pantalla negra
     },
     extra: {
       googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',

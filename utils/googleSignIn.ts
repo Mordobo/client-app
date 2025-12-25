@@ -1,52 +1,65 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import * as Linking from 'expo-linking';
+import { t } from '@/i18n';
 
 if (typeof WebBrowser.maybeCompleteAuthSession === 'function') {
-    WebBrowser.maybeCompleteAuthSession();
+  WebBrowser.maybeCompleteAuthSession();
 }
-import type { GetTokensResponse } from '@react-native-google-signin/google-signin';
-import { t } from '@/i18n';
 
 const logWarning = (key: string, ...args: unknown[]) => {
   console.warn(t(key), ...args);
 };
 
-/*
- * We require the Google Sign-In module lazily so the app can run on platforms
- * or builds where the native module is not bundled (e.g. Expo Go or dev builds
- * sin el plugin). When the module is missing we return null and the callers can
- * fallback gracefully instead of crashing at import time.
- */
-
-type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
-
-let cachedModule: GoogleSignInModule | null | undefined;
-
-export const getGoogleSignInModule = (): GoogleSignInModule | null => {
-  if (cachedModule === undefined) {
-    try {
-      cachedModule = require('@react-native-google-signin/google-signin');
-    } catch (error) {
-      logWarning('warnings.googleSignInModuleUnavailable', error);
-      cachedModule = null;
-    }
-  }
-
-  return cachedModule ?? null;
-};
-
-export const getGoogleSignin = () => getGoogleSignInModule()?.GoogleSignin ?? null;
-export const getGoogleStatusCodes = () => getGoogleSignInModule()?.statusCodes ?? null;
-export const isGoogleSignInAvailable = () => getGoogleSignInModule() !== null;
-
-export type GoogleStatusCodes = typeof import('@react-native-google-signin/google-signin')['statusCodes'];
-export type GoogleGetTokensResponse = GetTokensResponse;
+// Google Sign-In ahora usa expo-auth-session (compatible con Expo Go)
+// No se requiere módulo nativo
 
 const AUTHORIZATION_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const USER_INFO_ENDPOINT = 'https://www.googleapis.com/oauth2/v3/userinfo';
 const WEB_OAUTH_WINDOW_NAME = 'google-oauth';
 
 const getWebClientId = () => process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
+
+// Tipos compatibles con el código existente
+export type GoogleStatusCodes = {
+  SIGN_IN_CANCELLED: string;
+  IN_PROGRESS: string;
+  PLAY_SERVICES_NOT_AVAILABLE: string;
+};
+
+export const getGoogleStatusCodes = (): GoogleStatusCodes | null => {
+  // Retornar códigos de estado simulados para compatibilidad
+  return {
+    SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    PLAY_SERVICES_NOT_AVAILABLE: 'PLAY_SERVICES_NOT_AVAILABLE',
+  };
+};
+
+export const getGoogleSignin = () => null; // Ya no se usa módulo nativo
+export const isGoogleSignInAvailable = () => true; // Siempre disponible con expo-auth-session
+
+export interface GoogleWebSignInResult {
+  idToken: string;
+  accessToken?: string;
+  user: {
+    id: string;
+    email: string;
+    name: string | null;
+    givenName: string | null;
+    familyName: string | null;
+    photo: string | null;
+  };
+}
+
+// Para compatibilidad con código existente
+export type GoogleGetTokensResponse = {
+  idToken?: string;
+  accessToken?: string;
+};
+
+// Funciones para web (mantener compatibilidad)
 const WEB_STATE_STORAGE_KEY = 'google-web-oauth-state';
 export const WEB_RESULT_STORAGE_KEY = 'google-web-oauth-result';
 
@@ -175,19 +188,6 @@ export const isGoogleWebAvailable = () => {
   console.log('[GoogleSignIn] isGoogleWebAvailable ->', available, 'Platform:', Platform.OS);
   return available;
 };
-
-export interface GoogleWebSignInResult {
-  idToken: string;
-  accessToken?: string;
-  user: {
-    id: string;
-    email: string;
-    name: string | null;
-    givenName: string | null;
-    familyName: string | null;
-    photo: string | null;
-  };
-}
 
 const mapProfileToWebResult = (
   idToken: string,
@@ -357,4 +357,67 @@ export const signInWithGoogleWeb = async (): Promise<GoogleWebSignInResult | nul
   }
 
   return null;
+};
+
+// Nueva función para móvil usando expo-auth-session
+export const signInWithGoogleMobile = async (): Promise<GoogleWebSignInResult> => {
+  if (Platform.OS === 'web') {
+    throw new Error('Use signInWithGoogleWeb for web platform');
+  }
+
+  const clientId = getWebClientId();
+  if (!clientId) {
+    throw new Error('google-missing-web-client-id');
+  }
+
+  const redirectUri = Linking.createURL('auth/google', {});
+  
+  const request = new AuthSession.AuthRequest({
+    clientId,
+    scopes: ['openid', 'profile', 'email'],
+    responseType: AuthSession.ResponseType.IdToken,
+    redirectUri,
+    usePKCE: false,
+    additionalParameters: {
+      access_type: 'offline',
+    },
+  });
+
+  const discovery = {
+    authorizationEndpoint: AUTHORIZATION_ENDPOINT,
+    tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  };
+
+  try {
+    const result = await request.promptAsync(discovery, {
+      useProxy: true,
+      showInRecents: true,
+    });
+
+    if (result.type !== 'success') {
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        throw new Error('google-signin-cancelled');
+      }
+      throw new Error(`google-signin-failed: ${result.type}`);
+    }
+
+    const { idToken } = result.params;
+    if (!idToken || typeof idToken !== 'string') {
+      throw new Error('google-missing-id-token');
+    }
+
+    // Obtener access token si está disponible
+    const accessToken = result.params.access_token as string | undefined;
+
+    // Obtener información del usuario
+    const profile = await fetchUserInfo(accessToken, idToken);
+
+    return mapProfileToWebResult(idToken, accessToken, profile);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('cancelled')) {
+      throw error;
+    }
+    console.error('[GoogleSignIn][mobile] Error:', error);
+    throw error;
+  }
 };
