@@ -79,10 +79,10 @@ export default function OrdersScreen() {
             <TouchableOpacity
               key={order.id}
               style={styles.orderCard}
-              onPress={() => router.push(`/orders/${order.id}` as any)}
+              onPress={() => router.push(`/orders/${order.id}`)}
             >
               <View style={styles.orderHeader}>
-                <Ionicons name="home" size={24} color="#3B82F6" />
+                <Ionicons name="broom" size={24} color="#3B82F6" />
                 <View style={styles.orderInfo}>
                   <Text style={styles.orderTitle}>House Cleaning</Text>
                   <Text style={styles.orderDate}>

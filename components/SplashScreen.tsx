@@ -1,7 +1,7 @@
+import { t } from '@/i18n';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
-import { t } from '@/i18n';
 
 // Keep the native splash screen visible while we load the app
 SplashScreen.preventAutoHideAsync();
@@ -28,6 +28,7 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
         await SplashScreen.hideAsync();
       } catch (error) {
         console.error('Error hiding splash screen:', error);
+        // Continue even if hideAsync fails
       }
       if (isMounted) {
         onFinish();
@@ -41,7 +42,7 @@ export default function CustomSplashScreen({ onFinish }: SplashScreenProps) {
       useNativeDriver: true,
     }).start();
 
-    // Hide after 1.5 seconds - simplified to avoid blocking
+    // Hide after 1.5 seconds - ensure it always finishes
     timer = setTimeout(() => {
       if (!isMounted) return;
       

@@ -56,7 +56,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Image
-            source={{ uri: user?.avatar || 'https://via.placeholder.com/40' }}
+            source={{ uri: user?.profileImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
           <Text style={styles.greeting}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>

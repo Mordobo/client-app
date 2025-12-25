@@ -27,8 +27,7 @@
       },
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "image": "latest"
+        "gradleCommand": ":app:assembleRelease"
       },
       "env": {
         "EXPO_PUBLIC_ENV": "staging"

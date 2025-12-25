@@ -5,14 +5,36 @@ import { authEvents } from '@/utils/authEvents';
 
 const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, '');
 
+/**
+ * Determines the API base URL based on environment and platform.
+ * 
+ * Priority:
+ * 1. EXPO_PUBLIC_API_URL environment variable (highest priority)
+ * 2. For Android emulator: converts localhost to 10.0.2.2
+ * 3. For physical devices: uses the provided URL as-is (must be accessible from device)
+ * 4. Fallback: localhost for development
+ * 
+ * IMPORTANT for APK builds:
+ * - Set EXPO_PUBLIC_API_URL to your server's IP or public URL
+ * - Example: EXPO_PUBLIC_API_URL=http://192.168.1.100:3000 (local network)
+ * - Example: EXPO_PUBLIC_API_URL=https://api.mordobo.com (production)
+ */
 const getHost = () => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  
+  // If EXPO_PUBLIC_API_URL is set, use it (respecting Android emulator conversion)
   if (envUrl?.length) {
+    // Only convert localhost to 10.0.2.2 for Android (emulator detection)
+    // This assumes localhost means emulator, which is correct for development
     if (Platform.OS === 'android' && /localhost/i.test(envUrl)) {
       return envUrl.replace(/localhost/gi, '10.0.2.2');
     }
+    // For physical devices or non-localhost URLs, use as-is
     return envUrl;
   }
+  
+  // Fallback: development defaults
+  // Only use 10.0.2.2 for Android in development (emulator)
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:3000';
   }
@@ -20,6 +42,11 @@ const getHost = () => {
 };
 
 export const API_BASE = sanitizeBaseUrl(getHost());
+
+// Log API_BASE on module load for debugging
+if (typeof console !== 'undefined') {
+  console.log('[API] API_BASE initialized:', API_BASE, 'Platform:', Platform.OS);
+}
 
 const buildUrl = (path: string) => {
   const base = API_BASE;
@@ -194,6 +221,9 @@ export const request = async <T>(
     // Get current access token for authorization header
     const tokens = await getCurrentTokens();
     const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      // Skip ngrok browser warning page for automated requests
+      'ngrok-skip-browser-warning': 'true',
       ...(init.headers as Record<string, string>),
     };
 
@@ -203,8 +233,55 @@ export const request = async <T>(
 
     const url = buildUrl(path);
     console.log('[API] Request', url, init.method || 'GET', init.body ? JSON.parse(init.body as string) : '');
-    const response = await fetch(url, { ...init, headers, mode: 'cors' });
-    console.log('[API] Response status', response.status, response.statusText, 'for', url);
+    console.log('[API] API_BASE:', API_BASE);
+    
+    // Create AbortController for timeout (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    let response: Response;
+    try {
+      console.log('[API] Attempting fetch to:', url);
+      console.log('[API] Headers:', headers);
+      console.log('[API] Method:', init.method || 'GET');
+      
+      response = await fetch(url, { 
+        ...init, 
+        headers, 
+        mode: 'cors',
+        signal: controller.signal,
+        // Add keepalive for better connection handling
+        keepalive: true,
+      });
+      clearTimeout(timeoutId);
+      console.log('[API] ✅ Response received:', response.status, response.statusText, 'for', url);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
+      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      
+      console.error('[API] ❌ Fetch failed:', {
+        url,
+        error: errorMessage,
+        isTimeout,
+        errorType: fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError,
+        platform: Platform.OS,
+      });
+      
+      // Log more details for network errors
+      if (fetchError instanceof TypeError) {
+        console.error('[API] Network error - possible causes:');
+        console.error('[API] 1. Backend not running or not accessible');
+        console.error('[API] 2. Firewall blocking connection');
+        console.error('[API] 3. Wrong IP address (10.0.2.2 for Android emulator)');
+        console.error('[API] 4. Backend not listening on 0.0.0.0');
+      }
+      
+      if (isTimeout) {
+        throw new Error('Request timeout: The server took too long to respond. Please check your connection and try again.');
+      }
+      throw fetchError;
+    }
 
     const responseText = await response.text();
     let responseData: unknown = undefined;
@@ -289,15 +366,29 @@ export const request = async <T>(
     if (error instanceof Error) {
       const errorMessage = error.message || '';
       
+      console.error('[API] Network error detected:', {
+        message: errorMessage,
+        url: API_BASE,
+        platform: Platform.OS,
+        stack: error.stack,
+      });
+      
       // Detect DNS/connection errors
-      if (
+      // Note: In web, "Failed to fetch" can also occur due to CORS issues
+      // We'll be more specific about connection errors
+      const isConnectionError = 
         errorMessage.includes('getaddrinfo ENOTFOUND') ||
         errorMessage.includes('ECONNREFUSED') ||
         errorMessage.includes('Network request failed') ||
-        errorMessage.includes('Failed to fetch')
-      ) {
+        (errorMessage.includes('Failed to fetch') && !errorMessage.includes('CORS')) ||
+        errorMessage.includes('ERR_CONNECTION_REFUSED') ||
+        errorMessage.includes('ERR_NAME_NOT_RESOLVED') ||
+        (error instanceof TypeError && errorMessage.includes('fetch'));
+      
+      if (isConnectionError) {
+        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}`;
         throw new ApiError(
-          t('errors.connectionFailed'),
+          detailedMessage,
           0,
           error
         );

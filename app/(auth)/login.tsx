@@ -5,13 +5,11 @@ import { type GoogleProfile } from '@/utils/authMapping';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
     consumePendingGoogleWebResult,
-    getGoogleSignin,
     getGoogleStatusCodes,
-    isGoogleSignInAvailable,
     isGoogleWebAvailable,
     signInWithGoogleWeb,
+    signInWithGoogleMobile,
     WEB_RESULT_STORAGE_KEY,
-    type GoogleGetTokensResponse,
 } from '@/utils/googleSignIn';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,16 +43,9 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const params = useLocalSearchParams<{ registered?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const googleSignin = getGoogleSignin();
   const googleStatusCodes = getGoogleStatusCodes();
-  const nativeGoogleSupported = isGoogleSignInAvailable() && !!googleSignin && !!googleStatusCodes;
   const webGoogleSupported = isGoogleWebAvailable();
-  console.log('[GoogleLogin] Computed web support:', {
-    platform: Platform.OS,
-    webGoogleSupported,
-    nativeGoogleSupported,
-  });
-  const isGoogleSupported = Platform.OS === 'web' ? webGoogleSupported : nativeGoogleSupported;
+  const isGoogleSupported = webGoogleSupported;
 
   const trimmedIdentifier = identifier.trim();
   const canSubmit = valueHasContent(identifier) && password.length >= 8;
@@ -287,91 +278,42 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = async () => {
-    console.log('[GoogleLogin] Platform:', Platform.OS, 'isGoogleWebAvailable:', webGoogleSupported, 'isGoogleSupported:', isGoogleSupported);
-    if (Platform.OS === 'web') {
-      setGoogleLoading(true);
-      try {
-        const result = await signInWithGoogleWeb();
+    console.log('[GoogleLogin] Platform:', Platform.OS, 'isGoogleWebAvailable:', webGoogleSupported);
+    
+    setGoogleLoading(true);
+    try {
+      let result;
+      
+      if (Platform.OS === 'web') {
+        result = await signInWithGoogleWeb();
         console.log('[GoogleLogin] signInWithGoogleWeb result:', result);
         if (!result) {
           console.log('[GoogleLogin] Web flow initiated; waiting for storage event.');
           return;
         }
-        const profile: GoogleProfile = {
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          givenName: result.user.givenName,
-          familyName: result.user.familyName,
-          photo: result.user.photo,
-        };
-        const tokens: GoogleAuthTokens = {
-          idToken: result.idToken,
-          accessToken: result.accessToken,
-        };
-        await finalizeGoogleLogin(profile, tokens);
-      } catch (error) {
-        handleGoogleError(error);
-      } finally {
-        setGoogleLoading(false);
-      }
-      return;
-    }
-
-    if (!googleSignin || !googleStatusCodes) {
-      Alert.alert(t('common.error'), t('errors.googleUnavailable'));
-      return;
-    }
-
-    setGoogleLoading(true);
-    try {
-      await googleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const signInResponse = await googleSignin.signIn();
-
-      if (signInResponse.type !== 'success') {
-        return;
-      }
-
-      const googleUser = signInResponse.data.user;
-      let tokens: GoogleGetTokensResponse | null = null;
-      try {
-        tokens = await googleSignin.getTokens();
-      } catch (tokenError) {
-        console.warn('Google getTokens error:', tokenError);
-      }
-      const idToken = tokens?.idToken ?? signInResponse.data.idToken ?? undefined;
-      const accessToken = tokens?.accessToken;
-
-      if (!idToken) {
-        throw new Error('google-missing-id-token');
+      } else {
+        // Móvil: usar expo-auth-session
+        result = await signInWithGoogleMobile();
+        console.log('[GoogleLogin] signInWithGoogleMobile result:', result);
       }
 
       const profile: GoogleProfile = {
-        id: googleUser.id,
-        email: googleUser.email,
-        name: googleUser.name,
-        givenName: googleUser.givenName,
-        familyName: googleUser.familyName,
-        photo: googleUser.photo,
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        givenName: result.user.givenName,
+        familyName: result.user.familyName,
+        photo: result.user.photo,
       };
-      const tokensBundle: GoogleAuthTokens = {
-        idToken,
-        accessToken,
+      const tokens: GoogleAuthTokens = {
+        idToken: result.idToken,
+        accessToken: result.accessToken,
       };
-      await finalizeGoogleLogin(profile, tokensBundle);
+      await finalizeGoogleLogin(profile, tokens);
     } catch (error) {
-      if (typeof error === 'object' && error && 'code' in error) {
-        const code = String((error as { code?: unknown }).code ?? '');
-        if (
-          code === googleStatusCodes.SIGN_IN_CANCELLED ||
-          code === googleStatusCodes.IN_PROGRESS
-        ) {
-          return;
-        }
-        if (code === googleStatusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          Alert.alert(t('common.error'), t('errors.googlePlayServices'));
-          return;
-        }
+      if (error instanceof Error && error.message.includes('cancelled')) {
+        // Usuario canceló, no mostrar error
+        return;
       }
 
       if (error instanceof ApiError) {
@@ -385,7 +327,7 @@ export default function LoginScreen() {
         return;
       }
 
-      //console.error('Google login error:', error);
+      console.error('Google login error:', error);
       Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
     } finally {
       setGoogleLoading(false);

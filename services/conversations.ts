@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { handleUnauthorizedError } from '../utils/authEvents';
 import { getToken } from '../utils/userStorage';
+import { createApiHeaders } from '../utils/apiHeaders';
 
 const getApiUrl = (): string => {
   const envUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
@@ -148,10 +149,9 @@ export const getOrCreateConversation = async (
     
     const response = await fetch(`${API_BASE}/conversations`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createApiHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
       body: JSON.stringify({ supplierId, orderId }),
     });
 
@@ -186,10 +186,9 @@ export const fetchConversation = async (conversationId: string): Promise<Convers
     
     const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createApiHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
     });
 
     await handleApiResponse(response);
@@ -224,10 +223,9 @@ export const fetchConversationMessages = async (conversationId: string): Promise
     
     const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createApiHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
     });
 
     await handleApiResponse(response);
@@ -265,10 +263,9 @@ export const sendConversationMessage = async (
     
     const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createApiHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
       body: JSON.stringify({ content }),
     });
 
@@ -317,10 +314,9 @@ export const fetchUnreadCount = async (): Promise<number> => {
     // #endregion
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+      headers: createApiHeaders({
         'Authorization': `Bearer ${token}`,
-      },
+      }),
     });
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:288',message:'Response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});

@@ -18,17 +18,16 @@ import { ApiError, registerUser } from '@/services/auth';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CountryPicker, type Country } from '@/components/CountryPicker';
 import { PhoneInput } from '@/components/PhoneInput';
 import {
-  getGoogleSignin,
   getGoogleStatusCodes,
-  isGoogleSignInAvailable,
   isGoogleWebAvailable,
   signInWithGoogleWeb,
+  signInWithGoogleMobile,
   consumePendingGoogleWebResult,
   WEB_RESULT_STORAGE_KEY,
-  type GoogleGetTokensResponse,
 } from '@/utils/googleSignIn';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 
@@ -154,11 +153,9 @@ export default function RegisterScreen() {
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ password?: string; confirmPassword?: string; country?: string }>({});
   const [googleLoading, setGoogleLoading] = useState(false);
-  const googleSignin = getGoogleSignin();
   const googleStatusCodes = getGoogleStatusCodes();
-  const nativeGoogleSupported = isGoogleSignInAvailable() && !!googleSignin && !!googleStatusCodes;
   const webGoogleSupported = isGoogleWebAvailable();
-  const isGoogleSupported = Platform.OS === 'web' ? webGoogleSupported : nativeGoogleSupported;
+  const isGoogleSupported = webGoogleSupported;
 
   const placeholderColor = 'rgba(55, 65, 81, 0.45)';
   const isFieldFocused = (field: string) => focusedField === field;
@@ -354,8 +351,32 @@ export default function RegisterScreen() {
         country: country.name,
       });
 
-      setApiErrorMessage(null);
-      router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+      // After successful registration, send verification code
+      const { validateEmail } = await import('@/services/auth');
+      try {
+        await validateEmail({
+          email: trimmedEmail.toLowerCase(),
+          password,
+        });
+
+        // Store email and password temporarily for resend code and verification
+        await AsyncStorage.setItem('pending_verification_email', trimmedEmail.toLowerCase());
+        await AsyncStorage.setItem('pending_verification_password', password);
+
+        setApiErrorMessage(null);
+        // Navigate directly to verification screen
+        router.replace({
+          pathname: '/(auth)/verify',
+          params: { 
+            email: trimmedEmail.toLowerCase(),
+          },
+        });
+      } catch (validateError) {
+        console.error('Error sending verification code:', validateError);
+        // If validation fails, still redirect to login with message
+        setApiErrorMessage(null);
+        router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+      }
     } catch (error) {
       console.error('Register error:', error);
 
@@ -379,94 +400,41 @@ export default function RegisterScreen() {
   };
 
   const handleGoogleRegister = async () => {
-    if (Platform.OS === 'web') {
-      setGoogleLoading(true);
-      try {
-        const result = await signInWithGoogleWeb();
+    setGoogleLoading(true);
+    try {
+      let result;
+      
+      if (Platform.OS === 'web') {
+        result = await signInWithGoogleWeb();
         if (!result) {
           console.log('[GoogleRegister] Web flow initiated; waiting for storage event.');
           return;
         }
-        const googleProfile: GoogleProfile = {
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          givenName: result.user.givenName,
-          familyName: result.user.familyName,
-          photo: result.user.photo,
-        };
-
-        const tokens: GoogleAuthTokens = {
-          idToken: result.idToken,
-          accessToken: result.accessToken,
-        };
-        const userData = await registerGoogleAccountOrFallback(googleProfile, tokens);
-        await login(userData);
-        router.replace('/(tabs)/home');
-      } catch (error) {
-        handleGoogleRegisterError(error);
-        return;
-      } finally {
-        setGoogleLoading(false);
-      }
-      return;
-    }
-
-    if (!googleSignin || !googleStatusCodes) {
-      Alert.alert(t('common.error'), t('errors.googleUnavailable'));
-      return;
-    }
-
-    setGoogleLoading(true);
-    try {
-      await googleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const signInResponse = await googleSignin.signIn();
-
-      if (signInResponse.type !== 'success') {
-        return;
+      } else {
+        // Móvil: usar expo-auth-session
+        result = await signInWithGoogleMobile();
       }
 
-      const googleUser = signInResponse.data.user;
-      let tokens: GoogleGetTokensResponse | null = null;
-      try {
-        tokens = await googleSignin.getTokens();
-      } catch (tokenError) {
-        console.warn('Google getTokens error:', tokenError);
-      }
-      const idToken = tokens?.idToken ?? signInResponse.data.idToken ?? undefined;
-      const accessToken = tokens?.accessToken;
-
-      if (!idToken) {
-        throw new Error('google-missing-id-token');
-      }
-
-      const tokensBundle: GoogleAuthTokens = {
-        idToken,
-        accessToken,
+      const googleProfile: GoogleProfile = {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        givenName: result.user.givenName,
+        familyName: result.user.familyName,
+        photo: result.user.photo,
       };
-      const userData = await registerGoogleAccountOrFallback({
-        id: googleUser.id,
-        email: googleUser.email,
-        name: googleUser.name,
-        givenName: googleUser.givenName,
-        familyName: googleUser.familyName,
-        photo: googleUser.photo,
-      }, tokensBundle);
+
+      const tokens: GoogleAuthTokens = {
+        idToken: result.idToken,
+        accessToken: result.accessToken,
+      };
+      const userData = await registerGoogleAccountOrFallback(googleProfile, tokens);
       await login(userData);
       router.replace('/(tabs)/home');
     } catch (error) {
-      if (typeof error === 'object' && error && 'code' in error) {
-        const code = String((error as { code?: unknown }).code ?? '');
-        if (
-          code === googleStatusCodes.SIGN_IN_CANCELLED ||
-          code === googleStatusCodes.IN_PROGRESS
-        ) {
-          return;
-        }
-        if (code === googleStatusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-          Alert.alert(t('common.error'), t('errors.googlePlayServices'));
-          return;
-        }
+      if (error instanceof Error && error.message.includes('cancelled')) {
+        // Usuario canceló, no mostrar error
+        return;
       }
 
       if (error instanceof ApiError) {

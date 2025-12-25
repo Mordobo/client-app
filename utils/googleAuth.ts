@@ -1,12 +1,12 @@
-import type { User } from '@/contexts/AuthContext';
 import {
-    ApiError,
-    loginWithGoogle,
-    registerUser,
-    type AuthSuccessResponse,
-    type GoogleLoginPayload,
+  ApiError,
+  loginWithGoogle,
+  registerUser,
+  type AuthSuccessResponse,
+  type GoogleLoginPayload,
 } from '@/services/auth';
 import { mapAuthResponseToUser, type GoogleProfile } from '@/utils/authMapping';
+import type { User } from '@/contexts/AuthContext';
 
 export interface GoogleAuthTokens {
   idToken?: string;
@@ -28,7 +28,7 @@ const sanitizePhoneCandidate = (value?: string | null): string | undefined => {
 };
 
 const buildPhoneFromProfile = (profile: GoogleProfile): string | undefined => {
-  const recordProfile = profile as unknown as Record<string, unknown>;
+  const recordProfile = profile as Record<string, unknown>;
   const directPhone =
     sanitizePhoneCandidate(recordProfile.phone as string | undefined) ??
     sanitizePhoneCandidate(recordProfile.phoneNumber as string | undefined);
@@ -151,7 +151,6 @@ const registerGoogleAccountInBackend = async (
     email,
     phoneNumber,
     password,
-    country: 'US', // Default country for Google sign-in (can be updated later in profile)
   });
   console.log('[GoogleAuth] Backend Google register succeeded', {
     userId: response.user?.id,

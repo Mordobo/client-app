@@ -27,22 +27,10 @@ export default function HelpCenterScreen() {
 
   // Get FAQ data from translations
   const faqCategories: FAQCategory[] = useMemo(() => {
-    const getFAQItems = (key: string): FAQItem[] => {
-      try {
-        const value = t(key);
-        if (Array.isArray(value)) {
-          return value as FAQItem[];
-        }
-      } catch {
-        // Ignore errors
-      }
-      return [];
-    };
-
-    const accountItems = getFAQItems('helpCenter.faq.account.items');
-    const bookingsItems = getFAQItems('helpCenter.faq.bookings.items');
-    const paymentsItems = getFAQItems('helpCenter.faq.payments.items');
-    const technicalItems = getFAQItems('helpCenter.faq.technical.items');
+    const accountItems = t('helpCenter.faq.account.items') as FAQItem[];
+    const bookingsItems = t('helpCenter.faq.bookings.items') as FAQItem[];
+    const paymentsItems = t('helpCenter.faq.payments.items') as FAQItem[];
+    const technicalItems = t('helpCenter.faq.technical.items') as FAQItem[];
 
     return [
       {
