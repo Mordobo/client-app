@@ -71,6 +71,7 @@ export default {
     googleUnavailable: 'Google Sign-In no está disponible en esta versión. Instala un cliente dev con el módulo nativo.',
     invalidVerificationCode: 'Código de verificación inválido. Por favor intenta de nuevo.',
     verificationFailed: 'Verificación fallida. Por favor intenta de nuevo.',
+    emailSendFailed: 'Error al enviar el correo de verificación',
     userNotFound: 'Usuario no encontrado. Por favor inicia sesión de nuevo.',
     tokenRefreshFailed: 'Sesión expirada. Por favor inicia sesión de nuevo.',
     unableToResendCode: 'No se pudo reenviar el código. Por favor regresa al login e intenta de nuevo.',

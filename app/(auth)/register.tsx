@@ -1,3 +1,20 @@
+import { CountryPicker, type Country } from '@/components/CountryPicker';
+import { PhoneInput } from '@/components/PhoneInput';
+import { useAuth } from '@/contexts/AuthContext';
+import { t } from '@/i18n';
+import { ApiError, registerUser } from '@/services/auth';
+import { type GoogleProfile } from '@/utils/authMapping';
+import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
+import {
+  consumePendingGoogleWebResult,
+  getGoogleStatusCodes,
+  isGoogleWebAvailable,
+  signInWithGoogleMobile,
+  signInWithGoogleWeb,
+  WEB_RESULT_STORAGE_KEY,
+} from '@/utils/googleSignIn';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -13,23 +30,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { t } from '@/i18n';
-import { ApiError, registerUser } from '@/services/auth';
-import { type GoogleProfile } from '@/utils/authMapping';
-import { useAuth } from '@/contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CountryPicker, type Country } from '@/components/CountryPicker';
-import { PhoneInput } from '@/components/PhoneInput';
-import {
-  getGoogleStatusCodes,
-  isGoogleWebAvailable,
-  signInWithGoogleWeb,
-  signInWithGoogleMobile,
-  consumePendingGoogleWebResult,
-  WEB_RESULT_STORAGE_KEY,
-} from '@/utils/googleSignIn';
-import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 
 const valueHasContent = (text: string) => text.trim().length > 0;
 
@@ -373,9 +373,67 @@ export default function RegisterScreen() {
         });
       } catch (validateError) {
         console.error('Error sending verification code:', validateError);
-        // If validation fails, still redirect to login with message
+        
+        // Check if it's an SMTP/email error
+        if (validateError instanceof ApiError) {
+          const errorData = validateError.data as Record<string, unknown> | undefined;
+          const errorCode = errorData?.code as string | undefined;
+          const errorMessage = validateError.message || t('errors.verificationFailed');
+          
+          // Show detailed error for SMTP failures
+          if (errorCode === 'smtp_not_configured' || 
+              errorCode === 'email_send_timeout' || 
+              errorCode === 'email_send_failed') {
+            const detailedMessage = errorData?.message 
+              ? String(errorData.message)
+              : errorMessage;
+            
+            Alert.alert(
+              t('common.error'),
+              `${t('errors.emailSendFailed')}\n\n${detailedMessage}`,
+              [
+                {
+                  text: t('common.ok'),
+                  onPress: () => {
+                    // Still redirect to login
+                    router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+                  }
+                }
+              ]
+            );
+            return;
+          }
+          
+          // For other errors, show generic message
+          Alert.alert(
+            t('common.error'),
+            errorMessage,
+            [
+              {
+                text: t('common.ok'),
+                onPress: () => {
+                  router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+                }
+              }
+            ]
+          );
+          return;
+        }
+        
+        // If validation fails with unknown error, still redirect to login with message
         setApiErrorMessage(null);
-        router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+        Alert.alert(
+          t('common.error'),
+          t('errors.verificationFailed'),
+          [
+            {
+              text: t('common.ok'),
+              onPress: () => {
+                router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+              }
+            }
+          ]
+        );
       }
     } catch (error) {
       console.error('Register error:', error);

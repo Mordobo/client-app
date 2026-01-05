@@ -265,11 +265,33 @@ export default function VerifyScreen() {
       console.error('Resend error:', error);
       
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
+        const errorCode = errorData?.code as string | undefined;
+        const errorMessage = error.message || t('errors.resendCodeFailed');
+        
+        // Show detailed error for SMTP failures
+        if (errorCode === 'smtp_not_configured' || 
+            errorCode === 'email_send_timeout' || 
+            errorCode === 'email_send_failed') {
+          const detailedMessage = errorData?.message 
+            ? String(errorData.message)
+            : errorMessage;
+          
+          Alert.alert(
+            t('common.error'),
+            `${t('errors.emailSendFailed')}\n\n${detailedMessage}`
+          );
+          return;
+        }
+        
+        // Handle authentication errors
         if (error.status === 401) {
           Alert.alert(t('common.error'), t('errors.loginFailed'));
-        } else {
-          Alert.alert(t('common.error'), error.message || t('errors.resendCodeFailed'));
+          return;
         }
+        
+        // For other errors, show the error message
+        Alert.alert(t('common.error'), errorMessage);
       } else {
         Alert.alert(t('common.error'), t('errors.resendCodeFailed'));
       }

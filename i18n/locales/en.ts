@@ -71,6 +71,7 @@ export default {
     googleUnavailable: 'Google Sign-In is not available in this build. Install a dev client with the native module.',
     invalidVerificationCode: 'Invalid verification code. Please try again.',
     verificationFailed: 'Verification failed. Please try again.',
+    emailSendFailed: 'Failed to send verification email',
     userNotFound: 'User not found. Please log in again.',
     tokenRefreshFailed: 'Session expired. Please log in again.',
     unableToResendCode: 'Unable to resend code. Please return to login and try again.',
