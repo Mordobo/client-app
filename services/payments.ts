@@ -1,15 +1,5 @@
-import { Platform } from 'react-native';
+import { API_BASE } from '@/utils/apiConfig';
 import { getToken } from '../utils/userStorage';
-
-const getApiUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-  if (Platform.OS === 'android' && /localhost/i.test(envUrl)) {
-    return envUrl.replace(/localhost/gi, '10.0.2.2');
-  }
-  return envUrl;
-};
-
-const API_BASE = getApiUrl();
 
 export interface Payment {
   id: string;
@@ -114,6 +104,9 @@ export const fetchPayment = async (paymentId: string): Promise<Payment> => {
     );
   }
 };
+
+
+
 
 
 
