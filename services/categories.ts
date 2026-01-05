@@ -1,19 +1,5 @@
-import { Platform } from 'react-native';
+import { API_BASE } from '@/utils/apiConfig';
 import { createApiHeaders } from '../utils/apiHeaders';
-
-// API base URL configuration
-const getApiUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-  
-  // Android emulator uses 10.0.2.2 instead of localhost
-  if (Platform.OS === 'android' && /localhost/i.test(envUrl)) {
-    return envUrl.replace(/localhost/gi, '10.0.2.2');
-  }
-  
-  return envUrl;
-};
-
-const API_BASE = getApiUrl();
 
 export interface Category {
   id: string;

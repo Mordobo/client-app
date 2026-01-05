@@ -1,52 +1,8 @@
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n';
+import { API_BASE, getApiBaseUrl } from '@/utils/apiConfig';
 import { authEvents } from '@/utils/authEvents';
-
-const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, '');
-
-/**
- * Determines the API base URL based on environment and platform.
- * 
- * Priority:
- * 1. EXPO_PUBLIC_API_URL environment variable (highest priority)
- * 2. For Android emulator: converts localhost to 10.0.2.2
- * 3. For physical devices: uses the provided URL as-is (must be accessible from device)
- * 4. Fallback: localhost for development
- * 
- * IMPORTANT for APK builds:
- * - Set EXPO_PUBLIC_API_URL to your server's IP or public URL
- * - Example: EXPO_PUBLIC_API_URL=http://192.168.1.100:3000 (local network)
- * - Example: EXPO_PUBLIC_API_URL=https://api.mordobo.com (production)
- */
-const getHost = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-  
-  // If EXPO_PUBLIC_API_URL is set, use it (respecting Android emulator conversion)
-  if (envUrl?.length) {
-    // Only convert localhost to 10.0.2.2 for Android (emulator detection)
-    // This assumes localhost means emulator, which is correct for development
-    if (Platform.OS === 'android' && /localhost/i.test(envUrl)) {
-      return envUrl.replace(/localhost/gi, '10.0.2.2');
-    }
-    // For physical devices or non-localhost URLs, use as-is
-    return envUrl;
-  }
-  
-  // Fallback: development defaults
-  // Only use 10.0.2.2 for Android in development (emulator)
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:3000';
-  }
-  return 'http://localhost:3000';
-};
-
-export const API_BASE = sanitizeBaseUrl(getHost());
-
-// Log API_BASE on module load for debugging
-if (typeof console !== 'undefined') {
-  console.log('[API] API_BASE initialized:', API_BASE, 'Platform:', Platform.OS);
-}
 
 const buildUrl = (path: string) => {
   const base = API_BASE;
@@ -232,8 +188,26 @@ export const request = async <T>(
     }
 
     const url = buildUrl(path);
-    console.log('[API] Request', url, init.method || 'GET', init.body ? JSON.parse(init.body as string) : '');
+    console.log('[API] ========================================');
+    console.log('[API] Request URL:', url);
+    console.log('[API] Method:', init.method || 'GET');
     console.log('[API] API_BASE:', API_BASE);
+    console.log('[API] Platform:', Platform.OS);
+    console.log('[API] EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL || 'NOT SET');
+    if (init.body) {
+      try {
+        const bodyData = JSON.parse(init.body as string);
+        // Don't log password in production
+        const sanitizedBody = { ...bodyData };
+        if (sanitizedBody.password) {
+          sanitizedBody.password = '***REDACTED***';
+        }
+        console.log('[API] Request Body:', sanitizedBody);
+      } catch (e) {
+        console.log('[API] Request Body: (non-JSON)');
+      }
+    }
+    console.log('[API] ========================================');
     
     // Create AbortController for timeout (30 seconds)
     const controller = new AbortController();
@@ -458,9 +432,10 @@ export interface LoginPayload {
   password: string;
 }
 
-export interface LoginResponse extends AuthSuccessResponse {
+export interface LoginResponse {
   user: RegisterResponseUser;
-  token?: string;
+  accessToken?: string;
+  token?: string; // Alias for accessToken (backward compatibility)
   refreshToken?: string;
 }
 
