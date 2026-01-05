@@ -114,6 +114,7 @@ export function CountryPicker({
           setModalVisible(false);
           setSearchQuery('');
         }}
+        statusBarTranslucent={true}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -164,6 +165,7 @@ export function CountryPicker({
                     selectedCountry?.code === item.code && styles.countryItemSelected,
                   ]}
                   onPress={() => handleSelectCountry(item)}
+                  activeOpacity={0.7}
                 >
                   {item.flag && <Text style={styles.countryFlag}>{item.flag}</Text>}
                   <Text
@@ -182,6 +184,7 @@ export function CountryPicker({
               style={styles.countryList}
               contentContainerStyle={styles.countryListContent}
               showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
             />
           </View>
         </View>
@@ -242,8 +245,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: '80%',
+    maxHeight: Platform.OS === 'ios' ? '80%' : '90%',
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    minHeight: Platform.OS === 'android' ? 400 : undefined,
   },
   modalHeader: {
     flexDirection: 'row',

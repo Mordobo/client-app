@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
-import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
+import { ApiError, validateEmail } from '@/services/auth';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
@@ -206,7 +206,7 @@ export default function LoginScreen() {
       const isEmail = trimmedIdentifier.includes('@');
       
       if (isEmail) {
-        // For email login, use verification flow
+        // For email login, use verification flow (same as registration)
         // Call validate-email endpoint to generate and send verification code
         const validateResponse = await validateEmail({
           email: trimmedIdentifier,
@@ -225,35 +225,10 @@ export default function LoginScreen() {
           },
         });
       } else {
-        // For phone login, use direct login (no verification)
-        const loginPayload = { phoneNumber: trimmedIdentifier, password };
-        const apiResponse = await loginWithCredentials(loginPayload);
-        
-        // Map API response to user data
-        const apiUser = apiResponse.user;
-        const fullName = apiUser.full_name || '';
-        const nameParts = fullName.split(/\s+/).filter(Boolean);
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        const userData = {
-          id: apiUser.id,
-          email: apiUser.email,
-          firstName,
-          lastName,
-          phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
-          avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined,
-          country: (apiUser as Record<string, unknown>).country as string | undefined,
-          provider: 'email' as const,
-          authToken: apiResponse.token,
-          refreshToken: apiResponse.refreshToken,
-        };
-
-        await login(userData);
-        console.log('Login successful, user data:', userData);
-        
-        // Navigate to home after successful login
-        router.replace('/(tabs)/home');
+        // Phone login is not supported by backend /auth/login endpoint
+        // Backend only accepts email in login endpoint
+        setErrorMessage(t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
+        Alert.alert(t('common.error'), t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
       }
       
       setErrorMessage(null);

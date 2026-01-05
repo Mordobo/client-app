@@ -31,7 +31,8 @@
         "image": "latest"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "staging"
+        "EXPO_PUBLIC_ENV": "staging",
+        "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
       }
     },
     "staging": {
@@ -47,9 +48,28 @@
         "credentialsSource": "remote"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "staging"
+        "EXPO_PUBLIC_ENV": "staging",
+        "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
       },
       "channel": "staging"
+    },
+    "qa": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release",
+        "credentialsSource": "remote"
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "credentialsSource": "remote"
+      },
+      "env": {
+        "EXPO_PUBLIC_ENV": "qa",
+        "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
+      },
+      "channel": "qa"
     },
     "production": {
       "distribution": "store",
@@ -62,7 +82,8 @@
         "gradleCommand": ":app:bundleRelease"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "production"
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://api.mordobo.com"
       },
       "channel": "production"
     }

@@ -568,8 +568,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={placeholderColor}
                   value={formData.password}
                   onChangeText={(value) => handleInputChange('password', value)}
-                  secureTextEntry
+                  secureTextEntry={true}
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => handleBlur('password')}
                 />
@@ -584,8 +586,10 @@ export default function RegisterScreen() {
                   placeholderTextColor={placeholderColor}
                   value={formData.confirmPassword}
                   onChangeText={(value) => handleInputChange('confirmPassword', value)}
-                  secureTextEntry
+                  secureTextEntry={true}
                   autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
                   onFocus={() => setFocusedField('confirmPassword')}
                   onBlur={() => handleBlur('confirmPassword')}
                 />
@@ -718,6 +722,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    color: '#1F2937',
   },
   inputError: {
     borderColor: '#F87171',
