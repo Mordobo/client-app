@@ -3,6 +3,7 @@ export default {
     ok: 'OK',
     cancel: 'Cancel',
     error: 'Error',
+    close: 'Close',
   },
   auth: {
     firstName: 'First Name',
@@ -49,6 +50,10 @@ export default {
     verifyAccount: 'Verify Account',
     resendCode: 'Resend code',
     resendIn: 'Resend in',
+    smtpFailedTitle: 'Email Service Unavailable',
+    smtpFailedMessage: 'We couldn\'t send the verification code to your email, but here is your code:',
+    verificationCode: 'Verification Code',
+    smtpFailedNote: 'This is a temporary workaround. Please configure SMTP to enable email delivery.',
   },
   errors: {
     useAuthHookError: 'useAuth must be used within an AuthProvider',

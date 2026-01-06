@@ -3,6 +3,7 @@ export default {
     ok: 'Aceptar',
     cancel: 'Cancelar',
     error: 'Error',
+    close: 'Cerrar',
   },
   auth: {
     firstName: 'Nombre',
@@ -49,6 +50,10 @@ export default {
     verifyAccount: 'Verificar cuenta',
     resendCode: 'Reenviar código',
     resendIn: 'Reenviar en',
+    smtpFailedTitle: 'Servicio de Correo No Disponible',
+    smtpFailedMessage: 'No pudimos enviar el código de verificación a tu correo, pero aquí está tu código:',
+    verificationCode: 'Código de Verificación',
+    smtpFailedNote: 'Esta es una solución temporal. Por favor configura SMTP para habilitar el envío de correos.',
   },
   errors: {
     useAuthHookError: 'useAuth debe ser usado dentro de un AuthProvider',
