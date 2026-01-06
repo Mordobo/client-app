@@ -209,9 +209,9 @@ export const request = async <T>(
     }
     console.log('[API] ========================================');
     
-    // Create AbortController for timeout (30 seconds)
+    // Create AbortController for timeout (20 seconds - reduced for better UX)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
     
     let response: Response;
     try {

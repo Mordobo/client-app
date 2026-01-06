@@ -354,10 +354,12 @@ export default function RegisterScreen() {
       // After successful registration, send verification code
       const { validateEmail } = await import('@/services/auth');
       try {
-        await validateEmail({
+        console.log('[Register] Attempting to send verification code...');
+        const validateResponse = await validateEmail({
           email: trimmedEmail.toLowerCase(),
           password,
         });
+        console.log('[Register] ✅ Verification code request successful:', validateResponse);
 
         // Store email and password temporarily for resend code and verification
         await AsyncStorage.setItem('pending_verification_email', trimmedEmail.toLowerCase());
@@ -372,7 +374,12 @@ export default function RegisterScreen() {
           },
         });
       } catch (validateError) {
-        console.error('Error sending verification code:', validateError);
+        console.error('[Register] ❌ Error sending verification code:', validateError);
+        console.error('[Register] Error type:', validateError instanceof ApiError ? 'ApiError' : typeof validateError);
+        if (validateError instanceof ApiError) {
+          console.error('[Register] Error status:', validateError.status);
+          console.error('[Register] Error data:', validateError.data);
+        }
         
         // Check if it's an SMTP/email error
         if (validateError instanceof ApiError) {
