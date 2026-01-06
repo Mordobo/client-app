@@ -1,3 +1,4 @@
+import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, validateEmail } from '@/services/auth';
@@ -40,6 +41,8 @@ export default function LoginScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const { login } = useAuth();
   const params = useLocalSearchParams<{ registered?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -189,7 +192,9 @@ export default function LoginScreen() {
   }, []);
 
   const handleCredentialsLogin = async () => {
-    if (!trimmedIdentifier || !password) {
+    const currentIdentifier = identifier.trim();
+    
+    if (!currentIdentifier || !password) {
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
@@ -203,25 +208,25 @@ export default function LoginScreen() {
     setErrorMessage(null);
     try {
       // Determine if identifier is email or phone
-      const isEmail = trimmedIdentifier.includes('@');
+      const isEmail = currentIdentifier.includes('@');
       
       if (isEmail) {
         // For email login, use verification flow (same as registration)
         // Call validate-email endpoint to generate and send verification code
         const validateResponse = await validateEmail({
-          email: trimmedIdentifier,
+          email: currentIdentifier,
           password,
         });
 
         // Store email and password temporarily for resend code and verification
-        await AsyncStorage.setItem('pending_verification_email', trimmedIdentifier.trim().toLowerCase());
+        await AsyncStorage.setItem('pending_verification_email', currentIdentifier.toLowerCase());
         await AsyncStorage.setItem('pending_verification_password', password);
 
         // Redirect to verification screen
         router.replace({
           pathname: '/(auth)/verify',
           params: { 
-            email: trimmedIdentifier.trim().toLowerCase(),
+            email: currentIdentifier.toLowerCase(),
           },
         });
       } else {
@@ -236,6 +241,31 @@ export default function LoginScreen() {
       console.error('Login error:', error);
       
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
+        const errorCode = errorData?.code as string | undefined;
+        
+        // Check if it's an SMTP/email error with code
+        if (errorCode === 'smtp_not_configured' || 
+            errorCode === 'email_send_timeout' || 
+            errorCode === 'email_send_failed') {
+          // Check if backend returned the code as workaround
+          const code = errorData?.verificationCode as string | undefined;
+          
+          if (code) {
+            // Show modal with code
+            setVerificationCode(code);
+            setShowCodeModal(true);
+            
+            // Store email and password for verification
+            const emailToStore = currentIdentifier.toLowerCase();
+            await AsyncStorage.setItem('pending_verification_email', emailToStore);
+            await AsyncStorage.setItem('pending_verification_password', password);
+            
+            // Navigate to verification screen after modal is closed
+            return;
+          }
+        }
+        
         // Handle API errors
         if (error.status === 401 || error.status === 404) {
           setErrorMessage(t('errors.loginFailed'));
@@ -431,6 +461,27 @@ export default function LoginScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+      
+      {/* Verification Code Modal */}
+      <VerificationCodeModal
+        visible={showCodeModal}
+        code={verificationCode}
+        onClose={async () => {
+          setShowCodeModal(false);
+          // Navigate to verification screen after closing modal
+          if (verificationCode) {
+            const storedEmail = await AsyncStorage.getItem('pending_verification_email');
+            if (storedEmail) {
+              router.replace({
+                pathname: '/(auth)/verify',
+                params: { 
+                  email: storedEmail,
+                },
+              });
+            }
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }

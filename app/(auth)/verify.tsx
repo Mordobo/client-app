@@ -1,3 +1,4 @@
+import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, resendCode, verifyCode } from '@/services/auth';
@@ -32,6 +33,8 @@ export default function VerifyScreen() {
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -273,15 +276,26 @@ export default function VerifyScreen() {
         if (errorCode === 'smtp_not_configured' || 
             errorCode === 'email_send_timeout' || 
             errorCode === 'email_send_failed') {
-          const detailedMessage = errorData?.message 
-            ? String(errorData.message)
-            : errorMessage;
+          // Check if backend returned the code as workaround
+          const code = errorData?.verificationCode as string | undefined;
           
-          Alert.alert(
-            t('common.error'),
-            `${t('errors.emailSendFailed')}\n\n${detailedMessage}`
-          );
-          return;
+          if (code) {
+            // Show modal with code
+            setVerificationCode(code);
+            setShowCodeModal(true);
+            return;
+          } else {
+            // No code provided, show error
+            const detailedMessage = errorData?.message 
+              ? String(errorData.message)
+              : errorMessage;
+            
+            Alert.alert(
+              t('common.error'),
+              `${t('errors.emailSendFailed')}\n\n${detailedMessage}`
+            );
+            return;
+          }
         }
         
         // Handle authentication errors
@@ -388,6 +402,15 @@ export default function VerifyScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+      
+      {/* Verification Code Modal */}
+      <VerificationCodeModal
+        visible={showCodeModal}
+        code={verificationCode}
+        onClose={() => {
+          setShowCodeModal(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

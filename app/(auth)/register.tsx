@@ -1,5 +1,6 @@
 import { CountryPicker, type Country } from '@/components/CountryPicker';
 import { PhoneInput } from '@/components/PhoneInput';
+import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, registerUser } from '@/services/auth';
@@ -153,6 +154,8 @@ export default function RegisterScreen() {
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ password?: string; confirmPassword?: string; country?: string }>({});
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const googleStatusCodes = getGoogleStatusCodes();
   const webGoogleSupported = isGoogleWebAvailable();
   const isGoogleSupported = webGoogleSupported;
@@ -391,24 +394,40 @@ export default function RegisterScreen() {
           if (errorCode === 'smtp_not_configured' || 
               errorCode === 'email_send_timeout' || 
               errorCode === 'email_send_failed') {
-            const detailedMessage = errorData?.message 
-              ? String(errorData.message)
-              : errorMessage;
+            // Check if backend returned the code as workaround
+            const code = errorData?.verificationCode as string | undefined;
             
-            Alert.alert(
-              t('common.error'),
-              `${t('errors.emailSendFailed')}\n\n${detailedMessage}`,
-              [
-                {
-                  text: t('common.ok'),
-                  onPress: () => {
-                    // Still redirect to login
-                    router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+            if (code) {
+              // Show modal with code
+              setVerificationCode(code);
+              setShowCodeModal(true);
+              
+              // Store email and password for verification
+              await AsyncStorage.setItem('pending_verification_email', trimmedEmail.toLowerCase());
+              await AsyncStorage.setItem('pending_verification_password', password);
+              
+              // Navigate to verification screen after modal is closed
+              return;
+            } else {
+              // No code provided, show error and redirect
+              const detailedMessage = errorData?.message 
+                ? String(errorData.message)
+                : errorMessage;
+              
+              Alert.alert(
+                t('common.error'),
+                `${t('errors.emailSendFailed')}\n\n${detailedMessage}`,
+                [
+                  {
+                    text: t('common.ok'),
+                    onPress: () => {
+                      router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+                    }
                   }
-                }
-              ]
-            );
-            return;
+                ]
+              );
+              return;
+            }
           }
           
           // For other errors, show generic message
@@ -712,6 +731,24 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      
+      {/* Verification Code Modal */}
+      <VerificationCodeModal
+        visible={showCodeModal}
+        code={verificationCode}
+        onClose={() => {
+          setShowCodeModal(false);
+          // Navigate to verification screen after closing modal
+          if (verificationCode) {
+            router.replace({
+              pathname: '/(auth)/verify',
+              params: { 
+                email: formData.email.trim().toLowerCase(),
+              },
+            });
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }
