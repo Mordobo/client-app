@@ -251,10 +251,37 @@ export const request = async <T>(
         console.error('[API] 4. Backend not listening on 0.0.0.0');
       }
       
+      // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
-        throw new Error('Request timeout: The server took too long to respond. Please check your connection and try again.');
+        const timeoutMessage = t('errors.requestTimeout');
+        console.error('[API] Request timeout - throwing ApiError with translated message');
+        throw new ApiError(
+          timeoutMessage,
+          0, // Status 0 indicates network/timeout error
+          { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
+        );
       }
-      throw fetchError;
+      
+      // Handle network errors (TypeError usually means connection failed)
+      if (fetchError instanceof TypeError) {
+        const connectionMessage = t('errors.connectionFailed');
+        console.error('[API] Network error - throwing ApiError with translated message');
+        throw new ApiError(
+          connectionMessage,
+          0,
+          { code: 'network_error', errorType: fetchError.constructor.name, originalError: errorMessage }
+        );
+      }
+      
+      // For any other fetch errors, wrap them in ApiError
+      const genericMessage = fetchError instanceof Error 
+        ? (fetchError.message || t('errors.connectionFailed'))
+        : t('errors.connectionFailed');
+      throw new ApiError(
+        genericMessage,
+        0,
+        { code: 'fetch_error', originalError: errorMessage }
+      );
     }
 
     const responseText = await response.text();

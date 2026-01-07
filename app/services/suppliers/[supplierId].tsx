@@ -15,17 +15,18 @@ import {
     ActivityIndicator,
     Alert,
     Image,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SupplierProfileScreen() {
   const router = useRouter();
   const { supplierId } = useLocalSearchParams<{ supplierId: string }>();
+  const insets = useSafeAreaInsets();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [services, setServices] = useState<SupplierService[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -81,31 +82,31 @@ export default function SupplierProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error || !supplier) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error || 'Supplier not found'}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { top: insets.top }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
@@ -244,7 +245,7 @@ export default function SupplierProfileScreen() {
           <Text style={styles.bookActionText}>Book Service</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -13,13 +13,13 @@ import {
     KeyboardAvoidingView,
     Platform,
     Pressable,
-    SafeAreaView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CODE_LENGTH = 4;
 const RESEND_COOLDOWN_SECONDS = 120; // 2 minutes
@@ -29,6 +29,7 @@ const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
   const { login } = useAuth();
+  const insets = useSafeAreaInsets();
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
@@ -322,9 +323,9 @@ export default function VerifyScreen() {
   const isCodeComplete = code.every((digit) => digit !== '');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header - Outside KeyboardAvoidingView to ensure it's always accessible */}
-      <View style={styles.header} pointerEvents="box-none">
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) }]} pointerEvents="box-none">
         <Pressable
           style={({ pressed }) => [
             styles.backButton,
@@ -422,7 +423,7 @@ export default function VerifyScreen() {
           setShowCodeModal(false);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
