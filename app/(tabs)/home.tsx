@@ -31,10 +31,18 @@ export default function HomeScreen() {
 
   const loadCategories = async () => {
     try {
+      setLoading(true);
       const data = await fetchCategories();
-      setCategories(data.slice(0, 9)); // Show 9 categories in 3x3 grid
+      if (data && data.length > 0) {
+        setCategories(data.slice(0, 9)); // Show 9 categories in 3x3 grid
+      } else {
+        console.warn('[Home] No categories returned from API');
+        setCategories([]);
+      }
     } catch (error) {
-      console.error('Failed to load categories:', error);
+      console.error('[Home] Failed to load categories:', error);
+      // Set empty array on error to prevent showing loading indefinitely
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -84,7 +92,7 @@ export default function HomeScreen() {
           
           {loading ? (
             <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 20 }} />
-          ) : (
+          ) : categories.length > 0 ? (
             <View style={styles.categoriesGrid}>
               {categories.map((category) => (
                 <CategoryCard
@@ -95,6 +103,10 @@ export default function HomeScreen() {
                   onPress={() => handleCategoryPress(category.id)}
                 />
               ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No services available at the moment</Text>
             </View>
           )}
         </View>
@@ -185,5 +197,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });
