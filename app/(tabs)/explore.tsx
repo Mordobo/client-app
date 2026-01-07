@@ -1,26 +1,35 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, ScrollView, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabTwoScreen() {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme() ?? 'light';
+  const headerBackgroundColor = colorScheme === 'dark' ? '#353636' : '#D0D0D0';
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 20) }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Header */}
+      <ThemedView style={[styles.header, { backgroundColor: headerBackgroundColor }]}>
         <IconSymbol
           size={310}
           color="#808080"
           name="chevron.left.forwardslash.chevron.right"
           style={styles.headerImage}
         />
-      }>
+      </ThemedView>
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
@@ -94,11 +103,25 @@ export default function TabTwoScreen() {
           ),
         })}
       </Collapsible>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    padding: 32,
+    gap: 16,
+  },
+  header: {
+    height: 250,
+    overflow: 'hidden',
+    marginBottom: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerImage: {
     color: '#808080',
     bottom: -90,

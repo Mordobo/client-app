@@ -244,6 +244,22 @@ export default function LoginScreen() {
         const errorData = error.data as Record<string, unknown> | undefined;
         const errorCode = errorData?.code as string | undefined;
         
+        // Handle timeout errors
+        if (errorCode === 'request_timeout' || errorData?.isTimeout === true) {
+          const timeoutMessage = error.message || t('errors.requestTimeout');
+          setErrorMessage(timeoutMessage);
+          Alert.alert(t('common.error'), timeoutMessage);
+          return;
+        }
+        
+        // Handle network/connection errors
+        if (errorCode === 'network_error' || error.status === 0) {
+          const connectionMessage = error.message || t('errors.connectionFailed');
+          setErrorMessage(connectionMessage);
+          Alert.alert(t('common.error'), connectionMessage);
+          return;
+        }
+        
         // Check if it's an SMTP/email error with code
         if (errorCode === 'smtp_not_configured' || 
             errorCode === 'email_send_timeout' || 
@@ -275,7 +291,14 @@ export default function LoginScreen() {
           Alert.alert(t('common.error'), errorMessage);
         }
       } else {
-        Alert.alert(t('common.error'), t('errors.loginGeneric'));
+        // Handle non-ApiError (e.g., network errors that weren't caught)
+        const errorMessage = error instanceof Error && error.message.includes('timeout')
+          ? t('errors.requestTimeout')
+          : error instanceof Error && error.message.includes('network')
+          ? t('errors.connectionFailed')
+          : t('errors.loginGeneric');
+        setErrorMessage(errorMessage);
+        Alert.alert(t('common.error'), errorMessage);
       }
     } finally {
       setLoading(false);
