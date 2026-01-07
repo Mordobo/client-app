@@ -12,6 +12,7 @@ import {
     Dimensions,
     KeyboardAvoidingView,
     Platform,
+    Pressable,
     SafeAreaView,
     StyleSheet,
     Text,
@@ -37,6 +38,12 @@ export default function VerifyScreen() {
   const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleBack = () => {
+    // Since we use router.replace() to get here, there's no history
+    // Navigate explicitly to login screen
+    router.replace('/(auth)/login');
+  };
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -316,21 +323,25 @@ export default function VerifyScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header - Outside KeyboardAvoidingView to ensure it's always accessible */}
+      <View style={styles.header} pointerEvents="box-none">
+        <Pressable
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.backButtonPressed,
+          ]}
+          onPress={handleBack}
+          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#374151" />
+        </Pressable>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
-
           {/* Title and Subtitle */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{t('auth.enterVerificationCode')}</Text>
@@ -429,11 +440,22 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   header: {
-    marginBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 8,
+    zIndex: 10,
   },
   backButton: {
     alignSelf: 'flex-start',
     padding: 8,
+    zIndex: 11,
+    minWidth: 40,
+    minHeight: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backButtonPressed: {
+    opacity: 0.6,
   },
   titleContainer: {
     alignItems: 'center',
