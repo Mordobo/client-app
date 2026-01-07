@@ -3,18 +3,20 @@ import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    SafeAreaView,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AssistantScreen() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const insets = useSafeAreaInsets();
 
   const serviceCategories = [
     { id: 1, nameKey: 'cleaning', icon: 'sparkles', color: '#3B82F6' },
@@ -30,9 +32,10 @@ export default function AssistantScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#3B82F6" />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <View style={styles.headerContent}>
           <Text style={styles.greeting}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
           <View style={styles.headerIcons}>
@@ -93,7 +96,7 @@ export default function AssistantScreen() {
           <Ionicons name="chevron-forward" size={20} color="#10B981" />
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -105,7 +108,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#3B82F6',
     paddingHorizontal: 20,
-    paddingTop: 16,
     paddingBottom: 24,
   },
   headerContent: {
