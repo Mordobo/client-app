@@ -1,4 +1,5 @@
 import { ApiError, Category, fetchCategories } from '@/services/categories';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -15,12 +16,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    icon: isDark ? '#9BA1A6' : '#374151',
+  };
 
   useEffect(() => {
     loadCategories();
@@ -60,8 +72,11 @@ export default function CategoriesScreen() {
   };
 
   if (loading) {
+    const themeColors = {
+      background: isDark ? '#151718' : '#F9FAFB',
+    };
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
@@ -70,10 +85,14 @@ export default function CategoriesScreen() {
   }
 
   if (error) {
+    const themeColors = {
+      background: isDark ? '#151718' : '#F9FAFB',
+      textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    };
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: themeColors.textPrimary }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
@@ -83,23 +102,23 @@ export default function CategoriesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Categories</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Categories</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: themeColors.surface }]}>
+        <Ionicons name="search" size={20} color={themeColors.textSecondary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: themeColors.textPrimary }]}
           placeholder="Describe the service you need..."
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={themeColors.textSecondary}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -111,14 +130,14 @@ export default function CategoriesScreen() {
           {filteredCategories.map((category) => (
             <TouchableOpacity
               key={category.id}
-              style={styles.categoryCard}
+              style={[styles.categoryCard, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}
               onPress={() => handleCategoryPress(category)}
             >
               <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
                 <Ionicons name={category.icon as any} size={32} color="white" />
               </View>
-              <Text style={styles.categoryName}>{category.name}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              <Text style={[styles.categoryName, { color: themeColors.textPrimary }]}>{category.name}</Text>
+              <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
@@ -130,7 +149,6 @@ export default function CategoriesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
@@ -144,9 +162,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   backButton: {
     width: 40,
@@ -157,12 +173,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -179,7 +193,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#374151',
   },
   content: {
     flex: 1,
@@ -192,9 +205,9 @@ const styles = StyleSheet.create({
   categoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
+    borderBottomWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -213,7 +226,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
   },
   errorText: {
     fontSize: 16,

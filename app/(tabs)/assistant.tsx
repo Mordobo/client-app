@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -15,8 +16,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AssistantScreen() {
   const { user } = useAuth();
+  const { colorScheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const insets = useSafeAreaInsets();
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+  };
 
   const serviceCategories = [
     { id: 1, nameKey: 'cleaning', icon: 'sparkles', color: '#3B82F6' },
@@ -32,7 +43,7 @@ export default function AssistantScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="#3B82F6" />
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
@@ -48,47 +59,47 @@ export default function AssistantScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Greeting Card */}
-        <View style={styles.greetingCard}>
+        <View style={[styles.greetingCard, { backgroundColor: themeColors.surface }]}>
           <View style={styles.avatarContainer}>
             <Ionicons name="person" size={32} color="#10B981" />
           </View>
-          <Text style={styles.greetingText}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
+          <Text style={[styles.greetingText, { color: themeColors.textPrimary }]}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
         </View>
 
         {/* Search Input */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: themeColors.surface }]}>
+          <Ionicons name="search" size={20} color={themeColors.textSecondary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: themeColors.textPrimary }]}
             placeholder={t('home.searchPlaceholder')}
-            placeholderTextColor="#6B7280"
+            placeholderTextColor={themeColors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
 
         {/* Suggestion Text */}
-        <Text style={styles.suggestionText}>
+        <Text style={[styles.suggestionText, { color: themeColors.textSecondary }]}>
           Try saying: "I need a plumber tomorrow morning"
         </Text>
 
         {/* Recommended Categories */}
         <View style={styles.categoriesContainer}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Recommended for you</Text>
           <View style={styles.categoriesGrid}>
             {serviceCategories.map((category) => (
               <TouchableOpacity key={category.id} style={styles.categoryItem}>
                 <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
                   <Ionicons name={category.icon as any} size={24} color="white" />
                 </View>
-                <Text style={styles.categoryText}>{t(`home.serviceCategories.${category.nameKey}`)}</Text>
+                <Text style={[styles.categoryText, { color: isDark ? '#FFFFFF' : '#374151' }]}>{t(`home.serviceCategories.${category.nameKey}`)}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {/* Other Services Button */}
-        <TouchableOpacity style={styles.otherServicesButton}>
+        <TouchableOpacity style={[styles.otherServicesButton, { backgroundColor: themeColors.surface }]}>
           <Text style={styles.otherServicesText}>Other Services</Text>
           <Ionicons name="chevron-forward" size={20} color="#10B981" />
         </TouchableOpacity>
@@ -100,7 +111,6 @@ export default function AssistantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   header: {
     backgroundColor: '#3B82F6',
@@ -134,7 +144,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   greetingCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
     flexDirection: 'row',
@@ -159,12 +168,10 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -181,11 +188,9 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#374151',
   },
   suggestionText: {
     fontSize: 14,
-    color: '#6B7280',
     fontStyle: 'italic',
     marginBottom: 24,
     textAlign: 'center',
@@ -196,7 +201,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 16,
   },
   categoriesGrid: {
@@ -220,14 +224,12 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#374151',
     textAlign: 'center',
   },
   otherServicesButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,

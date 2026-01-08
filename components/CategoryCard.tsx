@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,12 +11,15 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ name, icon, color, onPress }: CategoryCardProps) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+  
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={[styles.iconContainer, { backgroundColor: color }]}>
         <Ionicons name={icon as any} size={24} color="white" />
       </View>
-      <Text style={styles.name}>{name}</Text>
+      <Text style={[styles.name, { color: isDark ? '#FFFFFF' : '#374151' }]}>{name}</Text>
     </TouchableOpacity>
   );
 }

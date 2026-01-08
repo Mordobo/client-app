@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 // import 'react-native-reanimated'; // Removido temporalmente para compatibilidad de build
@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { initializeGoogleSignIn } from '@/config/google-signin';
 import { useEffect, useState } from 'react';
 import CustomSplashScreen from '@/components/SplashScreen';
@@ -16,8 +17,8 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
   const { isAuthenticated, isLoading, user } = useAuth();
+  const colorScheme = useColorScheme();
 
   console.log('RootLayoutNav - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user);
 
@@ -30,7 +31,7 @@ function RootLayoutNav() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -47,8 +48,8 @@ function RootLayoutNav() {
           </>
         )}
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+    </NavigationThemeProvider>
   );
 }
 
@@ -66,8 +67,17 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootLayoutNav />
+        <ThemeProviderWrapper />
       </AuthProvider>
     </SafeAreaProvider>
+  );
+}
+
+function ThemeProviderWrapper() {
+  const { isAuthenticated } = useAuth();
+  return (
+    <ThemeProvider isAuthenticated={isAuthenticated}>
+      <RootLayoutNav />
+    </ThemeProvider>
   );
 }

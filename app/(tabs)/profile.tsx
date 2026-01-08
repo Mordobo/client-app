@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -17,7 +18,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+    icon: isDark ? '#9BA1A6' : '#374151',
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -60,15 +73,15 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
-        <Text style={styles.title}>{t('profile.title')}</Text>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.title, { color: themeColors.textPrimary }]}>{t('profile.title')}</Text>
       </View>
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* User Info Card */}
         {user && (
-          <View style={styles.userInfoContainer}>
+          <View style={[styles.userInfoContainer, { backgroundColor: themeColors.surface }]}>
             <View style={styles.avatarContainer}>
               {user.avatar ? (
                 <Image
@@ -80,10 +93,10 @@ export default function ProfileScreen() {
                 <Ionicons name="person" size={40} color="#10B981" />
               )}
             </View>
-            <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={[styles.userName, { color: themeColors.textPrimary }]}>{user.firstName} {user.lastName}</Text>
+            <Text style={[styles.userEmail, { color: themeColors.textSecondary }]}>{user.email}</Text>
             {user.phone && (
-              <Text style={styles.userPhone}>{user.phone}</Text>
+              <Text style={[styles.userPhone, { color: themeColors.textSecondary }]}>{user.phone}</Text>
             )}
             <TouchableOpacity
               style={styles.editProfileChip}
@@ -97,13 +110,14 @@ export default function ProfileScreen() {
         {/* Menu Sections */}
         {menuSections.map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.menuContainer}>
+            <Text style={[styles.sectionTitle, { color: themeColors.textSecondary }]}>{section.title}</Text>
+            <View style={[styles.menuContainer, { backgroundColor: themeColors.surface }]}>
               {section.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
                   style={[
                     styles.menuItem,
+                    { borderBottomColor: themeColors.borderLight },
                     itemIndex === section.items.length - 1 && styles.menuItemLast,
                   ]}
                   onPress={() => {
@@ -112,9 +126,9 @@ export default function ProfileScreen() {
                     }
                   }}
                 >
-                  <Ionicons name={item.icon as any} size={24} color="#374151" />
-                  <Text style={styles.menuText}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  <Ionicons name={item.icon as any} size={24} color={themeColors.icon} />
+                  <Text style={[styles.menuText, { color: themeColors.textPrimary }]}>{item.label}</Text>
+                  <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -134,25 +148,20 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
   },
   content: {
     flex: 1,
   },
   userInfoContainer: {
-    backgroundColor: '#FFFFFF',
     padding: 24,
     alignItems: 'center',
     marginBottom: 8,
@@ -175,17 +184,14 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 22,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 4,
   },
   userEmail: {
     fontSize: 16,
-    color: '#6B7280',
     marginBottom: 4,
   },
   userPhone: {
     fontSize: 16,
-    color: '#6B7280',
     marginBottom: 12,
   },
   editProfileChip: {
@@ -207,12 +213,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6B7280',
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   menuContainer: {
-    backgroundColor: '#FFFFFF',
   },
   menuItem: {
     flexDirection: 'row',
@@ -220,7 +224,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   menuItemLast: {
     borderBottomWidth: 0,
@@ -228,7 +231,6 @@ const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontSize: 16,
-    color: '#374151',
     marginLeft: 16,
   },
   logoutButton: {

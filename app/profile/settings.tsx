@@ -1,5 +1,6 @@
 import { Toast } from '@/components/Toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import {
   changePassword,
@@ -66,7 +67,10 @@ interface PasswordModalState {
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { setTheme: setThemeContext, colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
+  
+  const isDark = colorScheme === 'dark';
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -76,6 +80,54 @@ export default function SettingsScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+  const [selectionModal, setSelectionModal] = useState<{
+    title: string;
+    options: Array<{ label: string; value: string; onPress: () => void }>;
+  } | null>(null);
+
+  // Helper function to show Alert that works on web
+  const showAlert = (
+    title: string,
+    message: string,
+    buttons: Array<{ text: string; onPress?: () => void; style?: 'default' | 'cancel' | 'destructive' }>,
+    options?: { cancelable?: boolean }
+  ) => {
+    if (Platform.OS === 'web' && buttons.length > 2) {
+      // On web with multiple options, use custom modal
+      const cancelButton = buttons.find(b => b.style === 'cancel');
+      const actionButtons = buttons.filter(b => b.style !== 'cancel');
+      
+      setSelectionModal({
+        title,
+        options: actionButtons.map(btn => ({
+          label: btn.text,
+          value: btn.text,
+          onPress: () => {
+            setSelectionModal(null);
+            btn.onPress?.();
+          },
+        })),
+      });
+    } else if (Platform.OS === 'web') {
+      // On web, use window.confirm for simple alerts
+      if (buttons.length === 1) {
+        window.alert(`${title}\n\n${message}`);
+        buttons[0]?.onPress?.();
+      } else if (buttons.length === 2 && buttons[1]?.style === 'cancel') {
+        const result = window.confirm(`${title}\n\n${message}`);
+        if (result) {
+          buttons[0]?.onPress?.();
+        } else {
+          buttons[1]?.onPress?.();
+        }
+      } else {
+        Alert.alert(title, message, buttons, options);
+      }
+    } else {
+      // On mobile, use native Alert
+      Alert.alert(title, message, buttons, options);
+    }
+  };
 
   useEffect(() => {
     loadSettings();
@@ -99,26 +151,14 @@ export default function SettingsScreen() {
     try {
       const response = await getSessions();
       setSessions(response.sessions);
-    } catch (error) {
-      console.error('[Settings] Failed to load sessions:', error);
-    }
-  };
-
-  const handleToggle = async (key: keyof UserSettings, value: boolean) => {
-    if (!settings) return;
-
-    try {
-      setUpdating(key);
-      const updated = { ...settings, [key]: value };
-      await updateSettings({ [key]: value });
-      setSettings(updated);
-    } catch (error) {
-      console.error('[Settings] Failed to update setting:', error);
-      Alert.alert(t('common.error'), t('errors.updateSettingsFailed'));
-      // Revert on error
-      setSettings(settings);
-    } finally {
-      setUpdating(null);
+    } catch (error: any) {
+      // Silently handle token expiration errors - sessions are not critical
+      // Only log non-authentication errors
+      if (error?.status !== 401 && error?.status !== 403) {
+        console.error('[Settings] Failed to load sessions:', error);
+      }
+      // Set empty sessions array on any error to prevent UI issues
+      setSessions([]);
     }
   };
 
@@ -528,11 +568,16 @@ export default function SettingsScreen() {
     if (!settings) return;
     try {
       setUpdating('theme');
+      // Update context immediately for instant UI feedback
+      await setThemeContext(theme);
+      // Then save to backend
       await updateSettings({ theme });
       setSettings({ ...settings, theme });
     } catch (error) {
       console.error('[Settings] Failed to update theme:', error);
       Alert.alert(t('common.error'), t('errors.updateSettingsFailed'));
+      // Revert context on error
+      await setThemeContext(settings.theme);
     } finally {
       setUpdating(null);
     }
@@ -656,20 +701,28 @@ export default function SettingsScreen() {
           label: t('settings.language'),
           value: settings.language === 'en' ? t('settings.english') : t('settings.spanish'),
           onPress: () => {
-            Alert.alert(
+            console.log('[Settings] Language onPress called');
+            showAlert(
               t('settings.language'),
               '',
               [
                 {
                   text: t('settings.english'),
-                  onPress: () => handleLanguageChange('en'),
+                  onPress: () => {
+                    console.log('[Settings] English selected');
+                    setTimeout(() => handleLanguageChange('en'), 100);
+                  },
                 },
                 {
                   text: t('settings.spanish'),
-                  onPress: () => handleLanguageChange('es'),
+                  onPress: () => {
+                    console.log('[Settings] Spanish selected');
+                    setTimeout(() => handleLanguageChange('es'), 100);
+                  },
                 },
-                { text: t('common.cancel'), style: 'cancel' },
-              ]
+                { text: t('common.cancel'), style: 'cancel', onPress: () => {} },
+              ],
+              { cancelable: true }
             );
           },
           icon: 'language-outline',
@@ -679,8 +732,8 @@ export default function SettingsScreen() {
           label: t('settings.currency'),
           value: settings.currency,
           onPress: () => {
-            // Currency selection would go here
-            Alert.alert(t('settings.currency'), 'Currency selection coming soon');
+            console.log('[Settings] Currency onPress called');
+            showAlert(t('settings.currency'), 'Currency selection coming soon', [{ text: t('common.ok') }]);
           },
           icon: 'cash-outline',
         },
@@ -701,24 +754,35 @@ export default function SettingsScreen() {
               ? t('settings.dark')
               : t('settings.system'),
           onPress: () => {
-            Alert.alert(
+            console.log('[Settings] Theme onPress called');
+            showAlert(
               t('settings.theme'),
               '',
               [
                 {
                   text: t('settings.light'),
-                  onPress: () => handleThemeChange('light'),
+                  onPress: () => {
+                    console.log('[Settings] Light theme selected');
+                    setTimeout(() => handleThemeChange('light'), 100);
+                  },
                 },
                 {
                   text: t('settings.dark'),
-                  onPress: () => handleThemeChange('dark'),
+                  onPress: () => {
+                    console.log('[Settings] Dark theme selected');
+                    setTimeout(() => handleThemeChange('dark'), 100);
+                  },
                 },
                 {
                   text: t('settings.system'),
-                  onPress: () => handleThemeChange('system'),
+                  onPress: () => {
+                    console.log('[Settings] System theme selected');
+                    setTimeout(() => handleThemeChange('system'), 100);
+                  },
                 },
-                { text: t('common.cancel'), style: 'cancel' },
-              ]
+                { text: t('common.cancel'), style: 'cancel', onPress: () => {} },
+              ],
+              { cancelable: true }
             );
           },
           icon: 'color-palette-outline',
@@ -789,43 +853,63 @@ export default function SettingsScreen() {
     },
   ];
 
+  const dynamicStyles = getDynamicStyles(isDark);
+
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+    <View style={[styles.container, dynamicStyles.container]}>
+      <View style={[styles.header, dynamicStyles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#ECEDEE' : '#1F2937'} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('settings.title')}</Text>
+        <Text style={[styles.title, dynamicStyles.title]}>{t('settings.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {sections.map((section, sectionIndex) => (
           <View key={sectionIndex} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionContainer}>
+            <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>{section.title}</Text>
+            <View style={[styles.sectionContainer, dynamicStyles.sectionContainer]}>
               {section.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
                   style={[
                     styles.item,
+                    dynamicStyles.item,
                     itemIndex === section.items.length - 1 && styles.itemLast,
                     item.destructive && styles.itemDestructive,
                   ]}
-                  onPress={item.onPress}
-                  disabled={item.type === 'toggle' || updating !== null}
+                  onPress={() => {
+                    if (item.type === 'toggle') return;
+                    if (updating !== null) {
+                      Alert.alert(t('common.error'), 'Please wait for the current update to complete');
+                      return;
+                    }
+                    if (item.onPress) {
+                      console.log('[Settings] Item pressed:', item.label, 'onPress exists:', !!item.onPress);
+                      try {
+                        item.onPress();
+                      } catch (error) {
+                        console.error('[Settings] Error executing onPress:', error);
+                      }
+                    } else {
+                      console.log('[Settings] Item pressed but no onPress:', item.label);
+                    }
+                  }}
+                  disabled={item.type === 'toggle'}
                 >
                   {item.icon && (
                     <Ionicons
                       name={item.icon}
                       size={24}
-                      color={item.destructive ? '#EF4444' : '#374151'}
+                      color={item.destructive ? '#EF4444' : (isDark ? '#9BA1A6' : '#374151')}
                       style={styles.itemIcon}
                     />
                   )}
                   <Text
                     style={[
                       styles.itemLabel,
+                      dynamicStyles.itemLabel,
                       item.destructive && styles.itemLabelDestructive,
                     ]}
                   >
@@ -836,16 +920,16 @@ export default function SettingsScreen() {
                       value={item.value as boolean}
                       onValueChange={item.onToggle}
                       disabled={updating === item.label}
-                      trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                      trackColor={{ false: isDark ? '#374151' : '#D1D5DB', true: '#10B981' }}
                       thumbColor="#FFFFFF"
                     />
                   ) : item.value ? (
                     <View style={styles.itemRight}>
-                      <Text style={styles.itemValue}>{item.value}</Text>
-                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                      <Text style={[styles.itemValue, dynamicStyles.itemValue]}>{item.value}</Text>
+                      <Ionicons name="chevron-forward" size={20} color={isDark ? '#6B7280' : '#9CA3AF'} />
                     </View>
                   ) : (
-                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                    <Ionicons name="chevron-forward" size={20} color={isDark ? '#6B7280' : '#9CA3AF'} />
                   )}
                   {updating === item.label && (
                     <ActivityIndicator
@@ -875,6 +959,54 @@ export default function SettingsScreen() {
         ))}
       </ScrollView>
 
+      {/* Selection Modal for web (Language, Theme, etc) */}
+      <Modal
+        visible={selectionModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectionModal(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectionModal(null)}
+        >
+          <View style={styles.modalContainer}>
+            <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+              <View style={[styles.modalContent, dynamicStyles.modalContent]}>
+                <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>
+                  {selectionModal?.title}
+                </Text>
+                {selectionModal?.options.map((option, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.modalOption,
+                      { borderBottomColor: isDark ? '#374151' : '#F3F4F6' },
+                      index === 0 && styles.modalOptionFirst,
+                      index === (selectionModal?.options.length || 0) - 1 && styles.modalOptionLast,
+                    ]}
+                    onPress={option.onPress}
+                  >
+                    <Text style={[styles.modalOptionText, dynamicStyles.modalOptionText]}>
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonCancel, dynamicStyles.modalButtonCancel]}
+                  onPress={() => setSelectionModal(null)}
+                >
+                  <Text style={[styles.modalButtonTextCancel, dynamicStyles.modalButtonTextCancel]}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Toast for success/error messages */}
       <Toast
         message={toastMessage}
@@ -897,14 +1029,15 @@ export default function SettingsScreen() {
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalContainer}
             >
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>{passwordModal.title}</Text>
+              <View style={[styles.modalContent, dynamicStyles.modalContent]}>
+                <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>{passwordModal.title}</Text>
                 {passwordModal.message ? (
-                  <Text style={styles.modalMessage}>{passwordModal.message}</Text>
+                  <Text style={[styles.modalMessage, dynamicStyles.modalMessage]}>{passwordModal.message}</Text>
                 ) : null}
                 <TextInput
-                  style={styles.modalInput}
+                  style={[styles.modalInput, dynamicStyles.modalInput]}
                   placeholder={passwordModal.placeholder}
+                  placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
                   value={passwordInput}
                   onChangeText={setPasswordInput}
                   secureTextEntry={passwordModal.secureTextEntry}
@@ -914,10 +1047,10 @@ export default function SettingsScreen() {
                 />
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonCancel]}
+                    style={[styles.modalButton, styles.modalButtonCancel, dynamicStyles.modalButtonCancel]}
                     onPress={passwordModal.onCancel}
                   >
-                    <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
+                    <Text style={[styles.modalButtonTextCancel, dynamicStyles.modalButtonTextCancel]}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.modalButtonConfirm]}
@@ -1073,6 +1206,26 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 16,
   },
+  modalOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalOptionBorder: {
+    borderBottomColor: '#F3F4F6',
+  },
+  modalOptionFirst: {
+    marginTop: 8,
+  },
+  modalOptionLast: {
+    borderBottomWidth: 0,
+    marginBottom: 8,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#1F2937',
+  },
   modalInput: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
@@ -1116,3 +1269,53 @@ const styles = StyleSheet.create({
   },
 });
 
+const getDynamicStyles = (isDark: boolean) => ({
+  container: {
+    backgroundColor: isDark ? '#151718' : '#F9FAFB',
+  },
+  header: {
+    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+    borderBottomColor: isDark ? '#374151' : '#E5E7EB',
+  },
+  title: {
+    color: isDark ? '#ECEDEE' : '#1F2937',
+  },
+  sectionTitle: {
+    color: isDark ? '#9BA1A6' : '#6B7280',
+  },
+  sectionContainer: {
+    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+  },
+  item: {
+    borderBottomColor: isDark ? '#374151' : '#F3F4F6',
+  },
+  itemLabel: {
+    color: isDark ? '#ECEDEE' : '#1F2937',
+  },
+  itemValue: {
+    color: isDark ? '#9BA1A6' : '#6B7280',
+  },
+  modalContent: {
+    backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+  },
+  modalTitle: {
+    color: isDark ? '#ECEDEE' : '#1F2937',
+  },
+  modalMessage: {
+    color: isDark ? '#9BA1A6' : '#6B7280',
+  },
+  modalInput: {
+    borderColor: isDark ? '#374151' : '#D1D5DB',
+    color: isDark ? '#ECEDEE' : '#1F2937',
+    backgroundColor: isDark ? '#151718' : '#FFFFFF',
+  },
+  modalButtonCancel: {
+    backgroundColor: isDark ? '#374151' : '#F3F4F6',
+  },
+  modalButtonTextCancel: {
+    color: isDark ? '#ECEDEE' : '#374151',
+  },
+  modalOptionText: {
+    color: isDark ? '#ECEDEE' : '#1F2937',
+  },
+});

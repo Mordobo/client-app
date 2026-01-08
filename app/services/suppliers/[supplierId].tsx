@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import { getOrCreateConversation } from '@/services/conversations';
 import {
     ApiError,
@@ -25,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SupplierProfileScreen() {
   const router = useRouter();
+  const { colorScheme } = useTheme();
   const { supplierId } = useLocalSearchParams<{ supplierId: string }>();
   const insets = useSafeAreaInsets();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
@@ -33,6 +35,16 @@ export default function SupplierProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+  };
 
   useEffect(() => {
     if (supplierId) {
@@ -82,7 +94,7 @@ export default function SupplierProfileScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
@@ -92,7 +104,7 @@ export default function SupplierProfileScreen() {
 
   if (error || !supplier) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error || 'Supplier not found'}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
@@ -104,29 +116,29 @@ export default function SupplierProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
       <View style={[styles.header, { top: insets.top }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: themeColors.surface }]}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.favoriteButton}>
-          <Ionicons name="star-outline" size={24} color="#1F2937" />
+        <TouchableOpacity style={[styles.favoriteButton, { backgroundColor: themeColors.surface }]}>
+          <Ionicons name="star-outline" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
-        <View style={styles.profileSection}>
+        <View style={[styles.profileSection, { backgroundColor: themeColors.surface }]}>
           <Image
             source={{ uri: supplier.profile_image || 'https://via.placeholder.com/150' }}
             style={styles.profileImage}
           />
-          <Text style={styles.name}>{supplier.full_name}</Text>
+          <Text style={[styles.name, { color: themeColors.textPrimary }]}>{supplier.full_name}</Text>
           
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={20} color="#F59E0B" />
-            <Text style={styles.rating}>{Number(supplier.rating).toFixed(1)}</Text>
+            <Text style={[styles.rating, { color: themeColors.textPrimary }]}>{Number(supplier.rating).toFixed(1)}</Text>
           </View>
 
           {/* Badges */}
@@ -146,20 +158,20 @@ export default function SupplierProfileScreen() {
 
         {/* Description */}
         {supplier.bio && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{supplier.bio}</Text>
+          <View style={[styles.section, { backgroundColor: themeColors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Description</Text>
+            <Text style={[styles.description, { color: themeColors.textSecondary }]}>{supplier.bio}</Text>
           </View>
         )}
 
         {/* Services Offered */}
         {services.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Services</Text>
+          <View style={[styles.section, { backgroundColor: themeColors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Services</Text>
             <View style={styles.servicesContainer}>
               {services.map((service) => (
-                <View key={service.id} style={styles.serviceTag}>
-                  <Text style={styles.serviceTagText}>{service.category_name || 'Service'}</Text>
+                <View key={service.id} style={[styles.serviceTag, { backgroundColor: themeColors.borderLight }]}>
+                  <Text style={[styles.serviceTagText, { color: themeColors.textPrimary }]}>{service.category_name || 'Service'}</Text>
                   {service.price && (
                     <Text style={styles.servicePrice}>${service.price}/hr</Text>
                   )}
@@ -171,16 +183,16 @@ export default function SupplierProfileScreen() {
 
         {/* Pricing */}
         {supplier.hourly_rate && (
-          <View style={styles.pricingSection}>
-            <Text style={styles.pricingLabel}>From</Text>
+          <View style={[styles.pricingSection, { backgroundColor: themeColors.surface }]}>
+            <Text style={[styles.pricingLabel, { color: themeColors.textSecondary }]}>From</Text>
             <Text style={styles.pricingAmount}>${supplier.hourly_rate}/hr</Text>
           </View>
         )}
 
         {/* Photo Gallery */}
         {supplier.gallery && supplier.gallery.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Photo Gallery</Text>
+          <View style={[styles.section, { backgroundColor: themeColors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Photo Gallery</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {supplier.gallery.map((photo, index) => (
                 <Image key={index} source={{ uri: photo }} style={styles.galleryImage} />
@@ -191,33 +203,33 @@ export default function SupplierProfileScreen() {
 
         {/* Reviews */}
         {reviews.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reviews</Text>
+          <View style={[styles.section, { backgroundColor: themeColors.surface }]}>
+            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Reviews</Text>
             {reviews.slice(0, 3).map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
+              <View key={review.id} style={[styles.reviewCard, { backgroundColor: themeColors.background }]}>
                 <View style={styles.reviewHeader}>
-                  <View style={styles.reviewAvatar}>
-                    <Ionicons name="person" size={20} color="#6B7280" />
+                  <View style={[styles.reviewAvatar, { backgroundColor: themeColors.borderLight }]}>
+                    <Ionicons name="person" size={20} color={themeColors.textSecondary} />
                   </View>
                   <View style={styles.reviewHeaderInfo}>
-                    <Text style={styles.reviewerName}>{review.client_name || 'Anonymous'}</Text>
+                    <Text style={[styles.reviewerName, { color: themeColors.textPrimary }]}>{review.client_name || 'Anonymous'}</Text>
                     <View style={styles.reviewRating}>
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Ionicons
                           key={star}
                           name={star <= review.rating ? 'star' : 'star-outline'}
                           size={12}
-                          color={star <= review.rating ? '#F59E0B' : '#D1D5DB'}
+                          color={star <= review.rating ? '#F59E0B' : themeColors.textSecondary}
                         />
                       ))}
                     </View>
                   </View>
-                  <Text style={styles.reviewDate}>
+                  <Text style={[styles.reviewDate, { color: themeColors.textSecondary }]}>
                     {new Date(review.created_at).toLocaleDateString()}
                   </Text>
                 </View>
                 {review.comment && (
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
+                  <Text style={[styles.reviewComment, { color: themeColors.textSecondary }]}>{review.comment}</Text>
                 )}
               </View>
             ))}
@@ -226,7 +238,7 @@ export default function SupplierProfileScreen() {
       </ScrollView>
 
       {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
+      <View style={[styles.bottomActions, { backgroundColor: themeColors.surface, borderTopColor: themeColors.border }]}>
         <TouchableOpacity 
           style={[styles.chatActionButton, startingChat && styles.chatActionButtonDisabled]}
           onPress={handleStartChat}
@@ -252,7 +264,6 @@ export default function SupplierProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
@@ -276,7 +287,6 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -289,7 +299,6 @@ const styles = StyleSheet.create({
   favoriteButton: {
     width: 40,
     height: 40,
-    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
@@ -306,7 +315,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 80,
     paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
   },
   profileImage: {
     width: 120,
@@ -317,7 +325,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1F2937',
     marginBottom: 8,
   },
   ratingContainer: {
@@ -328,7 +335,6 @@ const styles = StyleSheet.create({
   rating: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
     marginLeft: 4,
   },
   badgesRow: {
@@ -349,19 +355,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   section: {
-    backgroundColor: '#FFFFFF',
     padding: 20,
     marginTop: 8,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 12,
   },
   description: {
     fontSize: 14,
-    color: '#6B7280',
     lineHeight: 20,
   },
   servicesContainer: {
@@ -372,14 +375,12 @@ const styles = StyleSheet.create({
   serviceTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
   },
   serviceTagText: {
     fontSize: 12,
-    color: '#374151',
     fontWeight: '500',
   },
   servicePrice: {
@@ -389,7 +390,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   pricingSection: {
-    backgroundColor: '#FFFFFF',
     padding: 20,
     marginTop: 8,
     flexDirection: 'row',
@@ -397,7 +397,6 @@ const styles = StyleSheet.create({
   },
   pricingLabel: {
     fontSize: 16,
-    color: '#6B7280',
     marginRight: 8,
   },
   pricingAmount: {
@@ -412,7 +411,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   reviewCard: {
-    backgroundColor: '#F9FAFB',
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
@@ -426,7 +424,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -437,7 +434,6 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 2,
   },
   reviewRating: {
@@ -446,20 +442,16 @@ const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 12,
-    color: '#9CA3AF',
   },
   reviewComment: {
     fontSize: 14,
-    color: '#4B5563',
     lineHeight: 20,
   },
   bottomActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
     gap: 12,
   },
   chatActionButton: {
