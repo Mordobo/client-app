@@ -1,4 +1,5 @@
 import { Conversation, fetchConversations } from '@/services/conversations';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -16,11 +17,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ConversationsListScreen() {
   const router = useRouter();
+  const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+    icon: isDark ? '#9BA1A6' : '#374151',
+  };
 
   const loadConversations = useCallback(async () => {
     try {
@@ -67,15 +80,15 @@ export default function ConversationsListScreen() {
 
   const renderConversation = ({ item }: { item: Conversation }) => (
     <TouchableOpacity
-      style={styles.conversationItem}
+      style={[styles.conversationItem, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.borderLight }]}
       onPress={() => handleConversationPress(item.id)}
     >
       <View style={styles.avatarContainer}>
         {item.other_user_image ? (
           <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
         ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Ionicons name="person" size={24} color="#9CA3AF" />
+          <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.borderLight }]}>
+            <Ionicons name="person" size={24} color={themeColors.textSecondary} />
           </View>
         )}
         {item.unread_count > 0 && (
@@ -89,13 +102,13 @@ export default function ConversationsListScreen() {
 
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={[styles.userName, item.unread_count > 0 && styles.userNameBold]}>
+          <Text style={[styles.userName, { color: themeColors.textPrimary }, item.unread_count > 0 && styles.userNameBold]}>
             {item.other_user_name}
           </Text>
-          <Text style={styles.timeText}>{formatTime(item.last_message_at)}</Text>
+          <Text style={[styles.timeText, { color: themeColors.textSecondary }]}>{formatTime(item.last_message_at)}</Text>
         </View>
         <Text
-          style={[styles.lastMessage, item.unread_count > 0 && styles.lastMessageBold]}
+          style={[styles.lastMessage, { color: themeColors.textSecondary }, item.unread_count > 0 && { color: themeColors.textPrimary, fontWeight: '500' }]}
           numberOfLines={1}
         >
           {item.last_message || 'No messages yet'}
@@ -106,9 +119,9 @@ export default function ConversationsListScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
-          <Text style={styles.headerTitle}>Messages</Text>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Messages</Text>
         </View>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
@@ -118,9 +131,9 @@ export default function ConversationsListScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
-        <Text style={styles.headerTitle}>Messages</Text>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Messages</Text>
       </View>
 
       {error ? (
@@ -132,9 +145,9 @@ export default function ConversationsListScreen() {
         </View>
       ) : conversations.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
-          <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptySubtitle}>
+          <Ionicons name="chatbubbles-outline" size={64} color={themeColors.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: themeColors.textPrimary }]}>No conversations yet</Text>
+          <Text style={[styles.emptySubtitle, { color: themeColors.textSecondary }]}>
             Start chatting with suppliers by visiting their profile
           </Text>
         </View>
@@ -156,19 +169,15 @@ export default function ConversationsListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1F2937',
   },
   centerContainer: {
     flex: 1,
@@ -184,9 +193,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   avatarContainer: {
     position: 'relative',
@@ -201,7 +208,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -233,32 +239,26 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
-    color: '#1F2937',
   },
   userNameBold: {
     fontWeight: '600',
   },
   timeText: {
     fontSize: 12,
-    color: '#9CA3AF',
   },
   lastMessage: {
     fontSize: 14,
-    color: '#6B7280',
   },
   lastMessageBold: {
-    color: '#1F2937',
     fontWeight: '500',
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#374151',
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 40,

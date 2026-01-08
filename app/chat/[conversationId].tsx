@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
     ConversationDetail,
     fetchConversation,
@@ -27,6 +28,7 @@ const POLLING_INTERVAL = 5000; // 5 seconds
 
 export default function ChatScreen() {
   const router = useRouter();
+  const { colorScheme } = useTheme();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -40,6 +42,17 @@ export default function ChatScreen() {
   
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+    inputBg: isDark ? '#151718' : '#F3F4F6',
+  };
 
   const loadMessages = useCallback(async (showLoading = true) => {
     if (!conversationId) return;
@@ -128,7 +141,7 @@ export default function ChatScreen() {
       <View>
         {showDate && (
           <View style={styles.dateContainer}>
-            <Text style={styles.dateText}>
+            <Text style={[styles.dateText, { color: themeColors.textSecondary, backgroundColor: themeColors.borderLight }]}>
               {new Date(item.created_at).toLocaleDateString([], {
                 weekday: 'long',
                 month: 'short',
@@ -138,11 +151,11 @@ export default function ChatScreen() {
           </View>
         )}
         <View style={[styles.messageBubbleContainer, isMine && styles.myMessageContainer]}>
-          <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.theirMessage]}>
-            <Text style={[styles.messageText, isMine && styles.myMessageText]}>
+          <View style={[styles.messageBubble, isMine ? styles.myMessage : [styles.theirMessage, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]]}>
+            <Text style={[styles.messageText, { color: isMine ? '#FFFFFF' : themeColors.textPrimary }]}>
               {item.content}
             </Text>
-            <Text style={[styles.messageTime, isMine && styles.myMessageTime]}>
+            <Text style={[styles.messageTime, { color: isMine ? 'rgba(255, 255, 255, 0.7)' : themeColors.textSecondary }]}>
               {formatMessageTime(item.created_at)}
               {isMine && item.read && (
                 <Text style={styles.readIndicator}> ✓✓</Text>
@@ -156,7 +169,7 @@ export default function ChatScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
@@ -173,25 +186,25 @@ export default function ChatScreen() {
     : null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
         
         <View style={styles.headerInfo}>
           {otherUserImage ? (
             <Image source={{ uri: otherUserImage }} style={styles.headerAvatar} />
           ) : (
-            <View style={styles.headerAvatarPlaceholder}>
-              <Ionicons name="person" size={20} color="#9CA3AF" />
+            <View style={[styles.headerAvatarPlaceholder, { backgroundColor: themeColors.borderLight }]}>
+              <Ionicons name="person" size={20} color={themeColors.textSecondary} />
             </View>
           )}
           <View>
-            <Text style={styles.headerName}>{otherUserName || 'Chat'}</Text>
+            <Text style={[styles.headerName, { color: themeColors.textPrimary }]}>{otherUserName || 'Chat'}</Text>
             {conversation?.order_id && (
-              <Text style={styles.headerSubtitle}>Order related</Text>
+              <Text style={[styles.headerSubtitle, { color: themeColors.textSecondary }]}>Order related</Text>
             )}
           </View>
         </View>
@@ -214,9 +227,9 @@ export default function ChatScreen() {
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.centerContainer}>
-            <Ionicons name="chatbubble-outline" size={48} color="#D1D5DB" />
-            <Text style={styles.emptyText}>No messages yet</Text>
-            <Text style={styles.emptySubtext}>Send a message to start the conversation</Text>
+            <Ionicons name="chatbubble-outline" size={48} color={themeColors.textSecondary} />
+            <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>No messages yet</Text>
+            <Text style={[styles.emptySubtext, { color: themeColors.textSecondary }]}>Send a message to start the conversation</Text>
           </View>
         ) : (
           <FlatList
@@ -231,13 +244,13 @@ export default function ChatScreen() {
         )}
 
         {/* Input */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { backgroundColor: themeColors.surface, borderTopColor: themeColors.border }]}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]}
             value={messageText}
             onChangeText={setMessageText}
             placeholder="Type a message..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={themeColors.textSecondary}
             multiline
             maxLength={1000}
           />
@@ -261,7 +274,6 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   flex: {
     flex: 1,
@@ -272,9 +284,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   backButton: {
     width: 40,
@@ -296,7 +306,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -304,11 +313,9 @@ const styles = StyleSheet.create({
   headerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#6B7280',
   },
   centerContainer: {
     flex: 1,
@@ -326,8 +333,6 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: '#6B7280',
-    backgroundColor: '#E5E7EB',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -350,14 +355,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   theirMessage: {
-    backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   messageText: {
     fontSize: 15,
-    color: '#1F2937',
     lineHeight: 20,
   },
   myMessageText: {
@@ -365,7 +367,6 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 11,
-    color: '#6B7280',
     marginTop: 4,
     alignSelf: 'flex-end',
   },
@@ -380,20 +381,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
   },
   input: {
     flex: 1,
     minHeight: 40,
     maxHeight: 100,
-    backgroundColor: '#F3F4F6',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#1F2937',
     marginRight: 8,
   },
   sendButton: {
@@ -409,12 +406,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9CA3AF',
     marginTop: 4,
   },
   errorText: {

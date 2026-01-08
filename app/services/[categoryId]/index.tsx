@@ -1,4 +1,5 @@
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from '@/services/categories';
+import { useTheme } from '@/contexts/ThemeContext';
 import { getOrCreateConversation } from '@/services/conversations';
 import { fetchSuppliers, Supplier } from '@/services/suppliers';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
+  const { colorScheme } = useTheme();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const insets = useSafeAreaInsets();
   const [categoryData, setCategoryData] = useState<CategoryWithSubcategories | null>(null);
@@ -26,6 +28,16 @@ export default function CategoryDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'price' | 'distance'>('price');
   const [startingChatWith, setStartingChatWith] = useState<string | null>(null);
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#F9FAFB',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+  };
 
   useEffect(() => {
     if (categoryId) {
@@ -77,7 +89,7 @@ export default function CategoryDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
@@ -87,7 +99,7 @@ export default function CategoryDetailScreen() {
 
   if (error || !categoryData) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error || 'Category not found'}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
@@ -99,13 +111,13 @@ export default function CategoryDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{categoryData.category.name}</Text>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>{categoryData.category.name}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -113,11 +125,11 @@ export default function CategoryDetailScreen() {
         {/* Subcategories (if any) */}
         {categoryData.subcategories.length > 0 && (
           <View style={styles.subcategoriesSection}>
-            <Text style={styles.sectionTitle}>Subcategories</Text>
+            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Subcategories</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {categoryData.subcategories.map((sub) => (
-                <TouchableOpacity key={sub.id} style={styles.subcategoryChip}>
-                  <Text style={styles.subcategoryText}>{sub.name}</Text>
+                <TouchableOpacity key={sub.id} style={[styles.subcategoryChip, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+                  <Text style={[styles.subcategoryText, { color: themeColors.textPrimary }]}>{sub.name}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -125,21 +137,21 @@ export default function CategoryDetailScreen() {
         )}
 
         {/* Sort Options */}
-        <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort by:</Text>
+        <View style={[styles.sortContainer, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+          <Text style={[styles.sortLabel, { color: themeColors.textSecondary }]}>Sort by:</Text>
           <TouchableOpacity
-            style={[styles.sortButton, sortBy === 'price' && styles.sortButtonActive]}
+            style={[styles.sortButton, { backgroundColor: isDark ? '#374151' : '#F3F4F6' }, sortBy === 'price' && styles.sortButtonActive]}
             onPress={() => setSortBy('price')}
           >
-            <Text style={[styles.sortButtonText, sortBy === 'price' && styles.sortButtonTextActive]}>
+            <Text style={[styles.sortButtonText, { color: themeColors.textPrimary }, sortBy === 'price' && styles.sortButtonTextActive]}>
               Price
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.sortButton, sortBy === 'distance' && styles.sortButtonActive]}
+            style={[styles.sortButton, { backgroundColor: isDark ? '#374151' : '#F3F4F6' }, sortBy === 'distance' && styles.sortButtonActive]}
             onPress={() => setSortBy('distance')}
           >
-            <Text style={[styles.sortButtonText, sortBy === 'distance' && styles.sortButtonTextActive]}>
+            <Text style={[styles.sortButtonText, { color: themeColors.textPrimary }, sortBy === 'distance' && styles.sortButtonTextActive]}>
               Distance
             </Text>
           </TouchableOpacity>
@@ -150,7 +162,7 @@ export default function CategoryDetailScreen() {
           {suppliers.map((supplier) => (
             <TouchableOpacity
               key={supplier.id}
-              style={styles.supplierCard}
+              style={[styles.supplierCard, { backgroundColor: themeColors.surface }]}
               onPress={() => handleSupplierPress(supplier.id)}
             >
               <View style={styles.supplierHeader}>
@@ -159,16 +171,16 @@ export default function CategoryDetailScreen() {
                   style={styles.supplierImage}
                 />
                 <View style={styles.supplierInfo}>
-                  <Text style={styles.supplierName}>{supplier.full_name}</Text>
+                  <Text style={[styles.supplierName, { color: themeColors.textPrimary }]}>{supplier.full_name}</Text>
                   <View style={styles.ratingRow}>
                     <Ionicons name="star" size={16} color="#F59E0B" />
-                    <Text style={styles.rating}>{Number(supplier.rating).toFixed(1)}</Text>
-                    <Text style={styles.reviewCount}>
+                    <Text style={[styles.rating, { color: themeColors.textPrimary }]}>{Number(supplier.rating).toFixed(1)}</Text>
+                    <Text style={[styles.reviewCount, { color: themeColors.textSecondary }]}>
                       ({supplier.total_reviews} reviews)
                     </Text>
                   </View>
                   {supplier.years_experience && (
-                    <Text style={styles.experience}>
+                    <Text style={[styles.experience, { color: themeColors.textSecondary }]}>
                       {supplier.years_experience}+ years of experience
                     </Text>
                   )}
@@ -183,7 +195,7 @@ export default function CategoryDetailScreen() {
                   <Text style={styles.viewDetailsText}>View Details</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={styles.chatButton}
+                  style={[styles.chatButton, { backgroundColor: isDark ? '#1F2937' : '#F0F9FF' }]}
                   onPress={() => handleStartChat(supplier.id)}
                   disabled={startingChatWith === supplier.id}
                 >
@@ -199,7 +211,7 @@ export default function CategoryDetailScreen() {
 
           {suppliers.length === 0 && (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No suppliers found for this category</Text>
+              <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>No suppliers found for this category</Text>
             </View>
           )}
         </View>
@@ -211,7 +223,6 @@ export default function CategoryDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
@@ -225,9 +236,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   backButton: {
     width: 40,
@@ -238,7 +247,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
   },
   content: {
     flex: 1,
@@ -250,21 +258,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 12,
   },
   subcategoryChip: {
-    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   subcategoryText: {
     fontSize: 14,
-    color: '#374151',
     fontWeight: '500',
   },
   sortContainer: {
@@ -272,20 +276,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   sortLabel: {
     fontSize: 14,
-    color: '#6B7280',
     marginRight: 12,
   },
   sortButton: {
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
     marginRight: 8,
   },
   sortButtonActive: {
@@ -293,7 +293,6 @@ const styles = StyleSheet.create({
   },
   sortButtonText: {
     fontSize: 14,
-    color: '#374151',
     fontWeight: '500',
   },
   sortButtonTextActive: {
@@ -303,7 +302,6 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   supplierCard: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -330,7 +328,6 @@ const styles = StyleSheet.create({
   supplierName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 4,
   },
   ratingRow: {
@@ -341,17 +338,14 @@ const styles = StyleSheet.create({
   rating: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
     marginLeft: 4,
   },
   reviewCount: {
     fontSize: 12,
-    color: '#6B7280',
     marginLeft: 4,
   },
   experience: {
     fontSize: 12,
-    color: '#6B7280',
   },
   supplierFooter: {
     flexDirection: 'row',
@@ -375,7 +369,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0F9FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -385,7 +378,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6B7280',
     textAlign: 'center',
   },
   errorText: {

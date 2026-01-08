@@ -1,6 +1,7 @@
 import { CategoryCard } from '@/components/CategoryCard';
 import { SearchBar } from '@/components/SearchBar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import { Category, fetchCategories } from '@/services/categories';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,11 +21,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const { colorScheme } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const isDark = colorScheme === 'dark';
+  const themeColors = {
+    background: isDark ? '#151718' : '#FFFFFF',
+    surface: isDark ? '#1F2937' : '#FFFFFF',
+    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
+    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    icon: isDark ? '#9BA1A6' : '#374151',
+  };
 
   useEffect(() => {
     loadCategories();
@@ -58,21 +70,21 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={themeColors.surface} />
       
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
         <View style={styles.headerLeft}>
           <Image
             source={{ uri: user?.profileImage || 'https://via.placeholder.com/40' }}
             style={styles.avatar}
           />
-          <Text style={styles.greeting}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
+          <Text style={[styles.greeting, { color: themeColors.textPrimary }]}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="chatbubble-outline" size={24} color="#374151" />
+            <Ionicons name="chatbubble-outline" size={24} color={themeColors.icon} />
           </TouchableOpacity>
         </View>
       </View>
@@ -89,7 +101,7 @@ export default function HomeScreen() {
 
         {/* Recommended Categories */}
         <View style={styles.categoriesContainer}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
+          <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Recommended for you</Text>
           
           {loading ? (
             <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 20 }} />
@@ -107,7 +119,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No services available at the moment</Text>
+              <Text style={[styles.emptyStateText, { color: themeColors.textSecondary }]}>No services available at the moment</Text>
             </View>
           )}
         </View>
@@ -124,7 +136,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
@@ -132,9 +143,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -150,7 +159,6 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
   },
   headerRight: {
     flexDirection: 'row',
@@ -175,7 +183,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
     marginBottom: 16,
   },
   categoriesGrid: {
@@ -206,7 +213,6 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#6B7280',
     textAlign: 'center',
   },
 });
