@@ -6,16 +6,12 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  showMic?: boolean;
-  onMicPress?: () => void;
 }
 
 export function SearchBar({
   value,
   onChangeText,
   placeholder = 'Search...',
-  showMic = false,
-  onMicPress,
 }: SearchBarProps) {
   return (
     <View style={styles.container}>
@@ -27,11 +23,6 @@ export function SearchBar({
         value={value}
         onChangeText={onChangeText}
       />
-      {showMic && (
-        <TouchableOpacity onPress={onMicPress} style={styles.micButton}>
-          <Ionicons name="mic-outline" size={20} color="#10B981" />
-        </TouchableOpacity>
-      )}
     </View>
   );
 }
@@ -57,9 +48,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#374151',
-  },
-  micButton: {
-    padding: 4,
   },
 });
 

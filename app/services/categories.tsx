@@ -103,9 +103,6 @@ export default function CategoriesScreen() {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <TouchableOpacity>
-          <Ionicons name="mic-outline" size={20} color="#10B981" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

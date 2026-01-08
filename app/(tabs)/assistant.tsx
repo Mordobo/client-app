@@ -40,9 +40,6 @@ export default function AssistantScreen() {
           <Text style={styles.greeting}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
           <View style={styles.headerIcons}>
             <TouchableOpacity style={styles.iconButton}>
-              <Ionicons name="mic-outline" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
               <Ionicons name="chatbubble-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
