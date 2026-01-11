@@ -21,8 +21,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const CODE_LENGTH = 4;
-const RESEND_COOLDOWN_SECONDS = 120; // 2 minutes
+const CODE_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 45; // 45 seconds
 const CODE_INPUT_GAP = 12;
 const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 
@@ -57,11 +57,13 @@ export default function VerifyScreen() {
   }, []);
 
   // Calculate code input width dynamically
+  // Each input should be 48x56px according to specs, but we'll make it responsive
   const CODE_INPUT_TOTAL_GAP = CODE_INPUT_GAP * (CODE_LENGTH - 1);
   const CODE_INPUT_WIDTH = Math.max(
-    50,
-    Math.min(80, (screenWidth - CODE_INPUT_PADDING - CODE_INPUT_TOTAL_GAP) / CODE_LENGTH)
+    48,
+    Math.min(56, (screenWidth - CODE_INPUT_PADDING - CODE_INPUT_TOTAL_GAP) / CODE_LENGTH)
   );
+  const CODE_INPUT_HEIGHT = 56; // Fixed height as per specs
 
   useEffect(() => {
     // Start cooldown timer
@@ -331,35 +333,37 @@ export default function VerifyScreen() {
 
   const isCodeComplete = code.every((digit) => digit !== '');
 
+  // Get email from params (this is where the verification code is sent)
+  const displayEmail = params.email || '';
+
   return (
     <View style={styles.container}>
-      {/* Header - Outside KeyboardAvoidingView to ensure it's always accessible */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) }]} pointerEvents="box-none">
-        <Pressable
-          style={({ pressed }) => [
-            styles.backButton,
-            pressed && styles.backButtonPressed,
-          ]}
-          onPress={handleBack}
-          hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-        >
-          <Ionicons name="arrow-back" size={24} color="#374151" />
-        </Pressable>
-      </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.content}>
-          {/* Title and Subtitle */}
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{t('auth.enterVerificationCode')}</Text>
+        <View style={[styles.content, { paddingTop: Math.max(insets.top, 60) }]}>
+          {/* Back Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            onPress={handleBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </Pressable>
+
+          {/* Icon and Title Section */}
+          <View style={styles.iconTitleContainer}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.iconEmoji}>📱</Text>
+            </View>
+            <Text style={styles.title}>{t('auth.verificationTitle')}</Text>
             <Text style={styles.subtitle}>
-              {params.email 
-                ? `${t('auth.verificationCodeSent')} ${params.email}`
-                : t('auth.verificationCodeSent')
-              }
+              {t('auth.verificationSubtitle')}{'\n'}
+              <Text style={styles.emailText}>{displayEmail}</Text>
             </Text>
           </View>
 
@@ -375,8 +379,8 @@ export default function VerifyScreen() {
                   styles.codeInput,
                   {
                     width: CODE_INPUT_WIDTH,
-                    height: CODE_INPUT_WIDTH,
-                    fontSize: Math.min(24, CODE_INPUT_WIDTH * 0.35),
+                    height: CODE_INPUT_HEIGHT,
+                    fontSize: Math.min(24, CODE_INPUT_WIDTH * 0.4),
                   },
                   digit ? styles.codeInputFilled : null,
                 ]}
@@ -400,26 +404,25 @@ export default function VerifyScreen() {
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.verifyButtonText}>{t('auth.verifyAccount')}</Text>
+              <Text style={styles.verifyButtonText}>{t('auth.verify')}</Text>
             )}
           </TouchableOpacity>
 
           {/* Resend Code */}
           <View style={styles.resendContainer}>
+            <Text style={styles.resendQuestion}>{t('auth.didntReceiveCode')}</Text>
             <TouchableOpacity
               onPress={handleResend}
               disabled={!canResend}
               style={styles.resendButton}
             >
-              <Text style={[styles.resendText, canResend && styles.resendTextActive]}>
-                {t('auth.resendCode')}
+              <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
+                {canResend 
+                  ? t('auth.resendCode')
+                  : `${t('auth.resendCode')} (${formatTime(resendCooldown)})`
+                }
               </Text>
             </TouchableOpacity>
-            {!canResend && (
-              <Text style={styles.resendCooldown}>
-                {t('auth.resendIn')} {formatTime(resendCooldown)}
-              </Text>
-            )}
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -439,7 +442,7 @@ export default function VerifyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1a1a2e', // Dark background from preview
   },
   keyboardView: {
     flex: 1,
@@ -447,18 +450,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 8,
-    zIndex: 10,
+    paddingBottom: 40,
   },
   backButton: {
     alignSelf: 'flex-start',
-    padding: 8,
-    zIndex: 11,
+    marginBottom: 40,
     minWidth: 40,
     minHeight: 40,
     justifyContent: 'center',
@@ -467,47 +463,67 @@ const styles = StyleSheet.create({
   backButtonPressed: {
     opacity: 0.6,
   },
-  titleContainer: {
+  backButtonText: {
+    color: '#fff',
+    fontSize: 24,
+  },
+  iconTitleContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(59, 130, 246, 0.2)', // primary color with 20% opacity
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  iconEmoji: {
+    fontSize: 36,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: '#fff',
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 15,
+    color: '#9ca3af', // textSecondary from preview
     textAlign: 'center',
+    lineHeight: 22.5, // 1.5 line height
+  },
+  emailText: {
+    color: '#fff',
   },
   codeContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 32,
     gap: CODE_INPUT_GAP,
-    width: '100%',
   },
   codeInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#252542', // bgCard from preview
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#374151', // border from preview
     fontWeight: '600',
     textAlign: 'center',
-    color: '#1F2937',
+    color: '#fff',
     padding: 0,
   },
   codeInputFilled: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#3b82f6', // primary from preview
+    backgroundColor: 'rgba(59, 130, 246, 0.2)', // primary with 20% opacity
   },
   verifyButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: '#3b82f6', // primary from preview
+    borderRadius: 14,
+    paddingVertical: 18,
     alignItems: 'center',
     marginBottom: 24,
   },
@@ -515,30 +531,29 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   verifyButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   resendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+  },
+  resendQuestion: {
+    textAlign: 'center',
+    color: '#9ca3af', // textSecondary from preview
+    fontSize: 14,
+    marginBottom: 8,
   },
   resendButton: {
     padding: 4,
   },
-  resendText: {
-    color: '#3B82F6',
+  resendLink: {
+    textAlign: 'center',
+    color: '#3b82f6', // primary from preview
     fontSize: 14,
-    fontWeight: '500',
   },
-  resendTextActive: {
-    color: '#3B82F6',
-  },
-  resendCooldown: {
-    color: '#9CA3AF',
-    fontSize: 14,
+  resendLinkDisabled: {
+    color: '#3b82f6', // Still primary color even when disabled (shows timer)
   },
 });
 

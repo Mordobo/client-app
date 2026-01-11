@@ -7,9 +7,7 @@ For backend API (Mordobo/API repository):
 Structure:
 - API/src/routes/ for API endpoints organized by domain
 - API/src/db.ts for database connection
-- API/src/index.ts for Express server setup
-
-Conventions:
+- API/src/index.ts for Express server setupConventions:
 - Always use prepared statements in SQL ($1, $2, ...), never concatenate strings
 - Validate all inputs with Zod before processing
 - Use structured error responses: { code, message, issues? }

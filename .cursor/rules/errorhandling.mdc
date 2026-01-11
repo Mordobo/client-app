@@ -8,9 +8,7 @@ Mobile:
 - Use try-catch blocks for async operations
 - Implement error boundaries for React components
 - Handle loading and error states gracefully in UI
-- Show user-friendly error messages using i18n
-
-Backend:
+- Show user-friendly error messages using i18nBackend:
 - Use structured error format: { code, message, issues? }
 - Return appropriate HTTP status codes (400, 401, 404, 409, 500)
 - Use descriptive error codes: validation_error, invalid_credentials, email_taken
