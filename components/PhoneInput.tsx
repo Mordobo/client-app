@@ -99,7 +99,7 @@ export function PhoneInput({
     setExtensionSearchQuery('');
   };
 
-  const isExtensionDisabled = !selectedCountry || disabled;
+  const isExtensionDisabled = disabled;
 
   return (
     <View style={styles.container}>
@@ -126,7 +126,7 @@ export function PhoneInput({
           <Ionicons
             name="chevron-down"
             size={16}
-            color={isExtensionDisabled ? '#9CA3AF' : '#6B7280'}
+            color={isExtensionDisabled ? '#9CA3AF' : '#9CA3AF'}
           />
         </TouchableOpacity>
 
@@ -140,7 +140,7 @@ export function PhoneInput({
           value={phoneNumber}
           onChangeText={handlePhoneNumberChange}
           placeholder={placeholder || t('auth.phoneNumberPlaceholder')}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor="rgba(156, 163, 175, 0.5)"
           keyboardType="phone-pad"
           editable={!disabled}
         />
@@ -170,17 +170,17 @@ export function PhoneInput({
                 }}
                 style={styles.closeButton}
               >
-                <Ionicons name="close" size={24} color="#374151" />
+                <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder={t('auth.searchExtension')}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="rgba(156, 163, 175, 0.5)"
                 value={extensionSearchQuery}
                 onChangeText={setExtensionSearchQuery}
                 autoCapitalize="none"
@@ -224,7 +224,7 @@ export function PhoneInput({
                       </Text>
                     )}
                     {phoneExtension === ext && (
-                      <Ionicons name="checkmark" size={20} color="#10B981" />
+                      <Ionicons name="checkmark" size={20} color="#3B82F6" />
                     )}
                   </TouchableOpacity>
                 );
@@ -249,27 +249,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   extensionButton: {
-    backgroundColor: 'white',
+    backgroundColor: '#252542',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#374151',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     minWidth: 100,
   },
   extensionButtonError: {
-    borderColor: '#F87171',
+    borderColor: '#EF4444',
   },
   extensionButtonDisabled: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
+    backgroundColor: '#1a1a2e',
+    borderColor: '#374151',
   },
   extensionText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginRight: 8,
   },
   extensionTextDisabled: {
@@ -277,34 +277,36 @@ const styles = StyleSheet.create({
   },
   phoneInput: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#252542',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    color: '#1F2937',
+    borderColor: '#374151',
+    color: '#FFFFFF',
   },
   phoneInputError: {
-    borderColor: '#F87171',
+    borderColor: '#EF4444',
+    backgroundColor: '#2d1a1a',
   },
   phoneInputDisabled: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#1a1a2e',
     color: '#9CA3AF',
   },
   errorText: {
-    color: '#B91C1C',
-    fontSize: 12,
+    color: '#EF4444',
+    fontSize: 13,
     marginTop: 6,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
@@ -317,12 +319,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#374151',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   closeButton: {
     padding: 4,
@@ -330,7 +332,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#252542',
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 8,
@@ -338,7 +340,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#374151',
   },
   searchIcon: {
     marginRight: 8,
@@ -346,7 +348,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
     padding: 0,
   },
   clearButton: {
@@ -369,22 +371,22 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   extensionItemSelected: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
   },
   extensionItemText: {
     fontSize: 16,
-    color: '#1F2937',
+    color: '#FFFFFF',
     fontWeight: '500',
     minWidth: 60,
   },
   extensionItemTextSelected: {
     fontWeight: '600',
-    color: '#10B981',
+    color: '#3B82F6',
   },
   extensionItemCountry: {
     flex: 1,
     fontSize: 14,
-    color: '#6B7280',
+    color: '#9CA3AF',
     marginLeft: 12,
   },
 });
