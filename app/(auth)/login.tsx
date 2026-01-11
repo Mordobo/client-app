@@ -99,7 +99,24 @@ export default function LoginScreen() {
         provider: userData.provider,
       });
       await login(userData);
-      router.replace('/(tabs)/home');
+      
+      // Check if this is the first login using login_count from backend
+      // Note: Google login doesn't go through verification code, so login_count might be 0 or undefined
+      // For Google users, we'll check if they have any login_count or if it's their first time
+      // Since Google login doesn't increment login_count (only verification code does),
+      // we'll show onboarding if login_count is 0 or undefined (new user)
+      const loginCount = (userData as Record<string, unknown>).loginCount as number | undefined;
+      // For Google login, if login_count is 0 or undefined, it's a new user (first login)
+      // If login_count is 1, it means they've logged in once via email verification before
+      const isFirstLogin = loginCount === 0 || loginCount === undefined;
+      
+      if (isFirstLogin) {
+        // Navigate to onboarding screens for first-time users
+        router.replace('/(auth)/onboarding');
+      } else {
+        // Navigate to home on success
+        router.replace('/(tabs)/home');
+      }
     },
     [login]
   );
