@@ -9,8 +9,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { initializeGoogleSignIn } from '@/config/google-signin';
-import { useEffect, useState } from 'react';
-import CustomSplashScreen from '@/components/SplashScreen';
+import { useEffect } from 'react';
 
 export const unstable_settings = {
   anchor: '(auth)',
@@ -54,15 +53,9 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [isSplashVisible, setIsSplashVisible] = useState(true);
-
   useEffect(() => {
     initializeGoogleSignIn();
   }, []);
-
-  if (isSplashVisible) {
-    return <CustomSplashScreen onFinish={() => setIsSplashVisible(false)} />;
-  }
 
   return (
     <SafeAreaProvider>

@@ -34,30 +34,23 @@ export default function WelcomeScreen() {
   const webGoogleSupported = isGoogleWebAvailable();
   const isGoogleSupported = webGoogleSupported;
 
-  const handleSignIn = async () => {
+  // Redirect to home if already authenticated
+  useEffect(() => {
     if (isAuthenticated) {
-      // If already authenticated, go to home
       router.replace('/(tabs)/home');
-    } else {
-      // If not authenticated, go to login
-      router.push('/(auth)/login');
     }
+  }, [isAuthenticated]);
+
+  const handleSignIn = () => {
+    console.log('[WelcomeScreen] handleSignIn - navigating to login, isAuthenticated:', isAuthenticated);
+    router.push('/(auth)/login');
   };
 
-  const handleCreateAccount = async () => {
-    if (isAuthenticated) {
-      // If already authenticated, go to home
-      router.replace('/(tabs)/home');
-    } else {
-      // If not authenticated, go to register
-      router.push('/(auth)/register');
-    }
+  const handleCreateAccount = () => {
+    console.log('[WelcomeScreen] handleCreateAccount - navigating to register, isAuthenticated:', isAuthenticated);
+    router.push('/(auth)/register');
   };
 
-  const handleContinue = async () => {
-    // Continue to home (login_count is already incremented by backend)
-    router.replace('/(tabs)/home');
-  };
 
   const handleGoogleError = useCallback((error: unknown) => {
     if (error instanceof ApiError) {
@@ -238,82 +231,76 @@ export default function WelcomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Logo with gradient */}
-        <View style={styles.logoContainer}>
-          <LinearGradient
-            colors={['#3B82F6', '#10B981']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.logoGradient}
-          >
-            <MordoboLogo size={60} />
-          </LinearGradient>
+        {/* Centered section with logo, title and subtitle */}
+        <View style={styles.centeredSection}>
+          {/* Logo with gradient */}
+          <View style={styles.logoContainer}>
+            <LinearGradient
+              colors={['#3B82F6', '#10B981']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.logoGradient}
+            >
+              <MordoboLogo size={60} />
+            </LinearGradient>
+          </View>
+
+          {/* Title and Subtitle */}
+          <Text style={styles.title}>{t('auth.welcomeTitle')}</Text>
+          <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
         </View>
 
-        {/* Title and Subtitle */}
-        <Text style={styles.title}>{t('auth.welcomeTitle')}</Text>
-        <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
-
-        {isAuthenticated ? (
-          // If user is already authenticated (first login), show Continue button
+        {/* Action buttons section */}
+        <View style={styles.actionsSection}>
+          {/* Primary Button - Sign In */}
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={handleContinue}
+            onPress={handleSignIn}
           >
-            <Text style={styles.primaryButtonText}>{t('auth.getStarted')}</Text>
+            <Text style={styles.primaryButtonText}>{t('auth.signIn')}</Text>
           </TouchableOpacity>
-        ) : (
-          // If user is not authenticated, show Sign In and Create Account buttons
-          <>
-            {/* Primary Button - Sign In */}
+
+          {/* Secondary Button - Create Account */}
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={handleCreateAccount}
+          >
+            <Text style={styles.secondaryButtonText}>{t('auth.createAccount')}</Text>
+          </TouchableOpacity>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Social Auth Buttons */}
+          <View style={styles.socialContainer}>
             <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleSignIn}
+              style={styles.socialButton}
+              onPress={handleAppleLogin}
             >
-              <Text style={styles.primaryButtonText}>{t('auth.signIn')}</Text>
+              <Text style={styles.socialButtonEmoji}>🍎</Text>
+              <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
             </TouchableOpacity>
 
-            {/* Secondary Button - Create Account */}
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleCreateAccount}
+              style={styles.socialButton}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading || !isGoogleSupported}
             >
-              <Text style={styles.secondaryButtonText}>{t('auth.createAccount')}</Text>
+              {googleLoading ? (
+                <ActivityIndicator color="#4285F4" />
+              ) : (
+                <>
+                  <Text style={styles.socialButtonEmoji}>🔵</Text>
+                  <Text style={styles.socialButtonText}>{t('auth.google')}</Text>
+                </>
+              )}
             </TouchableOpacity>
-
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Social Auth Buttons */}
-            <View style={styles.socialContainer}>
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={handleGoogleLogin}
-                disabled={googleLoading || !isGoogleSupported}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator color="#4285F4" />
-                ) : (
-                  <View style={styles.socialButtonContent}>
-                    <Ionicons name="logo-google" size={20} color="#4285F4" />
-                    <Text style={styles.socialButtonText}>{t('auth.google')}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-                <View style={styles.socialButtonContent}>
-                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" />
-                  <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -329,8 +316,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingTop: 60,
     paddingBottom: 40,
-    justifyContent: 'center',
+    flexDirection: 'column',
+  },
+  centeredSection: {
+    flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   logoContainer: {
     marginBottom: 24,
@@ -344,7 +336,7 @@ const styles = StyleSheet.create({
     shadowColor: '#3B82F6',
     shadowOffset: {
       width: 0,
-      height: 10,
+      height: 0,
     },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -360,8 +352,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#9CA3AF',
-    marginBottom: 40,
     textAlign: 'center',
+    margin: 0,
+  },
+  actionsSection: {
+    width: '100%',
   },
   primaryButton: {
     width: '100%',
@@ -396,6 +391,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginBottom: 24,
+    gap: 16,
   },
   dividerLine: {
     flex: 1,
@@ -405,7 +401,6 @@ const styles = StyleSheet.create({
   dividerText: {
     color: '#9CA3AF',
     fontSize: 14,
-    paddingHorizontal: 16,
   },
   socialContainer: {
     flexDirection: 'row',
@@ -418,16 +413,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#374151',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  socialButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
+  },
+  socialButtonEmoji: {
+    fontSize: 20,
   },
   socialButtonText: {
     fontSize: 14,

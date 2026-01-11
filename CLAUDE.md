@@ -398,7 +398,8 @@ mobile/
 │   ├── _layout.tsx              # Root layout con AuthProvider
 │   ├── (auth)/                  # Grupo de rutas de autenticación
 │   │   ├── _layout.tsx
-│   │   ├── index.tsx            # Landing/auth selector
+│   │   ├── index.tsx            # Redirects to welcome screen
+│   │   ├── welcome.tsx           # Welcome screen (first screen)
 │   │   ├── login.tsx            # Login screen
 │   │   ├── register.tsx         # Register screen
 │   │   └── verify.tsx           # Email verification
@@ -412,7 +413,6 @@ mobile/
 │
 ├── components/                   # 🧩 Componentes UI reutilizables
 │   ├── ui/                      # Componentes UI base (collapsible, icons)
-│   ├── SplashScreen.tsx         # Splash screen personalizado
 │   ├── MordoboLogo.tsx          # Logo component
 │   └── ...                      # Otros componentes genéricos
 │

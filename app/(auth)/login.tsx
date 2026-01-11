@@ -2,16 +2,6 @@ import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, validateEmail } from '@/services/auth';
-import { type GoogleProfile } from '@/utils/authMapping';
-import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
-import {
-    consumePendingGoogleWebResult,
-    getGoogleStatusCodes,
-    isGoogleWebAvailable,
-    signInWithGoogleWeb,
-    signInWithGoogleMobile,
-    WEB_RESULT_STORAGE_KEY,
-} from '@/utils/googleSignIn';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -35,7 +25,6 @@ export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [identifierFocused, setIdentifierFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -47,143 +36,11 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const params = useLocalSearchParams<{ registered?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const googleStatusCodes = getGoogleStatusCodes();
-  const webGoogleSupported = isGoogleWebAvailable();
-  const isGoogleSupported = webGoogleSupported;
 
   const trimmedIdentifier = identifier.trim();
   const canSubmit = valueHasContent(identifier) && password.length >= 8;
   const isButtonEnabled = canSubmit && !loading;
 
-  const handleGoogleError = useCallback((error: unknown) => {
-    if (error instanceof ApiError) {
-      const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
-      Alert.alert(t('common.error'), message);
-      return;
-    }
-
-    if (error instanceof Error) {
-      switch (error.message) {
-        case 'google-web-signin-cancelled':
-          return;
-        case 'google-web-missing-id-token':
-        case 'google-missing-id-token':
-          Alert.alert(t('common.error'), t('errors.googleMissingIdToken'));
-          return;
-        case 'google-web-state-mismatch':
-          Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-          return;
-        case 'google-missing-web-client-id':
-        case 'google-web-not-supported':
-          Alert.alert(t('common.error'), t('errors.googleUnavailable'));
-          return;
-        default:
-          Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-          return;
-      }
-    }
-
-    Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-  }, []);
-
-  const finalizeGoogleLogin = useCallback(
-    async (profile: GoogleProfile, tokens: GoogleAuthTokens) => {
-      console.log('[GoogleLogin] Finalizing Google login', {
-        email: profile.email,
-        hasIdToken: !!tokens.idToken,
-        hasAccessToken: !!tokens.accessToken,
-      });
-      const userData = await registerGoogleAccountOrFallback(profile, tokens);
-      console.log('[GoogleLogin] registerGoogleAccountOrFallback resolved', {
-        userId: userData.id,
-        provider: userData.provider,
-      });
-      await login(userData);
-      
-      // Check if this is the first login using login_count from backend
-      // Note: Google login doesn't go through verification code, so login_count might be 0 or undefined
-      // For Google users, we'll check if they have any login_count or if it's their first time
-      // Since Google login doesn't increment login_count (only verification code does),
-      // we'll show onboarding if login_count is 0 or undefined (new user)
-      const loginCount = (userData as Record<string, unknown>).loginCount as number | undefined;
-      // For Google login, if login_count is 0 or undefined, it's a new user (first login)
-      // If login_count is 1, it means they've logged in once via email verification before
-      const isFirstLogin = loginCount === 0 || loginCount === undefined;
-      
-      if (isFirstLogin) {
-        // Navigate to onboarding screens for first-time users
-        router.replace('/(auth)/onboarding');
-      } else {
-        // Navigate to home on success
-        router.replace('/(tabs)/home');
-      }
-    },
-    [login]
-  );
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      console.log('[GoogleLogin] Skipping pending web result because platform is', Platform.OS);
-      return;
-    }
-
-    let isMounted = true;
-
-    const maybeConsumePendingLogin = async () => {
-      try {
-        const pendingResult = await consumePendingGoogleWebResult();
-        console.log('[GoogleLogin] Pending result from redirect:', pendingResult);
-        if (!pendingResult || !isMounted) {
-          if (!pendingResult) {
-            console.log('[GoogleLogin] No pending Google result detected in URL hash.');
-          }
-          return;
-        }
-        setGoogleLoading(true);
-        const profile: GoogleProfile = {
-          id: pendingResult.user.id,
-          email: pendingResult.user.email,
-          name: pendingResult.user.name,
-          givenName: pendingResult.user.givenName,
-          familyName: pendingResult.user.familyName,
-          photo: pendingResult.user.photo,
-        };
-        const tokens: GoogleAuthTokens = {
-          idToken: pendingResult.idToken,
-          accessToken: pendingResult.accessToken,
-        };
-        await finalizeGoogleLogin(profile, tokens);
-      } catch (error) {
-        if (isMounted) {
-          handleGoogleError(error);
-        }
-      } finally {
-        if (isMounted) {
-          setGoogleLoading(false);
-        }
-      }
-    };
-
-    void maybeConsumePendingLogin();
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === WEB_RESULT_STORAGE_KEY && event.newValue) {
-        console.log('[GoogleLogin] Storage event detected for Google OAuth result. Retrying consumption.');
-        void maybeConsumePendingLogin();
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorage);
-    }
-
-    return () => {
-      isMounted = false;
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('storage', handleStorage);
-      }
-    };
-  }, [finalizeGoogleLogin, handleGoogleError]);
 
   useEffect(() => {
     if (!consumedRegistrationParam && params?.registered) {
@@ -323,66 +180,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    console.log('[GoogleLogin] Platform:', Platform.OS, 'isGoogleWebAvailable:', webGoogleSupported);
-    
-    setGoogleLoading(true);
-    try {
-      let result;
-      
-      if (Platform.OS === 'web') {
-        result = await signInWithGoogleWeb();
-        console.log('[GoogleLogin] signInWithGoogleWeb result:', result);
-        if (!result) {
-          console.log('[GoogleLogin] Web flow initiated; waiting for storage event.');
-          return;
-        }
-      } else {
-        // Móvil: usar expo-auth-session
-        result = await signInWithGoogleMobile();
-        console.log('[GoogleLogin] signInWithGoogleMobile result:', result);
-      }
-
-      const profile: GoogleProfile = {
-        id: result.user.id,
-        email: result.user.email,
-        name: result.user.name,
-        givenName: result.user.givenName,
-        familyName: result.user.familyName,
-        photo: result.user.photo,
-      };
-      const tokens: GoogleAuthTokens = {
-        idToken: result.idToken,
-        accessToken: result.accessToken,
-      };
-      await finalizeGoogleLogin(profile, tokens);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('cancelled')) {
-        // Usuario canceló, no mostrar error
-        return;
-      }
-
-      if (error instanceof ApiError) {
-        const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
-        Alert.alert(t('common.error'), message);
-        return;
-      }
-
-      if (error instanceof Error && error.message === 'google-missing-id-token') {
-        Alert.alert(t('common.error'), t('errors.googleMissingIdToken'));
-        return;
-      }
-
-      console.error('Google login error:', error);
-      Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleAppleLogin = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonApple'));
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -491,31 +288,6 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
               )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Social Login Buttons */}
-          <View style={styles.socialContainer}>
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={handleGoogleLogin}
-              disabled={googleLoading || !isGoogleSupported}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color="#DB4437" />
-              ) : (
-                <View style={styles.socialButtonContent}>
-                  <Ionicons name="logo-google" size={20} color="#4285F4" />
-                  <Text style={styles.socialButtonText}>{t('auth.continueWithGoogle')}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-              <View style={styles.socialButtonContent}>
-                <Ionicons name="logo-apple" size={20} color="#000000" />
-                <Text style={styles.socialButtonText}>{t('auth.continueWithApple')}</Text>
-              </View>
             </TouchableOpacity>
           </View>
 
@@ -678,31 +450,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  socialContainer: {
-    gap: 12,
-    marginBottom: 32,
-  },
-  socialButton: {
-    backgroundColor: '#252542',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#374151',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  socialButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  socialButtonText: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: '#FFFFFF',
   },
   registerContainer: {
     alignItems: 'center',

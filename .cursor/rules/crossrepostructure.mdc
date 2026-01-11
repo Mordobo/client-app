@@ -2,9 +2,7 @@
 name: Cross-Repo Architecture
 alwaysApply: true
 ---
-This is a multi-repository project:
-
-MOBILE (This repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile
+This is a multi-repository project:MOBILE (This repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile
 - Contains React Native/Expo frontend
 - mobile/services/ contains API CLIENT code (calls backend)
 - mobile/services/auth.ts calls POST /auth/login from backend

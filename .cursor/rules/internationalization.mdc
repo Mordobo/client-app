@@ -2,9 +2,7 @@
 name: Internationalization
 alwaysApply: true
 ---
-Always use t() from i18n for all user-visible texts.
-
-- Import: import { t } from '@/i18n'
+Always use t() from i18n for all user-visible texts.- Import: import { t } from '@/i18n'
 - Use in components: <Text>{t('auth.login.title')}</Text>
 - Use in errors: throw new Error(t('errors.invalidCredentials'))
 - Add translations in i18n/locales/ when adding new texts

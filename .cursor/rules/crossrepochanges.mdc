@@ -20,9 +20,7 @@ When a feature affects both mobile and API repositories:
    - Create API client function in mobile/services/
    - Implement call to backend endpoint
    - Handle loading and error states
-   - Update components that consume the service
-
-4. VERIFY:
+   - Update components that consume the service4. VERIFY:
    - Test end-to-end flow
    - Verify type synchronization
    - Check error handling
