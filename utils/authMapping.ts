@@ -69,6 +69,9 @@ export const mapAuthResponseToUser = (
 ): User => {
   const apiUser = response.user;
   const { firstName, lastName } = resolveName(apiUser, googleUser);
+  
+  // Extract login_count from API response if available
+  const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
 
   return {
     id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(googleUser?.id) ?? '',
@@ -86,5 +89,7 @@ export const mapAuthResponseToUser = (
     provider,
     authToken: stringOrUndefined(response.token),
     refreshToken: stringOrUndefined(response.refreshToken),
-  };
+    // Store login_count as a custom property (not in User interface, but accessible)
+    loginCount,
+  } as User & { loginCount?: number };
 };

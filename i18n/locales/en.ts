@@ -66,6 +66,28 @@ export default {
     passwordRequirements: 'Minimum 8 characters',
     alreadyHaveAccount: 'Already have an account?',
     signIn: 'Sign in',
+    welcomeTitle: 'Mordobo',
+    welcomeSubtitle: 'Home services at your fingertips',
+    getStarted: 'Get Started',
+    onboarding: {
+      screen1: {
+        title: 'Services at your door',
+        description: 'Find verified professionals for any service in your home',
+        next: 'Next',
+        skip: 'Skip',
+      },
+      screen2: {
+        title: 'Verified professionals',
+        description: 'All our providers go through a verification process and have real customer reviews',
+        next: 'Next',
+        skip: 'Skip',
+      },
+      screen3: {
+        title: 'Secure payment',
+        description: 'Pay securely with your preferred method. Your money is protected until the service is completed',
+        getStarted: 'Get Started',
+      },
+    },
   },
   errors: {
     useAuthHookError: 'useAuth must be used within an AuthProvider',

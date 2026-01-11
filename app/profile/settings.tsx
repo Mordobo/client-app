@@ -7,20 +7,19 @@ import {
   deleteAccount,
   disable2FA,
   enable2FA,
-  getSettings,
   getSessions,
+  getSettings,
   requestDataExport,
   revokeSession,
   updateSettings,
   validatePassword,
   verify2FA,
-  type UserSettings,
   type UserSession,
+  type UserSettings,
 } from '@/services/settings';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
@@ -36,7 +35,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SettingsSection {
   title: string;
@@ -559,6 +558,27 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error('[Settings] Failed to update language:', error);
       Alert.alert(t('common.error'), t('errors.updateSettingsFailed'));
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  const handleToggle = async (key: keyof UserSettings, value: boolean) => {
+    if (!settings) return;
+    
+    try {
+      setUpdating(key);
+      const updatedSettings = { ...settings, [key]: value };
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      setToastMessage(t('settings.settingsUpdated'));
+      setToastType('success');
+      setToastVisible(true);
+    } catch (error) {
+      console.error('[Settings] Failed to update setting:', error);
+      setToastMessage(t('errors.updateSettingsFailed'));
+      setToastType('error');
+      setToastVisible(true);
     } finally {
       setUpdating(null);
     }
