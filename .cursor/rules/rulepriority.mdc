@@ -8,9 +8,7 @@ CLAUDE.md files have the HIGHEST priority. Hierarchy:
 2. Configuration files - package.json, app.json, tsconfig.json, .env
 3. Project structure - Respect established folder organization
 4. Project conventions - Patterns established in existing code
-5. General best practices - React Native, Expo, TypeScript standards
-
-When there's a conflict between sources, always follow CLAUDE.md first.
+5. General best practices - React Native, Expo, TypeScript standardsWhen there's a conflict between sources, always follow CLAUDE.md first.
 
 CLAUDE.md files exist in:
 - Mobile: /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile/CLAUDE.md

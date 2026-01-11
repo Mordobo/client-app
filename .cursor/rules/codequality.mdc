@@ -9,9 +9,7 @@ Write clean, readable, self-documenting code:
 - Use StyleSheet.create for styles (not inline objects for performance)
 - Include error handling from the start, not as an afterthought
 - Add comments only when code isn't self-explanatory
-- Follow naming conventions: PascalCase for components, camelCase for functions
-
-Mobile specific:
+- Follow naming conventions: PascalCase for components, camelCase for functionsMobile specific:
 - Use React.memo for components that receive stable props
 - Prefer useCallback for functions passed as props
 - Use useMemo for expensive computations
