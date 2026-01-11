@@ -25,6 +25,8 @@ export default {
     selectCountry: 'Seleccionar país',
     searchCountry: 'Buscar país...',
     loginTitle: 'Iniciar sesión',
+    welcome: 'Bienvenido',
+    welcomeSubtitle: 'Ingresa tus credenciales para continuar',
     signIn: 'Iniciar sesión',
     signUp: 'Registrarse',
     forgotPassword: '¿Olvidaste tu contraseña?',

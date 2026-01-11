@@ -39,6 +39,7 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [identifierFocused, setIdentifierFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
@@ -373,8 +374,17 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <View style={styles.content}>
+          {/* Back Button */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
           {/* Title */}
-          <Text style={styles.title}>{t('auth.loginTitle')}</Text>
+          <Text style={styles.title}>{t('auth.welcome')}</Text>
+          <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
 
           {showRegistrationSuccess && (
             <View style={styles.successToast}>
@@ -389,8 +399,8 @@ export default function LoginScreen() {
               <Text style={styles.inputLabel}>{t('auth.email')}</Text>
               <TextInput
                 style={[styles.input, errorMessage ? styles.inputError : undefined]}
-                placeholder=""
-                placeholderTextColor="rgba(55, 65, 81, 0.45)"
+                placeholder="tu@email.com"
+                placeholderTextColor="rgba(156, 163, 175, 0.5)"
                 value={identifier}
                 onChangeText={(value) => {
                   setIdentifier(value);
@@ -415,25 +425,42 @@ export default function LoginScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>{t('auth.password')}</Text>
-              <TextInput
-                style={[styles.input, errorMessage ? styles.inputError : undefined]}
-                placeholder=""
-                placeholderTextColor="rgba(55, 65, 81, 0.45)"
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  if (errorMessage) {
-                    setErrorMessage(null);
-                  }
-                }}
-                secureTextEntry
-                autoCapitalize="none"
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-              />
+              <View style={styles.passwordInputWrapper}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput, errorMessage ? styles.inputError : undefined]}
+                  placeholder="••••••••"
+                  placeholderTextColor="rgba(156, 163, 175, 0.5)"
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    if (errorMessage) {
+                      setErrorMessage(null);
+                    }
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity 
+              style={styles.forgotPassword}
+              onPress={() => {
+                // TODO: Navigate to forgot password screen
+              }}
+            >
               <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
             </TouchableOpacity>
 
@@ -512,7 +539,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1a1a2e',
   },
   keyboardView: {
     flex: 1,
@@ -522,24 +549,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 60,
   },
+  backButton: {
+    marginBottom: 40,
+  },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000000',
-    textAlign: 'center',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#9CA3AF',
     marginBottom: 40,
   },
   form: {
     marginBottom: 32,
   },
   successToast: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#10B981',
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
@@ -548,7 +582,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   successText: {
-    color: '#047857',
+    color: '#10B981',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -556,25 +590,37 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
+    color: '#FFFFFF',
     marginBottom: 8,
-    marginLeft: 4,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: '#252542',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    color: '#000000',
+    borderColor: '#374151',
+    color: '#FFFFFF',
+  },
+  passwordInputWrapper: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    padding: 4,
   },
   inputError: {
     borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#2d1a1a',
   },
   errorContainer: {
     flexDirection: 'row',
@@ -589,12 +635,12 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 13,
     fontWeight: '500',
+    marginLeft: 4,
   },
   forgotPassword: {
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     marginTop: 8,
-    marginBottom: 24,
-    marginLeft: 4,
+    marginBottom: 32,
   },
   forgotPasswordText: {
     color: '#3B82F6',
@@ -603,30 +649,30 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   loginButtonDisabled: {
     opacity: 0.5,
   },
   loginButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   socialContainer: {
     gap: 12,
     marginBottom: 32,
   },
   socialButton: {
-    backgroundColor: 'white',
+    backgroundColor: '#252542',
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#374151',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -637,16 +683,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   socialButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
-    color: '#000000',
+    color: '#FFFFFF',
   },
   registerContainer: {
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 4,
   },
   registerText: {
-    color: '#000000',
+    color: '#9CA3AF',
     fontSize: 14,
   },
   registerLink: {
