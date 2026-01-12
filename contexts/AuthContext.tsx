@@ -13,6 +13,8 @@ export interface User {
   phone?: string;
   avatar?: string;
   country?: string;
+  gender?: 'male' | 'female';
+  dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
   provider?: 'email' | 'google' | 'facebook' | 'apple';
   authToken?: string;
   refreshToken?: string;

@@ -73,6 +73,11 @@ export const mapAuthResponseToUser = (
   // Extract login_count from API response if available
   const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
 
+  // Extract gender and dateOfBirth from API response
+  const apiGender = (apiUser as Record<string, unknown>).gender;
+  const gender = apiGender === 'male' || apiGender === 'female' ? apiGender : undefined;
+  const dateOfBirth = stringOrUndefined((apiUser as Record<string, unknown>).date_of_birth);
+
   return {
     id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(googleUser?.id) ?? '',
     email: stringOrUndefined(apiUser.email) ?? stringOrUndefined(googleUser?.email) ?? '',
@@ -86,6 +91,8 @@ export const mapAuthResponseToUser = (
       stringOrUndefined((apiUser as Record<string, unknown>).avatar) ??
       stringOrUndefined(googleUser?.photo),
     country: stringOrUndefined((apiUser as Record<string, unknown>).country),
+    gender,
+    dateOfBirth,
     provider,
     authToken: stringOrUndefined(response.token),
     refreshToken: stringOrUndefined(response.refreshToken),
