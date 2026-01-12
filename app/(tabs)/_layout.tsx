@@ -66,12 +66,6 @@ export default function TabLayout() {
             <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
           ),
         }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/orders');
-          },
-        }}
       />
       <Tabs.Screen
         name="chat"
