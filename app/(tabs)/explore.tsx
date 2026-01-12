@@ -12,8 +12,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabTwoScreen() {
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme() ?? 'light';
-  const headerBackgroundColor = colorScheme === 'dark' ? '#353636' : '#D0D0D0';
 
   return (
     <ScrollView 
@@ -22,7 +20,7 @@ export default function TabTwoScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <ThemedView style={[styles.header, { backgroundColor: headerBackgroundColor }]}>
+      <ThemedView style={styles.header}>
         <IconSymbol
           size={310}
           color="#808080"
@@ -110,6 +108,7 @@ export default function TabTwoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background like Home
   },
   content: {
     padding: 32,
@@ -121,6 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#252542', // Hardcode dark header
   },
   headerImage: {
     color: '#808080',

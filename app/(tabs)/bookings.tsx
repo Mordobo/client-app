@@ -15,7 +15,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Colors } from '@/constants/theme';
 
 type TabType = 'active' | 'completed' | 'cancelled';
@@ -195,7 +195,8 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
 export default function BookingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useTheme();
+  // Default to light theme if colorScheme is undefined or null
   const isDark = colorScheme === 'dark';
   const themeColors = Colors[isDark ? 'dark' : 'light'];
 
@@ -269,16 +270,9 @@ export default function BookingsScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a2e' : '#F9FAFB' }]}>
-      <View style={[
-        styles.header,
-        {
-          paddingTop: Math.max(insets.top, 16),
-          backgroundColor: isDark ? '#252542' : '#FFFFFF',
-          borderBottomColor: isDark ? '#374151' : '#E5E7EB',
-        }
-      ]}>
-        <Text style={[styles.title, { color: isDark ? '#fff' : '#1F2937' }]}>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+        <Text style={styles.title}>
           {t('orders.title')}
         </Text>
         
@@ -288,20 +282,15 @@ export default function BookingsScreen() {
               key={tab.id}
               style={[
                 styles.tab,
-                activeTab === tab.id && { backgroundColor: '#3B82F6' },
-                activeTab !== tab.id && {
-                  backgroundColor: 'transparent',
-                  borderWidth: 1,
-                  borderColor: isDark ? '#374151' : '#E5E7EB',
-                }
+                activeTab === tab.id && styles.tabActive,
+                activeTab !== tab.id && styles.tabInactive,
               ]}
               onPress={() => handleTabPress(tab.id)}
             >
               <Text
                 style={[
                   styles.tabText,
-                  { color: activeTab === tab.id ? '#fff' : (isDark ? '#fff' : '#1F2937') },
-                  activeTab === tab.id && styles.tabTextActive
+                  activeTab === tab.id ? styles.tabTextActive : styles.tabTextInactive,
                 ]}
               >
                 {tab.label} ({tab.count})
@@ -323,7 +312,7 @@ export default function BookingsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={isDark ? '#fff' : '#3B82F6'}
+              tintColor="#fff"
             />
           }
           showsVerticalScrollIndicator={false}
@@ -354,6 +343,7 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background like Home
   },
   centerContainer: {
     flex: 1,
@@ -363,12 +353,15 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    backgroundColor: '#252542', // Hardcode dark header
     borderBottomWidth: 1,
+    borderBottomColor: '#374151', // Hardcode dark border
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 20,
+    color: '#FFFFFF', // Hardcode white text
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -382,12 +375,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  tabActive: {
+    backgroundColor: '#3B82F6',
+  },
+  tabInactive: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#374151', // Hardcode dark border
+  },
   tabText: {
     fontSize: 13,
     fontWeight: '400',
   },
   tabTextActive: {
     fontWeight: '600',
+    color: '#FFFFFF', // Hardcode white text for active tab
+  },
+  tabTextInactive: {
+    color: '#FFFFFF', // Hardcode white text for inactive tab
   },
   content: {
     flex: 1,

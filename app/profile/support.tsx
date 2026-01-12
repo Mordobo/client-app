@@ -1,5 +1,4 @@
 import { t } from '@/i18n';
-import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -25,25 +24,8 @@ interface FAQItem {
 export default function HelpCenterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useTheme();
-  const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaqs, setExpandedFaqs] = useState<Set<number>>(new Set());
-
-  // Theme colors matching JSX design
-  const themeColors = {
-    bg: isDark ? '#1a1a2e' : '#F9FAFB',
-    bgCard: isDark ? '#252542' : '#FFFFFF',
-    bgInput: isDark ? '#2d2d4a' : '#F3F4F6',
-    primary: '#3b82f6',
-    secondary: '#10b981',
-    accent: '#f59e0b',
-    danger: '#ef4444',
-    textPrimary: isDark ? '#FFFFFF' : '#1F2937',
-    textSecondary: isDark ? '#9ca3af' : '#6B7280',
-    border: isDark ? '#374151' : '#E5E7EB',
-    primary20: `${isDark ? '#3b82f6' : '#3b82f6'}20`,
-  };
 
   // FAQ items from translations
   const faqItems: FAQItem[] = useMemo(
@@ -135,7 +117,7 @@ export default function HelpCenterScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.bg }]}>
+    <View style={styles.container}>
       {/* Header - Exact match to JSX: padding: '50px 20px 20px', display: 'flex', alignItems: 'center', gap: '16px' */}
       <View
         style={[
@@ -155,31 +137,31 @@ export default function HelpCenterScreen() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={themeColors.textPrimary}
+            color="#FFFFFF"
           />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>
+        <Text style={styles.headerTitle}>
           {t('helpCenter.title')}
         </Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { backgroundColor: '#1a1a2e' }]}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 20) },
+          { paddingBottom: Math.max(insets.bottom, 20), backgroundColor: '#1a1a2e' },
         ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Search Bar - Exact match to JSX */}
         <View style={styles.searchContainer}>
-          <View style={[styles.searchInputContainer, { backgroundColor: themeColors.bgCard, borderColor: themeColors.border }]}>
+          <View style={styles.searchInputContainer}>
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
-              style={[styles.searchInput, { color: themeColors.textPrimary }]}
+              style={styles.searchInput}
               placeholder={t('helpCenter.searchPlaceholder')}
-              placeholderTextColor={themeColors.textSecondary}
+              placeholderTextColor="#9ca3af"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -187,7 +169,7 @@ export default function HelpCenterScreen() {
         </View>
 
         {/* FAQs Section - Exact match to JSX */}
-        <Text style={[styles.sectionTitle, { color: themeColors.textSecondary }]}>
+        <Text style={styles.sectionTitle}>
           {t('helpCenter.frequentlyAskedQuestions')}
         </Text>
 
@@ -198,10 +180,7 @@ export default function HelpCenterScreen() {
             return (
               <View
                 key={index}
-                style={[
-                  styles.faqItem,
-                  { backgroundColor: themeColors.bgCard },
-                ]}
+                style={styles.faqItem}
               >
                 <TouchableOpacity
                   style={styles.faqHeader}
@@ -209,33 +188,18 @@ export default function HelpCenterScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.faqIcon}>{faq.icon}</Text>
-                  <Text
-                    style={[
-                      styles.faqQuestion,
-                      { color: themeColors.textPrimary },
-                    ]}
-                  >
+                  <Text style={styles.faqQuestion}>
                     {faq.question}
                   </Text>
                   <Ionicons
                     name={isExpanded ? 'chevron-up' : 'chevron-forward'}
                     size={20}
-                    color={themeColors.textSecondary}
+                    color="#9ca3af"
                   />
                 </TouchableOpacity>
                 {isExpanded && (
-                  <View
-                    style={[
-                      styles.faqAnswerContainer,
-                      { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.1)' : themeColors.border },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.faqAnswer,
-                        { color: themeColors.textSecondary },
-                      ]}
-                    >
+                  <View style={styles.faqAnswerContainer}>
+                    <Text style={styles.faqAnswer}>
                       {faq.answer}
                     </Text>
                   </View>
@@ -245,146 +209,86 @@ export default function HelpCenterScreen() {
           })
         ) : (
           <View style={styles.noResultsContainer}>
-            <Text style={[styles.noResultsText, { color: themeColors.textSecondary }]}>
+            <Text style={styles.noResultsText}>
               {t('helpCenter.noResults')}
             </Text>
           </View>
         )}
 
         {/* Contact Section - Exact match to JSX */}
-        <Text
-          style={[
-            styles.sectionTitle,
-            styles.contactSectionTitle,
-            { color: themeColors.textSecondary },
-          ]}
-        >
+        <Text style={[styles.sectionTitle, styles.contactSectionTitle]}>
           {t('helpCenter.contact')}
         </Text>
 
         {/* Live Chat */}
         <TouchableOpacity
-          style={[
-            styles.contactItem,
-            { backgroundColor: themeColors.bgCard },
-          ]}
+          style={styles.contactItem}
           onPress={handleLiveChat}
           activeOpacity={0.7}
         >
-          <View
-            style={[
-              styles.contactIconContainer,
-              { backgroundColor: themeColors.primary20 },
-            ]}
-          >
+          <View style={styles.contactIconContainer}>
             <Text style={styles.contactIcon}>💬</Text>
           </View>
           <View style={styles.contactTextContainer}>
-            <Text
-              style={[
-                styles.contactTitle,
-                { color: themeColors.textPrimary },
-              ]}
-            >
+            <Text style={styles.contactTitle}>
               {t('helpCenter.liveChat')}
             </Text>
-            <Text
-              style={[
-                styles.contactSubtitle,
-                { color: themeColors.textSecondary },
-              ]}
-            >
+            <Text style={styles.contactSubtitle}>
               {t('helpCenter.liveChatSubtitle')}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={themeColors.textSecondary}
+            color="#9ca3af"
           />
         </TouchableOpacity>
 
         {/* Email */}
         <TouchableOpacity
-          style={[
-            styles.contactItem,
-            { backgroundColor: themeColors.bgCard },
-          ]}
+          style={styles.contactItem}
           onPress={handleEmailSupport}
           activeOpacity={0.7}
         >
-          <View
-            style={[
-              styles.contactIconContainer,
-              { backgroundColor: themeColors.primary20 },
-            ]}
-          >
+          <View style={styles.contactIconContainer}>
             <Text style={styles.contactIcon}>📧</Text>
           </View>
           <View style={styles.contactTextContainer}>
-            <Text
-              style={[
-                styles.contactTitle,
-                { color: themeColors.textPrimary },
-              ]}
-            >
+            <Text style={styles.contactTitle}>
               {t('helpCenter.email')}
             </Text>
-            <Text
-              style={[
-                styles.contactSubtitle,
-                { color: themeColors.textSecondary },
-              ]}
-            >
+            <Text style={styles.contactSubtitle}>
               {t('helpCenter.emailAddress')}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={themeColors.textSecondary}
+            color="#9ca3af"
           />
         </TouchableOpacity>
 
         {/* Phone */}
         <TouchableOpacity
-          style={[
-            styles.contactItem,
-            { backgroundColor: themeColors.bgCard },
-          ]}
+          style={styles.contactItem}
           onPress={handlePhoneSupport}
           activeOpacity={0.7}
         >
-          <View
-            style={[
-              styles.contactIconContainer,
-              { backgroundColor: themeColors.primary20 },
-            ]}
-          >
+          <View style={styles.contactIconContainer}>
             <Text style={styles.contactIcon}>📞</Text>
           </View>
           <View style={styles.contactTextContainer}>
-            <Text
-              style={[
-                styles.contactTitle,
-                { color: themeColors.textPrimary },
-              ]}
-            >
+            <Text style={styles.contactTitle}>
               {t('helpCenter.phone')}
             </Text>
-            <Text
-              style={[
-                styles.contactSubtitle,
-                { color: themeColors.textSecondary },
-              ]}
-            >
+            <Text style={styles.contactSubtitle}>
               {t('helpCenter.phoneNumber')}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={themeColors.textSecondary}
+            color="#9ca3af"
           />
         </TouchableOpacity>
       </ScrollView>
@@ -395,11 +299,13 @@ export default function HelpCenterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background like Home
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
+    backgroundColor: '#252542', // Hardcode dark header
   },
   backButton: {
     padding: 4,
@@ -409,16 +315,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     textAlign: 'center',
+    color: '#FFFFFF', // Hardcode white text
   },
   headerPlaceholder: {
     width: 32,
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background
   },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 20,
+    backgroundColor: '#1a1a2e', // Hardcode dark background
   },
   searchContainer: {
     marginBottom: 24,
@@ -430,6 +339,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
+    backgroundColor: '#252542', // Hardcode dark card
+    borderColor: '#374151', // Hardcode dark border
   },
   searchIcon: {
     fontSize: 20,
@@ -439,6 +350,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     padding: 0,
+    color: '#FFFFFF', // Hardcode white text
   },
   sectionTitle: {
     fontSize: 12,
@@ -446,6 +358,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 16,
     letterSpacing: 0.5,
+    color: '#9ca3af', // Hardcode secondary text
   },
   contactSectionTitle: {
     marginTop: 24,
@@ -454,6 +367,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
     overflow: 'hidden',
+    backgroundColor: '#252542', // Hardcode dark card
   },
   faqHeader: {
     flexDirection: 'row',
@@ -468,6 +382,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '400',
+    color: '#FFFFFF', // Hardcode white text
   },
   faqAnswerContainer: {
     paddingTop: 8,
@@ -475,11 +390,13 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     paddingLeft: 50, // Align with icon
     borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)', // Hardcode dark border
     marginTop: 8,
   },
   faqAnswer: {
     fontSize: 14,
     lineHeight: 20,
+    color: '#9ca3af', // Hardcode secondary text
   },
   noResultsContainer: {
     paddingVertical: 24,
@@ -487,6 +404,7 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
+    color: '#9ca3af', // Hardcode secondary text
   },
   contactItem: {
     flexDirection: 'row',
@@ -495,6 +413,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
+    backgroundColor: '#252542', // Hardcode dark card
   },
   contactIconContainer: {
     width: 44,
@@ -502,6 +421,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#3b82f620', // Hardcode primary20
   },
   contactIcon: {
     fontSize: 20,
@@ -513,9 +433,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     marginBottom: 2,
+    color: '#FFFFFF', // Hardcode white text
   },
   contactSubtitle: {
     fontSize: 12,
     marginTop: 2,
+    color: '#9ca3af', // Hardcode secondary text
   },
 });

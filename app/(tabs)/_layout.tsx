@@ -2,10 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchUnreadCount } from '@/services/conversations';
 import { fetchUnreadNotificationCount } from '@/services/notifications';
 
@@ -68,33 +67,33 @@ function NotificationsTabIcon({ color, focused }: { color: string; focused: bool
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
-  const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
-  // Exact colors from JSX
-  const tabBarColors = {
-    bgCard: isDark ? '#252542' : '#FFFFFF',
-    border: isDark ? '#374151' : '#E5E7EB',
-    primary: '#3b82f6',
-    textSecondary: isDark ? '#9ca3af' : '#6B7280',
-  };
+  // Hardcode dark colors like Home screen to ensure consistency in APK
+  // Calculate bottom padding respecting safe area
+  const bottomPadding = Math.max(insets.bottom, 24);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: tabBarColors.primary,
-        tabBarInactiveTintColor: tabBarColors.textSecondary,
+        tabBarActiveTintColor: '#3b82f6', // Hardcode primary color
+        tabBarInactiveTintColor: '#9ca3af', // Hardcode secondary text color
         headerShown: false,
         tabBarButton: HapticTab,
-        // Exact styling from JSX: padding: '12px 0 24px', backgroundColor: colors.bgCard, borderTop: 1px solid colors.border
+        // Hardcode dark theme colors in StyleSheet to match Home screen pattern
         tabBarStyle: {
-          backgroundColor: tabBarColors.bgCard,
+          backgroundColor: '#252542', // Hardcode dark background
           borderTopWidth: 1,
-          borderTopColor: tabBarColors.border,
+          borderTopColor: '#374151', // Hardcode dark border
           paddingVertical: 12,
-          paddingBottom: 24,
-          height: 60 + 24, // Base height + bottom padding
+          paddingBottom: bottomPadding,
+          height: 60 + bottomPadding, // Base height + safe area bottom padding
+          elevation: 8, // Android shadow
+          shadowColor: '#000', // iOS shadow
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
         },
         // Label styling from JSX: fontSize: '10px'
         tabBarLabelStyle: {

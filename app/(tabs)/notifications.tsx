@@ -19,15 +19,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface NotificationItemProps {
   notification: Notification;
   onPress: () => void;
-  isDark: boolean;
 }
 
-function NotificationItem({ notification, onPress, isDark }: NotificationItemProps) {
+function NotificationItem({ notification, onPress }: NotificationItemProps) {
   const getNotificationConfig = (type: NotificationType) => {
     switch (type) {
       case 'booking_confirmed':
@@ -87,13 +85,12 @@ function NotificationItem({ notification, onPress, isDark }: NotificationItemPro
   };
 
   const config = getNotificationConfig(notification.type);
-  const backgroundColor = notification.read ? 'transparent' : (isDark ? '#252542' : '#F3F4F6');
 
   return (
     <TouchableOpacity
       style={[
         styles.notificationItem,
-        { backgroundColor },
+        !notification.read && styles.notificationItemUnread,
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -107,13 +104,13 @@ function NotificationItem({ notification, onPress, isDark }: NotificationItemPro
         <Text style={styles.iconText}>{config.icon}</Text>
       </View>
       <View style={styles.notificationContent}>
-        <Text style={[styles.notificationTitle, { color: isDark ? '#FFFFFF' : '#1F2937' }]}>
+        <Text style={styles.notificationTitle}>
           {notification.title}
         </Text>
-        <Text style={[styles.notificationMessage, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
+        <Text style={styles.notificationMessage}>
           {notification.message}
         </Text>
-        <Text style={[styles.notificationTime, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
+        <Text style={styles.notificationTime}>
           {formatTime(notification.created_at)}
         </Text>
       </View>
@@ -132,8 +129,6 @@ interface NotificationGroup {
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -295,18 +290,9 @@ export default function NotificationsScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1a1a2e' : '#F9FAFB' }]}>
+    <View style={styles.container}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: Math.max(insets.top, 16),
-            backgroundColor: isDark ? '#252542' : '#FFFFFF',
-            borderBottomColor: isDark ? '#374151' : '#E5E7EB',
-          },
-        ]}
-      >
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -315,10 +301,10 @@ export default function NotificationsScreen() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color={isDark ? '#FFFFFF' : '#1F2937'}
+            color="#FFFFFF"
           />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? '#FFFFFF' : '#1F2937' }]}>
+        <Text style={styles.headerTitle}>
           {t('notifications.title')}
         </Text>
         {hasUnread ? (
@@ -337,8 +323,8 @@ export default function NotificationsScreen() {
         </View>
       ) : notifications.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="notifications-outline" size={64} color={isDark ? '#6B7280' : '#9CA3AF'} />
-          <Text style={[styles.emptyText, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
+          <Ionicons name="notifications-outline" size={64} color="#6B7280" />
+          <Text style={styles.emptyText}>
             {t('notifications.empty')}
           </Text>
         </View>
@@ -356,7 +342,7 @@ export default function NotificationsScreen() {
         >
           {groupedNotifications.map((group, groupIndex) => (
             <View key={groupIndex} style={styles.group}>
-              <Text style={[styles.sectionHeader, { color: isDark ? '#9CA3AF' : '#6B7280' }]}>
+              <Text style={styles.sectionHeader}>
                 {group.label}
               </Text>
               {group.notifications.map((notification) => (
@@ -364,7 +350,6 @@ export default function NotificationsScreen() {
                   key={notification.id}
                   notification={notification}
                   onPress={() => handleNotificationPress(notification)}
-                  isDark={isDark}
                 />
               ))}
             </View>
@@ -378,6 +363,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background like Home
   },
   header: {
     paddingHorizontal: 20,
@@ -385,7 +371,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#252542', // Hardcode dark header
     borderBottomWidth: 1,
+    borderBottomColor: '#374151', // Hardcode dark border
     gap: 16,
   },
   backButton: {
@@ -398,6 +386,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     flex: 1,
+    color: '#FFFFFF', // Hardcode white text
   },
   markAllText: {
     fontSize: 14,
@@ -416,6 +405,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     textAlign: 'center',
+    color: '#9CA3AF', // Hardcode secondary text color
   },
   scrollView: {
     flex: 1,
@@ -432,6 +422,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     marginBottom: 12,
+    color: '#9CA3AF', // Hardcode secondary text color
   },
   notificationItem: {
     flexDirection: 'row',
@@ -439,6 +430,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     marginBottom: 8,
+    backgroundColor: 'transparent', // Default: read notifications
+  },
+  notificationItemUnread: {
+    backgroundColor: '#252542', // Hardcode dark background for unread
   },
   iconContainer: {
     width: 44,
@@ -458,15 +453,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     marginBottom: 4,
+    color: '#FFFFFF', // Hardcode white text
   },
   notificationMessage: {
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 4,
+    color: '#9CA3AF', // Hardcode secondary text
   },
   notificationTime: {
     fontSize: 11,
     marginTop: 6,
+    color: '#9CA3AF', // Hardcode secondary text
   },
   unreadDot: {
     width: 10,
