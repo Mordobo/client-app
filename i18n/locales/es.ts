@@ -350,9 +350,43 @@ export default {
     guest: 'Invitado',
   },
   helpCenter: {
-    title: 'Centro de Ayuda',
+    title: 'Centro de ayuda',
     searchPlaceholder: 'Buscar ayuda...',
     noResults: 'No se encontraron resultados',
+    frequentlyAskedQuestions: 'PREGUNTAS FRECUENTES',
+    contact: 'CONTACTO',
+    liveChat: 'Chat en vivo',
+    liveChatSubtitle: 'Respuesta inmediata',
+    email: 'Email',
+    emailAddress: 'soporte@mordobo.com',
+    phone: 'Teléfono',
+    phoneNumber: '+1 809 555 0000',
+    faqs: {
+      howToBook: {
+        question: '¿Cómo reservo un servicio?',
+        answer: 'Para reservar un servicio, navega por las categorías disponibles, selecciona el servicio que necesitas, elige un proveedor, selecciona la fecha y hora que prefieras, y confirma tu reserva. También puedes solicitar una cotización primero antes de confirmar.',
+      },
+      howPaymentWorks: {
+        question: '¿Cómo funciona el pago?',
+        answer: 'Aceptamos tarjetas de crédito, débito y billeteras digitales. El pago se procesa de forma segura cuando apruebas una cotización. Para servicios programados, el pago se realiza antes de la fecha del servicio. Puedes agregar métodos de pago en tu perfil.',
+      },
+      canCancel: {
+        question: '¿Puedo cancelar una reserva?',
+        answer: 'Sí, puedes cancelar o reprogramar una reserva desde la página de detalles de la reserva. Las políticas de cancelación pueden variar según el proveedor. Algunos proveedores pueden ofrecer reembolsos completos si cancelas con suficiente anticipación.',
+      },
+      howToRate: {
+        question: '¿Cómo califico un servicio?',
+        answer: 'Después de que se complete un servicio, recibirás una notificación para calificar tu experiencia. Puedes calificar de 1 a 5 estrellas y dejar un comentario opcional sobre el servicio recibido.',
+      },
+      dataSecure: {
+        question: '¿Mis datos están seguros?',
+        answer: 'Sí, tomamos la seguridad de tus datos muy en serio. Utilizamos encriptación de extremo a extremo y cumplimos con los estándares de seguridad más altos. Tu información personal y de pago está protegida.',
+      },
+      howRefundsWork: {
+        question: '¿Cómo funcionan los reembolsos?',
+        answer: 'Las políticas de reembolso varían según el proveedor de servicios. Si necesitas solicitar un reembolso, puedes contactar al soporte o directamente a tu proveedor desde la aplicación. Los reembolsos se procesan según las políticas específicas de cada proveedor.',
+      },
+    },
     categories: {
       account: 'Cuenta y Perfil',
       bookings: 'Reservas y Servicios',
@@ -360,7 +394,6 @@ export default {
       technical: 'Problemas Técnicos',
     },
     contactSupport: 'Contactar Soporte',
-    liveChat: 'Chat en Vivo',
     emailSupport: 'Soporte por Email',
     phoneSupport: 'Soporte por Teléfono',
     quickActions: 'Acciones Rápidas',
