@@ -1,80 +1,110 @@
-import { FAQAccordion, type FAQItem } from '@/components/FAQAccordion';
-import { SearchBar } from '@/components/SearchBar';
 import { t } from '@/i18n';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-    Alert,
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface FAQCategory {
-  key: 'account' | 'bookings' | 'payments' | 'technical';
-  title: string;
-  items: FAQItem[];
+interface FAQItem {
+  icon: string;
+  question: string;
+  answer: string;
 }
 
 export default function HelpCenterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedFaqs, setExpandedFaqs] = useState<Set<number>>(new Set());
 
-  // Get FAQ data from translations
-  const faqCategories: FAQCategory[] = useMemo(() => {
-    const accountItems = t('helpCenter.faq.account.items') as FAQItem[];
-    const bookingsItems = t('helpCenter.faq.bookings.items') as FAQItem[];
-    const paymentsItems = t('helpCenter.faq.payments.items') as FAQItem[];
-    const technicalItems = t('helpCenter.faq.technical.items') as FAQItem[];
+  // Theme colors matching JSX design
+  const themeColors = {
+    bg: isDark ? '#1a1a2e' : '#F9FAFB',
+    bgCard: isDark ? '#252542' : '#FFFFFF',
+    bgInput: isDark ? '#2d2d4a' : '#F3F4F6',
+    primary: '#3b82f6',
+    secondary: '#10b981',
+    accent: '#f59e0b',
+    danger: '#ef4444',
+    textPrimary: isDark ? '#FFFFFF' : '#1F2937',
+    textSecondary: isDark ? '#9ca3af' : '#6B7280',
+    border: isDark ? '#374151' : '#E5E7EB',
+    primary20: `${isDark ? '#3b82f6' : '#3b82f6'}20`,
+  };
 
-    return [
+  // FAQ items from translations
+  const faqItems: FAQItem[] = useMemo(
+    () => [
       {
-        key: 'account' as const,
-        title: t('helpCenter.categories.account'),
-        items: Array.isArray(accountItems) ? accountItems : [],
+        icon: '📅',
+        question: t('helpCenter.faqs.howToBook.question'),
+        answer: t('helpCenter.faqs.howToBook.answer'),
       },
       {
-        key: 'bookings' as const,
-        title: t('helpCenter.categories.bookings'),
-        items: Array.isArray(bookingsItems) ? bookingsItems : [],
+        icon: '💳',
+        question: t('helpCenter.faqs.howPaymentWorks.question'),
+        answer: t('helpCenter.faqs.howPaymentWorks.answer'),
       },
       {
-        key: 'payments' as const,
-        title: t('helpCenter.categories.payments'),
-        items: Array.isArray(paymentsItems) ? paymentsItems : [],
+        icon: '❌',
+        question: t('helpCenter.faqs.canCancel.question'),
+        answer: t('helpCenter.faqs.canCancel.answer'),
       },
       {
-        key: 'technical' as const,
-        title: t('helpCenter.categories.technical'),
-        items: Array.isArray(technicalItems) ? technicalItems : [],
+        icon: '⭐',
+        question: t('helpCenter.faqs.howToRate.question'),
+        answer: t('helpCenter.faqs.howToRate.answer'),
       },
-    ];
-  }, []);
+      {
+        icon: '🔒',
+        question: t('helpCenter.faqs.dataSecure.question'),
+        answer: t('helpCenter.faqs.dataSecure.answer'),
+      },
+      {
+        icon: '💰',
+        question: t('helpCenter.faqs.howRefundsWork.question'),
+        answer: t('helpCenter.faqs.howRefundsWork.answer'),
+      },
+    ],
+    []
+  );
 
   // Filter FAQs based on search query
-  const filteredCategories = useMemo(() => {
+  const filteredFaqs = useMemo(() => {
     if (!searchQuery.trim()) {
-      return faqCategories;
+      return faqItems;
     }
 
     const query = searchQuery.toLowerCase();
-    return faqCategories
-      .map((category) => ({
-        ...category,
-        items: category.items.filter(
-          (item) =>
-            item.question.toLowerCase().includes(query) ||
-            item.answer.toLowerCase().includes(query)
-        ),
-      }))
-      .filter((category) => category.items.length > 0);
-  }, [searchQuery, faqCategories]);
+    return faqItems.filter(
+      (item) =>
+        item.question.toLowerCase().includes(query) ||
+        item.answer.toLowerCase().includes(query)
+    );
+  }, [searchQuery, faqItems]);
+
+  const toggleFaq = (index: number) => {
+    const newExpanded = new Set(expandedFaqs);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedFaqs(newExpanded);
+  };
 
   const handleLiveChat = () => {
     // TODO: Implement live chat integration
@@ -85,7 +115,7 @@ export default function HelpCenterScreen() {
   };
 
   const handleEmailSupport = () => {
-    const email = 'support@mordobo.com';
+    const email = t('helpCenter.emailAddress');
     const subject = encodeURIComponent('Support Request');
     const body = encodeURIComponent('Hello,\n\nI need help with:\n\n');
     const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
@@ -96,7 +126,7 @@ export default function HelpCenterScreen() {
   };
 
   const handlePhoneSupport = () => {
-    const phoneNumber = '+1-800-MORDOBO'; // Replace with actual support number
+    const phoneNumber = t('helpCenter.phoneNumber').replace(/\s/g, '');
     const phoneUrl = `tel:${phoneNumber}`;
 
     Linking.openURL(phoneUrl).catch(() => {
@@ -104,206 +134,259 @@ export default function HelpCenterScreen() {
     });
   };
 
-  const handleReportProblem = () => {
-    const email = 'support@mordobo.com';
-    const subject = encodeURIComponent('Problem Report');
-    const body = encodeURIComponent(
-      'Hello,\n\nI would like to report the following problem:\n\n[Please describe the problem here]\n\n'
-    );
-    const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
-
-    Linking.openURL(mailtoUrl).catch(() => {
-      Alert.alert(t('common.error'), 'Could not open email client');
-    });
-  };
-
-  const handleGiveFeedback = () => {
-    const email = 'feedback@mordobo.com';
-    const subject = encodeURIComponent('App Feedback');
-    const body = encodeURIComponent(
-      'Hello,\n\nI would like to share the following feedback:\n\n[Please share your feedback here]\n\n'
-    );
-    const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
-
-    Linking.openURL(mailtoUrl).catch(() => {
-      Alert.alert(t('common.error'), 'Could not open email client');
-    });
-  };
-
-  const handleOpenTerms = () => {
-    Linking.openURL('https://mordobo.com/terms').catch(() => {
-      Alert.alert(t('common.error'), 'Could not open Terms of Service');
-    });
-  };
-
-  const handleOpenPrivacy = () => {
-    Linking.openURL('https://mordobo.com/privacy').catch(() => {
-      Alert.alert(t('common.error'), 'Could not open Privacy Policy');
-    });
-  };
-
-  const handleAboutUs = () => {
-    Alert.alert(
-      t('helpCenter.aboutUs'),
-      'Mordobo - Making at-home services easy. Version 1.0.0'
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+    <View style={[styles.container, { backgroundColor: themeColors.bg }]}>
+      {/* Header - Exact match to JSX: padding: '50px 20px 20px', display: 'flex', alignItems: 'center', gap: '16px' */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: Math.max(insets.top + 16, 50),
+            paddingHorizontal: 20,
+            paddingBottom: 20,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color={themeColors.textPrimary}
+          />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('helpCenter.title')}</Text>
-        <View style={styles.placeholder} />
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>
+          {t('helpCenter.title')}
+        </Text>
+        <View style={styles.headerPlaceholder} />
       </View>
 
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, 20) },
+        ]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
       >
-        {/* Search Bar */}
+        {/* Search Bar - Exact match to JSX */}
         <View style={styles.searchContainer}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={t('helpCenter.searchPlaceholder')}
-          />
+          <View style={[styles.searchInputContainer, { backgroundColor: themeColors.bgCard, borderColor: themeColors.border }]}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={[styles.searchInput, { color: themeColors.textPrimary }]}
+              placeholder={t('helpCenter.searchPlaceholder')}
+              placeholderTextColor={themeColors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
         </View>
 
-        {/* FAQ Categories */}
-        {filteredCategories.length > 0 ? (
-          filteredCategories.map((category) => (
-            <FAQAccordion
-              key={category.key}
-              items={category.items}
-              categoryTitle={category.title}
-            />
-          ))
+        {/* FAQs Section - Exact match to JSX */}
+        <Text style={[styles.sectionTitle, { color: themeColors.textSecondary }]}>
+          {t('helpCenter.frequentlyAskedQuestions')}
+        </Text>
+
+        {filteredFaqs.length > 0 ? (
+          filteredFaqs.map((faq, index) => {
+            const originalIndex = faqItems.indexOf(faq);
+            const isExpanded = expandedFaqs.has(originalIndex);
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.faqItem,
+                  { backgroundColor: themeColors.bgCard },
+                ]}
+              >
+                <TouchableOpacity
+                  style={styles.faqHeader}
+                  onPress={() => toggleFaq(originalIndex)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.faqIcon}>{faq.icon}</Text>
+                  <Text
+                    style={[
+                      styles.faqQuestion,
+                      { color: themeColors.textPrimary },
+                    ]}
+                  >
+                    {faq.question}
+                  </Text>
+                  <Ionicons
+                    name={isExpanded ? 'chevron-up' : 'chevron-forward'}
+                    size={20}
+                    color={themeColors.textSecondary}
+                  />
+                </TouchableOpacity>
+                {isExpanded && (
+                  <View
+                    style={[
+                      styles.faqAnswerContainer,
+                      { borderTopColor: isDark ? 'rgba(255, 255, 255, 0.1)' : themeColors.border },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.faqAnswer,
+                        { color: themeColors.textSecondary },
+                      ]}
+                    >
+                      {faq.answer}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })
         ) : (
           <View style={styles.noResultsContainer}>
-            <Ionicons name="search-outline" size={48} color="#9CA3AF" />
-            <Text style={styles.noResultsText}>
+            <Text style={[styles.noResultsText, { color: themeColors.textSecondary }]}>
               {t('helpCenter.noResults')}
             </Text>
           </View>
         )}
 
-        {/* Contact Support Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {t('helpCenter.contactSupport')}
-          </Text>
-          <View style={styles.contactContainer}>
-            <TouchableOpacity
-              style={styles.contactItem}
-              onPress={handleLiveChat}
-            >
-              <View style={styles.contactIconContainer}>
-                <Ionicons name="chatbubbles-outline" size={24} color="#3B82F6" />
-              </View>
-              <Text style={styles.contactText}>{t('helpCenter.liveChat')}</Text>
-            </TouchableOpacity>
+        {/* Contact Section - Exact match to JSX */}
+        <Text
+          style={[
+            styles.sectionTitle,
+            styles.contactSectionTitle,
+            { color: themeColors.textSecondary },
+          ]}
+        >
+          {t('helpCenter.contact')}
+        </Text>
 
-            <TouchableOpacity
-              style={styles.contactItem}
-              onPress={handleEmailSupport}
-            >
-              <View style={styles.contactIconContainer}>
-                <Ionicons name="mail-outline" size={24} color="#10B981" />
-              </View>
-              <Text style={styles.contactText}>
-                {t('helpCenter.emailSupport')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.contactItem}
-              onPress={handlePhoneSupport}
-            >
-              <View style={styles.contactIconContainer}>
-                <Ionicons name="call-outline" size={24} color="#EF4444" />
-              </View>
-              <Text style={styles.contactText}>
-                {t('helpCenter.phoneSupport')}
-              </Text>
-            </TouchableOpacity>
+        {/* Live Chat */}
+        <TouchableOpacity
+          style={[
+            styles.contactItem,
+            { backgroundColor: themeColors.bgCard },
+          ]}
+          onPress={handleLiveChat}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.contactIconContainer,
+              { backgroundColor: themeColors.primary20 },
+            ]}
+          >
+            <Text style={styles.contactIcon}>💬</Text>
           </View>
-        </View>
-
-        {/* Quick Actions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {t('helpCenter.quickActions')}
-          </Text>
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleReportProblem}
+          <View style={styles.contactTextContainer}>
+            <Text
+              style={[
+                styles.contactTitle,
+                { color: themeColors.textPrimary },
+              ]}
             >
-              <Ionicons name="alert-circle-outline" size={20} color="#EF4444" />
-              <Text style={styles.actionText}>
-                {t('helpCenter.reportProblem')}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleGiveFeedback}
+              {t('helpCenter.liveChat')}
+            </Text>
+            <Text
+              style={[
+                styles.contactSubtitle,
+                { color: themeColors.textSecondary },
+              ]}
             >
-              <Ionicons name="star-outline" size={20} color="#F59E0B" />
-              <Text style={styles.actionText}>
-                {t('helpCenter.giveFeedback')}
-              </Text>
-            </TouchableOpacity>
+              {t('helpCenter.liveChatSubtitle')}
+            </Text>
           </View>
-        </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={themeColors.textSecondary}
+          />
+        </TouchableOpacity>
 
-        {/* Legal Links Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('helpCenter.legal')}</Text>
-          <View style={styles.linksContainer}>
-            <TouchableOpacity
-              style={styles.linkItem}
-              onPress={handleOpenTerms}
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={20}
-                color="#6B7280"
-              />
-              <Text style={styles.linkText}>
-                {t('helpCenter.termsOfService')}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.linkItem}
-              onPress={handleOpenPrivacy}
-            >
-              <Ionicons name="shield-outline" size={20} color="#6B7280" />
-              <Text style={styles.linkText}>
-                {t('helpCenter.privacyPolicy')}
-              </Text>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.linkItem, styles.linkItemLast]}
-              onPress={handleAboutUs}
-            >
-              <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
-              <Text style={styles.linkText}>{t('helpCenter.aboutUs')}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-            </TouchableOpacity>
+        {/* Email */}
+        <TouchableOpacity
+          style={[
+            styles.contactItem,
+            { backgroundColor: themeColors.bgCard },
+          ]}
+          onPress={handleEmailSupport}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.contactIconContainer,
+              { backgroundColor: themeColors.primary20 },
+            ]}
+          >
+            <Text style={styles.contactIcon}>📧</Text>
           </View>
-        </View>
+          <View style={styles.contactTextContainer}>
+            <Text
+              style={[
+                styles.contactTitle,
+                { color: themeColors.textPrimary },
+              ]}
+            >
+              {t('helpCenter.email')}
+            </Text>
+            <Text
+              style={[
+                styles.contactSubtitle,
+                { color: themeColors.textSecondary },
+              ]}
+            >
+              {t('helpCenter.emailAddress')}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={themeColors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        {/* Phone */}
+        <TouchableOpacity
+          style={[
+            styles.contactItem,
+            { backgroundColor: themeColors.bgCard },
+          ]}
+          onPress={handlePhoneSupport}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.contactIconContainer,
+              { backgroundColor: themeColors.primary20 },
+            ]}
+          >
+            <Text style={styles.contactIcon}>📞</Text>
+          </View>
+          <View style={styles.contactTextContainer}>
+            <Text
+              style={[
+                styles.contactTitle,
+                { color: themeColors.textPrimary },
+              ]}
+            >
+              {t('helpCenter.phone')}
+            </Text>
+            <Text
+              style={[
+                styles.contactSubtitle,
+                { color: themeColors.textSecondary },
+              ]}
+            >
+              {t('helpCenter.phoneNumber')}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={themeColors.textSecondary}
+          />
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -312,129 +395,127 @@ export default function HelpCenterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    gap: 16,
   },
   backButton: {
     padding: 4,
   },
-  title: {
+  headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1F2937',
+    flex: 1,
+    textAlign: 'center',
   },
-  placeholder: {
+  headerPlaceholder: {
     width: 32,
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
-  contentContainer: {
-    padding: 20,
-    paddingBottom: 40,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   searchContainer: {
     marginBottom: 24,
   },
-  noResultsContainer: {
+  searchInputContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  noResultsText: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginTop: 16,
+  searchIcon: {
+    fontSize: 20,
+    marginRight: 12,
   },
-  section: {
-    marginBottom: 32,
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    padding: 0,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#1F2937',
+    textTransform: 'uppercase',
     marginBottom: 16,
+    letterSpacing: 0.5,
   },
-  contactContainer: {
-    backgroundColor: '#FFFFFF',
+  contactSectionTitle: {
+    marginTop: 24,
+  },
+  faqItem: {
     borderRadius: 12,
+    marginBottom: 10,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 16,
+  },
+  faqIcon: {
+    fontSize: 20,
+  },
+  faqQuestion: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '400',
+  },
+  faqAnswerContainer: {
+    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingLeft: 50, // Align with icon
+    borderTopWidth: 1,
+    marginTop: 8,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  noResultsContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
   },
   contactItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 14,
+    borderRadius: 12,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    marginBottom: 10,
   },
   contactIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  contactText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+    width: 44,
+    height: 44,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  actionText: {
+  contactIcon: {
+    fontSize: 20,
+  },
+  contactTextContainer: {
+    flex: 1,
+  },
+  contactTitle: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: '600',
+    marginBottom: 2,
   },
-  linksContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  linkItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  linkItemLast: {
-    borderBottomWidth: 0,
-  },
-  linkText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 12,
+  contactSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });

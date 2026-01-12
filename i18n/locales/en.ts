@@ -351,8 +351,42 @@ export default {
   },
   helpCenter: {
     title: 'Help Center',
-    searchPlaceholder: 'Search for help...',
+    searchPlaceholder: 'Search help...',
     noResults: 'No results found',
+    frequentlyAskedQuestions: 'FREQUENTLY ASKED QUESTIONS',
+    contact: 'CONTACT',
+    liveChat: 'Live Chat',
+    liveChatSubtitle: 'Immediate response',
+    email: 'Email',
+    emailAddress: 'support@mordobo.com',
+    phone: 'Phone',
+    phoneNumber: '+1 809 555 0000',
+    faqs: {
+      howToBook: {
+        question: 'How do I book a service?',
+        answer: 'To book a service, browse through the available categories, select the service you need, choose a provider, pick your preferred date and time, and confirm your booking. You can also request a quote first before confirming.',
+      },
+      howPaymentWorks: {
+        question: 'How does payment work?',
+        answer: 'We accept credit cards, debit cards, and digital wallets. Payment is processed securely when you approve a quote. For scheduled services, payment is made before the service date. You can add payment methods in your profile.',
+      },
+      canCancel: {
+        question: 'Can I cancel a reservation?',
+        answer: 'Yes, you can cancel or reschedule a booking from the booking details page. Cancellation policies may vary by provider. Some providers may offer full refunds if you cancel with sufficient notice.',
+      },
+      howToRate: {
+        question: 'How do I rate a service?',
+        answer: 'After a service is completed, you will receive a notification to rate your experience. You can rate from 1 to 5 stars and leave an optional comment about the service received.',
+      },
+      dataSecure: {
+        question: 'Is my data secure?',
+        answer: 'Yes, we take the security of your data very seriously. We use end-to-end encryption and comply with the highest security standards. Your personal and payment information is protected.',
+      },
+      howRefundsWork: {
+        question: 'How do refunds work?',
+        answer: 'Refund policies vary by service provider. If you need to request a refund, you can contact support or directly reach your provider through the app. Refunds are processed according to each provider\'s specific policies.',
+      },
+    },
     categories: {
       account: 'Account & Profile',
       bookings: 'Bookings & Services',
@@ -360,7 +394,6 @@ export default {
       technical: 'Technical Issues',
     },
     contactSupport: 'Contact Support',
-    liveChat: 'Live Chat',
     emailSupport: 'Email Support',
     phoneSupport: 'Phone Support',
     quickActions: 'Quick Actions',
