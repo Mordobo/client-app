@@ -172,7 +172,10 @@ export default function HomeScreen() {
               <Ionicons name="chevron-down" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => router.push('/(tabs)/notifications')}
+          >
             <View style={styles.notificationIconContainer}>
               <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
             </View>

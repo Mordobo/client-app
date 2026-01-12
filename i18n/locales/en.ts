@@ -520,6 +520,13 @@ export default {
       },
     },
   },
+  notifications: {
+    title: 'Notifications',
+    markAll: 'Mark all',
+    empty: 'You have no notifications',
+    today: 'TODAY',
+    yesterday: 'YESTERDAY',
+  },
   settings: {
     title: 'Settings',
     notifications: 'Notifications',

@@ -7,6 +7,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { fetchUnreadCount } from '@/services/conversations';
+import { fetchUnreadNotificationCount } from '@/services/notifications';
 
 function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -33,6 +34,34 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
         </View>
+      )}
+    </View>
+  );
+}
+
+function NotificationsTabIcon({ color, focused }: { color: string; focused: boolean }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const count = await fetchUnreadNotificationCount();
+      setUnreadCount(count);
+    } catch {
+      // Silently fail
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, [loadUnreadCount]);
+
+  return (
+    <View>
+      <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={20} color={color} />
+      {unreadCount > 0 && (
+        <View style={styles.badgeDot} />
       )}
     </View>
   );
@@ -110,14 +139,8 @@ export default function TabLayout() {
         options={{
           title: 'Alertas', // From JSX: 'Alertas'
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={20} color={color} />
+            <NotificationsTabIcon color={color} focused={focused} />
           ),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/profile/settings');
-          },
         }}
       />
       <Tabs.Screen
@@ -156,17 +179,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -8,
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
   },
   badgeText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '600',
+  },
+  badgeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    position: 'absolute',
+    top: -2,
+    right: -2,
   },
 });
