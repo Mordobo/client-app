@@ -59,6 +59,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="bookings"
+        options={{
+          title: 'Bookings',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
+          ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/orders');
+          },
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: 'Chat',
@@ -72,12 +87,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="assistant"
+        name="notifications"
         options={{
-          title: 'Assistant',
+          title: 'Notifications',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={24} color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/profile/settings');
+          },
         }}
       />
       <Tabs.Screen
@@ -91,6 +112,12 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="explore"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="assistant"
         options={{
           href: null,
         }}
