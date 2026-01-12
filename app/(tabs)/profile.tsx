@@ -4,7 +4,7 @@ import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     ScrollView,
@@ -14,38 +14,69 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fetchOrders } from '@/services/orders';
+
+interface UserStats {
+  services: number;
+  reviews: number;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const [stats, setStats] = useState<UserStats>({ services: 0, reviews: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
   
+  // Exact colors from JSX
   const isDark = colorScheme === 'dark';
   const themeColors = {
-    background: isDark ? '#151718' : '#F9FAFB',
-    surface: isDark ? '#1F2937' : '#FFFFFF',
-    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
-    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    background: isDark ? '#1a1a2e' : '#F9FAFB',
+    bgCard: isDark ? '#252542' : '#FFFFFF',
+    bgInput: isDark ? '#2d2d4a' : '#F3F4F6',
+    textPrimary: isDark ? '#FFFFFF' : '#1F2937',
+    textSecondary: isDark ? '#9ca3af' : '#6B7280',
     border: isDark ? '#374151' : '#E5E7EB',
-    borderLight: isDark ? '#4B5563' : '#F3F4F6',
-    icon: isDark ? '#9BA1A6' : '#374151',
+    primary: '#3b82f6',
+    secondary: '#10b981',
+    danger: '#ef4444',
   };
+
+  const loadStats = useCallback(async () => {
+    try {
+      const ordersData = await fetchOrders();
+      
+      setStats({
+        services: ordersData.orders.length,
+        reviews: 0, // TODO: Get from reviews endpoint when available
+      });
+    } catch (error) {
+      console.error('Error loading stats:', error);
+      // Keep default values on error
+    } finally {
+      setLoadingStats(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   const handleLogout = () => {
     Alert.alert(
-      t('home.logout'),
-      'Are you sure you want to logout?',
+      t('profile.logout'),
+      t('profile.logoutConfirm'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: t('home.logout'), 
+          text: t('profile.logout'), 
           style: 'destructive',
           onPress: async () => {
             try {
               await logout();
             } catch (error) {
-              Alert.alert(t('common.error'), 'Failed to logout');
+              Alert.alert(t('common.error'), t('profile.logoutError'));
             }
           }
         }
@@ -53,93 +84,134 @@ export default function ProfileScreen() {
     );
   };
 
-  const menuSections = [
-    {
-      title: 'Account',
-      items: [
-        { icon: 'card-outline', label: 'Payment Methods', route: '/profile/payment-methods' },
-        { icon: 'calendar-outline', label: 'My Bookings', route: '/orders' },
-        { icon: 'chatbubble-outline', label: 'Chat History', route: '/profile/chat-history' },
-        { icon: 'document-text-outline', label: 'Invoices', route: '/profile/invoices' },
-      ],
-    },
-    {
-      title: 'Support',
-      items: [
-        { icon: 'help-circle-outline', label: 'Help Center', route: '/profile/support' },
-        { icon: 'settings-outline', label: 'Settings', route: '/profile/settings' },
-      ],
-    },
+  const menuItems = [
+    { icon: '👤', label: t('profile.editProfile'), route: '/profile/edit' },
+    { icon: '📍', label: t('profile.myAddresses'), route: '/profile/edit' }, // TODO: Add addresses route
+    { icon: '💳', label: t('profile.paymentMethods'), route: '/profile/payment-methods' },
+    { icon: '❤️', label: t('profile.favorites'), route: '/profile/edit' }, // TODO: Add favorites route
+    { icon: '🔔', label: t('profile.notifications'), route: '/profile/settings' },
+    { icon: '❓', label: t('profile.helpCenter'), route: '/profile/support' },
   ];
+
+  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : '';
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
-        <Text style={[styles.title, { color: themeColors.textPrimary }]}>{t('profile.title')}</Text>
-      </View>
-      
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Info Card */}
-        {user && (
-          <View style={[styles.userInfoContainer, { backgroundColor: themeColors.surface }]}>
-            <View style={styles.avatarContainer}>
-              {user.avatar ? (
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header - Exact match to JSX: padding: '50px 20px 30px', backgroundColor: colors.bgCard */}
+        <View style={[styles.header, { 
+          paddingTop: Math.max(insets.top + 20, 50),
+          backgroundColor: themeColors.bgCard 
+        }]}>
+          <View style={styles.profileHeader}>
+            {/* Avatar - Exact match: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' */}
+            <View style={[styles.avatarContainer, { 
+              backgroundColor: themeColors.bgInput,
+              borderColor: themeColors.primary 
+            }]}>
+              {user?.avatar ? (
                 <Image
                   source={{ uri: user.avatar }}
                   style={styles.avatarImage}
                   contentFit="cover"
                 />
               ) : (
-                <Ionicons name="person" size={40} color="#10B981" />
+                <Ionicons name="person" size={40} color={themeColors.primary} />
               )}
             </View>
-            <Text style={[styles.userName, { color: themeColors.textPrimary }]}>{user.firstName} {user.lastName}</Text>
-            <Text style={[styles.userEmail, { color: themeColors.textSecondary }]}>{user.email}</Text>
-            {user.phone && (
-              <Text style={[styles.userPhone, { color: themeColors.textSecondary }]}>{user.phone}</Text>
-            )}
-            <TouchableOpacity
-              style={styles.editProfileChip}
-              onPress={() => router.push('/profile/edit')}
-            >
-              <Text style={styles.editProfileText}>{t('profile.editProfile')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Menu Sections */}
-        {menuSections.map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.menuSection}>
-            <Text style={[styles.sectionTitle, { color: themeColors.textSecondary }]}>{section.title}</Text>
-            <View style={[styles.menuContainer, { backgroundColor: themeColors.surface }]}>
-              {section.items.map((item, itemIndex) => (
-                <TouchableOpacity
-                  key={itemIndex}
-                  style={[
-                    styles.menuItem,
-                    { borderBottomColor: themeColors.borderLight },
-                    itemIndex === section.items.length - 1 && styles.menuItemLast,
-                  ]}
-                  onPress={() => {
-                    if (item.route) {
-                      router.push(item.route as any);
-                    }
-                  }}
-                >
-                  <Ionicons name={item.icon as any} size={24} color={themeColors.icon} />
-                  <Text style={[styles.menuText, { color: themeColors.textPrimary }]}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={20} color={themeColors.textSecondary} />
-                </TouchableOpacity>
-              ))}
+            <View style={styles.profileInfo}>
+              {/* Name - Exact match: fontSize: '22px', fontWeight: '700' */}
+              <Text style={[styles.userName, { color: themeColors.textPrimary }]}>
+                {fullName || t('profile.guest')}
+              </Text>
+              {/* Email - Exact match: fontSize: '14px', color: textSecondary */}
+              <Text style={[styles.userEmail, { color: themeColors.textSecondary }]}>
+                {user?.email || ''}
+              </Text>
+              {/* Badge - Exact match: backgroundColor: secondary20, padding: '4px 10px', borderRadius: '12px' */}
+              <View style={[styles.badge, { backgroundColor: `${themeColors.secondary}20` }]}>
+                <Text style={[styles.badgeText, { color: themeColors.secondary }]}>
+                  ⭐ {t('profile.goldClient')}
+                </Text>
+              </View>
             </View>
           </View>
-        ))}
+        </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>{t('home.logout')}</Text>
-        </TouchableOpacity>
+        {/* Stats Cards - Exact match: display: 'flex', padding: '20px', gap: '12px', marginTop: '-10px' */}
+        <View style={[styles.statsContainer, { marginTop: -10 }]}>
+          {[
+            { value: loadingStats ? '...' : stats.services.toString(), label: t('profile.services') },
+            { value: loadingStats ? '...' : stats.reviews.toString(), label: t('profile.reviews') },
+          ].map((stat, i) => (
+            <View key={i} style={[styles.statCard, { backgroundColor: themeColors.bgCard }]}>
+              {/* Value - Exact match: color: primary, fontSize: '20px', fontWeight: '700' */}
+              <Text style={[styles.statValue, { color: themeColors.primary }]}>
+                {stat.value}
+              </Text>
+              {/* Label - Exact match: color: textSecondary, fontSize: '12px' */}
+              <Text style={[styles.statLabel, { color: themeColors.textSecondary }]}>
+                {stat.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Menu Items - Exact match: padding: '0 20px' */}
+        <View style={styles.menuContainer}>
+          {menuItems.map((item, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                styles.menuItem,
+                { borderBottomColor: themeColors.border },
+                i === menuItems.length - 1 && styles.menuItemLast
+              ]}
+              onPress={() => {
+                if (item.route) {
+                  router.push(item.route as any);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              {/* Icon - Exact match: fontSize: '20px' */}
+              <Text style={styles.menuIcon}>{item.icon}</Text>
+              {/* Label - Exact match: fontSize: '15px', flex: 1 */}
+              <Text style={[styles.menuLabel, { color: themeColors.textPrimary }]}>
+                {item.label}
+              </Text>
+              {/* Chevron - Exact match: color: textSecondary, fontSize: '16px' */}
+              <Text style={[styles.menuChevron, { color: themeColors.textSecondary }]}>
+                ›
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Logout Button - Exact match: padding: '20px', backgroundColor: danger20, borderRadius: '12px' */}
+        <View style={styles.logoutContainer}>
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: `${themeColors.danger}20` }]}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.logoutIcon}>🚪</Text>
+            <Text style={[styles.logoutText, { color: themeColors.danger }]}>
+              {t('profile.logout')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Version - From requirements */}
+        <View style={styles.versionContainer}>
+          <Text style={[styles.versionText, { color: themeColors.textSecondary }]}>
+            Version 1.0.3
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -149,107 +221,139 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  content: {
+  scrollView: {
     flex: 1,
   },
-  userInfoContainer: {
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 8,
+  scrollContent: {
+    paddingBottom: 100, // Space for bottom nav
   },
+  // Header: padding: '50px 20px 30px' from JSX
+  header: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  // Avatar: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' from JSX
   avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F0F9FF',
-    alignItems: 'center',
+    borderWidth: 3,
     justifyContent: 'center',
-    marginBottom: 16,
+    alignItems: 'center',
     overflow: 'hidden',
   },
   avatarImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 40,
   },
+  profileInfo: {
+    flex: 1,
+  },
+  // Name: fontSize: '22px', fontWeight: '700' from JSX
   userName: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 4,
   },
+  // Email: fontSize: '14px' from JSX
   userEmail: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  userPhone: {
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  editProfileChip: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  editProfileText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#3B82F6',
-  },
-  menuSection: {
-    marginTop: 8,
     marginBottom: 8,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  // Badge: padding: '4px 10px', borderRadius: '12px' from JSX
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  badgeText: {
+    fontSize: 12,
+  },
+  // Stats: display: 'flex', padding: '20px', gap: '12px' from JSX
+  statsContainer: {
+    flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 20,
+    gap: 12,
   },
+  // Stat Card: flex: 1, backgroundColor: bgCard, borderRadius: '12px', padding: '16px', textAlign: 'center' from JSX
+  statCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  // Value: color: primary, fontSize: '20px', fontWeight: '700' from JSX
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  // Label: fontSize: '12px' from JSX
+  statLabel: {
+    fontSize: 12,
+  },
+  // Menu: padding: '0 20px' from JSX
   menuContainer: {
+    paddingHorizontal: 20,
   },
+  // Menu Item: display: 'flex', gap: '14px', padding: '16px 0' from JSX
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    gap: 14,
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
   menuItemLast: {
     borderBottomWidth: 0,
   },
-  menuText: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 16,
+  menuIcon: {
+    fontSize: 20,
   },
+  // Label: fontSize: '15px', flex: 1 from JSX
+  menuLabel: {
+    fontSize: 15,
+    flex: 1,
+  },
+  // Chevron: fontSize: '16px' from JSX
+  menuChevron: {
+    fontSize: 16,
+  },
+  // Logout: padding: '20px' from JSX
+  logoutContainer: {
+    padding: 20,
+  },
+  // Logout Button: padding: '16px', borderRadius: '12px', display: 'flex', gap: '8px' from JSX
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    marginHorizontal: 20,
-    marginVertical: 24,
-    paddingVertical: 16,
+    padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    gap: 8,
   },
+  logoutIcon: {
+    fontSize: 20,
+  },
+  // Logout Text: fontSize: '15px', fontWeight: '600' from JSX
   logoutText: {
-    color: '#EF4444',
-    marginLeft: 8,
+    fontSize: 15,
     fontWeight: '600',
-    fontSize: 16,
+  },
+  versionContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  versionText: {
+    fontSize: 12,
   },
 });
-
