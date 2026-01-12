@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -160,7 +161,11 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#252542" />
+      <StatusBar 
+        barStyle="light-content" 
+        backgroundColor="#252542"
+        translucent={Platform.OS === 'android'}
+      />
       
       {/* Header with Location, Notifications and Search */}
       <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, 16) }]}>

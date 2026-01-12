@@ -437,14 +437,15 @@ export default function EditProfileScreen() {
             onPress={() => router.back()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('profile.editProfileTitle')}</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView
-          style={styles.content}
+          style={[styles.content, { backgroundColor: '#1a1a2e' }]}
+          contentContainerStyle={{ backgroundColor: '#1a1a2e' }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -463,7 +464,7 @@ export default function EditProfileScreen() {
                 />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={50} color="#9CA3AF" />
+                  <Ionicons name="person" size={50} color="#9ca3af" />
                 </View>
               )}
               <View style={styles.cameraIconContainer}>
@@ -478,7 +479,14 @@ export default function EditProfileScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.fullName')}</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: '#FFFFFF',
+                    color: '#1F2937',
+                    borderColor: '#D1D5DB',
+                  },
+                ]}
                 value={formData.fullName}
                 onChangeText={(text) =>
                   setFormData({ ...formData, fullName: text })
@@ -491,7 +499,14 @@ export default function EditProfileScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.emailAddress')}</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: '#FFFFFF',
+                    color: '#1F2937',
+                    borderColor: '#D1D5DB',
+                  },
+                ]}
                 value={formData.email}
                 onChangeText={(text) =>
                   setFormData({ ...formData, email: text })
@@ -540,7 +555,14 @@ export default function EditProfileScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.address')}</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: '#FFFFFF',
+                    color: '#1F2937',
+                    borderColor: '#D1D5DB',
+                  },
+                ]}
                 value={formData.address}
                 onChangeText={(text) =>
                   setFormData({ ...formData, address: text })
@@ -565,23 +587,40 @@ export default function EditProfileScreen() {
         </ScrollView>
 
         {/* Footer Buttons */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: '#252542', borderTopColor: '#374151' }]}>
           <TouchableOpacity
-            style={[styles.button, styles.cancelButton]}
+            style={[
+              styles.button,
+              {
+                backgroundColor: '#252542',
+                borderWidth: 1,
+                borderColor: '#374151',
+              },
+            ]}
             onPress={() => router.back()}
             disabled={loading}
           >
-            <Text style={styles.cancelButtonText}>{t('profile.cancel')}</Text>
+            <Text style={[styles.cancelButtonText, { color: '#FFFFFF' }]}>
+              {t('profile.cancel')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.button, styles.saveButton, loading && styles.saveButtonDisabled]}
+            style={[
+              styles.button,
+              {
+                backgroundColor: '#3B82F6',
+                opacity: loading ? 0.6 : 1,
+              },
+            ]}
             onPress={handleSave}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveButtonText}>{t('profile.save')}</Text>
+              <Text style={[styles.saveButtonText, { color: '#FFFFFF' }]}>
+                {t('profile.save')}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -593,7 +632,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#1a1a2e', // Hardcode dark background like Home
   },
   keyboardView: {
     flex: 1,
@@ -604,9 +643,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#252542', // Hardcode dark header
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#374151', // Hardcode dark border
   },
   backButton: {
     width: 40,
@@ -617,15 +656,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#FFFFFF', // Hardcode white text
   },
   content: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background
   },
   avatarSection: {
     alignItems: 'center',
     paddingVertical: 32,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#252542', // Hardcode dark card
     marginBottom: 8,
   },
   avatarContainer: {
@@ -664,10 +704,10 @@ const styles = StyleSheet.create({
   },
   avatarHint: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#9ca3af', // Hardcode secondary text
   },
   formSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#252542', // Hardcode dark card
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
@@ -677,7 +717,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: '#FFFFFF', // Hardcode white text
     marginBottom: 8,
   },
   labelRow: {
@@ -693,13 +733,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#374151', // Hardcode dark border
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#1F2937',
-    backgroundColor: '#FFFFFF',
+    color: '#FFFFFF', // Hardcode white text
+    backgroundColor: '#2d2d4a', // Hardcode dark input background
     minHeight: 48,
   },
   locationButton: {
@@ -709,16 +749,16 @@ const styles = StyleSheet.create({
   },
   locationButtonText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#9ca3af', // Hardcode secondary text
     marginLeft: 6,
   },
   footer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#252542', // Hardcode dark card
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: '#374151', // Hardcode dark border
     gap: 12,
   },
   button: {

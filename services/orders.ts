@@ -1,5 +1,5 @@
-import { API_BASE } from '@/utils/apiConfig';
-import { getToken } from '../utils/userStorage';
+import { request, ApiError as AuthApiError } from './auth';
+import { t } from '@/i18n';
 
 export type OrderStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -57,13 +57,15 @@ export interface OrderDetailResponse {
   };
 }
 
-export class ApiError extends Error {
+// Re-export ApiError from auth service for backward compatibility
+export { ApiError as AuthApiError } from './auth';
+export class ApiError extends AuthApiError {
   constructor(
     message: string,
-    public statusCode: number = 0,
-    public originalError?: unknown
+    statusCode: number = 0,
+    originalError?: unknown
   ) {
-    super(message);
+    super(message, statusCode, originalError);
     this.name = 'ApiError';
   }
 }
@@ -80,30 +82,18 @@ interface CreateOrderData {
 // POST /orders - Create new order
 export const createOrder = async (data: CreateOrderData): Promise<Order> => {
   try {
-    const token = await getToken();
-    
-    const response = await fetch(`${API_BASE}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+    const result = await request<{ order: Order }>(
+      '/orders',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
       },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to create order',
-        response.status
-      );
-    }
-
-    const result = await response.json();
+      t('errors.requestFailed')
+    );
     return result.order;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
     }
     throw new ApiError(
       'Network error. Please check your connection.',
@@ -116,29 +106,17 @@ export const createOrder = async (data: CreateOrderData): Promise<Order> => {
 // GET /orders - Fetch my orders
 export const fetchOrders = async (): Promise<Order[]> => {
   try {
-    const token = await getToken();
-    
-    const response = await fetch(`${API_BASE}/orders`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+    const data = await request<OrdersResponse>(
+      '/orders',
+      {
+        method: 'GET',
       },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch orders',
-        response.status
-      );
-    }
-
-    const data: OrdersResponse = await response.json();
-    return data.orders;
+      t('errors.requestFailed')
+    );
+    return data.orders || [];
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
     }
     throw new ApiError(
       'Network error. Please check your connection.',
@@ -151,28 +129,16 @@ export const fetchOrders = async (): Promise<Order[]> => {
 // GET /orders/:id - Fetch order details
 export const fetchOrderDetail = async (orderId: string): Promise<OrderDetailResponse> => {
   try {
-    const token = await getToken();
-    
-    const response = await fetch(`${API_BASE}/orders/${orderId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+    return await request<OrderDetailResponse>(
+      `/orders/${orderId}`,
+      {
+        method: 'GET',
       },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch order details',
-        response.status
-      );
-    }
-
-    return await response.json();
+      t('errors.requestFailed')
+    );
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
     }
     throw new ApiError(
       'Network error. Please check your connection.',
@@ -188,30 +154,18 @@ export const updateOrderStatus = async (
   status: OrderStatus
 ): Promise<Order> => {
   try {
-    const token = await getToken();
-    
-    const response = await fetch(`${API_BASE}/orders/${orderId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+    const result = await request<{ order: Order }>(
+      `/orders/${orderId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
       },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to update order',
-        response.status
-      );
-    }
-
-    const result = await response.json();
+      t('errors.requestFailed')
+    );
     return result.order;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
     }
     throw new ApiError(
       'Network error. Please check your connection.',
@@ -224,29 +178,17 @@ export const updateOrderStatus = async (
 // PATCH /orders/:id/quote/approve - Approve quote
 export const approveQuote = async (orderId: string): Promise<Quote> => {
   try {
-    const token = await getToken();
-    
-    const response = await fetch(`${API_BASE}/orders/${orderId}/quote/approve`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+    const result = await request<{ quote: Quote }>(
+      `/orders/${orderId}/quote/approve`,
+      {
+        method: 'PATCH',
       },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to approve quote',
-        response.status
-      );
-    }
-
-    const result = await response.json();
+      t('errors.requestFailed')
+    );
     return result.quote;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
     }
     throw new ApiError(
       'Network error. Please check your connection.',

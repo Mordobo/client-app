@@ -132,27 +132,53 @@ export default function VerifyScreen() {
   };
 
   const handleVerify = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:134',message:'handleVerify entry',data:{codeLength:code.join('').length,hasEmail:!!params.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     const verificationCode = code.join('');
     
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:137',message:'Verification code joined',data:{verificationCode,codeLength:verificationCode.length,expectedLength:CODE_LENGTH},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     if (verificationCode.length !== CODE_LENGTH) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:138',message:'Code length validation failed',data:{codeLength:verificationCode.length,expectedLength:CODE_LENGTH},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
 
     const email = params.email;
     if (!email) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:144',message:'Email missing from params',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       router.back();
       return;
     }
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:149',message:'Before setLoading(true) and API call',data:{email,codeLength:verificationCode.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
     setLoading(true);
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:152',message:'Before verifyCode API call',data:{email,code:verificationCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      
       // Call API to verify code
       const apiResponse = await verifyCode({
         email,
         code: verificationCode,
       });
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:156',message:'verifyCode API call succeeded',data:{hasUser:!!apiResponse.user,hasToken:!!apiResponse.accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
 
       // Map API response to user data
       const apiUser = apiResponse.user;
@@ -195,6 +221,10 @@ export default function VerifyScreen() {
         router.replace('/(tabs)/home');
       }
     } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:197',message:'handleVerify error caught',data:{errorType:error instanceof Error?'Error':'Unknown',errorMessage:error instanceof Error?error.message:String(error),isApiError:error instanceof ApiError,status:error instanceof ApiError?error.status:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      
       console.error('Verification error:', error);
       console.error('Error details:', {
         message: error instanceof Error ? error.message : String(error),
@@ -333,6 +363,12 @@ export default function VerifyScreen() {
 
   const isCodeComplete = code.every((digit) => digit !== '');
 
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:334',message:'isCodeComplete state changed',data:{isCodeComplete,code:code.join(''),codeLength:code.join('').length,loading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  }, [isCodeComplete, code, loading]);
+  // #endregion
+
   // Get email from params (this is where the verification code is sent)
   const displayEmail = params.email || '';
 
@@ -398,7 +434,12 @@ export default function VerifyScreen() {
           {/* Verify Button */}
           <TouchableOpacity
             style={[styles.verifyButton, (!isCodeComplete || loading) && styles.verifyButtonDisabled]}
-            onPress={handleVerify}
+            onPress={() => {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:401',message:'Verify button onPress triggered',data:{isCodeComplete,loading,codeLength:code.join('').length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+              // #endregion
+              handleVerify();
+            }}
             disabled={!isCodeComplete || loading}
           >
             {loading ? (

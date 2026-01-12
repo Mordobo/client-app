@@ -56,11 +56,24 @@ export class ApiError extends Error {
 // Token refresh management
 let refreshPromise: Promise<{ accessToken: string; refreshToken: string } | null> | null = null;
 let tokenUpdateCallback: ((tokens: { accessToken: string; refreshToken: string }) => Promise<void>) | null = null;
+let isLoggedOut = false; // Flag to prevent API calls after logout
 
 export const setTokenUpdateCallback = (
   callback: (tokens: { accessToken: string; refreshToken: string }) => Promise<void>
 ) => {
   tokenUpdateCallback = callback;
+};
+
+// Clear all token-related state (called on logout)
+export const clearTokenState = () => {
+  console.log('[API] Clearing token state...');
+  refreshPromise = null;
+  tokenUpdateCallback = null;
+  isLoggedOut = true;
+  // Reset flag after a short delay to allow logout to complete
+  setTimeout(() => {
+    isLoggedOut = false;
+  }, 1000);
 };
 
 export interface RefreshTokenResponse {
@@ -102,6 +115,12 @@ export const refreshTokens = async (
 
 // Helper to get current tokens from storage (to avoid circular dependency)
 const getCurrentTokens = async (): Promise<{ accessToken?: string; refreshToken?: string } | null> => {
+  // If logout was just called, don't return tokens
+  if (isLoggedOut) {
+    console.log('[API] Logout in progress, returning null tokens');
+    return null;
+  }
+  
   try {
     const AsyncStorage = await import('@react-native-async-storage/async-storage');
     const userData = await AsyncStorage.default.getItem('user');
@@ -173,6 +192,16 @@ export const request = async <T>(
   defaultErrorMessage: string,
   retryOn401 = true
 ): Promise<T> => {
+  // List of public endpoints that don't require authentication
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate'];
+  const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
+  
+  // If logout was just called and this is not a public endpoint, throw error
+  if (isLoggedOut && !isPublicEndpoint) {
+    console.log('[API] Request blocked - logout in progress:', path);
+    throw new ApiError('Session expired. Please log in again.', 401);
+  }
+  
   try {
     // Get current access token for authorization header
     const tokens = await getCurrentTokens();
@@ -183,8 +212,14 @@ export const request = async <T>(
       ...(init.headers as Record<string, string>),
     };
 
+    // Only add Authorization header if we have a token
+    // For public endpoints, we might not need a token
     if (tokens?.accessToken && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+    } else if (!isPublicEndpoint && !tokens?.accessToken && !isLoggedOut) {
+      // If this is not a public endpoint and we don't have a token, it's an error
+      console.warn('[API] No token available for protected endpoint:', path);
+      throw new ApiError('Access token required', 401, { code: 'no_token', message: 'Access token required' });
     }
 
     const url = buildUrl(path);
@@ -294,9 +329,24 @@ export const request = async <T>(
       }
     }
 
-    // Handle 401 Unauthorized - attempt token refresh
-    if (response.status === 401 && retryOn401 && path !== '/auth/refresh') {
-      console.log('[API] Received 401, attempting token refresh...');
+    // Handle 401/403 Unauthorized/Forbidden - attempt token refresh
+    // 403 with invalid_token should be treated the same as 401
+    // Also check for "Invalid or expired token" message
+    const responseMessage = typeof responseData === 'object' && responseData && 'message' in responseData
+      ? String((responseData as { message: unknown }).message).toLowerCase()
+      : '';
+    const responseCode = typeof responseData === 'object' && responseData && 'code' in responseData
+      ? String(responseData.code)
+      : '';
+    
+    const isTokenExpiredMessage = responseMessage.includes('invalid') && 
+      (responseMessage.includes('expired') || responseMessage.includes('token'));
+    const isAuthError = response.status === 401 || 
+      (response.status === 403 && 
+       (responseCode === 'invalid_token' || isTokenExpiredMessage));
+    
+    if (isAuthError && retryOn401 && path !== '/auth/refresh') {
+      console.log(`[API] Received ${response.status} (auth error), attempting token refresh...`);
       const newTokens = await attemptTokenRefresh();
 
       if (newTokens) {
@@ -322,7 +372,26 @@ export const request = async <T>(
             typeof retryData === 'object' && retryData && 'message' in retryData
               ? String((retryData as { message: unknown }).message)
               : t('errors.requestFailedStatus', { status: retryResponse.status });
-          console.error('[API] Retry error response body', retryData);
+          // Check if retry also failed with auth error
+          const retryMessage = typeof retryData === 'object' && retryData && 'message' in retryData
+            ? String((retryData as { message: unknown }).message).toLowerCase()
+            : '';
+          const retryCode = typeof retryData === 'object' && retryData && 'code' in retryData
+            ? String(retryData.code)
+            : '';
+          const isRetryTokenExpired = retryMessage.includes('invalid') && 
+            (retryMessage.includes('expired') || retryMessage.includes('token'));
+          const isRetryAuthError = retryResponse.status === 401 || 
+            (retryResponse.status === 403 && 
+             (retryCode === 'invalid_token' || isRetryTokenExpired));
+          
+          // If retry also failed with auth error, emit session expired
+          if (isRetryAuthError) {
+            console.log('[API] Retry also failed with auth error, emitting session expired event');
+            authEvents.emitSessionExpired();
+          } else if (!isRetryAuthError) {
+            console.error('[API] Retry error response body', retryData);
+          }
           throw new ApiError(message, retryResponse.status, retryData);
         }
 
@@ -333,13 +402,13 @@ export const request = async <T>(
         return retryData as T;
       } else {
         // Refresh failed - token expired, emit session expired event
-        console.log('[API] Token refresh failed, session expired');
+        // Don't log this as an error since it's expected when session expires
+        console.log('[API] Token refresh failed, emitting session expired event');
         authEvents.emitSessionExpired();
         const message =
           typeof responseData === 'object' && responseData && 'message' in responseData
             ? String((responseData as { message: unknown }).message)
             : t('errors.tokenRefreshFailed');
-        console.error('[API] Error response body', responseData);
         throw new ApiError(message, response.status, responseData);
       }
     }
@@ -349,7 +418,35 @@ export const request = async <T>(
         typeof responseData === 'object' && responseData && 'message' in responseData
           ? String((responseData as { message: unknown }).message)
           : t('errors.requestFailedStatus', { status: response.status });
-      console.error('[API] Error response body', responseData);
+      
+      // Only log non-auth errors to reduce noise (auth errors are handled above)
+      // Also skip logging for expected errors like 404, 409, etc.
+      const isExpectedError = response.status === 404 || response.status === 409;
+      
+      // Check for token expiration in message or code
+      const errorMessage = typeof responseData === 'object' && responseData && 'message' in responseData
+        ? String((responseData as { message: unknown }).message).toLowerCase()
+        : '';
+      const errorCode = typeof responseData === 'object' && responseData && 'code' in responseData
+        ? String(responseData.code)
+        : '';
+      const isTokenExpiredMessage = errorMessage.includes('invalid') && 
+        (errorMessage.includes('expired') || errorMessage.includes('token'));
+      const isAuthError = response.status === 401 || 
+        (response.status === 403 && 
+         (errorCode === 'invalid_token' || isTokenExpiredMessage));
+      
+      // If this is an auth error that wasn't handled above (e.g., retryOn401=false or path=/auth/refresh),
+      // emit session expired event to trigger logout and redirect to Welcome
+      if (isAuthError && (path === '/auth/refresh' || !retryOn401)) {
+        console.log('[API] Auth error on non-retryable endpoint, emitting session expired event');
+        authEvents.emitSessionExpired();
+      }
+      
+      if (!isAuthError && !isExpectedError) {
+        console.error('[API] Error response body', responseData);
+      }
+      
       throw new ApiError(message, response.status, responseData);
     }
 

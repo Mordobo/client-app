@@ -1,5 +1,4 @@
 import { Conversation, fetchConversations } from '@/services/conversations';
-import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -18,24 +17,11 @@ import { t } from '@/i18n';
 
 export default function ConversationsListScreen() {
   const router = useRouter();
-  const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Exact colors from JSX
-  const isDark = colorScheme === 'dark';
-  const themeColors = {
-    background: isDark ? '#1a1a2e' : '#F9FAFB',
-    bgCard: isDark ? '#252542' : '#FFFFFF',
-    textPrimary: isDark ? '#FFFFFF' : '#1F2937',
-    textSecondary: isDark ? '#9ca3af' : '#6B7280',
-    border: isDark ? '#374151' : '#E5E7EB',
-    primary: '#3b82f6',
-    secondary: '#10b981',
-  };
 
   const loadConversations = useCallback(async () => {
     try {
@@ -126,8 +112,8 @@ export default function ConversationsListScreen() {
       <TouchableOpacity
         style={[
           styles.conversationItem,
-          { borderBottomColor: themeColors.border },
-          !showBorder && styles.conversationItemNoBorder
+          !showBorder && styles.conversationItemNoBorder,
+          { backgroundColor: '#1a1a2e', borderBottomColor: '#374151' },
         ]}
         onPress={() => handleConversationPress(item.id)}
         activeOpacity={0.7}
@@ -136,32 +122,34 @@ export default function ConversationsListScreen() {
           {item.other_user_image ? (
             <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.bgCard }]}>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: '#252542' }]}>
               <Text style={styles.avatarEmoji}>👨‍🔧</Text>
             </View>
           )}
           {isOnline && (
-            <View style={[styles.onlineIndicator, { 
-              backgroundColor: themeColors.secondary, 
-              borderColor: themeColors.background 
-            }]} />
+            <View style={styles.onlineIndicator} />
           )}
         </View>
 
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <Text style={[styles.userName, { color: themeColors.textPrimary }]}>
+            <Text style={[styles.userName, { color: '#FFFFFF' }]}>
               {item.other_user_name}
             </Text>
-            <Text style={[styles.timeText, { 
-              color: item.unread_count > 0 ? themeColors.primary : themeColors.textSecondary 
-            }]}>
+            <Text style={[
+              styles.timeText, 
+              { color: item.unread_count > 0 ? '#3b82f6' : '#9ca3af' }
+            ]}>
               {formatTime(item.last_message_at)}
             </Text>
           </View>
           <View style={styles.lastMessageRow}>
             <Text
-              style={[styles.lastMessage, { color: themeColors.textSecondary }]}
+              style={[
+                styles.lastMessage, 
+                { color: item.unread_count > 0 ? '#FFFFFF' : '#9ca3af' },
+                item.unread_count > 0 && { fontWeight: '500' }
+              ]}
               numberOfLines={1}
             >
               {item.last_message || t('chat.noMessages')}
@@ -169,7 +157,6 @@ export default function ConversationsListScreen() {
             {item.unread_count > 0 && (
               <View style={[
                 styles.unreadBadge, 
-                { backgroundColor: themeColors.primary },
                 item.unread_count < 10 && styles.unreadBadgeCircular
               ]}>
                 <Text style={styles.unreadText}>
@@ -187,62 +174,65 @@ export default function ConversationsListScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#1a1a2e' }]}>
         <View style={[styles.header, { 
           paddingTop: Math.max(insets.top + 20, 50),
-          backgroundColor: themeColors.bgCard 
+          backgroundColor: '#252542',
         }]}>
-          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>
+          <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>
             {t('chat.messages')}
           </Text>
         </View>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={themeColors.primary} />
+        <View style={[styles.centerContainer, { backgroundColor: '#1a1a2e' }]}>
+          <ActivityIndicator size="large" color="#3b82f6" />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={[styles.container, { backgroundColor: '#1a1a2e' }]}>
       {/* Header - Exact match to JSX: padding: '50px 20px 20px', backgroundColor: colors.bgCard */}
       <View style={[styles.header, { 
         paddingTop: Math.max(insets.top + 20, 50),
-        backgroundColor: themeColors.bgCard 
+        backgroundColor: '#252542',
       }]}>
-        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>
+        <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>
           {t('chat.messages')}
         </Text>
       </View>
 
       {error ? (
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: '#1a1a2e' }]}>
           <Text style={[styles.errorText, { color: '#EF4444' }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadConversations}>
             <Text style={styles.retryText}>{t('chat.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : conversations.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <Ionicons name="chatbubbles-outline" size={64} color={themeColors.textSecondary} />
-          <Text style={[styles.emptyTitle, { color: themeColors.textPrimary }]}>
+        <View style={[styles.centerContainer, { backgroundColor: '#1a1a2e' }]}>
+          <Ionicons name="chatbubbles-outline" size={64} color="#9ca3af" />
+          <Text style={[styles.emptyTitle, { color: '#FFFFFF' }]}>
             {t('chat.noMessages')}
           </Text>
-          <Text style={[styles.emptySubtitle, { color: themeColors.textSecondary }]}>
+          <Text style={[styles.emptySubtitle, { color: '#9ca3af' }]}>
             {t('chat.noMessagesDesc')}
           </Text>
         </View>
       ) : (
-        <FlashList
-          data={conversations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderConversation}
-          estimatedItemSize={estimatedItemSize}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[themeColors.primary]} />
-          }
-          contentContainerStyle={styles.listContent}
-        />
+        <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
+          <FlashList
+            data={conversations}
+            keyExtractor={(item) => item.id}
+            renderItem={renderConversation}
+            estimatedItemSize={estimatedItemSize}
+            style={{ flex: 1, backgroundColor: '#1a1a2e' }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, backgroundColor: '#1a1a2e' }}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#3b82f6']} />
+            }
+          />
+        </View>
       )}
     </View>
   );
@@ -251,28 +241,41 @@ export default function ConversationsListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background like Home
   },
   // Header: padding: '50px 20px 20px' from JSX (50px top, 20px horizontal, 20px bottom)
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+    backgroundColor: '#252542', // Hardcode dark header
     // paddingTop will be set dynamically with safe area
   },
   // Title: fontSize: '28px', fontWeight: '700' from JSX
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
+    color: '#FFFFFF', // Hardcode white text
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#1a1a2e', // Hardcode dark background
+  },
+  listWrapper: {
+    flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background wrapper for FlashList
+  },
+  listContainer: {
+    flex: 1,
+    backgroundColor: '#1a1a2e', // Hardcode dark background for FlashList style prop
   },
   // List: padding: '20px' from JSX
   listContent: {
     paddingHorizontal: 20,
     paddingVertical: 20,
+    backgroundColor: '#1a1a2e', // Hardcode dark background
   },
   // Item: gap: '14px', padding: '14px 0' from JSX - gap must be exact
   conversationItem: {
@@ -282,6 +285,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 0, // No horizontal padding on item itself
     borderBottomWidth: 1,
+    borderBottomColor: '#374151', // Hardcode dark border
+    backgroundColor: '#1a1a2e', // Hardcode dark background for each item
   },
   conversationItemNoBorder: {
     borderBottomWidth: 0,
@@ -301,6 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#252542', // Hardcode dark header background
   },
   avatarEmoji: {
     fontSize: 24,
@@ -314,6 +320,8 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     borderWidth: 3,
+    backgroundColor: '#10b981', // Hardcode secondary color
+    borderColor: '#1a1a2e', // Hardcode dark background
   },
   // Badge: minWidth: '20px', height: '20px', borderRadius: '50%', fontSize: '11px', fontWeight: '600' from JSX
   unreadBadge: {
@@ -323,6 +331,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
+    backgroundColor: '#3b82f6', // Hardcode primary color
   },
   unreadBadgeCircular: {
     width: 20,
@@ -349,10 +358,15 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF', // Hardcode white text
   },
   // Time: fontSize: '12px' from JSX
   timeText: {
     fontSize: 12,
+    color: '#9ca3af', // Hardcode secondary text
+  },
+  timeTextUnread: {
+    color: '#3b82f6', // Hardcode primary color for unread
   },
   lastMessageRow: {
     flexDirection: 'row',
@@ -365,22 +379,30 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
     maxWidth: 200,
+    color: '#9ca3af', // Hardcode secondary text
+  },
+  lastMessageUnread: {
+    color: '#FFFFFF', // Hardcode white text for unread
+    fontWeight: '500',
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
+    color: '#FFFFFF', // Hardcode white text
   },
   emptySubtitle: {
     fontSize: 14,
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 40,
+    color: '#9ca3af', // Hardcode secondary text
   },
   errorText: {
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 16,
+    color: '#EF4444', // Hardcode error color
   },
   retryButton: {
     backgroundColor: '#3b82f6',
