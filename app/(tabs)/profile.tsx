@@ -165,7 +165,7 @@ export default function ProfileScreen() {
 
   const menuItems = [
     { icon: '👤', label: t('profile.editProfile'), route: '/profile/edit' },
-    { icon: '📍', label: t('profile.myAddresses'), route: '/profile/edit' }, // TODO: Add addresses route
+    { icon: '📍', label: t('profile.myAddresses'), route: '/profile/my-addresses' },
     { icon: '💳', label: t('profile.paymentMethods'), route: '/profile/payment-methods' },
     { icon: '❤️', label: t('profile.favorites'), route: '/profile/edit' }, // TODO: Add favorites route
     { icon: '🔔', label: t('profile.notifications'), route: '/profile/settings' },
