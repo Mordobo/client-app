@@ -28,7 +28,7 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
 
   return (
     <View>
-      <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={24} color={color} />
+      <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={20} color={color} />
       {unreadCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -41,29 +41,60 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
+  const isDark = colorScheme === 'dark';
+
+  // Exact colors from JSX
+  const tabBarColors = {
+    bgCard: isDark ? '#252542' : '#FFFFFF',
+    border: isDark ? '#374151' : '#E5E7EB',
+    primary: '#3b82f6',
+    textSecondary: isDark ? '#9ca3af' : '#6B7280',
+  };
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: tabBarColors.primary,
+        tabBarInactiveTintColor: tabBarColors.textSecondary,
         headerShown: false,
         tabBarButton: HapticTab,
+        // Exact styling from JSX: padding: '12px 0 24px', backgroundColor: colors.bgCard, borderTop: 1px solid colors.border
+        tabBarStyle: {
+          backgroundColor: tabBarColors.bgCard,
+          borderTopWidth: 1,
+          borderTopColor: tabBarColors.border,
+          paddingVertical: 12,
+          paddingBottom: 24,
+          height: 60 + 24, // Base height + bottom padding
+        },
+        // Label styling from JSX: fontSize: '10px'
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '400',
+        },
+        // Icon size from JSX: fontSize: '20px' (but we use 20px for icons)
+        tabBarIconStyle: {
+          marginBottom: 0,
+        },
+        // Opacity from JSX: opacity: active === item.id ? 1 : 0.5
+        // This is handled by tabBarActiveTintColor and tabBarInactiveTintColor
+        // But we can add item style for inactive tabs
       }}>
       <Tabs.Screen
         name="home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={20} color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
-          title: 'Bookings',
+          title: 'Reservas', // From JSX: 'Reservas'
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={20} color={color} />
           ),
         }}
       />
@@ -73,19 +104,13 @@ export default function TabLayout() {
           title: 'Chat',
           tabBarIcon: ({ color, focused }) => <ChatTabIcon color={color} focused={focused} />,
         }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/chat');
-          },
-        }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Notifications',
+          title: 'Alertas', // From JSX: 'Alertas'
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'notifications' : 'notifications-outline'} size={20} color={color} />
           ),
         }}
         listeners={{
@@ -98,9 +123,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Perfil', // From JSX: 'Perfil'
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={20} color={color} />
           ),
         }}
       />

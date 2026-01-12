@@ -240,10 +240,17 @@ export default {
   },
   chat: {
     title: 'Chat',
+    messages: 'Mensajes',
     typicallyResponds: 'Normalmente responde en {{hours}} hora',
     requestQuote: 'Solicitar cotización',
     sendPhotos: 'Enviar fotos',
     messagePlaceholder: 'Mensaje',
+    noMessages: 'No hay mensajes aún',
+    noMessagesDesc: 'Reserva un servicio para comenzar a chatear',
+    searchIcon: 'Buscar',
+    loadingConversations: 'Cargando conversaciones...',
+    failedToLoad: 'Error al cargar conversaciones',
+    retry: 'Reintentar',
   },
   quote: {
     title: 'Revisar y aprobar',

@@ -2,10 +2,9 @@ import { Conversation, fetchConversations } from '@/services/conversations';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     Image,
     RefreshControl,
     StyleSheet,
@@ -13,7 +12,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t } from '@/i18n';
 
 export default function ConversationsListScreen() {
   const router = useRouter();
@@ -26,22 +27,31 @@ export default function ConversationsListScreen() {
   
   const isDark = colorScheme === 'dark';
   const themeColors = {
-    background: isDark ? '#151718' : '#F9FAFB',
-    surface: isDark ? '#1F2937' : '#FFFFFF',
+    background: isDark ? '#1a1a2e' : '#F9FAFB',
+    surface: isDark ? '#252542' : '#FFFFFF',
+    headerBg: isDark ? '#252542' : '#FFFFFF',
     textPrimary: isDark ? '#ECEDEE' : '#1F2937',
-    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
+    textSecondary: isDark ? '#9ca3af' : '#6B7280',
     border: isDark ? '#374151' : '#E5E7EB',
-    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+    borderLight: isDark ? '#374151' : '#E5E7EB',
     icon: isDark ? '#9BA1A6' : '#374151',
+    primary: '#3b82f6',
+    secondary: '#10b981',
   };
 
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
       const data = await fetchConversations();
-      setConversations(data);
+      // Sort by most recent (last_message_at descending)
+      const sortedData = [...data].sort((a, b) => {
+        const dateA = new Date(a.last_message_at).getTime();
+        const dateB = new Date(b.last_message_at).getTime();
+        return dateB - dateA;
+      });
+      setConversations(sortedData);
     } catch (err) {
-      setError('Failed to load conversations');
+      setError(t('chat.failedToLoad'));
       console.error('Error loading conversations:', err);
     } finally {
       setLoading(false);
@@ -65,66 +75,116 @@ export default function ConversationsListScreen() {
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) {
+    if (diffMins < 60) {
+      // Less than 1 hour: show minutes
+      if (diffMins < 1) {
+        return t('orders.today');
+      }
+      // For Spanish: "Hace 5 min", for English: "5 min ago"
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? `Hace ${diffMins} min` : `${diffMins} min ago`;
+    } else if (diffDays === 0) {
+      // Today: show time
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffDays === 1) {
-      return 'Yesterday';
+      // Yesterday
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? 'Ayer' : 'Yesterday';
     } else if (diffDays < 7) {
-      return date.toLocaleDateString([], { weekday: 'short' });
+      // This week: show days ago
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? `Hace ${diffDays} días` : `${diffDays} days ago`;
+    } else if (diffDays < 14) {
+      // 1 week ago
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? 'Hace 1 semana' : '1 week ago';
     } else {
+      // Older: show date
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
   };
 
-  const renderConversation = ({ item }: { item: Conversation }) => (
-    <TouchableOpacity
-      style={[styles.conversationItem, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.borderLight }]}
-      onPress={() => handleConversationPress(item.id)}
-    >
-      <View style={styles.avatarContainer}>
-        {item.other_user_image ? (
-          <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.borderLight }]}>
-            <Ionicons name="person" size={24} color={themeColors.textSecondary} />
-          </View>
-        )}
-        {item.unread_count > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>
-              {item.unread_count > 9 ? '9+' : item.unread_count}
+  const renderConversation = ({ item, index }: { item: Conversation; index: number }) => {
+    // For now, we'll show online status randomly or based on last activity
+    // In a real app, this would come from the backend
+    const isOnline = false; // TODO: Get from backend when available
+    const isLastItem = index === conversations.length - 1;
+    
+    return (
+      <TouchableOpacity
+        style={[
+          styles.conversationItem, 
+          { borderBottomColor: themeColors.borderLight },
+          isLastItem && styles.conversationItemLast
+        ]}
+        onPress={() => handleConversationPress(item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.avatarContainer}>
+          {item.other_user_image ? (
+            <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.headerBg }]}>
+              <Text style={styles.avatarEmoji}>👨‍🔧</Text>
+            </View>
+          )}
+          {isOnline && (
+            <View style={[styles.onlineIndicator, { backgroundColor: themeColors.secondary, borderColor: themeColors.background }]} />
+          )}
+        </View>
+
+        <View style={styles.conversationContent}>
+          <View style={styles.conversationHeader}>
+            <Text style={[styles.userName, { color: themeColors.textPrimary }, item.unread_count > 0 && styles.userNameBold]}>
+              {item.other_user_name}
+            </Text>
+            <Text style={[styles.timeText, { color: item.unread_count > 0 ? themeColors.primary : themeColors.textSecondary }]}>
+              {formatTime(item.last_message_at)}
             </Text>
           </View>
-        )}
-      </View>
-
-      <View style={styles.conversationContent}>
-        <View style={styles.conversationHeader}>
-          <Text style={[styles.userName, { color: themeColors.textPrimary }, item.unread_count > 0 && styles.userNameBold]}>
-            {item.other_user_name}
-          </Text>
-          <Text style={[styles.timeText, { color: themeColors.textSecondary }]}>{formatTime(item.last_message_at)}</Text>
+          <View style={styles.lastMessageRow}>
+            <Text
+              style={[
+                styles.lastMessage,
+                { color: themeColors.textSecondary },
+                item.unread_count > 0 && { color: themeColors.textPrimary, fontWeight: '500' },
+              ]}
+              numberOfLines={1}
+            >
+              {item.last_message || t('chat.noMessages')}
+            </Text>
+            {item.unread_count > 0 && (
+              <View style={[
+                styles.unreadBadge, 
+                { backgroundColor: themeColors.primary },
+                item.unread_count < 10 && styles.unreadBadgeCircular
+              ]}>
+                <Text style={styles.unreadText}>
+                  {item.unread_count > 9 ? '9+' : item.unread_count}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-        <Text
-          style={[styles.lastMessage, { color: themeColors.textSecondary }, item.unread_count > 0 && { color: themeColors.textPrimary, fontWeight: '500' }]}
-          numberOfLines={1}
-        >
-          {item.last_message || 'No messages yet'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
+
+  const estimatedItemSize = useMemo(() => 84, []); // 14px padding top + 14px padding bottom + 56px avatar = ~84px
 
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
-          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Messages</Text>
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 50), backgroundColor: themeColors.headerBg }]}>
+          <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>{t('chat.messages')}</Text>
         </View>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={themeColors.primary} />
         </View>
       </View>
     );
@@ -132,32 +192,36 @@ export default function ConversationsListScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
-        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>Messages</Text>
+      <View style={[styles.header, { 
+        paddingTop: Math.max(insets.top + 20, 50), 
+        backgroundColor: themeColors.headerBg 
+      }]}>
+        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>{t('chat.messages')}</Text>
       </View>
 
       {error ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorText, { color: '#EF4444' }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadConversations}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t('chat.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : conversations.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons name="chatbubbles-outline" size={64} color={themeColors.textSecondary} />
-          <Text style={[styles.emptyTitle, { color: themeColors.textPrimary }]}>No conversations yet</Text>
+          <Text style={[styles.emptyTitle, { color: themeColors.textPrimary }]}>{t('chat.noMessages')}</Text>
           <Text style={[styles.emptySubtitle, { color: themeColors.textSecondary }]}>
-            Start chatting with suppliers by visiting their profile
+            {t('chat.noMessagesDesc')}
           </Text>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={conversations}
           keyExtractor={(item) => item.id}
           renderItem={renderConversation}
+          estimatedItemSize={estimatedItemSize}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#10B981']} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[themeColors.primary]} />
           }
           contentContainerStyle={styles.listContent}
         />
@@ -172,11 +236,11 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
   },
   centerContainer: {
@@ -186,18 +250,21 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 0,
   },
   conversationItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
+  },
+  conversationItemLast: {
+    borderBottomWidth: 0,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 12,
+    marginRight: 14,
   },
   avatar: {
     width: 56,
@@ -211,17 +278,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  unreadBadge: {
+  avatarEmoji: {
+    fontSize: 24,
+  },
+  onlineIndicator: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#10B981',
-    borderRadius: 10,
+    bottom: 2,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 3,
+  },
+  unreadBadge: {
     minWidth: 20,
     height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 6,
+  },
+  unreadBadgeCircular: {
+    width: 20,
+    minWidth: 20,
+    paddingHorizontal: 0,
+    borderRadius: 10, // Keep circular shape
   },
   unreadText: {
     color: '#FFFFFF',
@@ -230,6 +311,7 @@ const styles = StyleSheet.create({
   },
   conversationContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   conversationHeader: {
     flexDirection: 'row',
@@ -239,18 +321,25 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 16,
+    fontWeight: '600',
   },
   userNameBold: {
     fontWeight: '600',
   },
   timeText: {
     fontSize: 12,
+    textAlign: 'right',
+  },
+  lastMessageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   lastMessage: {
     fontSize: 14,
-  },
-  lastMessageBold: {
-    fontWeight: '500',
+    flex: 1,
+    marginRight: 8,
+    maxWidth: 200,
   },
   emptyTitle: {
     fontSize: 18,
@@ -265,15 +354,15 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#3b82f6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
+    marginTop: 8,
   },
   retryText: {
     color: '#FFFFFF',
