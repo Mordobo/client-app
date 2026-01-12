@@ -4,9 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { Category, fetchCategories } from '@/services/categories';
 import { Supplier, fetchSuppliers } from '@/services/suppliers';
+import { getAddresses, type Address } from '@/services/addresses';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -42,12 +43,61 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [location, setLocation] = useState('Piantini, Santo Domingo');
+  const [location, setLocation] = useState(t('home.location')); // Default fallback
 
   useEffect(() => {
     loadCategories();
     loadTopProviders();
   }, []);
+
+  // Reload default address when screen comes into focus (e.g., after changing default address)
+  useFocusEffect(
+    useCallback(() => {
+      loadDefaultAddress();
+    }, [])
+  );
+
+  // Format address for display (city, state or address_line1, city)
+  const formatAddressForDisplay = (address: Address): string => {
+    const parts: string[] = [];
+    
+    // If we have city and state, show "City, State"
+    if (address.city) {
+      if (address.state) {
+        return `${address.city}, ${address.state}`;
+      }
+      // If only city, show "City"
+      return address.city;
+    }
+    
+    // Fallback: show address_line1 if available
+    if (address.address_line1) {
+      return address.address_line1;
+    }
+    
+    // Last resort: show name
+    return address.name;
+  };
+
+  const loadDefaultAddress = async () => {
+    try {
+      const addresses = await getAddresses();
+      const defaultAddress = addresses.find((addr) => addr.is_default);
+      
+      if (defaultAddress) {
+        const formattedAddress = formatAddressForDisplay(defaultAddress);
+        setLocation(formattedAddress);
+      } else if (addresses.length > 0) {
+        // If no default, use the first address
+        const formattedAddress = formatAddressForDisplay(addresses[0]);
+        setLocation(formattedAddress);
+      }
+      // If no addresses, keep the default fallback
+    } catch (error) {
+      console.error('[Home] Failed to load default address:', error);
+      // Keep the default fallback on error
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -172,8 +222,13 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.locationSection}>
             <Text style={styles.locationLabel}>{t('home.locationLabel')}</Text>
-            <TouchableOpacity style={styles.locationButton}>
-              <Text style={styles.locationText}>{location}</Text>
+            <TouchableOpacity 
+              style={styles.locationButton}
+              onPress={() => router.push('/profile/my-addresses')}
+            >
+              <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+                {location}
+              </Text>
               <Ionicons name="chevron-down" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
