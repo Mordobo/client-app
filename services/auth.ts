@@ -605,3 +605,61 @@ export const resendCode = async (
     t('errors.verificationFailed')
   );
 };
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export const forgotPassword = async (
+  payload: ForgotPasswordPayload
+): Promise<ForgotPasswordResponse> => {
+  const body = {
+    email: payload.email.trim().toLowerCase(),
+  };
+
+  return request<ForgotPasswordResponse>(
+    '/auth/forgot-password',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.forgotPasswordFailed')
+  );
+};
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
+export const resetPassword = async (
+  payload: ResetPasswordPayload
+): Promise<ResetPasswordResponse> => {
+  const body = {
+    token: payload.token,
+    newPassword: payload.newPassword.trim(),
+  };
+
+  return request<ResetPasswordResponse>(
+    '/auth/reset-password',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.resetPasswordFailed')
+  );
+};
