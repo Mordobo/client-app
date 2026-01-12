@@ -240,10 +240,17 @@ export default {
   },
   chat: {
     title: 'Chat',
+    messages: 'Messages',
     typicallyResponds: 'Typically responds in {{hours}} hour',
     requestQuote: 'Request Quote',
     sendPhotos: 'Send Photos',
     messagePlaceholder: 'Message',
+    noMessages: 'No messages yet',
+    noMessagesDesc: 'Book a service to start chatting',
+    searchIcon: 'Search',
+    loadingConversations: 'Loading conversations...',
+    failedToLoad: 'Failed to load conversations',
+    retry: 'Retry',
   },
   quote: {
     title: 'Review & Approve',
