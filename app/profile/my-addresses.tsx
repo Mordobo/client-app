@@ -347,15 +347,16 @@ export default function MyAddressesScreen() {
         onRequestClose={() => setShowAddEditModal(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
         >
           <TouchableOpacity
             style={styles.modalOverlay}
             activeOpacity={1}
             onPress={() => setShowAddEditModal(false)}
           >
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom + 20, 40) }]}>
               <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
                 {/* Handle */}
                 <View style={styles.modalHandle} />
@@ -364,138 +365,145 @@ export default function MyAddressesScreen() {
                   {editingAddress ? t('addresses.editAddress') : t('addresses.addAddress')}
                 </Text>
 
-                {/* Address Name */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('addresses.name')}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('addresses.namePlaceholder')}
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.name}
-                    onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))}
-                  />
-                </View>
-
-                {/* Address Type */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('addresses.type')}</Text>
-                  <View style={styles.typeButtons}>
-                    {(['home', 'office', 'other'] as const).map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        onPress={() => setFormData((prev) => ({ ...prev, type }))}
-                        style={[
-                          styles.typeButton,
-                          formData.type === type && styles.typeButtonActive,
-                        ]}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.typeButtonIcon}>{getAddressIcon(type)}</Text>
-                        <Text
-                          style={[
-                            styles.typeButtonText,
-                            formData.type === type && styles.typeButtonTextActive,
-                          ]}
-                        >
-                          {t(`addresses.type${type.charAt(0).toUpperCase() + type.slice(1)}`)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Address Line 1 */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('addresses.addressLine1')}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('addresses.addressLine1Placeholder')}
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.address_line1}
-                    onChangeText={(text) =>
-                      setFormData((prev) => ({ ...prev, address_line1: text }))
-                    }
-                    multiline
-                    numberOfLines={2}
-                  />
-                </View>
-
-                {/* Address Line 2 (Optional) */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('addresses.addressLine2')} (Optional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('addresses.addressLine2Placeholder')}
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.address_line2}
-                    onChangeText={(text) =>
-                      setFormData((prev) => ({ ...prev, address_line2: text }))
-                    }
-                  />
-                </View>
-
-                {/* City */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('addresses.city')}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder={t('addresses.cityPlaceholder')}
-                    placeholderTextColor={colors.textSecondary}
-                    value={formData.city}
-                    onChangeText={(text) => setFormData((prev) => ({ ...prev, city: text }))}
-                  />
-                </View>
-
-                {/* State and Postal Code Row */}
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputContainer, styles.inputHalf]}>
-                    <Text style={styles.inputLabel}>{t('addresses.state')}</Text>
+                <ScrollView
+                  style={styles.modalScrollView}
+                  contentContainerStyle={styles.modalScrollContent}
+                  showsVerticalScrollIndicator={true}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {/* Address Name */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>{t('addresses.name')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder={t('addresses.statePlaceholder')}
+                      placeholder={t('addresses.namePlaceholder')}
                       placeholderTextColor={colors.textSecondary}
-                      value={formData.state}
-                      onChangeText={(text) => setFormData((prev) => ({ ...prev, state: text }))}
+                      value={formData.name}
+                      onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))}
                     />
                   </View>
-                  <View style={[styles.inputContainer, styles.inputHalf]}>
-                    <Text style={styles.inputLabel}>{t('addresses.postalCode')}</Text>
+
+                  {/* Address Type */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>{t('addresses.type')}</Text>
+                    <View style={styles.typeButtons}>
+                      {(['home', 'office', 'other'] as const).map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          onPress={() => setFormData((prev) => ({ ...prev, type }))}
+                          style={[
+                            styles.typeButton,
+                            formData.type === type && styles.typeButtonActive,
+                          ]}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.typeButtonIcon}>{getAddressIcon(type)}</Text>
+                          <Text
+                            style={[
+                              styles.typeButtonText,
+                              formData.type === type && styles.typeButtonTextActive,
+                            ]}
+                          >
+                            {t(`addresses.type${type.charAt(0).toUpperCase() + type.slice(1)}`)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Address Line 1 */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>{t('addresses.addressLine1')}</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder={t('addresses.postalCodePlaceholder')}
+                      placeholder={t('addresses.addressLine1Placeholder')}
                       placeholderTextColor={colors.textSecondary}
-                      value={formData.postal_code}
+                      value={formData.address_line1}
                       onChangeText={(text) =>
-                        setFormData((prev) => ({ ...prev, postal_code: text }))
+                        setFormData((prev) => ({ ...prev, address_line1: text }))
+                      }
+                      multiline
+                      numberOfLines={2}
+                    />
+                  </View>
+
+                  {/* Address Line 2 (Optional) */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>{t('addresses.addressLine2')} (Optional)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('addresses.addressLine2Placeholder')}
+                      placeholderTextColor={colors.textSecondary}
+                      value={formData.address_line2}
+                      onChangeText={(text) =>
+                        setFormData((prev) => ({ ...prev, address_line2: text }))
                       }
                     />
                   </View>
-                </View>
 
-                {/* Set as Default */}
-                {!editingAddress?.isDefault && (
-                  <TouchableOpacity
-                    onPress={() =>
-                      setFormData((prev) => ({ ...prev, is_default: !prev.is_default }))
-                    }
-                    style={styles.defaultToggle}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        formData.is_default && styles.checkboxChecked,
-                      ]}
-                    >
-                      {formData.is_default && (
-                        <Ionicons name="checkmark" size={16} color={colors.textPrimary} />
-                      )}
+                  {/* City */}
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputLabel}>{t('addresses.city')}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={t('addresses.cityPlaceholder')}
+                      placeholderTextColor={colors.textSecondary}
+                      value={formData.city}
+                      onChangeText={(text) => setFormData((prev) => ({ ...prev, city: text }))}
+                    />
+                  </View>
+
+                  {/* State and Postal Code Row */}
+                  <View style={styles.inputRow}>
+                    <View style={[styles.inputContainer, styles.inputHalf]}>
+                      <Text style={styles.inputLabel}>{t('addresses.state')}</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('addresses.statePlaceholder')}
+                        placeholderTextColor={colors.textSecondary}
+                        value={formData.state}
+                        onChangeText={(text) => setFormData((prev) => ({ ...prev, state: text }))}
+                      />
                     </View>
-                    <Text style={styles.defaultToggleText}>{t('addresses.setAsDefault')}</Text>
-                  </TouchableOpacity>
-                )}
+                    <View style={[styles.inputContainer, styles.inputHalf]}>
+                      <Text style={styles.inputLabel}>{t('addresses.postalCode')}</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder={t('addresses.postalCodePlaceholder')}
+                        placeholderTextColor={colors.textSecondary}
+                        value={formData.postal_code}
+                        onChangeText={(text) =>
+                          setFormData((prev) => ({ ...prev, postal_code: text }))
+                        }
+                      />
+                    </View>
+                  </View>
 
-                {/* Buttons */}
+                  {/* Set as Default */}
+                  {!editingAddress?.isDefault && (
+                    <TouchableOpacity
+                      onPress={() =>
+                        setFormData((prev) => ({ ...prev, is_default: !prev.is_default }))
+                      }
+                      style={styles.defaultToggle}
+                      activeOpacity={0.7}
+                    >
+                      <View
+                        style={[
+                          styles.checkbox,
+                          formData.is_default && styles.checkboxChecked,
+                        ]}
+                      >
+                        {formData.is_default && (
+                          <Ionicons name="checkmark" size={16} color={colors.textPrimary} />
+                        )}
+                      </View>
+                      <Text style={styles.defaultToggleText}>{t('addresses.setAsDefault')}</Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+
+                {/* Buttons - Fixed at bottom */}
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     onPress={() => {
@@ -718,10 +726,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
+    paddingTop: 24,
     paddingHorizontal: 20,
-    paddingBottom: 40,
     maxHeight: '90%',
+  },
+  modalScrollView: {
+    flex: 1,
+    maxHeight: 500,
+  },
+  modalScrollContent: {
+    paddingBottom: 16,
   },
   modalHandle: {
     width: 40,
@@ -822,7 +836,10 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 24,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#374151',
   },
   modalButtonCancel: {
     flex: 1,
