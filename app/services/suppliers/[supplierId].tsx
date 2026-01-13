@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/FavoriteButton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getOrCreateConversation } from '@/services/conversations';
 import {
@@ -122,9 +123,14 @@ export default function SupplierProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: themeColors.surface }]}>
           <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.favoriteButton, { backgroundColor: themeColors.surface }]}>
-          <Ionicons name="star-outline" size={24} color={themeColors.textPrimary} />
-        </TouchableOpacity>
+        <View style={[styles.favoriteButton, { backgroundColor: themeColors.surface }]}>
+          <FavoriteButton
+            supplierId={supplierId || ''}
+            size={24}
+            color={themeColors.textPrimary}
+            activeColor="#EF4444"
+          />
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

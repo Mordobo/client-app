@@ -1,3 +1,4 @@
+import { FavoriteButton } from '@/components/FavoriteButton';
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from '@/services/categories';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getOrCreateConversation } from '@/services/conversations';
@@ -171,7 +172,14 @@ export default function CategoryDetailScreen() {
                   style={styles.supplierImage}
                 />
                 <View style={styles.supplierInfo}>
-                  <Text style={[styles.supplierName, { color: themeColors.textPrimary }]}>{supplier.full_name}</Text>
+                  <View style={styles.supplierNameRow}>
+                    <Text style={[styles.supplierName, { color: themeColors.textPrimary }]}>{supplier.full_name}</Text>
+                    <FavoriteButton
+                      supplierId={supplier.id}
+                      size={20}
+                      style={styles.favoriteButton}
+                    />
+                  </View>
                   <View style={styles.ratingRow}>
                     <Ionicons name="star" size={16} color="#F59E0B" />
                     <Text style={[styles.rating, { color: themeColors.textPrimary }]}>{Number(supplier.rating).toFixed(1)}</Text>
@@ -325,10 +333,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  supplierNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
   supplierName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    flex: 1,
+  },
+  favoriteButton: {
+    marginLeft: 8,
   },
   ratingRow: {
     flexDirection: 'row',
