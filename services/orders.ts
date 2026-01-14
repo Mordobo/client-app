@@ -1,5 +1,5 @@
-import { request, ApiError as AuthApiError } from './auth';
 import { t } from '@/i18n';
+import { ApiError as AuthApiError, request } from './auth';
 
 export type OrderStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
 

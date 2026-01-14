@@ -6,6 +6,7 @@ import {
   ApiError,
 } from '@/services/suppliers';
 import { getAddresses, Address } from '@/services/addresses';
+import { createOrder, ApiError as OrderApiError } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -65,6 +66,7 @@ export default function BookingSummaryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(20); // Percentage discount (demo: 20% as per JSX)
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
   useEffect(() => {
     if (supplierId && serviceId && scheduledAt && duration && addressId) {
@@ -185,26 +187,105 @@ export default function BookingSummaryScreen() {
   const pricing = calculatePricing();
 
 
-  const handleProceedToPayment = () => {
-    if (!supplierId || !serviceId || !scheduledAt || !duration || !addressId) {
+  const handleProceedToPayment = async () => {
+    if (!supplierId || !serviceId || !scheduledAt || !duration || !addressId || !address || !service) {
       Alert.alert(t('common.error'), t('booking.missingBookingData'));
       return;
     }
 
-    // Navigate to payment screen with all booking data
-    router.push({
-      pathname: '/booking/payment/[orderId]',
-      params: {
-        orderId: 'new', // Will be created after payment
-        supplierId,
-        serviceId,
-        scheduledAt,
-        duration,
-        addressId,
-        notes: additionalNotes,
-        totalAmount: pricing.total.toString(),
-      },
-    });
+    try {
+      setCreatingOrder(true);
+
+      // Format address string
+      const addressString = formatAddress(address);
+
+      // Ensure scheduled_at is in ISO format
+      let formattedScheduledAt = scheduledAt;
+      try {
+        // If it's not already ISO format, convert it
+        const date = new Date(scheduledAt);
+        if (!isNaN(date.getTime())) {
+          formattedScheduledAt = date.toISOString();
+        }
+      } catch (e) {
+        console.warn('[BookingSummary] Could not format scheduled_at:', e);
+      }
+
+      // Prepare order data
+      const orderData: {
+        service_id: string;
+        category_id?: string;
+        supplier_id?: string;
+        scheduled_at?: string;
+        address?: string;
+        notes?: string;
+      } = {
+        service_id: serviceId,
+        supplier_id: supplierId,
+        scheduled_at: formattedScheduledAt,
+        address: addressString,
+      };
+
+      // Add optional fields only if they have values
+      if (service.category_id) {
+        orderData.category_id = service.category_id;
+      }
+      if (additionalNotes.trim()) {
+        orderData.notes = additionalNotes.trim();
+      }
+
+      console.log('[BookingSummary] Creating order with data:', {
+        ...orderData,
+        // Don't log full address for privacy
+        address: addressString ? `${addressString.substring(0, 20)}...` : undefined,
+      });
+
+      // Create order first with all required fields
+      const order = await createOrder(orderData);
+
+      console.log('[BookingSummary] Order created successfully:', order.id);
+
+      // Navigate to payment screen with the created order ID
+      router.push({
+        pathname: '/booking/payment/[orderId]',
+        params: {
+          orderId: order.id,
+          totalAmount: pricing.total.toString(),
+        },
+      });
+    } catch (err) {
+      console.error('[BookingSummary] Failed to create order:', err);
+      
+      let errorMessage = t('booking.createBookingFailed');
+      
+      if (err instanceof OrderApiError) {
+        // Try to extract more detailed error message
+        if (err.originalError && typeof err.originalError === 'object') {
+          const errorData = err.originalError as { 
+            issues?: Array<{ path: string[]; message: string }>; 
+            message?: string;
+            code?: string;
+          };
+          
+          console.error('[BookingSummary] Error details:', errorData);
+          
+          if (errorData.issues && errorData.issues.length > 0) {
+            const firstIssue = errorData.issues[0];
+            errorMessage = `${firstIssue.path.join('.')}: ${firstIssue.message}`;
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          } else {
+            errorMessage = err.message;
+          }
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      Alert.alert(t('common.error'), errorMessage);
+    } finally {
+      setCreatingOrder(false);
+    }
   };
 
   if (loading) {
@@ -411,13 +492,20 @@ export default function BookingSummaryScreen() {
           ]}
         >
           <TouchableOpacity
-            style={styles.ctaButton}
+            style={[styles.ctaButton, creatingOrder && styles.ctaButtonDisabled]}
             onPress={handleProceedToPayment}
+            disabled={creatingOrder}
           >
-            <Text style={styles.ctaButtonEmoji}>💳</Text>
-            <Text style={styles.ctaButtonText}>
-              {t('booking.proceedToPayment')}
-            </Text>
+            {creatingOrder ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <>
+                <Text style={styles.ctaButtonEmoji}>💳</Text>
+                <Text style={styles.ctaButtonText}>
+                  {t('booking.proceedToPayment')}
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -607,6 +695,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+  },
+  ctaButtonDisabled: {
+    opacity: 0.6,
   },
   ctaButtonEmoji: {
     fontSize: 20,
