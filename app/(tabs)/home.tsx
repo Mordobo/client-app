@@ -104,16 +104,14 @@ export default function HomeScreen() {
       setLoading(true);
       const data = await fetchCategories();
       if (data && data.length > 0) {
-        // Filter and map to show only the 8 specified categories
+        // Create a map of all categories by normalized key
         const categoryMap = new Map<string, Category>();
         data.forEach((cat) => {
           const key = cat.name_key?.toLowerCase() || cat.name.toLowerCase();
-          if (CATEGORY_CONFIG[key]) {
-            categoryMap.set(key, cat);
-          }
+          categoryMap.set(key, cat);
         });
 
-        // Ensure we have the 8 categories in order
+        // Try to get categories in preferred order first
         const orderedCategories: Category[] = [];
         const categoryOrder = [
           'cleaning',
@@ -126,20 +124,20 @@ export default function HomeScreen() {
           'moving',
         ];
 
+        // Add categories that match the preferred order
         categoryOrder.forEach((key) => {
           const cat = categoryMap.get(key);
           if (cat) {
             orderedCategories.push(cat);
+            categoryMap.delete(key); // Remove from map to avoid duplicates
           }
         });
 
-        // If we don't have all 8, fill with available ones
-        if (orderedCategories.length < 8) {
-          data.forEach((cat) => {
-            if (orderedCategories.length < 8 && !orderedCategories.find((c) => c.id === cat.id)) {
-              orderedCategories.push(cat);
-            }
-          });
+        // Fill remaining slots with any available categories (up to 8 total)
+        const remainingCategories = Array.from(categoryMap.values());
+        for (const cat of remainingCategories) {
+          if (orderedCategories.length >= 8) break;
+          orderedCategories.push(cat);
         }
 
         setCategories(orderedCategories.slice(0, 8));
