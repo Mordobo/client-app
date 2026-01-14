@@ -305,10 +305,18 @@ export default {
     continue: 'Continuar',
   },
   payment: {
-    title: 'Seleccionar método de pago',
+    title: 'Método de pago',
     addNewCard: 'Agregar nueva tarjeta',
     continue: 'Continuar al pago',
     remove: 'Eliminar',
+    totalToPay: 'Total a pagar',
+    selectPaymentMethod: 'Selecciona método de pago',
+    noPaymentMethods: 'No tienes métodos de pago guardados',
+    securePayment: 'Pago seguro. Tu información está encriptada.',
+    confirmAndPay: 'Confirmar y Pagar ${{amount}}',
+    paymentFailed: 'Error al procesar el pago',
+    connected: 'conectado',
+    expires: 'Expira',
   },
   paymentMethods: {
     title: 'Métodos de pago',
@@ -339,6 +347,7 @@ export default {
     invalidCVV: 'CVV inválido',
     invalidCardHolder: 'Nombre del titular requerido',
     addCardFailed: 'Error al agregar tarjeta. Por favor intenta de nuevo.',
+    saveCard: 'Guardar tarjeta',
   },
   addresses: {
     title: 'Mis direcciones',

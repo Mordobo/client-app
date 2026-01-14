@@ -298,10 +298,18 @@ export default {
     chatBack: 'Chat Back',
   },
   payment: {
-    title: 'Select Payment Method',
+    title: 'Payment Method',
     addNewCard: 'Add New Card',
     continue: 'Continue to Payment',
     remove: 'Remove',
+    totalToPay: 'Total to pay',
+    selectPaymentMethod: 'Select payment method',
+    noPaymentMethods: 'You have no saved payment methods',
+    securePayment: 'Secure payment. Your information is encrypted.',
+    confirmAndPay: 'Confirm and Pay ${{amount}}',
+    paymentFailed: 'Failed to process payment',
+    connected: 'connected',
+    expires: 'Expires',
   },
   paymentMethods: {
     title: 'Payment Methods',
@@ -332,6 +340,7 @@ export default {
     invalidCVV: 'Invalid CVV',
     invalidCardHolder: 'Card holder name required',
     addCardFailed: 'Failed to add card. Please try again.',
+    saveCard: 'Save card',
   },
   addresses: {
     title: 'My Addresses',
