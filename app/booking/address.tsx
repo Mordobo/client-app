@@ -1,5 +1,5 @@
 import { getAddresses, createAddress, Address } from '@/services/addresses';
-import { createOrder, ApiError } from '@/services/orders';
+import { ApiError } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -48,7 +48,6 @@ export default function BookingAddressScreen() {
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creatingOrder, setCreatingOrder] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -184,29 +183,17 @@ export default function BookingAddressScreen() {
       return;
     }
 
-    try {
-      setCreatingOrder(true);
-      const addressString = formatAddress(selectedAddress);
-      
-      const order = await createOrder({
-        supplier_id: supplierId,
-        service_id: serviceId,
-        scheduled_at: scheduledAt,
-        address: addressString,
-        notes: `Duration: ${duration} hours`,
-      });
-
-      // Navigate to booking success or scheduled screen
-      router.replace(`/booking/scheduled/${order.id}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        Alert.alert(t('common.error'), err.message);
-      } else {
-        Alert.alert(t('common.error'), t('booking.createBookingFailed'));
-      }
-    } finally {
-      setCreatingOrder(false);
-    }
+    // Navigate to booking summary screen
+    router.push({
+      pathname: '/booking/summary',
+      params: {
+        supplierId,
+        serviceId,
+        scheduledAt,
+        duration,
+        addressId: selectedAddressId,
+      },
+    });
   };
 
   if (loading) {
@@ -333,17 +320,13 @@ export default function BookingAddressScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            (!canContinue || creatingOrder) && styles.continueButtonDisabled,
+            !canContinue && styles.continueButtonDisabled,
           ]}
           onPress={handleContinue}
-          disabled={!canContinue || creatingOrder}
+          disabled={!canContinue}
           activeOpacity={0.8}
         >
-          {creatingOrder ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <Text style={styles.continueButtonText}>{t('booking.continue')}</Text>
-          )}
+          <Text style={styles.continueButtonText}>{t('booking.continue')}</Text>
         </TouchableOpacity>
       </View>
 
