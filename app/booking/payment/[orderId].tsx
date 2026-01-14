@@ -77,6 +77,15 @@ export default function PaymentScreen() {
       return;
     }
 
+    // Validate orderId is a valid UUID
+    if (!orderId || orderId === 'new') {
+      Alert.alert(
+        t('common.error'),
+        'Invalid order ID. Please go back and try again.'
+      );
+      return;
+    }
+
     try {
       setProcessing(true);
       
@@ -98,13 +107,13 @@ export default function PaymentScreen() {
       const provider = providerMap[selectedMethod.type] || 'card';
 
       await createPayment({
-        order_id: orderId || 'new',
+        order_id: orderId,
         amount: total,
         provider,
         payment_method_id: selectedMethodId,
       });
 
-      router.push(`/booking/success/${orderId || 'new'}`);
+      router.push(`/booking/success/${orderId}`);
     } catch (err) {
       if (err instanceof PaymentApiError) {
         Alert.alert(t('common.error'), err.message);

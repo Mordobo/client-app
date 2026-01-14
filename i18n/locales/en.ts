@@ -429,6 +429,11 @@ export default {
     promoApplied: 'Promo code applied',
     promoAppliedMessage: 'Discount applied successfully',
     enterPromoCode: 'Please enter a promo code',
+    reservationConfirmed: 'Booking Confirmed!',
+    reservationConfirmedMessage: 'Your service has been successfully reserved.',
+    reservationCode: 'Code',
+    viewMyBookings: 'View my bookings',
+    place: 'Place',
   },
   orders: {
     title: 'My Bookings',
