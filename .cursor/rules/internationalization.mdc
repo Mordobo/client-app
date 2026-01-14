@@ -6,6 +6,4 @@ Always use t() from i18n for all user-visible texts.- Import: import { t } from 
 - Use in components: <Text>{t('auth.login.title')}</Text>
 - Use in errors: throw new Error(t('errors.invalidCredentials'))
 - Add translations in i18n/locales/ when adding new texts
-- Support both English (en) and Spanish (es)
-
-Never hardcode user-facing strings. All visible text must be internationalized.
+- Support both English (en) and Spanish (es)Never hardcode user-facing strings. All visible text must be internationalized.

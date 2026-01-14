@@ -12,9 +12,7 @@ Write clean, readable, self-documenting code:
 - Follow naming conventions: PascalCase for components, camelCase for functionsMobile specific:
 - Use React.memo for components that receive stable props
 - Prefer useCallback for functions passed as props
-- Use useMemo for expensive computations
-
-Backend specific:
+- Use useMemo for expensive computationsBackend specific:
 - Keep route handlers focused and single-purpose
 - Extract business logic to service functions when complex
 - Use middleware for cross-cutting concerns (auth, validation, logging)

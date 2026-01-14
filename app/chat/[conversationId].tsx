@@ -1,5 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
     ConversationDetail,
     fetchConversation,
@@ -12,9 +11,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Image,
     KeyboardAvoidingView,
+    Linking,
     Platform,
     StyleSheet,
     Text,
@@ -23,12 +24,23 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t } from '@/i18n';
 
 const POLLING_INTERVAL = 5000; // 5 seconds
 
+// Colors from JSX design
+const colors = {
+  bg: '#1a1a2e',
+  bgCard: '#252542',
+  bgInput: '#2d2d4a',
+  primary: '#3b82f6',
+  secondary: '#10b981',
+  textSecondary: '#9ca3af',
+  border: '#374151',
+};
+
 export default function ChatScreen() {
   const router = useRouter();
-  const { colorScheme } = useTheme();
   const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
@@ -42,17 +54,6 @@ export default function ChatScreen() {
   
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
-  const isDark = colorScheme === 'dark';
-  const themeColors = {
-    background: isDark ? '#151718' : '#F9FAFB',
-    surface: isDark ? '#1F2937' : '#FFFFFF',
-    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
-    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
-    border: isDark ? '#374151' : '#E5E7EB',
-    borderLight: isDark ? '#4B5563' : '#F3F4F6',
-    inputBg: isDark ? '#151718' : '#F3F4F6',
-  };
 
   const loadMessages = useCallback(async (showLoading = true) => {
     if (!conversationId) return;
@@ -128,8 +129,51 @@ export default function ChatScreen() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatDateDivider = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return t('chat.today');
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return t('chat.yesterday');
+    } else {
+      return date.toLocaleDateString([], {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+  };
+
   const isMyMessage = (message: Message) => {
     return message.sender_id === user?.id;
+  };
+
+  const handleCall = () => {
+    if (!conversation) return;
+    
+    const supplierPhone = conversation.supplier_phone_number;
+    
+    if (!supplierPhone) {
+      Alert.alert(
+        t('chat.callProvider'),
+        t('chat.phoneNumberNotAvailable')
+      );
+      return;
+    }
+
+    // Format phone number for tel: URL (remove spaces, keep + and digits)
+    const phoneUrl = `tel:${supplierPhone.replace(/\s/g, '')}`;
+    
+    Linking.openURL(phoneUrl).catch(() => {
+      Alert.alert(
+        t('common.error'),
+        t('chat.couldNotOpenDialer')
+      );
+    });
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
@@ -141,25 +185,18 @@ export default function ChatScreen() {
       <View>
         {showDate && (
           <View style={styles.dateContainer}>
-            <Text style={[styles.dateText, { color: themeColors.textSecondary, backgroundColor: themeColors.borderLight }]}>
-              {new Date(item.created_at).toLocaleDateString([], {
-                weekday: 'long',
-                month: 'short',
-                day: 'numeric',
-              })}
+            <Text style={styles.dateText}>
+              {formatDateDivider(item.created_at)}
             </Text>
           </View>
         )}
         <View style={[styles.messageBubbleContainer, isMine && styles.myMessageContainer]}>
-          <View style={[styles.messageBubble, isMine ? styles.myMessage : [styles.theirMessage, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]]}>
-            <Text style={[styles.messageText, { color: isMine ? '#FFFFFF' : themeColors.textPrimary }]}>
+          <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.theirMessage]}>
+            <Text style={styles.messageText}>
               {item.content}
             </Text>
-            <Text style={[styles.messageTime, { color: isMine ? 'rgba(255, 255, 255, 0.7)' : themeColors.textSecondary }]}>
+            <Text style={[styles.messageTime, isMine && styles.myMessageTime]}>
               {formatMessageTime(item.created_at)}
-              {isMine && item.read && (
-                <Text style={styles.readIndicator}> ✓✓</Text>
-              )}
             </Text>
           </View>
         </View>
@@ -169,9 +206,9 @@ export default function ChatScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={styles.container}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -186,30 +223,32 @@ export default function ChatScreen() {
     : null;
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+    <View style={styles.container}>
+      {/* Header - Exact match to JSX: padding: '50px 20px 16px', backgroundColor: colors.bgCard */}
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 50) }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         
+        {otherUserImage ? (
+          <Image source={{ uri: otherUserImage }} style={styles.headerAvatar} />
+        ) : (
+          <View style={styles.headerAvatarPlaceholder}>
+            <Text style={styles.headerAvatarEmoji}>🧑‍🔧</Text>
+          </View>
+        )}
+        
         <View style={styles.headerInfo}>
-          {otherUserImage ? (
-            <Image source={{ uri: otherUserImage }} style={styles.headerAvatar} />
-          ) : (
-            <View style={[styles.headerAvatarPlaceholder, { backgroundColor: themeColors.borderLight }]}>
-              <Ionicons name="person" size={20} color={themeColors.textSecondary} />
-            </View>
-          )}
-          <View>
-            <Text style={[styles.headerName, { color: themeColors.textPrimary }]}>{otherUserName || 'Chat'}</Text>
-            {conversation?.order_id && (
-              <Text style={[styles.headerSubtitle, { color: themeColors.textSecondary }]}>Order related</Text>
-            )}
+          <Text style={styles.headerName}>{otherUserName || 'Chat'}</Text>
+          <View style={styles.statusContainer}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>{t('chat.online')}</Text>
           </View>
         </View>
 
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={handleCall} style={styles.callButton}>
+          <Ionicons name="call" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -222,14 +261,14 @@ export default function ChatScreen() {
           <View style={styles.centerContainer}>
             <Text style={styles.errorText}>{error}</Text>
             <TouchableOpacity style={styles.retryButton} onPress={() => loadMessages()}>
-              <Text style={styles.retryText}>Retry</Text>
+              <Text style={styles.retryText}>{t('chat.retry')}</Text>
             </TouchableOpacity>
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.centerContainer}>
-            <Ionicons name="chatbubble-outline" size={48} color={themeColors.textSecondary} />
-            <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>No messages yet</Text>
-            <Text style={[styles.emptySubtext, { color: themeColors.textSecondary }]}>Send a message to start the conversation</Text>
+            <Ionicons name="chatbubble-outline" size={48} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>{t('chat.noMessages')}</Text>
+            <Text style={styles.emptySubtext}>{t('chat.noMessagesDesc')}</Text>
           </View>
         ) : (
           <FlatList
@@ -243,14 +282,17 @@ export default function ChatScreen() {
           />
         )}
 
-        {/* Input */}
-        <View style={[styles.inputContainer, { backgroundColor: themeColors.surface, borderTopColor: themeColors.border }]}>
+        {/* Input Area - Exact match to JSX */}
+        <View style={styles.inputContainer}>
+          <TouchableOpacity style={styles.attachButton}>
+            <Ionicons name="attach-outline" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
           <TextInput
-            style={[styles.input, { backgroundColor: themeColors.inputBg, color: themeColors.textPrimary }]}
+            style={styles.input}
             value={messageText}
             onChangeText={setMessageText}
-            placeholder="Type a message..."
-            placeholderTextColor={themeColors.textSecondary}
+            placeholder={t('chat.messagePlaceholder')}
+            placeholderTextColor={colors.textSecondary}
             multiline
             maxLength={1000}
           />
@@ -262,7 +304,7 @@ export default function ChatScreen() {
             {sending ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Ionicons name="send" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             )}
           </TouchableOpacity>
         </View>
@@ -274,17 +316,19 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.bg,
   },
   flex: {
     flex: 1,
   },
+  // Header - Exact match to JSX
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: colors.bgCard,
   },
   backButton: {
     width: 40,
@@ -292,30 +336,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   headerAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bgInput,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+  },
+  headerAvatarEmoji: {
+    fontSize: 20,
+  },
+  headerInfo: {
+    flex: 1,
   },
   headerName: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
-  headerSubtitle: {
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.secondary,
+  },
+  statusText: {
     fontSize: 12,
+    color: colors.secondary,
+  },
+  callButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   centerContainer: {
     flex: 1,
@@ -324,93 +389,117 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   messagesList: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
+  // Date Divider - Exact match to JSX: backgroundColor: #252542
   dateContainer: {
     alignItems: 'center',
-    marginVertical: 16,
+    marginBottom: 16,
   },
   dateText: {
     fontSize: 12,
+    color: colors.textSecondary,
+    backgroundColor: colors.bgCard,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
   },
+  // Message Bubbles - Exact match to JSX border radius
   messageBubbleContainer: {
     flexDirection: 'row',
-    marginVertical: 2,
+    marginBottom: 12,
   },
   myMessageContainer: {
     justifyContent: 'flex-end',
   },
   messageBubble: {
-    maxWidth: '80%',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18,
+    maxWidth: '75%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
+  // User message: borderRadius: '16px 16px 4px 16px'
   myMessage: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.primary,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderBottomRightRadius: 4,
+    borderBottomLeftRadius: 16,
   },
+  // Provider message: borderRadius: '16px 16px 16px 4px'
   theirMessage: {
+    backgroundColor: colors.bgCard,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
   },
   messageText: {
-    fontSize: 15,
+    fontSize: 14,
     lineHeight: 20,
-  },
-  myMessageText: {
     color: '#FFFFFF',
   },
   messageTime: {
     fontSize: 11,
     marginTop: 4,
-    alignSelf: 'flex-end',
+    textAlign: 'right',
+    color: colors.textSecondary,
   },
   myMessageTime: {
     color: 'rgba(255, 255, 255, 0.7)',
   },
-  readIndicator: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
+  // Input Area - Exact match to JSX
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    paddingTop: 16,
+    backgroundColor: colors.bgCard,
     borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  attachButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.bgInput,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     maxHeight: 100,
-    borderRadius: 20,
+    borderRadius: 24, // Exact match to JSX: borderRadius: '24px'
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    marginRight: 8,
+    paddingVertical: 14,
+    fontSize: 14,
+    color: '#FFFFFF',
+    backgroundColor: colors.bgInput,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#10B981',
+    width: 44,
+    height: 44,
+    borderRadius: 22, // Circular
+    backgroundColor: colors.primary, // Primary color
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendButtonDisabled: {
-    backgroundColor: '#D1D5DB',
+    backgroundColor: colors.border,
+    opacity: 0.5,
   },
   emptyText: {
     fontSize: 16,
     marginTop: 12,
+    color: '#FFFFFF',
   },
   emptySubtext: {
     fontSize: 14,
     marginTop: 4,
+    color: colors.textSecondary,
   },
   errorText: {
     fontSize: 16,
@@ -419,7 +508,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

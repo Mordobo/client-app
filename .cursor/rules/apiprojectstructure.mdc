@@ -2,9 +2,7 @@
 name: API Project Structure
 alwaysApply: true
 ---
-For backend API (Mordobo/API repository):
-
-Structure:
+For backend API (Mordobo/API repository):Structure:
 - API/src/routes/ for API endpoints organized by domain
 - API/src/db.ts for database connection
 - API/src/index.ts for Express server setupConventions:
