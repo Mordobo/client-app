@@ -5,9 +5,7 @@ alwaysApply: true
 This is a multi-repository project:MOBILE (This repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile
 - Contains React Native/Expo frontend
 - mobile/services/ contains API CLIENT code (calls backend)
-- mobile/services/auth.ts calls POST /auth/login from backend
-
-API (Separate repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API
+- mobile/services/auth.ts calls POST /auth/login from backendAPI (Separate repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API
 - Contains Express.js backend
 - API/src/routes/ contains API ENDPOINTS
 - API/src/routes/auth.ts defines POST /auth/login endpoint

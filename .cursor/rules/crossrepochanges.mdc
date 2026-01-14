@@ -23,6 +23,4 @@ When a feature affects both mobile and API repositories:
    - Update components that consume the service4. VERIFY:
    - Test end-to-end flow
    - Verify type synchronization
-   - Check error handling
-
-Always check if changes require backend modifications BEFORE starting implementation.
+   - Check error handlingAlways check if changes require backend modifications BEFORE starting implementation.
