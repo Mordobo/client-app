@@ -1,8 +1,8 @@
 import { Toast } from '@/components/Toast';
+import { AddCardModal } from '@/components/payment/AddCardModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import {
-  createPaymentMethod,
   deletePaymentMethod,
   getPaymentMethods,
   setDefaultPaymentMethod,
@@ -13,13 +13,9 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -51,39 +47,6 @@ const darkColors = {
   border: '#374151',
 };
 
-// Luhn algorithm for card validation
-const validateCardNumber = (cardNumber: string): boolean => {
-  const cleaned = cardNumber.replace(/\s+/g, '');
-  if (cleaned.length < 13 || cleaned.length > 19) return false;
-  
-  let sum = 0;
-  let isEven = false;
-  
-  for (let i = cleaned.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleaned[i], 10);
-    
-    if (isEven) {
-      digit *= 2;
-      if (digit > 9) {
-        digit -= 9;
-      }
-    }
-    
-    sum += digit;
-    isEven = !isEven;
-  }
-  
-  return sum % 10 === 0;
-};
-
-// Detect card brand from number
-const detectCardBrand = (cardNumber: string): 'visa' | 'mastercard' | 'amex' | 'unknown' => {
-  const cleaned = cardNumber.replace(/\s+/g, '');
-  if (cleaned.startsWith('4')) return 'visa';
-  if (cleaned.startsWith('5') || cleaned.startsWith('2')) return 'mastercard';
-  if (cleaned.startsWith('3')) return 'amex';
-  return 'unknown';
-};
 
 // Card Icon Component with gradients
 const CardIcon: React.FC<{ type: 'visa' | 'mastercard' | 'paypal' }> = ({ type }) => {
@@ -182,31 +145,6 @@ export default function PaymentMethodsScreen() {
     }
   };
 
-  const [newCard, setNewCard] = useState({
-    cardNumber: '',
-    expDate: '',
-    cvv: '',
-    cardHolder: '',
-  });
-
-  const formatCardNumber = (value: string): string => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts: string[] = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    return parts.length ? parts.join(' ') : value;
-  };
-
-  const formatExpDate = (value: string): string => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    if (v.length >= 2) {
-      return v.substring(0, 2) + '/' + v.substring(2, 4);
-    }
-    return v;
-  };
 
   const handleSetDefault = async (id: string) => {
     try {
@@ -247,96 +185,12 @@ export default function PaymentMethodsScreen() {
     }
   };
 
-  const handleAddCard = async () => {
-    // Validate card number
-    const cleanedCardNumber = newCard.cardNumber.replace(/\s+/g, '');
-    if (cleanedCardNumber.length < 13 || cleanedCardNumber.length > 19) {
-      setToastMessage(t('paymentMethods.invalidCardNumber'));
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    if (!validateCardNumber(cleanedCardNumber)) {
-      setToastMessage(t('paymentMethods.invalidCardNumber'));
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    // Validate expiry date
-    const [month, year] = newCard.expDate.split('/');
-    if (!month || !year || month.length !== 2 || year.length !== 2) {
-      setToastMessage(t('paymentMethods.invalidExpiry'));
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    const expMonth = parseInt(month, 10);
-    const expYear = parseInt('20' + year, 10);
-    const now = new Date();
-    if (expMonth < 1 || expMonth > 12 || expYear < now.getFullYear() || 
-        (expYear === now.getFullYear() && expMonth < now.getMonth() + 1)) {
-      setToastMessage(t('paymentMethods.invalidExpiry'));
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    // Validate CVV
-    if (newCard.cvv.length < 3 || newCard.cvv.length > 4) {
-      setToastMessage(t('paymentMethods.invalidCVV'));
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    // Validate card holder
-    if (!newCard.cardHolder.trim()) {
-      setToastMessage(t('paymentMethods.invalidCardHolder'));
-      setToastType('error');
-      setToastVisible(true);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const brand = detectCardBrand(cleanedCardNumber);
-      const last4 = cleanedCardNumber.slice(-4);
-      const [month, year] = newCard.expDate.split('/');
-      const expiryMonth = parseInt(month, 10);
-      const expiryYear = parseInt('20' + year, 10);
-
-      // Create payment method via API
-      await createPaymentMethod({
-        type: brand === 'visa' ? 'visa' : brand === 'mastercard' ? 'mastercard' : 'visa',
-        last4,
-        expiry_month: expiryMonth,
-        expiry_year: expiryYear,
-        brand: brand === 'visa' ? 'Visa' : brand === 'mastercard' ? 'Mastercard' : 'Visa',
-        card_holder_name: newCard.cardHolder,
-        is_default: paymentMethods.length === 0,
-      });
-
-      // Reload payment methods
-      await loadPaymentMethods();
-      
-      setShowAddCard(false);
-      setNewCard({ cardNumber: '', expDate: '', cvv: '', cardHolder: '' });
-      setToastMessage(t('paymentMethods.cardAdded'));
-      setToastType('success');
-      setToastVisible(true);
-    } catch (error: any) {
-      console.error('[PaymentMethods] Failed to add card:', error);
-      const errorMessage = error?.data?.message || error?.message || t('paymentMethods.addCardFailed');
-      setToastMessage(errorMessage);
-      setToastType('error');
-      setToastVisible(true);
-    } finally {
-      setLoading(false);
-    }
+  const handleCardAdded = () => {
+    setShowAddCard(false);
+    loadPaymentMethods();
+    setToastMessage(t('paymentMethods.cardAdded'));
+    setToastType('success');
+    setToastVisible(true);
   };
 
   return (
@@ -468,136 +322,12 @@ export default function PaymentMethodsScreen() {
       )}
 
       {/* Add Card Modal */}
-      <Modal
+      <AddCardModal
         visible={showAddCard}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAddCard(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowAddCard(false)}
-          >
-            <View style={styles.modalContent}>
-              <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-                {/* Handle */}
-                <View style={styles.modalHandle} />
-
-                <Text style={styles.modalTitle}>{t('paymentMethods.addCard')}</Text>
-
-                {/* Card Number */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('paymentMethods.cardNumber')}</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="1234 5678 9012 3456"
-                    placeholderTextColor={colors.textSecondary}
-                    maxLength={19}
-                    value={newCard.cardNumber}
-                    onChangeText={(text) =>
-                      setNewCard(prev => ({ ...prev, cardNumber: formatCardNumber(text) }))
-                    }
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                {/* Row: Expiry & CVV */}
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputContainer, styles.inputHalf]}>
-                    <Text style={styles.inputLabel}>{t('paymentMethods.expiryDate')}</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="MM/YY"
-                      placeholderTextColor={colors.textSecondary}
-                      maxLength={5}
-                      value={newCard.expDate}
-                      onChangeText={(text) =>
-                        setNewCard(prev => ({ ...prev, expDate: formatExpDate(text) }))
-                      }
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={[styles.inputContainer, styles.inputHalf]}>
-                    <Text style={styles.inputLabel}>{t('paymentMethods.cvv')}</Text>
-                    <TextInput
-                      style={[styles.input, styles.inputCVV]}
-                      placeholder="•••"
-                      placeholderTextColor={colors.textSecondary}
-                      maxLength={4}
-                      value={newCard.cvv}
-                      onChangeText={(text) =>
-                        setNewCard(prev => ({ ...prev, cvv: text.replace(/\D/g, '') }))
-                      }
-                      keyboardType="numeric"
-                      secureTextEntry
-                    />
-                  </View>
-                </View>
-
-                {/* Card Holder */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>{t('paymentMethods.cardHolder')}</Text>
-                  <TextInput
-                    style={[styles.input, styles.inputCardHolder]}
-                    placeholder={t('paymentMethods.cardHolderPlaceholder')}
-                    placeholderTextColor={colors.textSecondary}
-                    value={newCard.cardHolder}
-                    onChangeText={(text) =>
-                      setNewCard(prev => ({ ...prev, cardHolder: text.toUpperCase() }))
-                    }
-                    autoCapitalize="characters"
-                  />
-                </View>
-
-                {/* Buttons */}
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowAddCard(false);
-                      setNewCard({ cardNumber: '', expDate: '', cvv: '', cardHolder: '' });
-                    }}
-                    style={styles.modalButtonCancel}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
-                  </TouchableOpacity>
-                  {loading ? (
-                    <View style={styles.modalButtonConfirm}>
-                      <ActivityIndicator color="#FFFFFF" />
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={handleAddCard}
-                      style={styles.modalButtonConfirm}
-                      activeOpacity={0.7}
-                    >
-                      <LinearGradient
-                        colors={[colors.primary, colors.purple]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.modalButtonGradient}
-                      >
-                        <Text style={styles.modalButtonTextConfirm}>{t('paymentMethods.add')}</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Security Note */}
-                <View style={styles.securityNote}>
-                  <Text style={styles.lockIcon}>🔒</Text>
-                  <Text style={styles.securityNoteText}>{t('paymentMethods.sslEncryption')}</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </Modal>
+        onClose={() => setShowAddCard(false)}
+        onCardAdded={handleCardAdded}
+        isDefault={paymentMethods.length === 0}
+      />
 
       {/* Delete Confirmation Modal */}
       <Modal
@@ -900,73 +630,8 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    width: '100%',
-    backgroundColor: '#1a1a2e',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#374151',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  inputHalf: {
-    flex: 1,
-  },
-  inputLabel: {
-    color: '#9ca3af',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    width: '100%',
-    padding: 16,
-    backgroundColor: '#2d2d4a',
-    borderWidth: 1,
-    borderColor: '#374151',
-    borderRadius: 12,
-    color: '#ffffff',
-    fontSize: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    letterSpacing: 2,
-  },
-  inputCVV: {
-    letterSpacing: 4,
-  },
-  inputCardHolder: {
-    fontFamily: 'system',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalButtonCancel: {
     flex: 1,
@@ -976,44 +641,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalButtonConfirm: {
-    flex: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  modalButtonGradient: {
-    padding: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   modalButtonTextCancel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
-  },
-  modalButtonTextConfirm: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-  securityNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 20,
-  },
-  lockIcon: {
-    fontSize: 14,
-  },
-  securityNoteText: {
-    color: '#9ca3af',
-    fontSize: 11,
   },
   deleteModalContent: {
     width: '100%',
