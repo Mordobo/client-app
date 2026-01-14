@@ -297,6 +297,13 @@ export default {
     approveAndPay: 'Aprobar y pagar',
     chatBack: 'Volver al chat',
   },
+  booking: {
+    selectDateTime: 'Selecciona fecha y hora',
+    availableTimes: 'Horarios disponibles',
+    estimatedDuration: 'Duración estimada',
+    selectAllFields: 'Por favor selecciona fecha, hora y duración',
+    continue: 'Continuar',
+  },
   payment: {
     title: 'Seleccionar método de pago',
     addNewCard: 'Agregar nueva tarjeta',

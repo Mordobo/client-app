@@ -244,8 +244,57 @@ export const fetchSupplierReviews = async (
   }
 };
 
+// GET /suppliers/:id/availability - Get supplier availability
+export interface AvailabilitySlot {
+  date: string; // ISO date string (YYYY-MM-DD)
+  time: string; // Time in HH:MM format
+  available: boolean;
+}
 
+export interface SupplierAvailabilityResponse {
+  slots: AvailabilitySlot[];
+  unavailable_dates: string[]; // Array of ISO date strings
+}
 
+export const fetchSupplierAvailability = async (
+  supplierId: string,
+  startDate?: string, // ISO date string
+  endDate?: string // ISO date string
+): Promise<SupplierAvailabilityResponse> => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.append('start_date', startDate);
+    if (endDate) queryParams.append('end_date', endDate);
+
+    const url = `${API_BASE}/suppliers/${supplierId}/availability${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        errorData.message || 'Failed to fetch supplier availability',
+        response.status
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
 
 
 

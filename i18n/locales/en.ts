@@ -374,6 +374,11 @@ export default {
     add: 'Add',
   },
   booking: {
+    selectDateTime: 'Select date and time',
+    availableTimes: 'Available times',
+    estimatedDuration: 'Estimated duration',
+    selectAllFields: 'Please select date, time and duration',
+    continue: 'Continue',
     paymentSuccessful: 'Payment Successful',
     bookingConfirmed: 'Your booking has been confirmed.',
     viewBooking: 'View Booking',
