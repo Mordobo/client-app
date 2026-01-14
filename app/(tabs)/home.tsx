@@ -5,6 +5,7 @@ import { t } from '@/i18n';
 import { Category, fetchCategories } from '@/services/categories';
 import { Supplier, fetchSuppliers } from '@/services/suppliers';
 import { getAddresses, type Address } from '@/services/addresses';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -54,6 +55,12 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       loadDefaultAddress();
+      // Refresh favorites when returning to home screen
+      // This ensures favorites are synced after changes in other screens
+      const { refreshFavorites } = useFavoritesStore.getState();
+      refreshFavorites().catch((error) => {
+        console.error('[Home] Error refreshing favorites:', error);
+      });
     }, [])
   );
 

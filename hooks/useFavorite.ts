@@ -6,7 +6,8 @@ import {
   fetchFavorites,
   removeFavorite,
 } from '@/services/favorites';
-import { useCallback, useEffect, useState } from 'react';
+import { useFavoritesStore } from '@/stores/favoritesStore';
+import { useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 
 interface UseFavoriteReturn {
@@ -18,35 +19,42 @@ interface UseFavoriteReturn {
 
 /**
  * Hook to manage favorite status for a supplier
+ * Uses global Zustand store for state synchronization across screens
  * @param supplierId - The ID of the supplier to check/manage
  */
 export function useFavorite(supplierId: string | undefined): UseFavoriteReturn {
   const { isAuthenticated } = useAuth();
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const {
+    isLoading: storeLoading,
+    isFavorite: storeIsFavorite,
+    setFavoriteIds,
+    addFavorite: addToStore,
+    removeFavorite: removeFromStore,
+    setLoading,
+  } = useFavoritesStore();
 
-  // Check if supplier is in favorites
+  // Get favorite status from store
+  const isFavorite = supplierId ? storeIsFavorite(supplierId) : false;
+  const isLoading = storeLoading;
+
+  // Check if supplier is in favorites and refresh store if needed
   const checkFavorite = useCallback(async () => {
     if (!supplierId || !isAuthenticated) {
-      setIsFavorite(false);
       return;
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       const data = await fetchFavorites();
       const ids = new Set(data.favorites.map((f) => f.id));
       setFavoriteIds(ids);
-      setIsFavorite(ids.has(supplierId));
     } catch (error) {
       console.error('[useFavorite] Error checking favorite:', error);
-      // Don't show error to user, just assume not favorite
-      setIsFavorite(false);
+      // Don't show error to user, just keep current state
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [supplierId, isAuthenticated]);
+  }, [supplierId, isAuthenticated, setFavoriteIds, setLoading]);
 
   // Toggle favorite status
   const toggleFavorite = useCallback(async () => {
@@ -56,38 +64,32 @@ export function useFavorite(supplierId: string | undefined): UseFavoriteReturn {
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
 
       if (isFavorite) {
         // Remove from favorites
         await removeFavorite(supplierId);
-        setIsFavorite(false);
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          next.delete(supplierId);
-          return next;
-        });
+        removeFromStore(supplierId);
       } else {
         // Add to favorites
-        await addFavorite(supplierId);
-        setIsFavorite(true);
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          next.add(supplierId);
-          return next;
-        });
+        try {
+          await addFavorite(supplierId);
+          addToStore(supplierId);
+        } catch (error) {
+          if (error instanceof ApiError && error.statusCode === 409) {
+            // Already favorited, just update store state
+            addToStore(supplierId);
+          } else {
+            throw error;
+          }
+        }
       }
     } catch (error) {
       console.error('[useFavorite] Error toggling favorite:', error);
       if (error instanceof ApiError) {
         if (error.statusCode === 409) {
-          // Already favorited, just update state
-          setIsFavorite(true);
-          setFavoriteIds((prev) => {
-            const next = new Set(prev);
-            next.add(supplierId);
-            return next;
-          });
+          // Already favorited, just update store state
+          addToStore(supplierId);
         } else {
           Alert.alert(t('common.error'), error.message);
         }
@@ -95,14 +97,26 @@ export function useFavorite(supplierId: string | undefined): UseFavoriteReturn {
         Alert.alert(t('common.error'), t('favorites.toggleError'));
       }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [supplierId, isAuthenticated, isFavorite]);
+  }, [supplierId, isAuthenticated, isFavorite, addToStore, removeFromStore, setLoading]);
 
   // Check favorite status on mount and when supplierId changes
+  // Only fetch if store is empty or stale (older than 30 seconds)
   useEffect(() => {
-    checkFavorite();
-  }, [checkFavorite]);
+    if (!supplierId || !isAuthenticated) {
+      return;
+    }
+
+    const store = useFavoritesStore.getState();
+    const shouldRefresh = 
+      store.favoriteIds.size === 0 || 
+      (Date.now() - store.lastUpdated) > 30000; // 30 seconds
+
+    if (shouldRefresh) {
+      checkFavorite();
+    }
+  }, [supplierId, isAuthenticated, checkFavorite]);
 
   return {
     isFavorite,
