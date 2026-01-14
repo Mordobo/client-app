@@ -58,6 +58,7 @@ export default function ProviderDetailScreen() {
   const [startingChat, setStartingChat] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   // Parallax effect for header image
   const headerTranslateY = scrollY.interpolate({
@@ -117,16 +118,16 @@ export default function ProviderDetailScreen() {
   };
 
   const handleBookNow = async () => {
-    if (!supplierId) return;
-    // Navigate to chat to start booking conversation
-    // The booking flow typically starts with a conversation
-    try {
-      const { conversation } = await getOrCreateConversation(supplierId);
-      router.push(`/chat/${conversation.id}`);
-    } catch (err) {
-      console.error('Error starting booking:', err);
-      Alert.alert(t('common.error'), 'Failed to start booking. Please try again.');
-    }
+    if (!supplierId || !selectedServiceId) return;
+    
+    // Navigate to booking date/time screen with selected service
+    router.push({
+      pathname: '/booking/date-time',
+      params: {
+        supplierId,
+        serviceId: selectedServiceId,
+      },
+    });
   };
 
   const toggleAboutExpanded = () => {
@@ -319,24 +320,39 @@ export default function ProviderDetailScreen() {
           {services.length > 0 && (
             <View style={styles.servicesSection}>
               <Text style={styles.sectionTitle}>{t('supplier.services')}</Text>
-              {services.map((service) => (
-                <View key={service.id} style={styles.serviceCard}>
-                  <View style={styles.serviceInfo}>
-                    <Text style={styles.serviceName}>
-                      {service.category_name || 'Service'}
-                    </Text>
-                    <View style={styles.serviceDurationRow}>
-                      <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                      <Text style={styles.serviceDuration}>{getServiceDuration(service)}</Text>
+              {services.map((service) => {
+                const isSelected = selectedServiceId === service.id;
+                return (
+                  <TouchableOpacity
+                    key={service.id}
+                    style={[
+                      styles.serviceCard,
+                      isSelected && styles.serviceCardSelected,
+                    ]}
+                    onPress={() => setSelectedServiceId(service.id)}
+                  >
+                    <View style={styles.serviceInfo}>
+                      <Text style={styles.serviceName}>
+                        {service.category_name || 'Service'}
+                      </Text>
+                      <View style={styles.serviceDurationRow}>
+                        <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                        <Text style={styles.serviceDuration}>{getServiceDuration(service)}</Text>
+                      </View>
                     </View>
-                  </View>
-                  {service.price && (
-                    <Text style={styles.servicePrice}>
-                      ${service.price}{t('supplier.perHour')}
-                    </Text>
-                  )}
-                </View>
-              ))}
+                    <View style={styles.serviceRightSection}>
+                      {service.price && (
+                        <Text style={styles.servicePrice}>
+                          ${service.price}{t('supplier.perHour')}
+                        </Text>
+                      )}
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </View>
@@ -355,7 +371,14 @@ export default function ProviderDetailScreen() {
             <Ionicons name="chatbubble-outline" size={24} color={colors.white} />
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bookButton} onPress={handleBookNow}>
+        <TouchableOpacity
+          style={[
+            styles.bookButton,
+            !selectedServiceId && styles.bookButtonDisabled,
+          ]}
+          onPress={handleBookNow}
+          disabled={!selectedServiceId}
+        >
           <Text style={styles.bookButtonText}>{t('supplier.bookNow')}</Text>
         </TouchableOpacity>
       </View>
@@ -523,6 +546,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  serviceCardSelected: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}20`,
   },
   serviceInfo: {
     flex: 1,
@@ -541,6 +570,11 @@ const styles = StyleSheet.create({
   serviceDuration: {
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  serviceRightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   servicePrice: {
     fontSize: 16,
@@ -585,6 +619,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bookButtonDisabled: {
+    backgroundColor: colors.bgCard,
+    opacity: 0.5,
   },
   bookButtonText: {
     fontSize: 16,
