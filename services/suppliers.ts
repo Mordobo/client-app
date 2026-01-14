@@ -22,6 +22,7 @@ export interface Supplier {
   response_time_hours?: number;
   status: string;
   created_at: string;
+  distance_km?: number; // Distance in kilometers (when near_me filter is used)
 }
 
 export interface SupplierService {
@@ -83,6 +84,12 @@ export interface FetchSuppliersParams {
   category?: string;
   location?: string;
   rating?: number;
+  query?: string; // Text search
+  sort_by?: 'rating' | 'price' | 'distance' | 'reviews'; // Sort options
+  available_today?: boolean; // Filter by availability
+  near_me?: boolean; // Filter by proximity
+  user_lat?: number; // User latitude for distance calculation
+  user_lng?: number; // User longitude for distance calculation
   limit?: number;
   offset?: number;
 }
@@ -97,6 +104,12 @@ export const fetchSuppliers = async (
     if (params.category) queryParams.append('category', params.category);
     if (params.location) queryParams.append('location', params.location);
     if (params.rating) queryParams.append('rating', params.rating.toString());
+    if (params.query) queryParams.append('query', params.query);
+    if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+    if (params.available_today) queryParams.append('available_today', 'true');
+    if (params.near_me) queryParams.append('near_me', 'true');
+    if (params.user_lat !== undefined) queryParams.append('user_lat', params.user_lat.toString());
+    if (params.user_lng !== undefined) queryParams.append('user_lng', params.user_lng.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.offset) queryParams.append('offset', params.offset.toString());
 
