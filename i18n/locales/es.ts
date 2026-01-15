@@ -285,6 +285,10 @@ export default {
     callProviderMessage: '¿Deseas llamar al proveedor?',
     phoneNumberNotAvailable: 'El número de teléfono del proveedor no está disponible',
     couldNotOpenDialer: 'No se pudo abrir el marcador telefónico',
+    imagePickerPermissionDenied: 'Se requiere permiso para acceder a las fotos para enviar imágenes',
+    imagePickerError: 'Error al seleccionar imagen',
+    imageUploadError: 'Error al enviar imagen',
+    imageTooLarge: 'La imagen es demasiado grande. Por favor selecciona una imagen más pequeña',
   },
   quote: {
     title: 'Revisar y aprobar',

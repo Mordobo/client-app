@@ -7,6 +7,8 @@ import {
     sendConversationMessage,
 } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -15,7 +17,6 @@ import {
     FlatList,
     Image,
     KeyboardAvoidingView,
-    Linking,
     Platform,
     StyleSheet,
     Text,
@@ -51,6 +52,8 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -101,15 +104,97 @@ export default function ChatScreen() {
     };
   }, [loadConversation, loadMessages]);
 
+  const handleImagePicker = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          t('common.error'),
+          t('chat.imagePickerPermissionDenied')
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const uri = result.assets[0].uri;
+        
+        try {
+          let dataUri: string;
+          
+          if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+              reader.onloadend = () => {
+                const base64 = reader.result as string;
+                const base64Data = base64.split(',')[1] || base64;
+                resolve(base64Data);
+              };
+              reader.onerror = reject;
+            });
+            reader.readAsDataURL(blob);
+            const base64Data = await base64Promise;
+            dataUri = `data:image/jpeg;base64,${base64Data}`;
+          } else if (uri.startsWith('data:')) {
+            dataUri = uri;
+          } else {
+            if (typeof FileSystem === 'undefined') {
+              throw new Error('FileSystem is not available');
+            }
+            const base64 = await FileSystem.readAsStringAsync(uri, {
+              encoding: 'base64',
+            } as { encoding: 'base64' });
+            // Determine MIME type from file extension
+            const mimeType = uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+            dataUri = `data:${mimeType};base64,${base64}`;
+          }
+          
+          // Check size (limit to ~10MB for base64)
+          const sizeInMB = dataUri.length / (1024 * 1024);
+          if (sizeInMB > 10) {
+            Alert.alert(
+              t('common.error'),
+              t('chat.imageTooLarge')
+            );
+            return;
+          }
+          
+          setSelectedImage(dataUri);
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          Alert.alert(t('common.error'), t('chat.imagePickerError'));
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert(t('common.error'), t('chat.imagePickerError'));
+    }
+  };
+
   const handleSend = async () => {
-    if (!messageText.trim() || !conversationId || sending) return;
+    if ((!messageText.trim() && !selectedImage) || !conversationId || sending || uploadingImage) return;
 
     const text = messageText.trim();
+    const imageToSend = selectedImage;
+    
     setMessageText('');
+    setSelectedImage(null);
     setSending(true);
+    setUploadingImage(!!imageToSend);
 
     try {
-      const newMessage = await sendConversationMessage(conversationId, text);
+      const newMessage = await sendConversationMessage(conversationId, {
+        ...(text && { content: text }),
+        ...(imageToSend && { imageBase64: imageToSend }),
+      });
       setMessages((prev) => [...prev, newMessage]);
       
       // Scroll to bottom
@@ -119,8 +204,16 @@ export default function ChatScreen() {
     } catch (err) {
       console.error('Error sending message:', err);
       setMessageText(text); // Restore message on error
+      if (imageToSend) {
+        setSelectedImage(imageToSend); // Restore image on error
+      }
+      Alert.alert(
+        t('common.error'),
+        imageToSend ? t('chat.imageUploadError') : 'Failed to send message'
+      );
     } finally {
       setSending(false);
+      setUploadingImage(false);
     }
   };
 
@@ -152,30 +245,6 @@ export default function ChatScreen() {
     return message.sender_id === user?.id;
   };
 
-  const handleCall = () => {
-    if (!conversation) return;
-    
-    const supplierPhone = conversation.supplier_phone_number;
-    
-    if (!supplierPhone) {
-      Alert.alert(
-        t('chat.callProvider'),
-        t('chat.phoneNumberNotAvailable')
-      );
-      return;
-    }
-
-    // Format phone number for tel: URL (remove spaces, keep + and digits)
-    const phoneUrl = `tel:${supplierPhone.replace(/\s/g, '')}`;
-    
-    Linking.openURL(phoneUrl).catch(() => {
-      Alert.alert(
-        t('common.error'),
-        t('chat.couldNotOpenDialer')
-      );
-    });
-  };
-
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
     const showDate = index === 0 || 
@@ -192,9 +261,26 @@ export default function ChatScreen() {
         )}
         <View style={[styles.messageBubbleContainer, isMine && styles.myMessageContainer]}>
           <View style={[styles.messageBubble, isMine ? styles.myMessage : styles.theirMessage]}>
-            <Text style={styles.messageText}>
-              {item.content}
-            </Text>
+            {item.image_url && (
+              <TouchableOpacity
+                style={styles.messageImageContainer}
+                onPress={() => {
+                  // TODO: Open image in full screen viewer
+                  Alert.alert('Image', 'Tap to view full screen (to be implemented)');
+                }}
+              >
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.messageImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+            {item.content ? (
+              <Text style={styles.messageText}>
+                {item.content}
+              </Text>
+            ) : null}
             <Text style={[styles.messageTime, isMine && styles.myMessageTime]}>
               {formatMessageTime(item.created_at)}
             </Text>
@@ -245,10 +331,6 @@ export default function ChatScreen() {
             <Text style={styles.statusText}>{t('chat.online')}</Text>
           </View>
         </View>
-
-        <TouchableOpacity onPress={handleCall} style={styles.callButton}>
-          <Ionicons name="call" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
       </View>
 
       {/* Messages */}
@@ -284,9 +366,24 @@ export default function ChatScreen() {
 
         {/* Input Area - Exact match to JSX */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.attachButton}>
+          <TouchableOpacity 
+            style={styles.attachButton}
+            onPress={handleImagePicker}
+            disabled={sending || uploadingImage}
+          >
             <Ionicons name="attach-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
+          {selectedImage && (
+            <View style={styles.selectedImageContainer}>
+              <Image source={{ uri: selectedImage }} style={styles.selectedImagePreview} />
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={() => setSelectedImage(null)}
+              >
+                <Ionicons name="close-circle" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          )}
           <TextInput
             style={styles.input}
             value={messageText}
@@ -295,13 +392,14 @@ export default function ChatScreen() {
             placeholderTextColor={colors.textSecondary}
             multiline
             maxLength={1000}
+            editable={!sending && !uploadingImage}
           />
           <TouchableOpacity
-            style={[styles.sendButton, (!messageText.trim() || sending) && styles.sendButtonDisabled]}
+            style={[styles.sendButton, ((!messageText.trim() && !selectedImage) || sending || uploadingImage) && styles.sendButtonDisabled]}
             onPress={handleSend}
-            disabled={!messageText.trim() || sending}
+            disabled={(!messageText.trim() && !selectedImage) || sending || uploadingImage}
           >
-            {sending ? (
+            {(sending || uploadingImage) ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
@@ -375,12 +473,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     color: colors.secondary,
-  },
-  callButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   centerContainer: {
     flex: 1,
@@ -517,6 +609,33 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  messageImageContainer: {
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    maxWidth: 250,
+  },
+  messageImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+  },
+  selectedImageContainer: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  selectedImagePreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
   },
 });
 

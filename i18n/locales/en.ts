@@ -285,6 +285,10 @@ export default {
     callProviderMessage: 'Do you want to call the provider?',
     phoneNumberNotAvailable: 'Provider phone number is not available',
     couldNotOpenDialer: 'Could not open phone dialer',
+    imagePickerPermissionDenied: 'Permission to access photos is required to send images',
+    imagePickerError: 'Failed to select image',
+    imageUploadError: 'Failed to send image',
+    imageTooLarge: 'Image is too large. Please select a smaller image',
   },
   quote: {
     title: 'Review & Approve',

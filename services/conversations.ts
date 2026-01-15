@@ -49,6 +49,7 @@ export interface Message {
   receiver_type: 'client' | 'supplier';
   receiver_id: string;
   content: string;
+  image_url: string | null;
   read: boolean;
   created_at: string;
 }
@@ -201,9 +202,15 @@ export const fetchConversationMessages = async (conversationId: string): Promise
 };
 
 // POST /conversations/:id/messages - Send message
+export interface SendMessageOptions {
+  content?: string;
+  imageBase64?: string; // Base64 data URI (data:image/...)
+  imageUrl?: string; // External URL (if already uploaded)
+}
+
 export const sendConversationMessage = async (
   conversationId: string,
-  content: string
+  options: SendMessageOptions | string // Support old API: string = content
 ): Promise<Message> => {
   try {
     const token = await getToken();
@@ -213,12 +220,22 @@ export const sendConversationMessage = async (
       throw new ApiError('Not authenticated. Please log in.', 401);
     }
     
+    // Support old API: if string is passed, treat as content
+    const body: { content?: string; image_base64?: string; image_url?: string } = 
+      typeof options === 'string' 
+        ? { content: options }
+        : {
+            ...(options.content && { content: options.content }),
+            ...(options.imageBase64 && { image_base64: options.imageBase64 }),
+            ...(options.imageUrl && { image_url: options.imageUrl }),
+          };
+    
     const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: createApiHeaders({
         'Authorization': `Bearer ${token}`,
       }),
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(body),
     });
 
     await handleApiResponse(response);
