@@ -19,7 +19,7 @@ export interface Conversation {
   client_id: string;
   supplier_id: string;
   order_id: string | null;
-  last_message_at: string;
+  last_message_at: string | null; // Can be null if conversation has no messages yet
   created_at: string;
   other_user_name: string;
   other_user_image: string | null;
@@ -68,7 +68,16 @@ export const fetchConversations = async (): Promise<Conversation[]> => {
     if (!data.conversations) {
       throw new ApiError('Invalid response format: missing conversations', 500);
     }
-    return data.conversations;
+    // Validate and sanitize data to prevent crashes
+    return data.conversations.map((conv) => ({
+      ...conv,
+      // Ensure last_message_at is either a valid string or null
+      last_message_at: conv.last_message_at || null,
+      // Ensure other fields have defaults
+      last_message: conv.last_message || null,
+      other_user_image: conv.other_user_image || null,
+      unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
+    }));
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

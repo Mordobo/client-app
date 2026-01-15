@@ -29,9 +29,27 @@ export default function ConversationsListScreen() {
       setLoading(true);
       const data = await fetchConversations();
       // Sort by most recent (last_message_at descending)
+      // Handle null last_message_at by putting them at the end
       const sortedData = [...data].sort((a, b) => {
+        // If both are null, maintain order
+        if (!a.last_message_at && !b.last_message_at) {
+          return 0;
+        }
+        // If a is null, put it after b
+        if (!a.last_message_at) {
+          return 1;
+        }
+        // If b is null, put it after a
+        if (!b.last_message_at) {
+          return -1;
+        }
+        // Both have dates, compare them
         const dateA = new Date(a.last_message_at).getTime();
         const dateB = new Date(b.last_message_at).getTime();
+        // Check for invalid dates
+        if (isNaN(dateA) || isNaN(dateB)) {
+          return 0;
+        }
         return dateB - dateA;
       });
       setConversations(sortedData);
@@ -74,8 +92,20 @@ export default function ConversationsListScreen() {
     router.push(`/chat/${conversationId}`);
   };
 
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | null) => {
+    // Handle null or invalid dates
+    if (!dateString) {
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? 'Nuevo' : 'New';
+    }
+    
     const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? 'Nuevo' : 'New';
+    }
+    
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
