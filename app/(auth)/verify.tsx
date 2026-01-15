@@ -56,6 +56,11 @@ export default function VerifyScreen() {
     };
   }, []);
 
+  // Debug effect to monitor state changes
+  useEffect(() => {
+    console.log('[Verify] State changed', { canResend, resendCooldown });
+  }, [canResend, resendCooldown]);
+
   // Calculate code input width dynamically
   // Each input should be 48x56px according to specs, but we'll make it responsive
   const CODE_INPUT_TOTAL_GAP = CODE_INPUT_GAP * (CODE_LENGTH - 1);
@@ -66,14 +71,40 @@ export default function VerifyScreen() {
   const CODE_INPUT_HEIGHT = 56; // Fixed height as per specs
 
   useEffect(() => {
-    // Start cooldown timer
+    // Clear any existing interval first
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current);
+      cooldownIntervalRef.current = null;
+    }
+
+    // If cooldown is 0, enable resend immediately
+    if (resendCooldown === 0) {
+      setCanResend(true);
+      console.log('[Verify] Cooldown is 0, canResend set to true');
+      return;
+    }
+
+    // Start cooldown timer if cooldown is greater than 0
     if (resendCooldown > 0) {
+      setCanResend(false); // Ensure canResend is false when cooldown is active
+      console.log('[Verify] Starting cooldown timer', { resendCooldown });
+      
       cooldownIntervalRef.current = setInterval(() => {
         setResendCooldown((prev) => {
           if (prev <= 1) {
+            // Clear interval when cooldown reaches 0
+            if (cooldownIntervalRef.current) {
+              clearInterval(cooldownIntervalRef.current);
+              cooldownIntervalRef.current = null;
+            }
+            
+            // Enable resend
             setCanResend(true);
+            console.log('[Verify] Cooldown finished, canResend set to true');
+            
             return 0;
           }
+          
           return prev - 1;
         });
       }, 1000);
@@ -82,6 +113,7 @@ export default function VerifyScreen() {
     return () => {
       if (cooldownIntervalRef.current) {
         clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
       }
     };
   }, [resendCooldown]);
@@ -275,21 +307,29 @@ export default function VerifyScreen() {
   };
 
   const handleResend = async () => {
-    if (!canResend) {
+    console.log('[Verify] handleResend called', { canResend, resendCooldown });
+    
+    // Double check: verify both canResend state and cooldown value
+    if (!canResend || resendCooldown > 0) {
+      console.log('[Verify] Resend blocked', { canResend, resendCooldown });
       return;
     }
 
     const email = params.email;
     if (!email) {
+      console.log('[Verify] Resend blocked - no email in params');
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       return;
     }
 
     try {
+      console.log('[Verify] Starting resend process for:', email);
+      
       // Get stored password from AsyncStorage
       const password = await AsyncStorage.getItem('pending_verification_password');
       
       if (!password) {
+        console.log('[Verify] Resend blocked - no password in storage');
         Alert.alert(
           t('common.error'),
           t('errors.unableToResendCode')
@@ -298,11 +338,15 @@ export default function VerifyScreen() {
         return;
       }
 
+      console.log('[Verify] Calling resendCode API...');
+      
       // Call API to resend code
       await resendCode({
         email,
         password,
       });
+      
+      console.log('[Verify] Resend API call successful');
       
       // Reset cooldown
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
@@ -329,12 +373,19 @@ export default function VerifyScreen() {
           const code = errorData?.verificationCode as string | undefined;
           
           if (code) {
+            // Reset cooldown even when SMTP fails (code was generated)
+            setResendCooldown(RESEND_COOLDOWN_SECONDS);
+            setCanResend(false);
+            
+            // Clear current code
+            setCode(Array(CODE_LENGTH).fill(''));
+            
             // Show modal with code
             setVerificationCode(code);
             setShowCodeModal(true);
             return;
           } else {
-            // No code provided, show error
+            // No code provided, show error but don't reset cooldown
             const detailedMessage = errorData?.message 
               ? String(errorData.message)
               : errorMessage;
@@ -453,9 +504,18 @@ export default function VerifyScreen() {
           <View style={styles.resendContainer}>
             <Text style={styles.resendQuestion}>{t('auth.didntReceiveCode')}</Text>
             <TouchableOpacity
-              onPress={handleResend}
-              disabled={!canResend}
+              onPress={() => {
+                console.log('[Verify] Resend button pressed', { canResend, resendCooldown });
+                if (canResend && resendCooldown === 0) {
+                  handleResend();
+                } else {
+                  console.log('[Verify] Resend blocked by button check', { canResend, resendCooldown });
+                }
+              }}
+              disabled={!canResend || resendCooldown > 0}
               style={styles.resendButton}
+              activeOpacity={canResend && resendCooldown === 0 ? 0.7 : 1}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
                 {canResend 
