@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n';
-import { API_BASE, getApiBaseUrl } from '@/utils/apiConfig';
+import { API_BASE } from '@/utils/apiConfig';
 import { authEvents } from '@/utils/authEvents';
 
 const buildUrl = (path: string) => {
