@@ -302,19 +302,28 @@ export default function HomeScreen() {
 
         {/* Promo Banner */}
         <View style={styles.promoSection}>
-          <LinearGradient
-            colors={['#3B82F6', '#8B5CF6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.promoBanner}
+          <TouchableOpacity 
+            activeOpacity={0.9}
+            onPress={handleViewAllCategories}
           >
-            <Text style={styles.promoLabel}>{t('home.promoLabel')}</Text>
-            <Text style={styles.promoDiscount}>{t('home.promoDiscount')}</Text>
-            <Text style={styles.promoDescription}>{t('home.promoDescription')}</Text>
-            <TouchableOpacity style={styles.promoButton}>
-              <Text style={styles.promoButtonText}>{t('home.promoButton')}</Text>
-            </TouchableOpacity>
-          </LinearGradient>
+            <LinearGradient
+              colors={['#3B82F6', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.promoBanner}
+            >
+              <Text style={styles.promoLabel}>{t('home.promoLabel')}</Text>
+              <Text style={styles.promoDiscount}>{t('home.promoDiscount')}</Text>
+              <Text style={styles.promoDescription}>{t('home.promoDescription')}</Text>
+              <TouchableOpacity 
+                style={styles.promoButton}
+                onPress={handleViewAllCategories}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.promoButtonText}>{t('home.promoButton')}</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         {/* Top Providers Section */}
