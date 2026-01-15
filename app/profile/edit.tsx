@@ -133,6 +133,7 @@ export default function EditProfileScreen() {
 
   const [formData, setFormData] = useState(() => initializeFormData(user));
 
+
   // Update formData when user data changes
   React.useEffect(() => {
     if (user) {
@@ -244,11 +245,13 @@ export default function EditProfileScreen() {
     if (Platform.OS === 'android') {
       setShowDatePicker(false);
       if (event && (event as { type: string }).type === 'set' && selectedDate) {
+        console.log('[EditProfile] Date selected (Android):', selectedDate, 'ISO:', selectedDate.toISOString().split('T')[0]);
         setFormData({ ...formData, dateOfBirth: selectedDate });
       }
     } else {
       // iOS: update date as user scrolls
       if (selectedDate) {
+        console.log('[EditProfile] Date selected (iOS):', selectedDate, 'ISO:', selectedDate.toISOString().split('T')[0]);
         setFormData({ ...formData, dateOfBirth: selectedDate });
       }
     }
@@ -311,15 +314,50 @@ export default function EditProfileScreen() {
       }
 
       // Check if gender changed
+      // Include gender if:
+      // 1. User selected a gender and it's different from current
+      // 2. User had no gender and selected one
+      // 3. User had a gender and cleared it (formData.gender is undefined but user.gender is not)
       if (formData.gender !== user.gender) {
         updatePayload.gender = formData.gender;
       }
 
       // Check if date of birth changed
-      const currentDateOfBirth = user.dateOfBirth || '';
+      // Normalize current date of birth to YYYY-MM-DD format
+      let currentDateOfBirth = '';
+      if (user.dateOfBirth) {
+        try {
+          const currentDate = new Date(user.dateOfBirth);
+          if (!isNaN(currentDate.getTime())) {
+            currentDateOfBirth = currentDate.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          // If parsing fails, treat as empty
+          currentDateOfBirth = '';
+        }
+      }
+      
       const newDateOfBirth = formData.dateOfBirth ? formData.dateOfBirth.toISOString().split('T')[0] : '';
-      if (newDateOfBirth !== currentDateOfBirth) {
+      
+      console.log('[EditProfile] Date of birth check:', {
+        userDateOfBirth: user.dateOfBirth,
+        currentDateOfBirth,
+        formDataDateOfBirth: formData.dateOfBirth,
+        newDateOfBirth,
+        areDifferent: newDateOfBirth !== currentDateOfBirth,
+      });
+      
+      // Include dateOfBirth if:
+      // 1. User selected a date (newDateOfBirth is not empty) and it's different from current
+      // 2. User had a date and cleared it (newDateOfBirth is empty but currentDateOfBirth is not)
+      // 3. User is setting a date for the first time (newDateOfBirth is not empty and currentDateOfBirth is empty)
+      if (newDateOfBirth && newDateOfBirth !== currentDateOfBirth) {
         updatePayload.dateOfBirth = newDateOfBirth;
+        console.log('[EditProfile] Adding dateOfBirth to payload:', newDateOfBirth);
+      } else if (!newDateOfBirth && currentDateOfBirth) {
+        // User cleared the date - send empty string to clear it in backend
+        updatePayload.dateOfBirth = '';
+        console.log('[EditProfile] Clearing dateOfBirth in payload');
       }
 
       // Check if image changed
@@ -330,6 +368,9 @@ export default function EditProfileScreen() {
       
       const hasChanges = Object.keys(updatePayload).length > 0;
 
+      console.log('[EditProfile] Update payload:', updatePayload);
+      console.log('[EditProfile] Has changes:', hasChanges);
+
       if (!hasChanges) {
         Alert.alert('No Changes', 'No changes to save');
         setLoading(false);
@@ -337,7 +378,9 @@ export default function EditProfileScreen() {
       }
 
       // Call the API
+      console.log('[EditProfile] Calling updateProfile with payload:', updatePayload);
       const response = await updateProfile(updatePayload);
+      console.log('[EditProfile] Update response:', response);
 
       // Map backend response to app user format
       const apiUser = response.user;
@@ -355,8 +398,8 @@ export default function EditProfileScreen() {
         email: apiUser.email || user.email,
         phone: apiUser.phone_number || user.phone,
         country: (apiUser.country as string | undefined) ?? user.country,
-        gender: formData.gender,
-        dateOfBirth: newDateOfBirth || user.dateOfBirth,
+        gender: (apiUser.gender as 'male' | 'female' | undefined) ?? formData.gender ?? user.gender,
+        dateOfBirth: (apiUser.date_of_birth as string | undefined) ?? newDateOfBirth ?? user.dateOfBirth,
         avatar: updatedAvatar,
       };
 
@@ -516,45 +559,85 @@ export default function EditProfileScreen() {
             {/* Date of Birth */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{t('profile.dateOfBirth')}</Text>
-              <TouchableOpacity
-                style={styles.dateInput}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Text style={[
-                  styles.dateInputText,
-                  !formData.dateOfBirth && styles.dateInputPlaceholder
-                ]}>
-                  {formData.dateOfBirth ? formatDateForDisplay(formData.dateOfBirth) : t('profile.dateOfBirth')}
-                </Text>
-                <Ionicons name="calendar-outline" size={20} color="#9ca3af" />
-              </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={formData.dateOfBirth || new Date()}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleDateChange}
-                  maximumDate={new Date()}
-                  locale={Platform.OS === 'ios' ? 'es-ES' : undefined}
-                />
-              )}
-              {Platform.OS === 'ios' && showDatePicker && (
-                <View style={styles.iosDatePickerActions}>
+              {Platform.OS === 'web' ? (
+                // Web: Use native HTML date input wrapped in a div
+                React.createElement('div', {
+                  style: {
+                    width: '100%',
+                  },
+                }, React.createElement('input', {
+                  type: 'date',
+                  value: formData.dateOfBirth ? formData.dateOfBirth.toISOString().split('T')[0] : '',
+                  max: new Date().toISOString().split('T')[0],
+                  onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const text = e.target.value;
+                    if (text) {
+                      const date = new Date(text + 'T00:00:00'); // Add time to avoid timezone issues
+                      if (!isNaN(date.getTime())) {
+                        setFormData({ ...formData, dateOfBirth: date });
+                      }
+                    } else {
+                      setFormData({ ...formData, dateOfBirth: null });
+                    }
+                  },
+                  style: {
+                    width: '100%',
+                    padding: '16px',
+                    backgroundColor: '#252542',
+                    border: '1px solid #374151',
+                    borderRadius: '12px',
+                    color: '#FFFFFF',
+                    fontSize: '15px',
+                    minHeight: '48px',
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                  },
+                  placeholder: t('profile.dateOfBirth'),
+                }))
+              ) : (
+                // Mobile: Use DateTimePicker
+                <>
                   <TouchableOpacity
-                    style={styles.iosDatePickerButton}
-                    onPress={() => setShowDatePicker(false)}
+                    style={styles.dateInput}
+                    onPress={() => setShowDatePicker(true)}
                   >
-                    <Text style={styles.iosDatePickerButtonText}>{t('common.cancel')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.iosDatePickerButton, styles.iosDatePickerButtonPrimary]}
-                    onPress={() => setShowDatePicker(false)}
-                  >
-                    <Text style={[styles.iosDatePickerButtonText, styles.iosDatePickerButtonTextPrimary]}>
-                      {t('common.ok')}
+                    <Text style={[
+                      styles.dateInputText,
+                      !formData.dateOfBirth && styles.dateInputPlaceholder
+                    ]}>
+                      {formData.dateOfBirth ? formatDateForDisplay(formData.dateOfBirth) : t('profile.dateOfBirth')}
                     </Text>
+                    <Ionicons name="calendar-outline" size={20} color="#9ca3af" />
                   </TouchableOpacity>
-                </View>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={formData.dateOfBirth || new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={handleDateChange}
+                      maximumDate={new Date()}
+                      locale={Platform.OS === 'ios' ? 'es-ES' : undefined}
+                    />
+                  )}
+                  {Platform.OS === 'ios' && showDatePicker && (
+                    <View style={styles.iosDatePickerActions}>
+                      <TouchableOpacity
+                        style={styles.iosDatePickerButton}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text style={styles.iosDatePickerButtonText}>{t('common.cancel')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.iosDatePickerButton, styles.iosDatePickerButtonPrimary]}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text style={[styles.iosDatePickerButtonText, styles.iosDatePickerButtonTextPrimary]}>
+                          {t('common.ok')}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
               )}
             </View>
 
