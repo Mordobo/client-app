@@ -288,7 +288,7 @@ export default function ProfileScreen() {
         {/* Version - From requirements */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            Version 1.0.6
+            Version 1.0.7
           </Text>
         </View>
       </ScrollView>
