@@ -532,7 +532,7 @@ export default function BookingDateTimeScreen() {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           style={[
             styles.continueButton,

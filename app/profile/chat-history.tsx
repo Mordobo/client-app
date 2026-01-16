@@ -103,7 +103,7 @@ export default function ChatHistoryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -123,7 +123,7 @@ export default function ChatHistoryScreen() {
   if (error && conversations.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -149,7 +149,7 @@ export default function ChatHistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}

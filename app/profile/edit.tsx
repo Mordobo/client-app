@@ -439,7 +439,7 @@ export default function EditProfileScreen() {
         />
 
         {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}

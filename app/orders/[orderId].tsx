@@ -172,7 +172,7 @@ export default function OrderDetailScreen() {
   if (!isInProgress) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
@@ -191,7 +191,7 @@ export default function OrderDetailScreen() {
   return (
     <View style={styles.container}>
       {/* Green Header Section */}
-      <View style={[styles.greenHeader, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.greenHeader, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButtonGreen}
@@ -220,7 +220,7 @@ export default function OrderDetailScreen() {
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Provider Card */}

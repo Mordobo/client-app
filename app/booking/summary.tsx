@@ -325,7 +325,7 @@ export default function BookingSummaryScreen() {
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 50) }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -339,7 +339,7 @@ export default function BookingSummaryScreen() {
 
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           bounces={false}
         >

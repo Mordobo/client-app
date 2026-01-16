@@ -134,7 +134,7 @@ export default function CategoryDetailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -255,6 +255,7 @@ export default function CategoryDetailScreen() {
               </Text>
             </View>
           )}
+          ListFooterComponent={<View style={{ height: insets.bottom + 20 }} />}
           showsVerticalScrollIndicator={false}
         />
       )}

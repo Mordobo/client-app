@@ -190,7 +190,7 @@ export default function ConversationsListScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 50) }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={styles.headerTitle}>{t('chat.messages')}</Text>
         </View>
         <View style={styles.centerContainer}>
@@ -203,7 +203,7 @@ export default function ConversationsListScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { 
-        paddingTop: Math.max(insets.top + 20, 50), 
+        paddingTop: insets.top + 20, 
       }]}>
         <Text style={styles.headerTitle}>{t('chat.messages')}</Text>
       </View>
@@ -231,7 +231,7 @@ export default function ConversationsListScreen() {
             renderItem={renderConversation}
             estimatedItemSize={estimatedItemSize}
             style={{ flex: 1, backgroundColor: '#1a1a2e' }}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, backgroundColor: '#1a1a2e' }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 20 + insets.bottom, backgroundColor: '#1a1a2e' }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#3b82f6']} />
             }

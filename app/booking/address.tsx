@@ -316,7 +316,7 @@ export default function BookingAddressScreen() {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           style={[
             styles.continueButton,
@@ -347,7 +347,7 @@ export default function BookingAddressScreen() {
             activeOpacity={1}
             onPress={() => setShowAddModal(false)}
           >
-            <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom + 20, 40) }]}>
+            <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
               <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
                 {/* Handle */}
                 <View style={styles.modalHandle} />

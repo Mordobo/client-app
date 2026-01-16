@@ -225,7 +225,7 @@ export default function ChatScreen() {
   return (
     <View style={styles.container}>
       {/* Header - Exact match to JSX: padding: '50px 20px 16px', backgroundColor: colors.bgCard */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 50) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -283,7 +283,7 @@ export default function ChatScreen() {
         )}
 
         {/* Input Area - Exact match to JSX */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 16 }]}>
           <TouchableOpacity style={styles.attachButton}>
             <Ionicons name="attach-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -454,7 +454,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 20,
-    paddingBottom: 30,
     paddingTop: 16,
     backgroundColor: colors.bgCard,
     borderTopWidth: 1,

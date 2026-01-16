@@ -40,7 +40,7 @@ export default function AssistantScreen() {
         translucent={Platform.OS === 'android'}
       />
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerContent}>
           <Text style={styles.greeting}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
           <View style={styles.headerIcons}>

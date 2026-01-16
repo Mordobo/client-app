@@ -271,7 +271,7 @@ export default function BookingsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>
           {t('orders.title')}
         </Text>
@@ -307,7 +307,7 @@ export default function BookingsScreen() {
       ) : (
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

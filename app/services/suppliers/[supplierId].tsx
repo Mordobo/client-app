@@ -198,7 +198,7 @@ export default function ProviderDetailScreen() {
     <View style={styles.container}>
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -359,7 +359,7 @@ export default function ProviderDetailScreen() {
       </Animated.ScrollView>
 
       {/* Fixed CTA Bottom Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           style={styles.messageButton}
           onPress={handleStartChat}
