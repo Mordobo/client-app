@@ -363,7 +363,7 @@ export default function CategoriesScreen() {
         style={[
           styles.header,
           {
-            paddingTop: Math.max(insets.top + 8, 16),
+            paddingTop: insets.top + 8,
           },
         ]}
       >
@@ -481,7 +481,7 @@ export default function CategoriesScreen() {
           estimatedItemSize={viewMode === 'grid' ? 160 : 80}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListFooterComponent={<View style={{ height: 100 + insets.bottom }} />}
         />
       )}
     </View>

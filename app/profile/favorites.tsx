@@ -150,7 +150,7 @@ export default function FavoritesScreen() {
   if (loading && favorites.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 50) }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -169,7 +169,7 @@ export default function FavoritesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header - Exact match to JSX: padding: '50px 20px 20px', display: 'flex', gap: '16px' */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 50) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -198,7 +198,7 @@ export default function FavoritesScreen() {
       ) : (
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

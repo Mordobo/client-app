@@ -877,7 +877,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={[styles.header, dynamicStyles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, dynamicStyles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={isDark ? '#ECEDEE' : '#1F2937'} />
         </TouchableOpacity>

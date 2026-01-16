@@ -206,7 +206,7 @@ export default function ConversationsListScreen() {
     return (
       <View style={[styles.container, { backgroundColor: '#1a1a2e' }]}>
         <View style={[styles.header, { 
-          paddingTop: Math.max(insets.top + 20, 50),
+          paddingTop: insets.top + 20,
           backgroundColor: '#252542',
         }]}>
           <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>
@@ -224,7 +224,7 @@ export default function ConversationsListScreen() {
     <View style={[styles.container, { backgroundColor: '#1a1a2e' }]}>
       {/* Header - Exact match to JSX: padding: '50px 20px 20px', backgroundColor: colors.bgCard */}
       <View style={[styles.header, { 
-        paddingTop: Math.max(insets.top + 20, 50),
+        paddingTop: insets.top + 20,
         backgroundColor: '#252542',
       }]}>
         <Text style={[styles.headerTitle, { color: '#FFFFFF' }]}>
@@ -257,7 +257,7 @@ export default function ConversationsListScreen() {
             renderItem={renderConversation}
             estimatedItemSize={estimatedItemSize}
             style={{ flex: 1, backgroundColor: '#1a1a2e' }}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, backgroundColor: '#1a1a2e' }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 100 + insets.bottom, backgroundColor: '#1a1a2e' }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#3b82f6']} />
             }

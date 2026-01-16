@@ -244,7 +244,7 @@ export default function SearchResultsScreen() {
         style={[
           styles.header,
           {
-            paddingTop: Math.max(insets.top, 16),
+            paddingTop: insets.top + 16,
             backgroundColor: colors.bgCard,
             borderBottomColor: colors.border,
           },
@@ -320,9 +320,14 @@ export default function SearchResultsScreen() {
           renderItem={renderProviderCard}
           keyExtractor={(item) => item.id}
           estimatedItemSize={140}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
           ListEmptyComponent={renderEmpty}
-          ListFooterComponent={renderFooter}
+          ListFooterComponent={() => (
+            <View>
+              {renderFooter()}
+              <View style={{ height: insets.bottom + 20 }} />
+            </View>
+          )}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           showsVerticalScrollIndicator={false}

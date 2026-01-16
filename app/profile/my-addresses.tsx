@@ -273,7 +273,7 @@ export default function MyAddressesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top + 20, 50) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
@@ -356,7 +356,7 @@ export default function MyAddressesScreen() {
             activeOpacity={1}
             onPress={() => setShowAddEditModal(false)}
           >
-            <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom + 20, 40) }]}>
+            <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
               <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
                 {/* Handle */}
                 <View style={styles.modalHandle} />

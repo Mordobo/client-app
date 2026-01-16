@@ -180,7 +180,7 @@ export default function PaymentScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -267,7 +267,7 @@ export default function PaymentScreen() {
       </ScrollView>
 
       {/* Confirm Button */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           style={[styles.confirmButton, processing && styles.confirmButtonDisabled]}
           onPress={handlePayment}

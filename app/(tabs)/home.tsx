@@ -223,7 +223,7 @@ export default function HomeScreen() {
       />
       
       {/* Header with Location, Notifications and Search */}
-      <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
         <View style={styles.header}>
           <View style={styles.locationSection}>
             <Text style={styles.locationLabel}>{t('home.locationLabel')}</Text>
@@ -265,7 +265,7 @@ export default function HomeScreen() {
       <ScrollView 
         style={styles.content} 
         showsVerticalScrollIndicator={true}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
       >
         {/* Categories Section */}
         <View style={styles.section}>

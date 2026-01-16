@@ -429,7 +429,7 @@ export default function VerifyScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={[styles.content, { paddingTop: Math.max(insets.top, 60) }]}>
+        <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
           {/* Back Button */}
           <Pressable
             style={({ pressed }) => [

@@ -178,12 +178,12 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header - Exact match to JSX: padding: '50px 20px 30px', backgroundColor: colors.bgCard */}
         <View style={[styles.header, { 
-          paddingTop: Math.max(insets.top + 20, 50),
+          paddingTop: insets.top + 20,
         }]}>
           <View style={styles.profileHeader}>
             {/* Avatar - Exact match: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' */}
