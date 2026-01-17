@@ -166,7 +166,9 @@ export default function CategoriesScreen() {
             category: category.id,
             limit: 1, // We only need the total count
           });
-          return { categoryId: category.id, count: response.total || 0 };
+          // Safely extract total count
+          const total = typeof response?.total === 'number' ? response.total : 0;
+          return { categoryId: category.id, count: total };
         } catch (error) {
           console.error(`[Categories] Failed to load count for category ${category.id}:`, error);
           return { categoryId: category.id, count: 0 };
@@ -186,9 +188,33 @@ export default function CategoriesScreen() {
   };
 
   const handleCategoryPress = (category: Category) => {
-    setSelectedCategory(category.id);
-    // Navigate to category services screen
-    router.push(`/services/${category.id}`);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:188',message:'handleCategoryPress entry',data:{categoryId:category.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    try {
+      // Validate category ID before navigation
+      if (!category?.id || typeof category.id !== 'string') {
+        console.error('[Categories] Invalid category ID:', category);
+        return;
+      }
+      
+      setSelectedCategory(category.id);
+      // Navigate to category services screen
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:192',message:'handleCategoryPress before push',data:{route:`/services/${category.id}`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      router.push(`/services/${category.id}`).catch((navError) => {
+        console.error('[Categories] Navigation error:', navError);
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:194',message:'handleCategoryPress after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:197',message:'handleCategoryPress catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      console.error('[Categories] Error in handleCategoryPress:', error);
+    }
   };
 
   const handleClearSearch = () => {

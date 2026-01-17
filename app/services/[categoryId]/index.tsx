@@ -68,10 +68,15 @@ export default function CategoryDetailScreen() {
   };
 
   const loadData = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/[categoryId]/index.tsx:70',message:'loadData entry',data:{categoryId,selectedSubcategory,sortBy},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     try {
       setLoading(true);
       setError(null);
-      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/[categoryId]/index.tsx:75',message:'loadData before Promise.all',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const [catData, suppliersData] = await Promise.all([
         fetchCategoryWithSubcategories(categoryId),
         fetchSuppliers({ 
@@ -82,10 +87,21 @@ export default function CategoryDetailScreen() {
           user_lng: sortBy === 'distance' && userLocation ? userLocation.lng : undefined,
         }),
       ]);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/[categoryId]/index.tsx:87',message:'loadData after Promise.all',data:{hasCatData:!!catData,hasSuppliersData:!!suppliersData,suppliersLength:suppliersData?.suppliers?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       
       setCategoryData(catData);
-      setSuppliers(suppliersData.suppliers);
+      // Safely handle suppliers data - ensure it's always an array
+      const suppliersList = Array.isArray(suppliersData?.suppliers) ? suppliersData.suppliers : [];
+      setSuppliers(suppliersList);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/[categoryId]/index.tsx:92',message:'loadData success',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/[categoryId]/index.tsx:94',message:'loadData catch',data:{errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err),isApiError:err instanceof ApiError},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       if (err instanceof ApiError) {
         setError(err.message);
       } else {

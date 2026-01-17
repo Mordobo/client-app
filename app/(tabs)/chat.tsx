@@ -24,10 +24,19 @@ export default function ConversationsListScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const loadConversations = useCallback(async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:26',message:'loadConversations entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     try {
       setError(null);
       setLoading(true);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:30',message:'loadConversations before fetchConversations',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const data = await fetchConversations();
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:32',message:'loadConversations after fetchConversations',data:{dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       // Sort by most recent (last_message_at descending)
       // Handle null last_message_at by putting them at the end
       const sortedData = [...data].sort((a, b) => {
@@ -53,7 +62,13 @@ export default function ConversationsListScreen() {
         return dateB - dateA;
       });
       setConversations(sortedData);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:55',message:'loadConversations success',data:{sortedDataLength:sortedData.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:57',message:'loadConversations catch',data:{errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('[Chat] Error loading conversations:', err);
       
       // Provide more specific error messages
@@ -89,7 +104,27 @@ export default function ConversationsListScreen() {
   }, [loadConversations]);
 
   const handleConversationPress = (conversationId: string) => {
-    router.push(`/chat/${conversationId}`);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:91',message:'handleConversationPress entry',data:{conversationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    try {
+      // Validate conversation ID before navigation
+      if (!conversationId || typeof conversationId !== 'string') {
+        console.error('[Chat] Invalid conversation ID:', conversationId);
+        return;
+      }
+      router.push(`/chat/${conversationId}`).catch((error) => {
+        console.error('[Chat] Navigation error:', error);
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:94',message:'handleConversationPress after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/chat.tsx:97',message:'handleConversationPress catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      console.error('[Chat] Error in handleConversationPress:', error);
+    }
   };
 
   const formatTime = (dateString: string | null) => {

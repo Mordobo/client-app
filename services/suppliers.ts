@@ -98,6 +98,9 @@ export interface FetchSuppliersParams {
 export const fetchSuppliers = async (
   params: FetchSuppliersParams = {}
 ): Promise<SuppliersResponse> => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/suppliers.ts:98',message:'fetchSuppliers entry',data:{params},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   try {
     const queryParams = new URLSearchParams();
     
@@ -114,6 +117,9 @@ export const fetchSuppliers = async (
     if (params.offset) queryParams.append('offset', params.offset.toString());
 
     const url = `${API_BASE}/suppliers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/suppliers.ts:116',message:'fetchSuppliers before fetch',data:{url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
 
     const response = await fetch(url, {
       method: 'GET',
@@ -121,17 +127,47 @@ export const fetchSuppliers = async (
         'Content-Type': 'application/json',
       },
     });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/suppliers.ts:125',message:'fetchSuppliers after fetch',data:{ok:response.ok,status:response.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/suppliers.ts:130',message:'fetchSuppliers error response',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       throw new ApiError(
         errorData.message || 'Failed to fetch suppliers',
         response.status
       );
     }
 
-    return await response.json();
+    const jsonData = await response.json();
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/suppliers.ts:139',message:'fetchSuppliers success',data:{hasSuppliers:!!jsonData.suppliers,suppliersLength:jsonData.suppliers?.length,total:jsonData.total},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
+    // Validate response structure to prevent crashes
+    if (!jsonData || typeof jsonData !== 'object') {
+      throw new ApiError('Invalid response format from server', 500);
+    }
+    
+    // Ensure suppliers is always an array
+    const suppliers = Array.isArray(jsonData.suppliers) ? jsonData.suppliers : [];
+    
+    // Ensure total is always a number
+    const total = typeof jsonData.total === 'number' ? jsonData.total : suppliers.length;
+    
+    return {
+      suppliers,
+      total,
+      limit: typeof jsonData.limit === 'number' ? jsonData.limit : suppliers.length,
+      offset: typeof jsonData.offset === 'number' ? jsonData.offset : 0,
+    };
   } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/suppliers.ts:144',message:'fetchSuppliers catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
     if (error instanceof ApiError) {
       throw error;
     }
