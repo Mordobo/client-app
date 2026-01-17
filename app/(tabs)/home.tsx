@@ -167,12 +167,16 @@ export default function HomeScreen() {
         limit: 10,
         offset: 0,
       });
-      if (response && response.suppliers) {
+      // Safely handle response - ensure suppliers is always an array
+      const suppliers = Array.isArray(response?.suppliers) ? response.suppliers : [];
+      if (suppliers.length > 0) {
         // Sort by rating and take top 5
-        const sorted = [...response.suppliers]
+        const sorted = [...suppliers]
           .sort((a, b) => (b.rating || 0) - (a.rating || 0))
           .slice(0, 5);
         setTopProviders(sorted);
+      } else {
+        setTopProviders([]);
       }
     } catch (error) {
       console.error('[Home] Failed to load top providers:', error);
@@ -183,15 +187,56 @@ export default function HomeScreen() {
   };
 
   const handleCategoryPress = (categoryId: string) => {
-    router.push(`/services/${categoryId}`);
+    try {
+      // Validate category ID before navigation
+      if (!categoryId || typeof categoryId !== 'string') {
+      console.error('[Home] Invalid category ID:', categoryId);
+      return;
+    }
+    router.push(`/services/${categoryId}`).catch((error) => {
+      console.error('[Home] Navigation error:', error);
+    });
+    } catch (error) {
+      console.error('[Home] Error in handleCategoryPress:', error);
+    }
   };
 
   const handleViewAllCategories = () => {
-    router.push('/services/categories');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:189',message:'handleViewAllCategories entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    try {
+      router.push('/services/categories').catch((error) => {
+        console.error('[Home] Navigation error in handleViewAllCategories:', error);
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:192',message:'handleViewAllCategories after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:195',message:'handleViewAllCategories catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      console.error('[Home] Error in handleViewAllCategories:', error);
+    }
   };
 
   const handleViewAllProviders = () => {
-    router.push('/services/categories');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:193',message:'handleViewAllProviders entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    try {
+      router.push('/services/categories').catch((error) => {
+        console.error('[Home] Navigation error in handleViewAllProviders:', error);
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:196',message:'handleViewAllProviders after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:199',message:'handleViewAllProviders catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      console.error('[Home] Error in handleViewAllProviders:', error);
+    }
   };
 
   const handleSearchPress = () => {
