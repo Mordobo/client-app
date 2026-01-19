@@ -120,12 +120,30 @@ export default function FavoritesScreen() {
   };
 
   const handleCardPress = (supplierId: string) => {
-    router.push(`/services/suppliers/${supplierId}`);
+    try {
+      if (!supplierId || typeof supplierId !== 'string') {
+        console.error('[Favorites] Invalid supplier ID:', supplierId);
+        return;
+      }
+      console.log('[Favorites] Navigating to supplier:', supplierId);
+      router.push(`/services/suppliers/${supplierId}`);
+    } catch (error) {
+      console.error('[Favorites] Navigation error in handleCardPress:', error);
+    }
   };
 
   const handleBookPress = (supplierId: string) => {
-    // Navigate to supplier detail where user can start booking
-    router.push(`/services/suppliers/${supplierId}`);
+    try {
+      if (!supplierId || typeof supplierId !== 'string') {
+        console.error('[Favorites] Invalid supplier ID for booking:', supplierId);
+        return;
+      }
+      console.log('[Favorites] Navigating to supplier for booking:', supplierId);
+      // Navigate to supplier detail where user can start booking
+      router.push(`/services/suppliers/${supplierId}`);
+    } catch (error) {
+      console.error('[Favorites] Navigation error in handleBookPress:', error);
+    }
   };
 
   const formatPrice = (hourlyRate?: number): string => {
@@ -188,7 +206,14 @@ export default function FavoritesScreen() {
           />
           <TouchableOpacity
             style={styles.exploreButton}
-            onPress={() => router.push('/services/categories')}
+            onPress={() => {
+              try {
+                console.log('[Favorites] Navigating to categories');
+                router.push('/services/categories');
+              } catch (error) {
+                console.error('[Favorites] Navigation error:', error);
+              }
+            }}
           >
             <Text style={styles.exploreButtonText}>
               {t('favorites.exploreProviders')}

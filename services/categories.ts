@@ -33,27 +33,21 @@ export class ApiError extends Error {
 
 // GET /services/categories - Fetch all parent categories
 export const fetchCategories = async (): Promise<Category[]> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:35',message:'fetchCategories entry',data:{apiBase:API_BASE},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
+  console.log('[Categories API] fetchCategories() called');
+  console.log('[Categories API] API_BASE:', API_BASE);
   try {
     const url = `${API_BASE}/services/categories`;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:40',message:'fetchCategories before fetch',data:{url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
+    console.log('[Categories API] Fetching from URL:', url);
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: createApiHeaders(),
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:47',message:'fetchCategories after fetch',data:{ok:response.ok,status:response.status,statusText:response.statusText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    console.log('[Categories API] Response received - Status:', response.status, 'OK:', response.ok);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:52',message:'fetchCategories error response',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      console.error('[Categories API] Request failed -', 'Status:', response.status, 'Error:', errorData);
       throw new ApiError(
         errorData.message || 'Failed to fetch categories',
         response.status
@@ -61,21 +55,23 @@ export const fetchCategories = async (): Promise<Category[]> => {
     }
 
     const data: CategoriesResponse = await response.json();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:60',message:'fetchCategories success',data:{hasCategories:!!data.categories,categoriesLength:data.categories?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
+    console.log('[Categories API] Data received -', 'Has categories:', !!data.categories, 'Length:', data.categories?.length);
     
     // Validate response structure to prevent crashes
     if (!data || typeof data !== 'object') {
+      console.error('[Categories API] Invalid response structure:', data);
       throw new ApiError('Invalid response format from server', 500);
     }
     
     // Ensure categories is always an array
-    return Array.isArray(data.categories) ? data.categories : [];
+    const categories = Array.isArray(data.categories) ? data.categories : [];
+    console.log('[Categories API] Returning', categories.length, 'categories');
+    return categories;
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:65',message:'fetchCategories catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
+    console.error('[Categories API] Error in fetchCategories:',  {
+      name: error instanceof Error ? error.name : 'unknown',
+      message: error instanceof Error ? error.message : String(error)
+    });
     if (error instanceof ApiError) {
       throw error;
     }
@@ -91,27 +87,20 @@ export const fetchCategories = async (): Promise<Category[]> => {
 export const fetchCategoryWithSubcategories = async (
   categoryId: string
 ): Promise<CategoryWithSubcategories> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:65',message:'fetchCategoryWithSubcategories entry',data:{categoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
+  console.log('[Categories API] fetchCategoryWithSubcategories() called - ID:', categoryId);
   try {
     const url = `${API_BASE}/services/categories/${categoryId}`;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:70',message:'fetchCategoryWithSubcategories before fetch',data:{url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
+    console.log('[Categories API] Fetching from URL:', url);
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: createApiHeaders(),
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:77',message:'fetchCategoryWithSubcategories after fetch',data:{ok:response.ok,status:response.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    console.log('[Categories API] Response received - Status:', response.status, 'OK:', response.ok);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:82',message:'fetchCategoryWithSubcategories error response',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
+      console.error('[Categories API] Request failed -', 'Status:', response.status, 'Error:', errorData);
       throw new ApiError(
         errorData.message || 'Failed to fetch category',
         response.status
@@ -119,28 +108,35 @@ export const fetchCategoryWithSubcategories = async (
     }
 
     const data: CategoryWithSubcategories = await response.json();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:89',message:'fetchCategoryWithSubcategories success',data:{hasCategory:!!data.category,hasSubcategories:!!data.subcategories,subcategoriesLength:data.subcategories?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
+    console.log('[Categories API] Data received -', {
+      hasCategory: !!data.category,
+      hasSubcategories: !!data.subcategories,
+      subcategoriesLength: data.subcategories?.length
+    });
     
     // Validate response structure to prevent crashes
     if (!data || typeof data !== 'object') {
+      console.error('[Categories API] Invalid response structure:', data);
       throw new ApiError('Invalid response format from server', 500);
     }
     
     if (!data.category) {
+      console.error('[Categories API] Category not found in response for ID:', categoryId);
       throw new ApiError('Category not found in response', 404);
     }
     
     // Ensure subcategories is always an array
-    return {
+    const result = {
       category: data.category,
       subcategories: Array.isArray(data.subcategories) ? data.subcategories : [],
     };
+    console.log('[Categories API] Returning category:', result.category.id);
+    return result;
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:94',message:'fetchCategoryWithSubcategories catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
+    console.error('[Categories API] Error in fetchCategoryWithSubcategories:', {
+      name: error instanceof Error ? error.name : 'unknown',
+      message: error instanceof Error ? error.message : String(error)
+    });
     if (error instanceof ApiError) {
       throw error;
     }
