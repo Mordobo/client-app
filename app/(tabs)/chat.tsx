@@ -169,20 +169,26 @@ export default function ConversationsListScreen() {
   };
 
   const renderConversation = ({ item, index }: { item: Conversation; index: number }) => {
-    const isOnline = false; // TODO: Get from backend when available
-    // Border only on first 4 items (i < 4) as per JSX
-    const showBorder = index < 4;
-    
-    return (
-      <TouchableOpacity
-        style={[
-          styles.conversationItem,
-          !showBorder && styles.conversationItemNoBorder,
-          { backgroundColor: '#1a1a2e', borderBottomColor: '#374151' },
-        ]}
-        onPress={() => handleConversationPress(item.id)}
-        activeOpacity={0.7}
-      >
+    // Validate conversation data before rendering
+    if (!item || !item.id) {
+      return null;
+    }
+
+    try {
+      const isOnline = false; // TODO: Get from backend when available
+      // Border only on first 4 items (i < 4) as per JSX
+      const showBorder = index < 4;
+      
+      return (
+        <TouchableOpacity
+          style={[
+            styles.conversationItem,
+            !showBorder && styles.conversationItemNoBorder,
+            { backgroundColor: '#1a1a2e', borderBottomColor: '#374151' },
+          ]}
+          onPress={() => handleConversationPress(item.id)}
+          activeOpacity={0.7}
+        >
         <View style={styles.avatarContainer}>
           {item.other_user_image ? (
             <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
@@ -233,6 +239,10 @@ export default function ConversationsListScreen() {
         </View>
       </TouchableOpacity>
     );
+    } catch (error) {
+      console.error('[Chat] Error rendering conversation:', error);
+      return null;
+    }
   };
 
   const estimatedItemSize = useMemo(() => 84, []);
@@ -288,7 +298,7 @@ export default function ConversationsListScreen() {
         <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
           <FlashList
             data={conversations}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item?.id || `conversation-${Math.random()}`}
             renderItem={renderConversation}
             estimatedItemSize={estimatedItemSize}
             style={{ flex: 1, backgroundColor: '#1a1a2e' }}

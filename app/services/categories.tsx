@@ -138,15 +138,30 @@ export default function CategoriesScreen() {
   }, [searchQuery, categories]);
 
   const loadCategories = async () => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:140',message:'loadCategories entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     try {
       setLoading(true);
       setError(null);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:144',message:'loadCategories before fetchCategories',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const data = await fetchCategories();
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:146',message:'loadCategories after fetchCategories',data:{dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       setCategories(data);
       
       // Load provider counts for each category in parallel
       loadProviderCounts(data);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:151',message:'loadCategories success',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:153',message:'loadCategories catch',data:{errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err),isApiError:err instanceof ApiError},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -223,8 +238,13 @@ export default function CategoriesScreen() {
 
   // Render category card for grid view
   const renderGridItem = ({ item: category }: { item: Category }) => {
+    // Validate category data before rendering
+    if (!category || !category.id) {
+      return null;
+    }
+    
     const isSelected = selectedCategory === category.id;
-    const iconBgColor = hexToRgba(category.color, 0.2);
+    const iconBgColor = hexToRgba(category.color || '#6B7280', 0.2);
     const emoji = getCategoryEmoji(category);
     const providerCount = providerCounts[category.id] ?? 0;
 
@@ -275,8 +295,13 @@ export default function CategoriesScreen() {
 
   // Render category row for list view
   const renderListItem = ({ item: category }: { item: Category }) => {
+    // Validate category data before rendering
+    if (!category || !category.id) {
+      return null;
+    }
+    
     const isSelected = selectedCategory === category.id;
-    const iconBgColor = hexToRgba(category.color, 0.2);
+    const iconBgColor = hexToRgba(category.color || '#6B7280', 0.2);
     const emoji = getCategoryEmoji(category);
     const providerCount = providerCounts[category.id] ?? 0;
 
@@ -502,7 +527,7 @@ export default function CategoriesScreen() {
         <FlashList
           data={filteredCategories}
           renderItem={viewMode === 'grid' ? renderGridItem : renderListItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item?.id || `category-${Math.random()}`}
           numColumns={viewMode === 'grid' ? 3 : 1}
           estimatedItemSize={viewMode === 'grid' ? 160 : 80}
           contentContainerStyle={styles.listContent}

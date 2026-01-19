@@ -97,7 +97,7 @@ export const fetchCategoryWithSubcategories = async (
   try {
     const url = `${API_BASE}/services/categories/${categoryId}`;
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:70',message:'fetchCategoryWithSubcategories before fetch',data:{url}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/categories.ts:70',message:'fetchCategoryWithSubcategories before fetch',data:{url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     const response = await fetch(url, {
       method: 'GET',
@@ -151,9 +151,3 @@ export const fetchCategoryWithSubcategories = async (
     );
   }
 };
-
-
-
-
-
-

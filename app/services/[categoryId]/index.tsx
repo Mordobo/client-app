@@ -45,9 +45,13 @@ export default function CategoryDetailScreen() {
   };
 
   useEffect(() => {
-    if (categoryId) {
+    // Validate categoryId before loading data
+    if (categoryId && typeof categoryId === 'string' && categoryId.trim() !== '') {
       loadUserLocation();
       loadData();
+    } else {
+      setError('Invalid category ID');
+      setLoading(false);
     }
   }, [categoryId, sortBy, selectedSubcategory]);
 
@@ -72,6 +76,13 @@ export default function CategoryDetailScreen() {
     fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/[categoryId]/index.tsx:70',message:'loadData entry',data:{categoryId,selectedSubcategory,sortBy},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     try {
+      // Validate categoryId before making API calls
+      if (!categoryId || typeof categoryId !== 'string' || categoryId.trim() === '') {
+        setError('Invalid category ID');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       // #region agent log
@@ -254,14 +265,20 @@ export default function CategoryDetailScreen() {
       ) : (
         <FlashList
           data={suppliers}
-          renderItem={({ item }) => (
-            <ProviderCard
-              supplier={item}
-              onPress={() => handleSupplierPress(item.id)}
-              onBookPress={() => handleBookPress(item.id)}
-            />
-          )}
-          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            // Validate item before rendering
+            if (!item || !item.id) {
+              return null;
+            }
+            return (
+              <ProviderCard
+                supplier={item}
+                onPress={() => handleSupplierPress(item.id)}
+                onBookPress={() => handleBookPress(item.id)}
+              />
+            );
+          }}
+          keyExtractor={(item) => item?.id || `supplier-${Math.random()}`}
           estimatedItemSize={140}
           contentContainerStyle={styles.suppliersSection}
           ListEmptyComponent={() => (

@@ -12,6 +12,11 @@ interface ProviderCardProps {
 }
 
 export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardProps) {
+  // Validate supplier data before rendering
+  if (!supplier || !supplier.id) {
+    return null;
+  }
+
   const { isFavorite, isLoading: isFavoriteLoading, toggleFavorite } = useFavorite(supplier.id);
   
   const ratingValue = typeof supplier.rating === 'number' 
@@ -24,7 +29,7 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
     toggleFavorite();
   };
 
-  const isAvailable = supplier.availability && supplier.availability.trim() !== '';
+  const isAvailable = supplier.availability && typeof supplier.availability === 'string' && supplier.availability.trim() !== '';
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
@@ -41,7 +46,7 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
         <View style={styles.info}>
           {/* Name and Favorite Row */}
           <View style={styles.headerRow}>
-            <Text style={styles.name} numberOfLines={1}>{supplier.full_name}</Text>
+            <Text style={styles.name} numberOfLines={1}>{supplier.full_name || 'Unknown'}</Text>
             <TouchableOpacity 
               style={styles.favoriteButton}
               onPress={handleFavoritePress}

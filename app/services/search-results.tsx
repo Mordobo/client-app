@@ -111,6 +111,9 @@ export default function SearchResultsScreen() {
   }, [searchQuery, activeFilter, params.category]);
 
   const loadSuppliers = async (reset = false) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/search-results.tsx:113',message:'loadSuppliers entry',data:{reset,category:params.category,searchQuery},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     try {
       if (reset) {
         setLoading(true);
@@ -124,6 +127,9 @@ export default function SearchResultsScreen() {
 
       const filter = FILTERS.find((f) => f.id === activeFilter);
       const currentOffset = reset ? 0 : offset;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/search-results.tsx:128',message:'loadSuppliers before fetchSuppliers',data:{params:{category:params.category,query:searchQuery.trim()||undefined,sort_by:filter?.sortBy}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
 
       const response = await fetchSuppliers({
         category: params.category,
@@ -136,17 +142,30 @@ export default function SearchResultsScreen() {
         limit: LIMIT,
         offset: currentOffset,
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/search-results.tsx:141',message:'loadSuppliers after fetchSuppliers',data:{hasResponse:!!response,hasSuppliers:!!response.suppliers,suppliersLength:response.suppliers?.length,total:response.total},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
+
+      // Safely handle response - ensure suppliers is always an array
+      const suppliersList = Array.isArray(response?.suppliers) ? response.suppliers : [];
+      const total = typeof response?.total === 'number' ? response.total : suppliersList.length;
 
       if (reset) {
-        setSuppliers(response.suppliers);
+        setSuppliers(suppliersList);
       } else {
-        setSuppliers((prev) => [...prev, ...response.suppliers]);
+        setSuppliers((prev) => [...prev, ...suppliersList]);
       }
 
-      setTotal(response.total);
-      setOffset(currentOffset + response.suppliers.length);
-      setHasMore(response.suppliers.length === LIMIT && currentOffset + response.suppliers.length < response.total);
+      setTotal(total);
+      setOffset(currentOffset + suppliersList.length);
+      setHasMore(suppliersList.length === LIMIT && currentOffset + suppliersList.length < total);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/search-results.tsx:152',message:'loadSuppliers success',data:{suppliersListLength:suppliersList.length,total},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
     } catch (err) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/search-results.tsx:155',message:'loadSuppliers catch',data:{errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err),isApiError:err instanceof ApiError},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -317,8 +336,14 @@ export default function SearchResultsScreen() {
       ) : (
         <FlashList
           data={suppliers}
-          renderItem={renderProviderCard}
-          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            // Validate item before rendering
+            if (!item || !item.id) {
+              return null;
+            }
+            return renderProviderCard({ item });
+          }}
+          keyExtractor={(item) => item?.id || `supplier-${Math.random()}`}
           estimatedItemSize={140}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
           ListEmptyComponent={renderEmpty}
