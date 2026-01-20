@@ -57,12 +57,10 @@ export interface Message {
 // GET /conversations - Fetch all conversations
 export const fetchConversations = async (): Promise<Conversation[]> => {
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/conversations.ts:58',message:'fetchConversations entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
   // #endregion
   try {
     // Use request() from auth.ts which handles token refresh automatically
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/conversations.ts:62',message:'fetchConversations before request',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     const data = await request<{ conversations: Conversation[] }>(
       '/conversations',
@@ -72,11 +70,9 @@ export const fetchConversations = async (): Promise<Conversation[]> => {
       t('errors.requestFailedStatus', { status: 0 })
     );
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/conversations.ts:71',message:'fetchConversations after request',data:{hasData:!!data,hasConversations:!!data.conversations,conversationsLength:data.conversations?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
     if (!data.conversations) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/conversations.ts:73',message:'fetchConversations missing conversations',data:{data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       throw new ApiError('Invalid response format: missing conversations', 500);
     }
@@ -91,12 +87,10 @@ export const fetchConversations = async (): Promise<Conversation[]> => {
       unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
     }));
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/conversations.ts:85',message:'fetchConversations success',data:{sanitizedLength:sanitized.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
     // #endregion
     return sanitized;
   } catch (error) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'services/conversations.ts:88',message:'fetchConversations catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
     // #endregion
     if (error instanceof ApiError) {
       throw error;

@@ -63,9 +63,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   const loadUserFromStorage = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:63',message:'loadUserFromStorage entry',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
     
     try {
       console.log('AuthContext - Loading user from storage...');
@@ -80,9 +77,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ),
       ]);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:77',message:'loadUserFromStorage - userData retrieved',data:{hasUserData:!!userData,userDataLength:userData?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       
       console.log('AuthContext - User data from storage:', userData ? 'found' : 'not found');
       if (userData) {
@@ -154,9 +148,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = useCallback(async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:145',message:'logout() function entry',data:{hasUser:!!user,userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     
     try {
       console.log('[AuthContext] ========== LOGOUT INITIATED ==========');
@@ -170,17 +161,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // No-op callback to clear any existing callback
       });
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:160',message:'Before setUser(null)',data:{currentUser:user?user.id:'null'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       // Clear user state - this will trigger isAuthenticated to become false
       console.log('[AuthContext] Setting user to null...');
       setUser(null);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:162',message:'After setUser(null)',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       // Verify state was updated
       console.log('[AuthContext] User state set to null, isAuthenticated should now be false');
@@ -226,13 +211,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('[AuthContext] ========== LOGOUT COMPLETED ==========');
       console.log('[AuthContext] User state is now null, isAuthenticated should be false');
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:204',message:'logout() function exit - success',data:{storageCleared:!finalUserCheck},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:206',message:'logout() function exit - error',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       console.error('[AuthContext] ========== LOGOUT ERROR ==========');
       console.error('[AuthContext] Error during logout:', error);
@@ -292,9 +271,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Log authentication state changes for debugging
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:244',message:'isAuthenticated state changed',data:{isAuthenticated,hasUser:!!user,userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     
     console.log('[AuthContext] Authentication state changed:', {
       isAuthenticated,

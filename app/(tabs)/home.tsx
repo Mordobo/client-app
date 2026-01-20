@@ -161,21 +161,12 @@ export default function HomeScreen() {
   };
 
   const loadTopProviders = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:163',message:'loadTopProviders entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     try {
       setProvidersLoading(true);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:166',message:'loadTopProviders before fetchSuppliers',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       const response = await fetchSuppliers({
         limit: 10,
         offset: 0,
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:171',message:'loadTopProviders after fetchSuppliers',data:{hasResponse:!!response,hasSuppliers:!!response.suppliers,suppliersLength:response.suppliers?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       // Safely handle response - ensure suppliers is always an array
       const suppliers = Array.isArray(response?.suppliers) ? response.suppliers : [];
       if (suppliers.length > 0) {
@@ -184,16 +175,10 @@ export default function HomeScreen() {
           .sort((a, b) => (b.rating || 0) - (a.rating || 0))
           .slice(0, 5);
         setTopProviders(sorted);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:178',message:'loadTopProviders success',data:{sortedLength:sorted.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
       } else {
         setTopProviders([]);
       }
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:183',message:'loadTopProviders catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       console.error('[Home] Failed to load top providers:', error);
       setTopProviders([]);
     } finally {
@@ -202,69 +187,36 @@ export default function HomeScreen() {
   };
 
   const handleCategoryPress = (categoryId: string) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:189',message:'handleCategoryPress entry',data:{categoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     try {
       // Validate category ID before navigation
       if (!categoryId || typeof categoryId !== 'string') {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:193',message:'handleCategoryPress invalid id',data:{categoryId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         console.error('[Home] Invalid category ID:', categoryId);
         return;
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:197',message:'handleCategoryPress before push',data:{route:`/services/${categoryId}`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       router.push(`/services/${categoryId}`).catch((error) => {
         console.error('[Home] Navigation error:', error);
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:200',message:'handleCategoryPress after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:203',message:'handleCategoryPress catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       console.error('[Home] Error in handleCategoryPress:', error);
     }
   };
 
   const handleViewAllCategories = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:189',message:'handleViewAllCategories entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     try {
       router.push('/services/categories').catch((error) => {
         console.error('[Home] Navigation error in handleViewAllCategories:', error);
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:192',message:'handleViewAllCategories after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:195',message:'handleViewAllCategories catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       console.error('[Home] Error in handleViewAllCategories:', error);
     }
   };
 
   const handleViewAllProviders = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:193',message:'handleViewAllProviders entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     try {
       router.push('/services/categories').catch((error) => {
         console.error('[Home] Navigation error in handleViewAllProviders:', error);
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:196',message:'handleViewAllProviders after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/(tabs)/home.tsx:199',message:'handleViewAllProviders catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       console.error('[Home] Error in handleViewAllProviders:', error);
     }
   };

@@ -138,30 +138,15 @@ export default function CategoriesScreen() {
   }, [searchQuery, categories]);
 
   const loadCategories = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:140',message:'loadCategories entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     try {
       setLoading(true);
       setError(null);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:144',message:'loadCategories before fetchCategories',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       const data = await fetchCategories();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:146',message:'loadCategories after fetchCategories',data:{dataLength:data?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       setCategories(data);
       
       // Load provider counts for each category in parallel
       loadProviderCounts(data);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:151',message:'loadCategories success',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
     } catch (err) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:153',message:'loadCategories catch',data:{errorName:err instanceof Error?err.name:'unknown',errorMessage:err instanceof Error?err.message:String(err),isApiError:err instanceof ApiError},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -203,9 +188,6 @@ export default function CategoriesScreen() {
   };
 
   const handleCategoryPress = (category: Category) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:188',message:'handleCategoryPress entry',data:{categoryId:category.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     try {
       // Validate category ID before navigation
       if (!category?.id || typeof category.id !== 'string') {
@@ -215,19 +197,10 @@ export default function CategoriesScreen() {
       
       setSelectedCategory(category.id);
       // Navigate to category services screen
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:192',message:'handleCategoryPress before push',data:{route:`/services/${category.id}`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       router.push(`/services/${category.id}`).catch((navError) => {
         console.error('[Categories] Navigation error:', navError);
       });
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:194',message:'handleCategoryPress after push',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/services/categories.tsx:197',message:'handleCategoryPress catch',data:{errorName:error instanceof Error?error.name:'unknown',errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       console.error('[Categories] Error in handleCategoryPress:', error);
     }
   };

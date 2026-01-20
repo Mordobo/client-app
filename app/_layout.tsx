@@ -23,16 +23,10 @@ function RootLayoutNav() {
   // This ensures navigation updates immediately
   // IMPORTANT: useEffect must be called before any conditional returns
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'_layout.tsx:25',message:'RootLayoutNav - isAuthenticated changed in useEffect',data:{isAuthenticated,hasUser:!!user,userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
     
     console.log('[RootLayoutNav] Authentication state changed - isAuthenticated:', isAuthenticated, 'user:', user ? 'exists' : 'null');
   }, [isAuthenticated, user]);
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'_layout.tsx:29',message:'RootLayoutNav render',data:{isAuthenticated,isLoading,hasUser:!!user,stackKey:isAuthenticated?'authenticated':'unauthenticated'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-  // #endregion
   
   console.log('[RootLayoutNav] Render - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading, 'user:', user ? 'exists' : 'null');
 

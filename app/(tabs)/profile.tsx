@@ -50,28 +50,16 @@ export default function ProfileScreen() {
   }, [loadStats]);
 
   const handleLogout = () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:66',message:'handleLogout called',data:{platform:Platform.OS},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     const performLogout = async () => {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:75',message:'Alert onPress callback executed',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             
             try {
               console.log('[Profile] ========== LOGOUT BUTTON PRESSED ==========');
               
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:79',message:'Before logout() call',data:{hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-              // #endregion
               
               // Perform logout (clears user state and storage)
               await logout();
               
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:82',message:'After logout() call',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-              // #endregion
               
               console.log('[Profile] Logout function completed, navigating...');
               
@@ -81,22 +69,13 @@ export default function ProfileScreen() {
                 try {
                   console.log('[Profile] Attempting navigation to /(auth)...');
                   
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:90',message:'Before router.replace',data:{target:'/(auth)'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                  // #endregion
                   
                   // Navigate to auth root - the index will redirect to welcome
                   router.replace('/(auth)');
                   
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:92',message:'After router.replace',data:{target:'/(auth)',success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                  // #endregion
                   
                   console.log('[Profile] Navigation completed');
                 } catch (navError) {
-                  // #region agent log
-                  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:93',message:'Navigation error caught',data:{error:String(navError)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                  // #endregion
                   
                   console.error('[Profile] Navigation error:', navError);
                   // Try alternative navigation
@@ -108,9 +87,6 @@ export default function ProfileScreen() {
                 }
               }, 100);
             } catch (error) {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:102',message:'Logout error caught',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-              // #endregion
               
               console.error('[Profile] Logout error:', error);
               // Even if logout fails, try to navigate
@@ -125,25 +101,13 @@ export default function ProfileScreen() {
     
     // Handle Alert differently on web vs mobile
     if (Platform.OS === 'web') {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:115',message:'Using window.confirm for web',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       const confirmed = window.confirm(`${t('profile.logout')}\n\n${t('profile.logoutConfirm')}`);
       if (confirmed) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:118',message:'window.confirm returned true - executing logout',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         performLogout();
       } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:121',message:'window.confirm returned false - cancelled',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
       }
     } else {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:125',message:'Using Alert.alert for mobile',data:{platform:Platform.OS},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       Alert.alert(
         t('profile.logout'),
@@ -271,9 +235,6 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.logoutButton}
             onPress={() => {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'profile.tsx:197',message:'Logout button onPress triggered',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-              // #endregion
               handleLogout();
             }}
             activeOpacity={0.7}
