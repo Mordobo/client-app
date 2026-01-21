@@ -1,0 +1,31 @@
+**CRITICAL: NEVER execute Git commands automatically**
+
+Git operations (add, commit, push, pull, merge, rebase) must NEVER be executed without explicit user authorization.
+
+## Prohibited Commands
+
+- ❌ `git add` - Never stage files automatically
+- ❌ `git commit` - Never create commits without user request
+- ❌ `git push` - Never push to remote under any circumstance
+- ❌ `git pull` - Never pull changes automatically
+- ❌ `git merge` - Never merge branches automatically
+- ❌ `git rebase` - Never rebase automatically
+
+## Workflow
+
+When making code changes:
+1. ✅ Make necessary code modifications
+2. ✅ Inform user about changes made
+3. ⏸️ STOP - Do not run any git commands
+4. ⏸️ User will run git commands manually when ready
+
+## Only Exception
+
+Execute git commands ONLY if user EXPLICITLY requests:
+- "haz commit"
+- "commitea"
+- "haz push"
+- "pushea los cambios"
+- Or any other clear, direct request to run a specific git command
+
+Default assumption: DO NOT run git commands.

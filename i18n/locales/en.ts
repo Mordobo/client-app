@@ -274,6 +274,7 @@ export default {
     reviewsCount: 'Reviews',
     years: 'Years',
     bookNow: 'Book Now',
+    selectService: 'Please select a service before booking',
     location: 'Location',
   },
   chat: {
@@ -453,6 +454,9 @@ export default {
     cancelled: 'Cancelled',
     noBookings: 'No bookings yet',
     noBookingsDesc: 'Book your first service to see it here',
+    provider: 'Provider',
+    noProvider: 'No provider assigned',
+    service: 'Service',
     status: {
       confirmed: 'Confirmed',
       pending: 'Pending',

@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiError, fetchMessages, Message, sendMessage } from '@/services/messages';
+import { fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -44,6 +45,8 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [providerName, setProviderName] = useState<string>('Provider');
+  const [providerImage, setProviderImage] = useState<string | null>(null);
   
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -71,6 +74,24 @@ export default function ChatScreen() {
     if (orderId) {
       const initChat = async () => {
         setLoading(true);
+        
+        // Load order details to get provider info
+        try {
+          const orderDetails = await fetchOrderDetail(orderId);
+          // Use supplier object if available (has more complete info)
+          if (orderDetails.supplier) {
+            setProviderName(orderDetails.supplier.full_name || orderDetails.supplier.business_name || 'Provider');
+            setProviderImage(orderDetails.supplier.profile_image || null);
+          } else if (orderDetails.order) {
+            // Fallback to order fields if supplier object not available
+            setProviderName(orderDetails.order.supplier_name || orderDetails.order.business_name || 'Provider');
+            setProviderImage(null);
+          }
+        } catch (err) {
+          console.error('Error loading order details:', err);
+          // Continue anyway with default provider name
+        }
+        
         await loadMessages();
         setLoading(false);
       };
@@ -190,11 +211,6 @@ export default function ChatScreen() {
       </View>
     );
   }
-
-  // For booking chat, we'll use a default provider name
-  // In a real implementation, this would come from order details
-  const providerName = 'Provider';
-  const providerImage = null;
 
   return (
     <View style={styles.container}>

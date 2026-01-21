@@ -98,9 +98,16 @@ export default function BookingDateTimeScreen() {
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
 
   useEffect(() => {
-    if (supplierId && serviceId) {
-      loadData();
+    console.log('[BookingDateTime] Component mounted with params:', { supplierId, serviceId });
+    
+    if (!supplierId || !serviceId) {
+      console.error('[BookingDateTime] Missing required params:', { supplierId, serviceId });
+      setError('Missing required booking information');
+      setLoading(false);
+      return;
     }
+    
+    loadData();
   }, [supplierId, serviceId]);
 
   useEffect(() => {
@@ -159,30 +166,41 @@ export default function BookingDateTimeScreen() {
   // Update available dates when month changes
   useEffect(() => {
     updateDatesForMonth();
-  }, [currentMonth, updateDatesForMonth]);
+  }, [currentMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      console.log('[BookingDateTime] Loading supplier and services data...');
+
       const [supplierData, servicesData] = await Promise.all([
         fetchSupplierProfile(supplierId!),
         fetchSupplierServices(supplierId!),
       ]);
+
+      console.log('[BookingDateTime] Data loaded successfully:', {
+        supplier: supplierData.full_name,
+        servicesCount: servicesData.length
+      });
 
       setSupplier(supplierData);
       const selectedService = servicesData.find(s => s.id === serviceId);
       setService(selectedService || null);
 
       if (!selectedService) {
+        console.error('[BookingDateTime] Service not found with id:', serviceId);
         setError('Service not found');
         return;
       }
 
+      console.log('[BookingDateTime] Selected service:', selectedService.category_name);
+
       // Load initial availability
       await loadAvailability();
     } catch (err) {
+      console.error('[BookingDateTime] Error loading data:', err);
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
@@ -202,19 +220,23 @@ export default function BookingDateTimeScreen() {
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + 60); // Next 60 days to cover month navigation
 
+      console.log('[BookingDateTime] Loading availability for supplier:', supplierId);
+      
       const availability = await fetchSupplierAvailability(
         supplierId,
         startDate.toISOString().split('T')[0],
         endDate.toISOString().split('T')[0]
       );
 
+      console.log('[BookingDateTime] Availability loaded successfully:', availability);
       setUnavailableDates(availability.unavailable_dates || []);
 
       // Initial dates will be set by updateDatesForMonth
       updateDatesForMonth(availability.unavailable_dates || []);
     } catch (err) {
-      console.error('Error loading availability:', err);
+      console.error('[BookingDateTime] Error loading availability (using defaults):', err);
       // Continue with default dates even if API fails
+      // This allows the booking flow to continue even if the availability endpoint is not implemented
       setUnavailableDates([]);
       updateDatesForMonth([]);
     } finally {
@@ -227,11 +249,15 @@ export default function BookingDateTimeScreen() {
 
     try {
       const dateStr = date.toISOString().split('T')[0];
+      console.log('[BookingDateTime] Loading time slots for date:', dateStr);
+      
       const availability = await fetchSupplierAvailability(
         supplierId,
         dateStr,
         dateStr
       );
+
+      console.log('[BookingDateTime] Time slots loaded:', availability.slots?.length || 0);
 
       // Filter available times for selected date
       let availableSlots = availability.slots
@@ -240,6 +266,7 @@ export default function BookingDateTimeScreen() {
 
       // If no slots from API, use default time slots
       if (availableSlots.length === 0) {
+        console.log('[BookingDateTime] No slots from API, using default time slots');
         availableSlots = TIME_SLOTS;
       }
 
@@ -267,7 +294,7 @@ export default function BookingDateTimeScreen() {
 
       setAvailableTimes(availableSlots);
     } catch (err) {
-      console.error('Error loading time slots:', err);
+      console.error('[BookingDateTime] Error loading time slots (using defaults):', err);
       // Default to all time slots if API fails, but still filter past hours if today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -285,6 +312,7 @@ export default function BookingDateTimeScreen() {
         });
       }
       
+      console.log('[BookingDateTime] Using default time slots:', defaultSlots.length);
       setAvailableTimes(defaultSlots);
     }
   };
