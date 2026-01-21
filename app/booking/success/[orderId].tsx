@@ -202,7 +202,7 @@ export default function BookingSuccessScreen() {
         </Animated.View>
 
         {/* Success Message */}
-        <Animated.View style={animatedContentStyle}>
+        <Animated.View style={[styles.contentContainer, animatedContentStyle]}>
           <Text style={styles.title}>{t('booking.reservationConfirmed')}</Text>
           <Text style={styles.subtitle}>{t('booking.reservationConfirmedMessage')}</Text>
 
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 30,
+    paddingHorizontal: 20,
     paddingTop: 40,
     paddingBottom: 40,
   },
@@ -307,6 +307,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  contentContainer: {
+    width: '100%',
+    alignItems: 'center',
   },
   iconContainer: {
     marginBottom: 32,
@@ -343,6 +347,7 @@ const styles = StyleSheet.create({
   },
   detailsCard: {
     width: '100%',
+    maxWidth: 400,
     backgroundColor: colors.bgCard,
     borderRadius: 16,
     padding: 20,
@@ -415,6 +420,9 @@ const styles = StyleSheet.create({
   },
   actions: {
     width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    gap: 12,
   },
   primaryButton: {
     width: '100%',
@@ -422,7 +430,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 14,
     alignItems: 'center',
-    marginBottom: 12,
   },
   primaryButtonText: {
     color: colors.white,
