@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CODE_LENGTH = 6;
-const RESEND_COOLDOWN_SECONDS = 45; // 45 seconds
+const RESEND_COOLDOWN_SECONDS = 60; // 60 seconds (sync with backend rate limit: 3 attempts per 2 minutes)
 const CODE_INPUT_GAP = 12;
 const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 
@@ -32,6 +32,7 @@ export default function VerifyScreen() {
   const insets = useSafeAreaInsets();
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
@@ -298,6 +299,7 @@ export default function VerifyScreen() {
       return;
     }
 
+    setResendLoading(true);
     try {
       console.log('[Verify] Starting resend process for:', email);
       
@@ -340,6 +342,18 @@ export default function VerifyScreen() {
         const errorData = error.data as Record<string, unknown> | undefined;
         const errorCode = errorData?.code as string | undefined;
         const errorMessage = error.message || t('errors.resendCodeFailed');
+        
+        // Handle rate limiting (429 Too Many Requests)
+        if (error.status === 429) {
+          Alert.alert(
+            t('common.error'),
+            t('errors.rateLimitExceeded')
+          );
+          // Reset cooldown to prevent immediate retry
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+          setCanResend(false);
+          return;
+        }
         
         // Show detailed error for SMTP failures
         if (errorCode === 'smtp_not_configured' || 
@@ -385,6 +399,8 @@ export default function VerifyScreen() {
       } else {
         Alert.alert(t('common.error'), t('errors.resendCodeFailed'));
       }
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -475,24 +491,31 @@ export default function VerifyScreen() {
             <Text style={styles.resendQuestion}>{t('auth.didntReceiveCode')}</Text>
             <TouchableOpacity
               onPress={() => {
-                console.log('[Verify] Resend button pressed', { canResend, resendCooldown });
-                if (canResend && resendCooldown === 0) {
+                console.log('[Verify] Resend button pressed', { canResend, resendCooldown, resendLoading });
+                if (canResend && resendCooldown === 0 && !resendLoading) {
                   handleResend();
                 } else {
-                  console.log('[Verify] Resend blocked by button check', { canResend, resendCooldown });
+                  console.log('[Verify] Resend blocked by button check', { canResend, resendCooldown, resendLoading });
                 }
               }}
-              disabled={!canResend || resendCooldown > 0}
+              disabled={!canResend || resendCooldown > 0 || resendLoading}
               style={styles.resendButton}
-              activeOpacity={canResend && resendCooldown === 0 ? 0.7 : 1}
+              activeOpacity={canResend && resendCooldown === 0 && !resendLoading ? 0.7 : 1}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
-                {canResend 
-                  ? t('auth.resendCode')
-                  : `${t('auth.resendCode')} (${formatTime(resendCooldown)})`
-                }
-              </Text>
+              {resendLoading ? (
+                <View style={styles.resendLoadingContainer}>
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <Text style={[styles.resendLink, { marginLeft: 8 }]}>Enviando...</Text>
+                </View>
+              ) : (
+                <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
+                  {canResend 
+                    ? t('auth.resendCode')
+                    : `${t('auth.resendCode')} (${formatTime(resendCooldown)})`
+                  }
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -625,6 +648,11 @@ const styles = StyleSheet.create({
   },
   resendLinkDisabled: {
     color: '#3b82f6', // Still primary color even when disabled (shows timer)
+  },
+  resendLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
