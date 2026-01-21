@@ -23,16 +23,88 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
-// Category mapping based on design specs - using emojis as per design
-const CATEGORY_CONFIG: Record<string, { emoji: string; color: string }> = {
-  cleaning: { emoji: '🧹', color: '#3B82F6' }, // blue
-  plumbing: { emoji: '🔧', color: '#10B981' }, // green
-  electrical: { emoji: '⚡', color: '#F59E0B' }, // orange
-  painting: { emoji: '🎨', color: '#8B5CF6' }, // purple
-  'air-conditioning': { emoji: '❄️', color: '#EC4899' }, // pink
-  gardening: { emoji: '🪴', color: '#10B981' }, // green
-  locksmith: { emoji: '🔒', color: '#EF4444' }, // red
-  moving: { emoji: '📦', color: '#F59E0B' }, // orange
+// Category emoji mapping - synchronized with categories.tsx
+const CATEGORY_EMOJI_MAP: Record<string, string> = {
+  // By name_key
+  cleaning: '🧹',
+  limpieza: '🧹',
+  plumbing: '🔧',
+  plomeria: '🔧',
+  electrical: '⚡',
+  electrico: '⚡',
+  painting: '🎨',
+  pintura: '🎨',
+  'air-conditioning': '❄️',
+  'a/c': '❄️',
+  gardening: '🪴',
+  jardin: '🪴',
+  locksmith: '🔒',
+  cerrajero: '🔒',
+  moving: '📦',
+  mudanza: '📦',
+  carpentry: '🪚',
+  carpinteria: '🪚',
+  masonry: '🧱',
+  albanileria: '🧱',
+  fumigation: '🪲',
+  fumigacion: '🪲',
+  waterproofing: '💧',
+  impermeabilizacion: '💧',
+  'tv-installation': '📺',
+  'instalacion-tv': '📺',
+  'internet-networks': '📡',
+  'internet-redes': '📡',
+  security: '🛡️',
+  seguridad: '🛡️',
+  pools: '🏊',
+  piscinas: '🏊',
+  'car-wash': '🚗',
+  'lavado-autos': '🚗',
+  haircut: '✂️',
+  peluqueria: '✂️',
+  'appliance-repair': '🔧',
+  'reparacion-electrodomesticos': '🔧',
+  landscaping: '🌳',
+  jardineria: '🌳',
+  housekeeping: '🏠',
+  'servicio-domestico': '🏠',
+  // By icon name (Ionicons)
+  sparkles: '🧹',
+  construct: '🔧',
+  flash: '⚡',
+  brush: '🎨',
+  car: '🚗',
+  leaf: '🪴',
+  home: '🏠',
+  cube: '📦',
+  settings: '⚙️',
+  cut: '✂️',
+  paw: '🐾',
+  flower: '🌺',
+};
+
+// Get emoji for category - synchronized with categories.tsx
+const getCategoryEmoji = (category: Category): string => {
+  // First try name_key
+  if (category.name_key) {
+    const key = category.name_key.toLowerCase();
+    if (CATEGORY_EMOJI_MAP[key]) {
+      return CATEGORY_EMOJI_MAP[key];
+    }
+  }
+  // Then try icon name
+  if (category.icon) {
+    const iconKey = category.icon.toLowerCase();
+    if (CATEGORY_EMOJI_MAP[iconKey]) {
+      return CATEGORY_EMOJI_MAP[iconKey];
+    }
+    // If icon is already an emoji (contains emoji characters), return it
+    if (/[\u{1F300}-\u{1F9FF}]/u.test(category.icon)) {
+      return category.icon;
+    }
+  }
+  // Fallback to default
+  return '📋';
 };
 
 export default function HomeScreen() {
@@ -237,8 +309,8 @@ export default function HomeScreen() {
   };
 
   const getCategoryConfig = (category: Category) => {
-    const key = category.name_key?.toLowerCase() || category.name.toLowerCase();
-    return CATEGORY_CONFIG[key] || { emoji: '📋', color: '#6B7280' };
+    const emoji = getCategoryEmoji(category);
+    return { emoji, color: category.color || '#6B7280' };
   };
 
   return (

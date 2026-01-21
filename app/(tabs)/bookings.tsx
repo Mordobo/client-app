@@ -28,7 +28,8 @@ interface BookingCardProps {
 }
 
 function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCardProps) {
-  const isDark = colorScheme === 'dark';
+  // Force dark mode for this screen (Bookings screen is always dark)
+  const isDark = true;
   const themeColors = Colors[isDark ? 'dark' : 'light'];
 
   const getStatusInfo = () => {
@@ -87,7 +88,7 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
       const minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
       const displayHours = hours % 12 || 12;
-      const displayMinutes = minutes.toString().padStart(2, '0');
+      const displayMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
       
       return `${dayName}, ${day} ${month} • ${displayHours}:${displayMinutes} ${ampm}`;
     } else {
@@ -104,7 +105,7 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
       const minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
       const displayHours = hours % 12 || 12;
-      const displayMinutes = minutes.toString().padStart(2, '0');
+      const displayMinutes = minutes < 10 ? `0${minutes}` : `${minutes}`;
       
       return `${dayName}, ${day} ${month} • ${displayHours}:${displayMinutes} ${ampm}`;
     }
@@ -146,10 +147,10 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
         
         <View style={styles.bookingInfo}>
           <Text style={[styles.providerName, { color: isDark ? '#fff' : '#1F2937' }]}>
-            {order.supplier_id ? 'Proveedor' : 'Sin proveedor asignado'}
+            {order.supplier_name || order.business_name || (order.supplier_id ? t('orders.provider') : t('orders.noProvider'))}
           </Text>
           <Text style={[styles.serviceName, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
-            Servicio #{order.id.slice(0, 8)}
+            {order.service_name || `${t('orders.service')} #${order.id.slice(0, 8)}`}
           </Text>
           {dateTime && (
             <View style={styles.dateTimeRow}>
@@ -163,7 +164,7 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
 
         {order.total_amount && (
           <Text style={[styles.price, { color: '#F59E0B' }]}>
-            ${order.total_amount.toFixed(0)}
+            ${typeof order.total_amount === 'number' ? order.total_amount.toFixed(0) : parseFloat(order.total_amount).toFixed(0)}
           </Text>
         )}
       </View>
@@ -353,15 +354,15 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#252542', // Hardcode dark header
+    backgroundColor: '#252542',
     borderBottomWidth: 1,
-    borderBottomColor: '#374151', // Hardcode dark border
+    borderBottomColor: '#374151',
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 20,
-    color: '#FFFFFF', // Hardcode white text
+    color: '#FFFFFF',
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -381,7 +382,7 @@ const styles = StyleSheet.create({
   tabInactive: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#374151', // Hardcode dark border
+    borderColor: '#374151',
   },
   tabText: {
     fontSize: 13,
@@ -389,10 +390,11 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     fontWeight: '600',
-    color: '#FFFFFF', // Hardcode white text for active tab
+    color: '#FFFFFF',
   },
   tabTextInactive: {
-    color: '#FFFFFF', // Hardcode white text for inactive tab
+    fontWeight: '400',
+    color: '#FFFFFF',
   },
   content: {
     flex: 1,

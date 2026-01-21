@@ -346,18 +346,17 @@ export default function MyAddressesScreen() {
         animationType="slide"
         onRequestClose={() => setShowAddEditModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.modalOverlay}
-          keyboardVerticalOffset={0}
-        >
+        <View style={styles.modalOverlay}>
           <TouchableOpacity
-            style={styles.modalOverlay}
+            style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => setShowAddEditModal(false)}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}
           >
             <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
-              <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
                 {/* Handle */}
                 <View style={styles.modalHandle} />
 
@@ -531,10 +530,9 @@ export default function MyAddressesScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
-              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* Delete Confirmation Modal */}
@@ -721,6 +719,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalKeyboardView: {
+    width: '100%',
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     width: '100%',
     backgroundColor: '#1a1a2e',
@@ -728,11 +733,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 24,
     paddingHorizontal: 20,
-    maxHeight: '90%',
+    maxHeight: '92%',
+    minHeight: 400,
   },
   modalScrollView: {
-    flex: 1,
-    maxHeight: 500,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   modalScrollContent: {
     paddingBottom: 16,

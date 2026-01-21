@@ -17,6 +17,11 @@ export interface Order {
   status: OrderStatus;
   created_at: string;
   updated_at: string;
+  // Fields returned from backend JOINs
+  service_name?: string;
+  service_description?: string;
+  supplier_name?: string;
+  business_name?: string;
 }
 
 export interface Quote {

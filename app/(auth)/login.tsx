@@ -1,7 +1,7 @@
 import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
-import { ApiError, validateEmail } from '@/services/auth';
+import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -86,32 +86,40 @@ export default function LoginScreen() {
       const isEmail = currentIdentifier.includes('@');
       
       if (isEmail) {
-        // For email login, use verification flow (same as registration)
-        // Call validate-email endpoint to generate and send verification code
-        const validateResponse = await validateEmail({
+        // ALWAYS go through verification flow (regardless of user status)
+        // Call validateEmail to generate verification code
+        await validateEmail({
           email: currentIdentifier,
           password,
         });
-
-        // Store email and password temporarily for resend code and verification
-        await AsyncStorage.setItem('pending_verification_email', currentIdentifier.toLowerCase());
+        
+        // Store credentials for verification
+        const emailToStore = currentIdentifier.toLowerCase();
+        await AsyncStorage.setItem('pending_verification_email', emailToStore);
         await AsyncStorage.setItem('pending_verification_password', password);
-
-        // Redirect to verification screen
-        router.replace({
-          pathname: '/(auth)/verify',
-          params: { 
-            email: currentIdentifier.toLowerCase(),
-          },
+        
+        // Navigate to verification screen
+        router.push({
+          pathname: '/verify',
+          params: { email: emailToStore }
         });
+        setErrorMessage(null);
+        return;
       } else {
-        // Phone login is not supported by backend /auth/login endpoint
-        // Backend only accepts email in login endpoint
-        setErrorMessage(t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
-        Alert.alert(t('common.error'), t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
+        // Phone login - use phone_number field
+        const loginResponse = await loginWithCredentials({
+          phoneNumber: currentIdentifier,
+          password,
+        });
+
+        // Login with the user data and tokens
+        await login(
+          loginResponse.user,
+          loginResponse.accessToken || loginResponse.token || '',
+          loginResponse.refreshToken || ''
+        );
+        setErrorMessage(null);
       }
-      
-      setErrorMessage(null);
     } catch (error) {
       console.error('Login error:', error);
       

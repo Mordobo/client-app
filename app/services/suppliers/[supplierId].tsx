@@ -118,16 +118,30 @@ export default function ProviderDetailScreen() {
   };
 
   const handleBookNow = async () => {
-    if (!supplierId || !selectedServiceId) return;
+    if (!supplierId || !selectedServiceId) {
+      console.log('[ProviderDetail] Cannot book - missing params:', { supplierId, selectedServiceId });
+      Alert.alert(t('common.error'), t('supplier.selectService'));
+      return;
+    }
     
-    // Navigate to booking date/time screen with selected service
-    router.push({
-      pathname: '/booking/date-time',
-      params: {
-        supplierId,
-        serviceId: selectedServiceId,
-      },
+    console.log('[ProviderDetail] Navigating to booking with params:', { 
+      supplierId, 
+      serviceId: selectedServiceId 
     });
+    
+    try {
+      // Navigate to booking date/time screen with selected service
+      router.push({
+        pathname: '/booking/date-time',
+        params: {
+          supplierId,
+          serviceId: selectedServiceId,
+        },
+      });
+    } catch (error) {
+      console.error('[ProviderDetail] Navigation error:', error);
+      Alert.alert(t('common.error'), 'Failed to navigate to booking screen');
+    }
   };
 
   const toggleAboutExpanded = () => {
