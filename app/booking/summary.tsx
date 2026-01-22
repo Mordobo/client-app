@@ -318,30 +318,34 @@ export default function BookingSummaryScreen() {
   const addressString = formatAddress(address);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={insets.top}
-    >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {t('booking.confirmReservation')}
-          </Text>
-        </View>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.white} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {t('booking.confirmReservation')}
+        </Text>
+      </View>
 
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
+      >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 100 + insets.bottom },
+          ]}
           showsVerticalScrollIndicator={false}
           bounces={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Provider Card */}
           <View style={styles.card}>
@@ -483,33 +487,33 @@ export default function BookingSummaryScreen() {
             </View>
           </View>
         </ScrollView>
+      </KeyboardAvoidingView>
 
-        {/* CTA Button */}
-        <View
-          style={[
-            styles.ctaContainer,
-            { paddingBottom: insets.bottom + 16 },
-          ]}
+      {/* CTA Button - Fixed at bottom */}
+      <View
+        style={[
+          styles.ctaContainer,
+          { paddingBottom: insets.bottom + 16 },
+        ]}
+      >
+        <TouchableOpacity
+          style={[styles.ctaButton, creatingOrder && styles.ctaButtonDisabled]}
+          onPress={handleProceedToPayment}
+          disabled={creatingOrder}
         >
-          <TouchableOpacity
-            style={[styles.ctaButton, creatingOrder && styles.ctaButtonDisabled]}
-            onPress={handleProceedToPayment}
-            disabled={creatingOrder}
-          >
-            {creatingOrder ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <>
-                <Text style={styles.ctaButtonEmoji}>💳</Text>
-                <Text style={styles.ctaButtonText}>
-                  {t('booking.proceedToPayment')}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+          {creatingOrder ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <>
+              <Text style={styles.ctaButtonEmoji}>💳</Text>
+              <Text style={styles.ctaButtonText}>
+                {t('booking.proceedToPayment')}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -542,13 +546,16 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
     backgroundColor: colors.bg,
   },
   scrollContent: {
     padding: 0,
-    paddingBottom: 100,
+    paddingBottom: 20,
     backgroundColor: colors.bg,
   },
   card: {
@@ -682,9 +689,14 @@ const styles = StyleSheet.create({
   },
   ctaContainer: {
     position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   ctaButton: {
     width: '100%',
