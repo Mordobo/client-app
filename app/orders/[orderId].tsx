@@ -1,5 +1,5 @@
 import { t } from '@/i18n';
-import { fetchOrderDetail, OrderDetailResponse } from '@/services/orders';
+import { fetchOrderDetail, OrderDetailResponse, updateOrderStatus } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -30,6 +32,7 @@ export default function OrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetailResponse | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState('1:24:30'); // TODO: Calculate from actual data
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -126,22 +129,140 @@ export default function OrderDetailScreen() {
     router.push(`/booking/chat/${orderId}`);
   };
 
-  const handleCancel = () => {
-    Alert.alert(
-      t('orders.inProgress.cancelBooking'),
-      '¿Estás seguro de que deseas cancelar esta reserva?',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('orders.inProgress.cancelBooking'),
-          style: 'destructive',
-          onPress: () => {
-            // TODO: Implement cancel booking
-            Alert.alert(t('common.success'), 'Reserva cancelada');
+  const handleCancel = async () => {
+    console.log('[OrderDetail] ====== handleCancel CALLED ======');
+    console.log('[OrderDetail] orderId:', orderId);
+    console.log('[OrderDetail] orderDetail:', orderDetail);
+    console.log('[OrderDetail] orderStatus:', orderDetail?.order?.status);
+    
+    if (!orderId) {
+      console.error('[OrderDetail] No orderId available');
+      Alert.alert(t('common.error'), 'No se pudo identificar la reserva.');
+      return;
+    }
+
+    if (!orderDetail?.order) {
+      console.error('[OrderDetail] No order detail available');
+      Alert.alert(t('common.error'), 'No se pudo cargar la información de la reserva.');
+      return;
+    }
+
+    const order = orderDetail.order;
+    
+    // Check if order can be cancelled
+    if (order.status === 'completed') {
+      Alert.alert(
+        t('common.error'),
+        'No se puede cancelar una reserva que ya ha sido completada.'
+      );
+      return;
+    }
+
+    if (order.status === 'cancelled') {
+      Alert.alert(
+        t('common.error'),
+        'Esta reserva ya ha sido cancelada.'
+      );
+      return;
+    }
+
+    console.log('[OrderDetail] Showing confirmation alert...');
+    
+    // Use window.confirm for web, Alert.alert for native
+    const performCancellation = async () => {
+      console.log('[OrderDetail] ====== User confirmed cancellation ======');
+      try {
+        setCancelling(true);
+        console.log('[OrderDetail] Calling updateOrderStatus...', { orderId, status: 'cancelled' });
+        
+        const updatedOrder = await updateOrderStatus(orderId, 'cancelled');
+        console.log('[OrderDetail] Order status updated successfully:', updatedOrder);
+        
+        // Reload order detail to get updated status
+        console.log('[OrderDetail] Reloading order detail...');
+        await loadOrderDetail();
+        
+        console.log('[OrderDetail] Showing success alert...');
+        
+        if (Platform.OS === 'web') {
+          window.alert('Reserva cancelada exitosamente.');
+          console.log('[OrderDetail] Navigating back to bookings list');
+          router.back();
+        } else {
+          Alert.alert(
+            t('common.success'),
+            'Reserva cancelada exitosamente.',
+            [
+              {
+                text: t('common.ok'),
+                onPress: () => {
+                  console.log('[OrderDetail] Navigating back to bookings list');
+                  router.back();
+                },
+              },
+            ]
+          );
+        }
+      } catch (error) {
+        console.error('[OrderDetail] ====== ERROR cancelling order ======');
+        console.error('[OrderDetail] Error:', error);
+        
+        let errorMessage = 'No se pudo cancelar la reserva. Por favor, intenta nuevamente.';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          console.error('[OrderDetail] Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          });
+        }
+        
+        if (Platform.OS === 'web') {
+          window.alert(errorMessage);
+        } else {
+          Alert.alert(
+            t('common.error'),
+            errorMessage
+          );
+        }
+      } finally {
+        setCancelling(false);
+        console.log('[OrderDetail] Cancellation process finished');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      // Use window.confirm for web
+      const confirmed = window.confirm('¿Estás seguro de que deseas cancelar esta reserva?');
+      console.log('[OrderDetail] User confirmation result:', confirmed);
+      if (confirmed) {
+        await performCancellation();
+      } else {
+        console.log('[OrderDetail] User cancelled the action');
+      }
+    } else {
+      // Use Alert.alert for native
+      Alert.alert(
+        t('orders.inProgress.cancelBooking'),
+        '¿Estás seguro de que deseas cancelar esta reserva?',
+        [
+          { 
+            text: t('common.cancel'), 
+            style: 'cancel',
+            onPress: () => {
+              console.log('[OrderDetail] User cancelled the action');
+            }
           },
-        },
-      ]
-    );
+          {
+            text: t('orders.inProgress.cancelBooking'),
+            style: 'destructive',
+            onPress: performCancellation,
+          },
+        ],
+        { cancelable: true }
+      );
+    }
   };
 
   if (loading) {
@@ -168,8 +289,10 @@ export default function OrderDetailScreen() {
   const progressSteps = getProgressSteps();
   const isInProgress = order.status === 'in_progress';
 
-  // If not in progress, show a simple detail view or redirect
+  // If not in progress, show a simple detail view
   if (!isInProgress) {
+    const canCancel = order.status !== 'completed' && order.status !== 'cancelled';
+    
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -179,10 +302,67 @@ export default function OrderDetailScreen() {
           <Text style={styles.headerTitle}>{t('orders.viewDetails')}</Text>
           <View style={{ width: 40 }} />
         </View>
-        <ScrollView style={styles.content}>
-          <Text style={styles.statusText}>
-            {t(`orders.status.${order.status}`)}
-          </Text>
+        <ScrollView 
+          style={styles.content}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
+          keyboardShouldPersistTaps="handled"
+          nestedScrollEnabled={true}
+        >
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsTitle}>Estado</Text>
+            <Text style={styles.statusText}>
+              {t(`orders.status.${order.status}`)}
+            </Text>
+          </View>
+
+          {order.scheduled_at && (
+            <View style={styles.detailsSection}>
+              <Text style={styles.detailsTitle}>Detalles del servicio</Text>
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar-outline" size={16} color="#9ca3af" />
+                <Text style={styles.detailText}>
+                  {new Date(order.scheduled_at).toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </Text>
+              </View>
+              {order.address && (
+                <View style={styles.detailRow}>
+                  <Ionicons name="location-outline" size={16} color="#9ca3af" />
+                  <Text style={styles.detailText}>{order.address}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {canCancel && (
+            <View style={styles.actionButtonsSection} pointerEvents="box-none">
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cancelButton, 
+                  cancelling && styles.cancelButtonDisabled,
+                  pressed && styles.cancelButtonPressed
+                ]}
+                onPress={() => {
+                  console.log('[OrderDetail] ====== Cancel button PRESSED (simple view) ======');
+                  handleCancel();
+                }}
+                disabled={cancelling}
+                testID="cancel-booking-button-simple"
+              >
+                {cancelling ? (
+                  <ActivityIndicator size="small" color="#ef4444" />
+                ) : (
+                  <Text style={styles.cancelButtonText}>
+                    {t('orders.inProgress.cancelBooking')}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          )}
         </ScrollView>
       </View>
     );
@@ -222,6 +402,8 @@ export default function OrderDetailScreen() {
         style={styles.content}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled={true}
       >
         {/* Provider Card */}
         <View style={styles.providerCard}>
@@ -331,23 +513,41 @@ export default function OrderDetailScreen() {
         )}
 
         {/* Action Buttons */}
-        <View style={styles.actionButtonsSection}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancel}
-          >
-            <Text style={styles.cancelButtonText}>
-              {t('orders.inProgress.cancelBooking')}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.supportButton}
+        <View style={styles.actionButtonsSection} pointerEvents="box-none">
+          {order.status !== 'completed' && order.status !== 'cancelled' && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.cancelButton, 
+                cancelling && styles.cancelButtonDisabled,
+                pressed && styles.cancelButtonPressed
+              ]}
+              onPress={() => {
+                console.log('[OrderDetail] ====== Cancel button PRESSED ======');
+                handleCancel();
+              }}
+              disabled={cancelling}
+              testID="cancel-booking-button"
+            >
+              {cancelling ? (
+                <ActivityIndicator size="small" color="#ef4444" />
+              ) : (
+                <Text style={styles.cancelButtonText}>
+                  {t('orders.inProgress.cancelBooking')}
+                </Text>
+              )}
+            </Pressable>
+          )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.supportButton,
+              pressed && styles.supportButtonPressed
+            ]}
             onPress={() => router.push('/profile/support')}
           >
             <Text style={styles.supportButtonText}>
               {t('orders.inProgress.contactSupport')}
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </ScrollView>
     </View>
@@ -590,6 +790,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#374151',
     alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  cancelButtonPressed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: '#ef4444',
+  },
+  cancelButtonDisabled: {
+    opacity: 0.6,
   },
   cancelButtonText: {
     fontSize: 16,
@@ -601,6 +811,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#252542',
     alignItems: 'center',
+  },
+  supportButtonPressed: {
+    backgroundColor: '#2d2d4a',
+    opacity: 0.8,
   },
   supportButtonText: {
     fontSize: 16,
