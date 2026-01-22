@@ -111,6 +111,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const apiCountry = (apiUser as Record<string, unknown>).country as string | undefined;
             const apiPhone = (apiUser as Record<string, unknown>).phone_number as string | undefined;
             const apiAvatar = (apiUser as Record<string, unknown>).profile_image as string | undefined;
+            const apiGender = (apiUser as Record<string, unknown>).gender;
+            const apiDateOfBirth = (apiUser as Record<string, unknown>).date_of_birth as string | undefined;
+            
+            // Map gender: only accept 'male' or 'female', otherwise use existing or undefined
+            const gender = apiGender === 'male' || apiGender === 'female' 
+              ? apiGender 
+              : (parsedUser.gender || undefined);
+            
+            // Map dateOfBirth: use API value if present, otherwise keep existing
+            const dateOfBirth = apiDateOfBirth !== undefined && apiDateOfBirth.trim() !== ''
+              ? apiDateOfBirth.trim()
+              : (parsedUser.dateOfBirth || undefined);
+            
             const syncedUser: User = {
               ...parsedUser,
               firstName,
@@ -119,6 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               phone: apiPhone !== undefined ? apiPhone : parsedUser.phone,
               avatar: apiAvatar !== undefined ? apiAvatar : parsedUser.avatar,
               country: apiCountry !== undefined ? apiCountry : parsedUser.country,
+              gender,
+              dateOfBirth,
             };
             
             console.log('AuthContext - Syncing user from backend - apiCountry:', apiCountry, 'syncedUser.country:', syncedUser.country);
