@@ -2,6 +2,7 @@ import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, resendCode, verifyCode } from '@/services/auth';
+import { mapApiUserToUser } from '@/utils/authMapping';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -192,25 +193,13 @@ export default function VerifyScreen() {
       });
 
 
-      // Map API response to user data
-      const apiUser = apiResponse.user;
-      const fullName = apiUser.full_name || '';
-      const nameParts = fullName.split(/\s+/).filter(Boolean);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      const userData = {
-        id: apiUser.id,
-        email: apiUser.email,
-        firstName,
-        lastName,
-        phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
-        avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined,
-        country: (apiUser as Record<string, unknown>).country as string | undefined,
-        provider: 'email' as const,
-        authToken: apiResponse.accessToken || apiResponse.token,
-        refreshToken: apiResponse.refreshToken,
-      };
+      // Map API response to user data using helper function
+      const userData = mapApiUserToUser(
+        apiResponse.user,
+        'email',
+        apiResponse.accessToken || apiResponse.token,
+        apiResponse.refreshToken
+      );
 
       // Login user
       await login(userData);

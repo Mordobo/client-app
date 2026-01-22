@@ -62,6 +62,55 @@ const resolveName = (
   };
 };
 
+/**
+ * Map RegisterResponseUser to User (without Google profile)
+ * Used for email/phone login flows
+ */
+export const mapApiUserToUser = (
+  apiUser: RegisterResponseUser,
+  provider: User['provider'],
+  authToken?: string,
+  refreshToken?: string
+): User => {
+  const { firstName: splitFirst, lastName: splitLast } = extractNameParts(
+    stringOrUndefined(apiUser.full_name)
+  );
+  const apiFirst = stringOrUndefined((apiUser as Record<string, unknown>).first_name);
+  const apiLast = stringOrUndefined((apiUser as Record<string, unknown>).last_name);
+  
+  const firstName = apiFirst ?? splitFirst ?? '';
+  const lastName = apiLast ?? splitLast ?? '';
+  
+  // Extract gender and dateOfBirth from API response
+  const apiGender = (apiUser as Record<string, unknown>).gender;
+  const gender = apiGender === 'male' || apiGender === 'female' ? apiGender : undefined;
+  const dateOfBirth = stringOrUndefined((apiUser as Record<string, unknown>).date_of_birth);
+  
+  // Extract login_count from API response if available
+  const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
+
+  return {
+    id: stringOrUndefined(apiUser.id) ?? '',
+    email: stringOrUndefined(apiUser.email) ?? '',
+    firstName,
+    lastName,
+    phone:
+      stringOrUndefined((apiUser as Record<string, unknown>).phone_number) ??
+      stringOrUndefined((apiUser as Record<string, unknown>).phone),
+    avatar:
+      stringOrUndefined((apiUser as Record<string, unknown>).profile_image) ??
+      stringOrUndefined((apiUser as Record<string, unknown>).avatar),
+    country: stringOrUndefined((apiUser as Record<string, unknown>).country),
+    gender,
+    dateOfBirth,
+    provider,
+    authToken: authToken ? stringOrUndefined(authToken) : undefined,
+    refreshToken: refreshToken ? stringOrUndefined(refreshToken) : undefined,
+    // Store login_count as a custom property (not in User interface, but accessible)
+    loginCount,
+  } as User & { loginCount?: number };
+};
+
 export const mapAuthResponseToUser = (
   response: AuthSuccessResponse,
   googleUser: GoogleProfile,

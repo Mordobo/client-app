@@ -2,6 +2,7 @@ import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
+import { mapApiUserToUser } from '@/utils/authMapping';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -112,12 +113,16 @@ export default function LoginScreen() {
           password,
         });
 
-        // Login with the user data and tokens
-        await login(
+        // Map API response to user data using helper function
+        const userData = mapApiUserToUser(
           loginResponse.user,
-          loginResponse.accessToken || loginResponse.token || '',
-          loginResponse.refreshToken || ''
+          'email',
+          loginResponse.accessToken || loginResponse.token,
+          loginResponse.refreshToken
         );
+
+        // Login with the user data
+        await login(userData);
         setErrorMessage(null);
       }
     } catch (error) {
