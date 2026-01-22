@@ -75,6 +75,7 @@ const CATEGORY_EMOJI_MAP: Record<string, string> = {
   brush: '🎨',
   car: '🚗',
   leaf: '🪴',
+  tree: '🌳',
   home: '🏠',
   cube: '📦',
   settings: '⚙️',
