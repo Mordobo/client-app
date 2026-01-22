@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -33,6 +34,7 @@ export default function OrderDetailScreen() {
   const [orderDetail, setOrderDetail] = useState<OrderDetailResponse | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState('1:24:30'); // TODO: Calculate from actual data
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     if (orderId) {
@@ -129,7 +131,7 @@ export default function OrderDetailScreen() {
     router.push(`/booking/chat/${orderId}`);
   };
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     console.log('[OrderDetail] ====== handleCancel CALLED ======');
     console.log('[OrderDetail] orderId:', orderId);
     console.log('[OrderDetail] orderDetail:', orderDetail);
@@ -166,102 +168,66 @@ export default function OrderDetailScreen() {
       return;
     }
 
-    console.log('[OrderDetail] Showing confirmation alert...');
-    
-    // Use window.confirm for web, Alert.alert for native
-    const performCancellation = async () => {
-      console.log('[OrderDetail] ====== User confirmed cancellation ======');
-      try {
-        setCancelling(true);
-        console.log('[OrderDetail] Calling updateOrderStatus...', { orderId, status: 'cancelled' });
-        
-        const updatedOrder = await updateOrderStatus(orderId, 'cancelled');
-        console.log('[OrderDetail] Order status updated successfully:', updatedOrder);
-        
-        // Reload order detail to get updated status
-        console.log('[OrderDetail] Reloading order detail...');
-        await loadOrderDetail();
-        
-        console.log('[OrderDetail] Showing success alert...');
-        
-        if (Platform.OS === 'web') {
-          window.alert('Reserva cancelada exitosamente.');
-          console.log('[OrderDetail] Navigating back to bookings list');
-          router.back();
-        } else {
-          Alert.alert(
-            t('common.success'),
-            'Reserva cancelada exitosamente.',
-            [
-              {
-                text: t('common.ok'),
-                onPress: () => {
-                  console.log('[OrderDetail] Navigating back to bookings list');
-                  router.back();
-                },
-              },
-            ]
-          );
-        }
-      } catch (error) {
-        console.error('[OrderDetail] ====== ERROR cancelling order ======');
-        console.error('[OrderDetail] Error:', error);
-        
-        let errorMessage = 'No se pudo cancelar la reserva. Por favor, intenta nuevamente.';
-        
-        if (error instanceof Error) {
-          errorMessage = error.message;
-          console.error('[OrderDetail] Error details:', {
-            message: error.message,
-            name: error.name,
-            stack: error.stack
-          });
-        }
-        
-        if (Platform.OS === 'web') {
-          window.alert(errorMessage);
-        } else {
-          Alert.alert(
-            t('common.error'),
-            errorMessage
-          );
-        }
-      } finally {
-        setCancelling(false);
-        console.log('[OrderDetail] Cancellation process finished');
-      }
-    };
+    console.log('[OrderDetail] Showing confirmation modal...');
+    setShowCancelModal(true);
+  };
 
-    if (Platform.OS === 'web') {
-      // Use window.confirm for web
-      const confirmed = window.confirm('¿Estás seguro de que deseas cancelar esta reserva?');
-      console.log('[OrderDetail] User confirmation result:', confirmed);
-      if (confirmed) {
-        await performCancellation();
-      } else {
-        console.log('[OrderDetail] User cancelled the action');
-      }
-    } else {
-      // Use Alert.alert for native
+  const performCancellation = async () => {
+    if (!orderId) return;
+    
+    console.log('[OrderDetail] ====== User confirmed cancellation ======');
+    setShowCancelModal(false);
+    
+    try {
+      setCancelling(true);
+      console.log('[OrderDetail] Calling updateOrderStatus...', { orderId, status: 'cancelled' });
+      
+      const updatedOrder = await updateOrderStatus(orderId, 'cancelled');
+      console.log('[OrderDetail] Order status updated successfully:', updatedOrder);
+      
+      // Reload order detail to get updated status
+      console.log('[OrderDetail] Reloading order detail...');
+      await loadOrderDetail();
+      
+      console.log('[OrderDetail] Showing success alert...');
+      
+      // Show success message and navigate back
       Alert.alert(
-        t('orders.inProgress.cancelBooking'),
-        '¿Estás seguro de que deseas cancelar esta reserva?',
+        t('common.success'),
+        'Reserva cancelada exitosamente.',
         [
-          { 
-            text: t('common.cancel'), 
-            style: 'cancel',
-            onPress: () => {
-              console.log('[OrderDetail] User cancelled the action');
-            }
-          },
           {
-            text: t('orders.inProgress.cancelBooking'),
-            style: 'destructive',
-            onPress: performCancellation,
+            text: t('common.ok'),
+            onPress: () => {
+              console.log('[OrderDetail] Navigating back to bookings list');
+              // Navigate back to refresh the bookings list
+              router.back();
+            },
           },
-        ],
-        { cancelable: true }
+        ]
       );
+    } catch (error) {
+      console.error('[OrderDetail] ====== ERROR cancelling order ======');
+      console.error('[OrderDetail] Error:', error);
+      
+      let errorMessage = 'No se pudo cancelar la reserva. Por favor, intenta nuevamente.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('[OrderDetail] Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+      }
+      
+      Alert.alert(
+        t('common.error'),
+        errorMessage
+      );
+    } finally {
+      setCancelling(false);
+      console.log('[OrderDetail] Cancellation process finished');
     }
   };
 
@@ -364,6 +330,56 @@ export default function OrderDetailScreen() {
             </View>
           )}
         </ScrollView>
+
+        {/* Cancel Confirmation Modal */}
+        <Modal
+          visible={showCancelModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCancelModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalIconContainer}>
+                <Ionicons name="warning-outline" size={48} color="#EF4444" />
+              </View>
+              <Text style={styles.modalTitle}>
+                {t('orders.inProgress.cancelBooking')}
+              </Text>
+              <Text style={styles.modalMessage}>
+                ¿Estás seguro de que deseas cancelar esta reserva? Esta acción no se puede deshacer.
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  onPress={() => {
+                    console.log('[OrderDetail] User cancelled the modal action');
+                    setShowCancelModal(false);
+                  }}
+                  style={styles.modalButtonCancel}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalButtonTextCancel}>
+                    {t('common.cancel')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={performCancellation}
+                  style={styles.modalButtonConfirm}
+                  activeOpacity={0.7}
+                  disabled={cancelling}
+                >
+                  {cancelling ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalButtonTextConfirm}>
+                      {t('orders.inProgress.cancelBooking')}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -550,6 +566,56 @@ export default function OrderDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Cancel Confirmation Modal */}
+      <Modal
+        visible={showCancelModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCancelModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="warning-outline" size={48} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>
+              {t('orders.inProgress.cancelBooking')}
+            </Text>
+            <Text style={styles.modalMessage}>
+              ¿Estás seguro de que deseas cancelar esta reserva? Esta acción no se puede deshacer.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => {
+                  console.log('[OrderDetail] User cancelled the modal action');
+                  setShowCancelModal(false);
+                }}
+                style={styles.modalButtonCancel}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalButtonTextCancel}>
+                  {t('common.cancel')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={performCancellation}
+                style={styles.modalButtonConfirm}
+                activeOpacity={0.7}
+                disabled={cancelling}
+              >
+                {cancelling ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalButtonTextConfirm}>
+                    {t('orders.inProgress.cancelBooking')}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -845,5 +911,79 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     padding: 20,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#252542',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalButtonCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  modalButtonConfirm: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  modalButtonTextConfirm: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

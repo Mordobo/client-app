@@ -2,7 +2,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { t, getLocale } from '@/i18n';
 import { fetchOrders, Order, OrderStatus } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -210,11 +210,20 @@ export default function BookingsScreen() {
     loadOrders();
   }, []);
 
+  // Refresh orders when screen comes into focus (e.g., after canceling an order)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Bookings] Screen focused, refreshing orders...');
+      loadOrders();
+    }, [])
+  );
+
   const loadOrders = async () => {
     try {
       setLoading(true);
       const data = await fetchOrders();
       setOrders(data);
+      console.log('[Bookings] Orders loaded:', data.length);
     } catch (error) {
       console.error('[Bookings] Failed to load orders:', error);
     } finally {
