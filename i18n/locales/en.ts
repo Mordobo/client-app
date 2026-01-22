@@ -297,6 +297,9 @@ export default {
     callProviderMessage: 'Do you want to call the provider?',
     phoneNumberNotAvailable: 'Provider phone number is not available',
     couldNotOpenDialer: 'Could not open phone dialer',
+    imagePermissionDenied: 'Permission to access photos is required to send images',
+    imageSelectionFailed: 'Failed to select image. Please try again.',
+    sendingImage: 'Sending image...',
   },
   quote: {
     title: 'Review & Approve',

@@ -8,6 +8,8 @@ import {
 } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -193,6 +195,98 @@ export default function ChatScreen() {
     });
   };
 
+  const handleAttachImage = async () => {
+    console.log('[Chat] handleAttachImage called', { conversationId, sending });
+    
+    if (sending) {
+      console.log('[Chat] Already sending, ignoring attach request');
+      return;
+    }
+    
+    try {
+      console.log('[Chat] Requesting media library permissions...');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[Chat] Permission status:', status);
+      if (status !== 'granted') {
+        Alert.alert(
+          t('common.error'),
+          t('chat.imagePermissionDenied')
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const uri = result.assets[0].uri;
+        
+        try {
+          let imageDataUri: string;
+          
+          if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve, reject) => {
+              reader.onloadend = () => {
+                const base64 = reader.result as string;
+                const base64Data = base64.split(',')[1] || base64;
+                resolve(base64Data);
+              };
+              reader.onerror = reject;
+            });
+            reader.readAsDataURL(blob);
+            const base64Data = await base64Promise;
+            imageDataUri = `data:image/jpeg;base64,${base64Data}`;
+          } else if (uri.startsWith('data:')) {
+            imageDataUri = uri;
+          } else {
+            if (typeof FileSystem === 'undefined') {
+              throw new Error('FileSystem is not available');
+            }
+            const base64 = await FileSystem.readAsStringAsync(uri, {
+              encoding: 'base64',
+            } as { encoding: 'base64' });
+            imageDataUri = `data:image/jpeg;base64,${base64}`;
+          }
+          
+          // Send image as message
+          if (!conversationId || sending) return;
+          
+          setSending(true);
+          try {
+            // Send image data URI as content (backend may need to be updated to handle this)
+            const newMessage = await sendConversationMessage(conversationId, imageDataUri);
+            setMessages((prev) => [...prev, newMessage]);
+            
+            // Scroll to bottom
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
+          } catch (err) {
+            console.error('Error sending image:', err);
+            Alert.alert(
+              t('common.error'),
+              t('chat.imageSelectionFailed')
+            );
+          } finally {
+            setSending(false);
+          }
+        } catch (error) {
+          console.error('Error converting image to base64:', error);
+          Alert.alert(t('common.error'), t('chat.imageSelectionFailed'));
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert(t('common.error'), t('chat.imageSelectionFailed'));
+    }
+  };
+
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
     const showDate = index === 0 || 
@@ -303,7 +397,13 @@ export default function ChatScreen() {
 
         {/* Input Area - Exact match to JSX */}
         <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 16 }]}>
-          <TouchableOpacity style={styles.attachButton}>
+          <TouchableOpacity 
+            style={styles.attachButton}
+            onPress={handleAttachImage}
+            disabled={sending}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="attach-outline" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <TextInput
