@@ -842,7 +842,7 @@ export default function SettingsScreen() {
         {
           type: 'navigation',
           label: t('settings.appVersion'),
-          value: '1.0.0',
+          value: '1.0.9',
           icon: 'information-circle-outline',
         },
         {
