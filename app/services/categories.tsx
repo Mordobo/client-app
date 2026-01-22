@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { t } from '@/i18n';
 
@@ -359,37 +359,32 @@ export default function CategoriesScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={primaryColor} />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
         <View style={styles.centerContainer}>
           <Text style={[styles.errorText, { color: textPrimary }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
             <Text style={styles.retryText}>{t('chat.retry')}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
       {/* Header */}
       <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 8,
-          },
-        ]}
+        style={styles.header}
       >
         <TouchableOpacity
           onPress={() => router.back()}
@@ -505,10 +500,10 @@ export default function CategoriesScreen() {
           estimatedItemSize={viewMode === 'grid' ? 160 : 80}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={{ height: 100 + insets.bottom }} />}
+          ListFooterComponent={<View style={{ height: 20 }} />}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -527,6 +522,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingTop: 8,
     paddingBottom: 16,
   },
   backButton: {
