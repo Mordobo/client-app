@@ -103,6 +103,56 @@ const getCategoryEmoji = (category: Category): string => {
   return '📋';
 };
 
+// Category color mapping - default colors for the 16 categories
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  // By name_key
+  cleaning: '#f59e0b',
+  limpieza: '#f59e0b',
+  plumbing: '#6b7280',
+  plomeria: '#6b7280',
+  electrical: '#fbbf24',
+  electrico: '#fbbf24',
+  painting: '#ec4899',
+  pintura: '#ec4899',
+  'air-conditioning': '#06b6d4',
+  'a/c': '#06b6d4',
+  gardening: '#10b981',
+  jardin: '#10b981',
+  locksmith: '#f59e0b',
+  cerrajero: '#f59e0b',
+  moving: '#8b5cf6',
+  mudanza: '#8b5cf6',
+  carpentry: '#d97706',
+  carpinteria: '#d97706',
+  masonry: '#ef4444',
+  albanileria: '#ef4444',
+  fumigation: '#84cc16',
+  fumigacion: '#84cc16',
+  waterproofing: '#3b82f6',
+  impermeabilizacion: '#3b82f6',
+  'tv-installation': '#6366f1',
+  'instalacion-tv': '#6366f1',
+  'internet-networks': '#14b8a6',
+  'internet-redes': '#14b8a6',
+  security: '#f43f5e',
+  seguridad: '#f43f5e',
+  pools: '#0ea5e9',
+  piscinas: '#0ea5e9',
+};
+
+// Get default color for category
+const getCategoryColor = (category: Category): string => {
+  // First try name_key
+  if (category.name_key) {
+    const key = category.name_key.toLowerCase();
+    if (CATEGORY_COLOR_MAP[key]) {
+      return CATEGORY_COLOR_MAP[key];
+    }
+  }
+  // Use color from backend if available, otherwise fallback
+  return category.color || '#6B7280';
+};
+
 export default function CategoriesScreen() {
   const router = useRouter();
   const { colorScheme } = useTheme();
@@ -130,14 +180,60 @@ export default function CategoriesScreen() {
     loadCategories();
   }, []);
 
-  // Filter categories based on search query
+  // List of 16 main categories to prioritize
+  const MAIN_CATEGORIES = [
+    'cleaning',
+    'plumbing',
+    'electrical',
+    'painting',
+    'air-conditioning',
+    'gardening',
+    'locksmith',
+    'moving',
+    'carpentry',
+    'masonry',
+    'fumigation',
+    'waterproofing',
+    'tv-installation',
+    'internet-networks',
+    'security',
+    'pools',
+  ];
+
+  // Filter categories based on search query and prioritize main 16 categories
   const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return categories;
+    let filtered = categories;
+    
+    // If there's a search query, filter by it
+    if (searchQuery.trim()) {
+      filtered = categories.filter((cat) =>
+        cat.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    } else {
+      // If no search, prioritize main 16 categories first, then others
+      const mainCats = categories.filter((cat) => {
+        const key = cat.name_key?.toLowerCase() || '';
+        return MAIN_CATEGORIES.includes(key);
+      });
+      const otherCats = categories.filter((cat) => {
+        const key = cat.name_key?.toLowerCase() || '';
+        return !MAIN_CATEGORIES.includes(key);
+      });
+      // Sort main categories by MAIN_CATEGORIES order
+      mainCats.sort((a, b) => {
+        const aKey = a.name_key?.toLowerCase() || '';
+        const bKey = b.name_key?.toLowerCase() || '';
+        const aIndex = MAIN_CATEGORIES.indexOf(aKey);
+        const bIndex = MAIN_CATEGORIES.indexOf(bKey);
+        if (aIndex === -1 && bIndex === -1) return 0;
+        if (aIndex === -1) return 1;
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
+      filtered = [...mainCats, ...otherCats];
     }
-    return categories.filter((cat) =>
-      cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    
+    return filtered;
   }, [searchQuery, categories]);
 
   const loadCategories = async () => {
@@ -220,7 +316,8 @@ export default function CategoriesScreen() {
     }
     
     const isSelected = selectedCategory === category.id;
-    const iconBgColor = hexToRgba(category.color || '#6B7280', 0.2);
+    const categoryColor = getCategoryColor(category);
+    const iconBgColor = hexToRgba(categoryColor, 0.2);
     const emoji = getCategoryEmoji(category);
     const providerCount = providerCounts[category.id] ?? 0;
 
@@ -277,7 +374,8 @@ export default function CategoriesScreen() {
     }
     
     const isSelected = selectedCategory === category.id;
-    const iconBgColor = hexToRgba(category.color || '#6B7280', 0.2);
+    const categoryColor = getCategoryColor(category);
+    const iconBgColor = hexToRgba(categoryColor, 0.2);
     const emoji = getCategoryEmoji(category);
     const providerCount = providerCounts[category.id] ?? 0;
 
@@ -324,16 +422,12 @@ export default function CategoriesScreen() {
         </View>
 
         {/* Arrow */}
-        <View
-          style={[
-            styles.listArrowContainer,
-            {
-              backgroundColor: isDark ? '#2d2d4a' : '#F3F4F6',
-            },
-          ]}
-        >
-          <Ionicons name="chevron-forward" size={16} color={textSecondary} />
-        </View>
+        <Ionicons 
+          name="chevron-forward" 
+          size={18} 
+          color={textSecondary} 
+          style={styles.listArrow}
+        />
       </TouchableOpacity>
     );
   };
@@ -500,7 +594,7 @@ export default function CategoriesScreen() {
           renderItem={viewMode === 'grid' ? renderGridItem : renderListItem}
           keyExtractor={(item) => item?.id || `category-${Math.random()}`}
           numColumns={viewMode === 'grid' ? 3 : 1}
-          estimatedItemSize={viewMode === 'grid' ? 160 : 80}
+          estimatedItemSize={viewMode === 'grid' ? 160 : 64}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={<View style={{ height: 20 }} />}
@@ -628,45 +722,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
   },
-  // List View Styles
+  // List View Styles - Improved UI with icon on the left
   listCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 10,
-    minHeight: 80,
+    minHeight: 72,
   },
   listIconContainer: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    flexShrink: 0,
   },
   listIcon: {
     fontSize: 24,
+    lineHeight: 24,
   },
   listInfo: {
     flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
   },
   listCategoryName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
+    lineHeight: 20,
   },
   listProviderCount: {
     fontSize: 12,
+    lineHeight: 16,
   },
-  listArrowContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
+  listArrow: {
+    marginLeft: 12,
+    flexShrink: 0,
   },
   // Empty State
   emptyStateContainer: {
