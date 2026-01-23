@@ -62,7 +62,9 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
 
           {/* Service Category */}
           {supplier.service_category && (
-            <Text style={styles.service} numberOfLines={1}>{supplier.service_category}</Text>
+            <View style={styles.serviceContainer}>
+              <Text style={styles.service} numberOfLines={1}>{supplier.service_category}</Text>
+            </View>
           )}
 
           {/* Rating and Distance Row */}
@@ -144,10 +146,14 @@ const styles = StyleSheet.create({
   favoriteButton: {
     padding: 4,
   },
+  serviceContainer: {
+    flexShrink: 1,
+    minWidth: 0,
+    marginBottom: 6,
+  },
   service: {
     fontSize: 14,
     color: '#10B981',
-    marginBottom: 6,
   },
   ratingRow: {
     flexDirection: 'row',
