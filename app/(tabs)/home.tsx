@@ -108,6 +108,56 @@ const getCategoryEmoji = (category: Category): string => {
   return '📋';
 };
 
+// Category color mapping - default colors for the 16 categories
+const CATEGORY_COLOR_MAP: Record<string, string> = {
+  // By name_key
+  cleaning: '#f59e0b',
+  limpieza: '#f59e0b',
+  plumbing: '#6b7280',
+  plomeria: '#6b7280',
+  electrical: '#fbbf24',
+  electrico: '#fbbf24',
+  painting: '#ec4899',
+  pintura: '#ec4899',
+  'air-conditioning': '#06b6d4',
+  'a/c': '#06b6d4',
+  gardening: '#10b981',
+  jardin: '#10b981',
+  locksmith: '#f59e0b',
+  cerrajero: '#f59e0b',
+  moving: '#8b5cf6',
+  mudanza: '#8b5cf6',
+  carpentry: '#d97706',
+  carpinteria: '#d97706',
+  masonry: '#ef4444',
+  albanileria: '#ef4444',
+  fumigation: '#84cc16',
+  fumigacion: '#84cc16',
+  waterproofing: '#3b82f6',
+  impermeabilizacion: '#3b82f6',
+  'tv-installation': '#6366f1',
+  'instalacion-tv': '#6366f1',
+  'internet-networks': '#14b8a6',
+  'internet-redes': '#14b8a6',
+  security: '#f43f5e',
+  seguridad: '#f43f5e',
+  pools: '#0ea5e9',
+  piscinas: '#0ea5e9',
+};
+
+// Get default color for category
+const getCategoryColor = (category: Category): string => {
+  // First try name_key
+  if (category.name_key) {
+    const key = category.name_key.toLowerCase();
+    if (CATEGORY_COLOR_MAP[key]) {
+      return CATEGORY_COLOR_MAP[key];
+    }
+  }
+  // Use color from backend if available, otherwise fallback
+  return category.color || '#6B7280';
+};
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
@@ -202,6 +252,14 @@ export default function HomeScreen() {
           'gardening',
           'locksmith',
           'moving',
+          'carpentry',
+          'masonry',
+          'fumigation',
+          'waterproofing',
+          'tv-installation',
+          'internet-networks',
+          'security',
+          'pools',
         ];
 
         // Add categories that match the preferred order
@@ -311,7 +369,8 @@ export default function HomeScreen() {
 
   const getCategoryConfig = (category: Category) => {
     const emoji = getCategoryEmoji(category);
-    return { emoji, color: category.color || '#6B7280' };
+    const color = getCategoryColor(category);
+    return { emoji, color };
   };
 
   return (
