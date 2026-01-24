@@ -211,7 +211,7 @@ export default function VerifyScreen() {
       ]);
 
       // Check if this is the first login using login_count from backend
-      const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
+      const loginCount = (apiResponse.user as Record<string, unknown>).login_count as number | undefined;
       const isFirstLogin = loginCount === 1 || loginCount === undefined;
       
       if (isFirstLogin) {
