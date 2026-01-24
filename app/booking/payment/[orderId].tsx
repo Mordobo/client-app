@@ -199,7 +199,11 @@ export default function PaymentScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Total Amount */}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>{t('payment.totalToPay')}</Text>

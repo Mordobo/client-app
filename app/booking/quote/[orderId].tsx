@@ -100,7 +100,11 @@ export default function QuoteScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Service Info */}
         <View style={styles.section}>
           <View style={styles.serviceHeader}>

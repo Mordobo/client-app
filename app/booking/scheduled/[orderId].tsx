@@ -26,7 +26,11 @@ export default function ScheduledBookingScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Calendar Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.calendarCircle}>

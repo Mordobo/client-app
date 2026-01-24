@@ -597,7 +597,7 @@ export default function CategoriesScreen() {
           estimatedItemSize={viewMode === 'grid' ? 160 : 64}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={{ height: 20 }} />}
+          ListFooterComponent={<View style={{ height: insets.bottom + 20 }} />}
         />
       )}
     </SafeAreaView>

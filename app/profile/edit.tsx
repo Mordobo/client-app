@@ -462,7 +462,7 @@ export default function EditProfileScreen() {
 
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 40 }]}
           showsVerticalScrollIndicator={true}
           keyboardShouldPersistTaps="handled"
         >

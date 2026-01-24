@@ -286,7 +286,11 @@ export default function MyAddressesScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Address Cards */}
           {addresses.map((address) => (
             <View key={address.id} style={styles.addressCard}>

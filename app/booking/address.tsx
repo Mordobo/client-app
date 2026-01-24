@@ -232,7 +232,11 @@ export default function BookingAddressScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Map Placeholder */}
         <View style={styles.mapContainer}>
           <LinearGradient

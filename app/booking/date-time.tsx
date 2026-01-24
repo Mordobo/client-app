@@ -431,7 +431,11 @@ export default function BookingDateTimeScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Provider Mini Card */}
         <View style={styles.providerCard}>
           <View style={styles.providerImageContainer}>
