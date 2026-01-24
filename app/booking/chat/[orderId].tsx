@@ -50,6 +50,7 @@ export default function ChatScreen() {
   const [error, setError] = useState<string | null>(null);
   const [providerName, setProviderName] = useState<string>('Provider');
   const [providerImage, setProviderImage] = useState<string | null>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -114,19 +115,32 @@ export default function ChatScreen() {
     }
   }, [orderId, loadMessages]);
 
-  // Handle keyboard show/hide to scroll to bottom
+  // Handle keyboard show/hide to scroll to bottom and reset position
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       () => {
+        setKeyboardVisible(true);
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
       }
     );
 
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+        // Force layout update when keyboard hides to reset position
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: false });
+        }, 100);
+      }
+    );
+
     return () => {
       keyboardWillShow.remove();
+      keyboardWillHide.remove();
     };
   }, []);
 
@@ -355,8 +369,9 @@ export default function ChatScreen() {
       {/* Messages */}
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 80 : 0}
+        enabled={Platform.OS === 'ios'}
       >
         {error ? (
           <View style={styles.centerContainer}>
@@ -381,7 +396,11 @@ export default function ChatScreen() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onLayout={() => {
+              if (!keyboardVisible) {
+                flatListRef.current?.scrollToEnd({ animated: false });
+              }
+            }}
           />
         )}
 
