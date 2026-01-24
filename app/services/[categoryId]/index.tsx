@@ -265,7 +265,7 @@ export default function CategoryDetailScreen() {
           }}
           keyExtractor={(item) => item?.id || `supplier-${Math.random()}`}
           estimatedItemSize={140}
-          contentContainerStyle={styles.suppliersSection}
+          contentContainerStyle={[styles.suppliersSection, { paddingBottom: insets.bottom + 40 }]}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -273,7 +273,6 @@ export default function CategoryDetailScreen() {
               </Text>
             </View>
           )}
-          ListFooterComponent={<View style={{ height: insets.bottom + 20 }} />}
           showsVerticalScrollIndicator={false}
         />
       )}

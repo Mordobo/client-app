@@ -59,7 +59,11 @@ export default function RateExperienceScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceTitle}>House Cleaning</Text>
           <Text style={styles.providerName}>John Smith</Text>
