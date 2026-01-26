@@ -732,6 +732,7 @@ export default {
     locationServices: 'Servicios de Ubicación',
     darkMode: 'Modo Oscuro',
     theme: 'Tema',
+    userMode: 'Modo de Usuario',
     account: 'Cuenta',
     linkedAccounts: 'Cuentas Vinculadas',
     deleteAccount: 'Eliminar Cuenta',
@@ -775,5 +776,15 @@ export default {
     system: 'Sistema',
     english: 'Inglés',
     spanish: 'Español',
+  },
+  mode: {
+    client: 'Cliente',
+    provider: 'Proveedor',
+    switchMode: 'Cambiar Modo',
+    clientDescription: 'Contrata servicios para tu hogar',
+    providerDescription: 'Ofrece tus servicios',
+    switchToClient: 'Cambiar a Modo Cliente',
+    switchToProvider: 'Cambiar a Modo Proveedor',
+    modeChanged: 'Modo cambiado exitosamente',
   },
 };

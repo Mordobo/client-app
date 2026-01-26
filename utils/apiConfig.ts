@@ -76,23 +76,32 @@ const isLocalDevelopment = (): boolean => {
 const getHost = (): string => {
   const isLocal = isLocalDevelopment();
   
-  // TEMPORARY: Use QA in development if EXPO_PUBLIC_API_URL is set
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (envUrl?.length) {
-    // Only convert localhost to 10.0.2.2 for Android (emulator detection)
-    if (Platform.OS === 'android' && /localhost/i.test(envUrl)) {
-      return envUrl.replace(/localhost/gi, '10.0.2.2');
-    }
-    // For physical devices or non-localhost URLs, use as-is
-    return envUrl;
-  }
-  
-  // In local development, use localhost if no EXPO_PUBLIC_API_URL
+  // In local development, always use localhost (ignore EXPO_PUBLIC_API_URL if it points to QA/production)
   if (isLocal) {
+    const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+    // Only use EXPO_PUBLIC_API_URL if it's already localhost
+    if (envUrl?.length && /localhost|127\.0\.0\.1|10\.0\.2\.2/i.test(envUrl)) {
+      // Convert localhost to 10.0.2.2 for Android emulator
+      if (Platform.OS === 'android' && /localhost|127\.0\.0\.1/i.test(envUrl)) {
+        return envUrl.replace(/(localhost|127\.0\.0\.1)/gi, '10.0.2.2');
+      }
+      return envUrl;
+    }
+    // Default to localhost for local development
     if (Platform.OS === 'android') {
       return 'http://10.0.2.2:3000';
     }
     return 'http://localhost:3000';
+  }
+  
+  // For APK builds, use EXPO_PUBLIC_API_URL from eas.json
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (envUrl?.length) {
+    // Only convert localhost to 10.0.2.2 for Android (emulator detection)
+    if (Platform.OS === 'android' && /localhost|127\.0\.0\.1/i.test(envUrl)) {
+      return envUrl.replace(/(localhost|127\.0\.0\.1)/gi, '10.0.2.2');
+    }
+    return envUrl;
   }
   
   // Fallback: development defaults (shouldn't happen in APK, but just in case)

@@ -1,4 +1,8 @@
+import { ApiError } from '@/services/auth';
+import { ModeSwitch } from '@/components/common/ModeSwitch';
+import { Toast } from '@/components/Toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -24,9 +28,13 @@ interface UserStats {
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { mode, setMode } = useMode();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<UserStats>({ services: 0, reviews: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
   const loadStats = useCallback(async () => {
     try {
@@ -179,6 +187,45 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+          
+          {/* Mode Switch - Prominently displayed in profile header */}
+          <View style={styles.modeSwitchContainer}>
+            <Text style={styles.modeSwitchLabel}>{t('mode.switchMode')}</Text>
+            <View style={{ alignItems: 'center', width: '100%' }}>
+              <ModeSwitch
+                variant="pill"
+                currentMode={mode}
+                onModeChange={async (newMode) => {
+                  try {
+                    // setMode will throw if backend sync fails
+                    await setMode(newMode);
+                    // Only show success if no error was thrown
+                    setToastMessage(t('mode.modeChanged'));
+                    setToastType('success');
+                    setToastVisible(true);
+                  } catch (error: unknown) {
+                    console.error('[Profile] Failed to change mode:', error);
+                    // Extract error message from ApiError
+                    let errorMessage = t('errors.updateSettingsFailed');
+                    if (error instanceof ApiError) {
+                      errorMessage = error.message;
+                      // If the error has a data object with a message, prefer that
+                      if (error.data && typeof error.data === 'object' && 'message' in error.data) {
+                        errorMessage = String(error.data.message);
+                      }
+                    } else if (error instanceof Error) {
+                      errorMessage = error.message;
+                    }
+                    setToastMessage(errorMessage);
+                    setToastType('error');
+                    setToastVisible(true);
+                  }
+                }}
+                size="medium"
+                showLabels={true}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Stats Cards - Exact match: display: 'flex', padding: '20px', gap: '12px', marginTop: '-10px' */}
@@ -253,6 +300,15 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Toast for mode change notifications */}
+      <Toast
+        message={toastMessage}
+        visible={toastVisible}
+        onHide={() => setToastVisible(false)}
+        type={toastType}
+        duration={toastType === 'error' ? 4000 : 3000}
+      />
     </View>
   );
 }
@@ -324,6 +380,20 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     color: '#10b981', // Hardcode secondary color
+  },
+  // Mode Switch Container
+  modeSwitchContainer: {
+    marginTop: 24,
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  modeSwitchLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF', // Hardcode white text
+    textAlign: 'center',
+    marginBottom: 4,
   },
   // Stats: display: 'flex', padding: '20px', gap: '12px' from JSX
   statsContainer: {
