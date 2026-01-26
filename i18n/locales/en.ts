@@ -730,6 +730,7 @@ export default {
     locationServices: 'Location Services',
     darkMode: 'Dark Mode',
     theme: 'Theme',
+    userMode: 'User Mode',
     account: 'Account',
     linkedAccounts: 'Linked Accounts',
     deleteAccount: 'Delete Account',
@@ -773,5 +774,15 @@ export default {
     system: 'System',
     english: 'English',
     spanish: 'Spanish',
+  },
+  mode: {
+    client: 'Client',
+    provider: 'Provider',
+    switchMode: 'Switch Mode',
+    clientDescription: 'Hire services for your home',
+    providerDescription: 'Offer your services',
+    switchToClient: 'Switch to Client Mode',
+    switchToProvider: 'Switch to Provider Mode',
+    modeChanged: 'Mode changed successfully',
   },
 };

@@ -22,6 +22,7 @@ export interface UserSettings {
   location_services: boolean;
   biometric_enabled: boolean;
   two_factor_enabled: boolean;
+  user_mode?: 'client' | 'provider';
 }
 
 export interface UpdateSettingsPayload {
@@ -37,6 +38,7 @@ export interface UpdateSettingsPayload {
   theme?: 'light' | 'dark' | 'system';
   location_services?: boolean;
   biometric_enabled?: boolean;
+  user_mode?: 'client' | 'provider';
 }
 
 export interface ValidatePasswordPayload {

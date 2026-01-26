@@ -1,13 +1,14 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-// import 'react-native-reanimated'; // Removido temporalmente para compatibilidad de build
+import 'react-native-reanimated';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ModeProvider } from '@/contexts/ModeContext';
 import { initializeGoogleSignIn } from '@/config/google-signin';
 import { useEffect } from 'react';
 
@@ -88,7 +89,9 @@ function ThemeProviderWrapper() {
   const { isAuthenticated } = useAuth();
   return (
     <ThemeProvider isAuthenticated={isAuthenticated}>
-      <RootLayoutNav />
+      <ModeProvider isAuthenticated={isAuthenticated}>
+        <RootLayoutNav />
+      </ModeProvider>
     </ThemeProvider>
   );
 }
