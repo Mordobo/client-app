@@ -198,8 +198,16 @@ export default function ProfileScreen() {
                 onModeChange={async (newMode) => {
                   try {
                     // setMode will throw if backend sync fails
-                    await setMode(newMode);
-                    // Only show success if no error was thrown
+                    const result = await setMode(newMode);
+                    
+                    // Check if onboarding is needed
+                    if (result.needsOnboarding) {
+                      // Navigate to onboarding
+                      router.push('/provider-onboarding');
+                      return;
+                    }
+                    
+                    // Only show success if no error was thrown and we didn't navigate to onboarding
                     setToastMessage(t('mode.modeChanged'));
                     setToastType('success');
                     setToastVisible(true);
