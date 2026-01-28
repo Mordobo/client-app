@@ -1,156 +1,22 @@
-import { ApiError, Category, fetchCategories } from '@/services/categories';
-import { fetchSuppliers } from '@/services/suppliers';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
-import { t } from '@/i18n';
+import { useTheme } from "@/contexts/ThemeContext";
+import { t } from "@/i18n";
+import { ApiError, Category, fetchCategories } from "@/services/categories";
+import { fetchSuppliers } from "@/services/suppliers";
+import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji } from "@/utils/categoryDisplay";
+import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-type ViewMode = 'grid' | 'list';
+type ViewMode = "grid" | "list";
 
-// Helper to convert hex color to rgba with opacity
 const hexToRgba = (hex: string, opacity: number): string => {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-};
-
-// Map category name_key or icon names to emojis (matching design)
-const CATEGORY_EMOJI_MAP: Record<string, string> = {
-  // By name_key
-  cleaning: '🧹',
-  limpieza: '🧹',
-  plumbing: '🔧',
-  plomeria: '🔧',
-  electrical: '⚡',
-  electrico: '⚡',
-  painting: '🎨',
-  pintura: '🎨',
-  'air-conditioning': '❄️',
-  'a/c': '❄️',
-  gardening: '🌿',
-  jardin: '🌿',
-  landscaping: '🌳',
-  jardineria: '🌳',
-  locksmith: '🔒',
-  cerrajero: '🔒',
-  moving: '📦',
-  mudanza: '📦',
-  carpentry: '🪚',
-  carpinteria: '🪚',
-  masonry: '🧱',
-  albanileria: '🧱',
-  fumigation: '🪲',
-  fumigacion: '🪲',
-  waterproofing: '💧',
-  impermeabilizacion: '💧',
-  'tv-installation': '📺',
-  'instalacion-tv': '📺',
-  'internet-networks': '📡',
-  'internet-redes': '📡',
-  security: '🛡️',
-  seguridad: '🛡️',
-  pools: '🏊',
-  piscinas: '🏊',
-  // By icon name (Ionicons)
-  sparkles: '🧹',
-  construct: '🔧',
-  flash: '⚡',
-  brush: '🎨',
-  car: '🚗',
-  leaf: '🌿',
-  tree: '🌳',
-  home: '🏠',
-  cube: '📦',
-  settings: '⚙️',
-  cut: '✂️',
-  paw: '🐾',
-  flower: '🌺',
-};
-
-// Get emoji for category
-const getCategoryEmoji = (category: Category): string => {
-  // First try name_key
-  if (category.name_key) {
-    const key = category.name_key.toLowerCase();
-    if (CATEGORY_EMOJI_MAP[key]) {
-      return CATEGORY_EMOJI_MAP[key];
-    }
-  }
-  // Then try icon name
-  if (category.icon) {
-    const iconKey = category.icon.toLowerCase();
-    if (CATEGORY_EMOJI_MAP[iconKey]) {
-      return CATEGORY_EMOJI_MAP[iconKey];
-    }
-    // If icon is already an emoji (contains emoji characters), return it
-    if (/[\u{1F300}-\u{1F9FF}]/u.test(category.icon)) {
-      return category.icon;
-    }
-  }
-  // Fallback to default
-  return '📋';
-};
-
-// Category color mapping - default colors for the 16 categories
-const CATEGORY_COLOR_MAP: Record<string, string> = {
-  // By name_key
-  cleaning: '#f59e0b',
-  limpieza: '#f59e0b',
-  plumbing: '#6b7280',
-  plomeria: '#6b7280',
-  electrical: '#fbbf24',
-  electrico: '#fbbf24',
-  painting: '#ec4899',
-  pintura: '#ec4899',
-  'air-conditioning': '#06b6d4',
-  'a/c': '#06b6d4',
-  gardening: '#10b981',
-  jardin: '#10b981',
-  locksmith: '#f59e0b',
-  cerrajero: '#f59e0b',
-  moving: '#8b5cf6',
-  mudanza: '#8b5cf6',
-  carpentry: '#d97706',
-  carpinteria: '#d97706',
-  masonry: '#ef4444',
-  albanileria: '#ef4444',
-  fumigation: '#84cc16',
-  fumigacion: '#84cc16',
-  waterproofing: '#3b82f6',
-  impermeabilizacion: '#3b82f6',
-  'tv-installation': '#6366f1',
-  'instalacion-tv': '#6366f1',
-  'internet-networks': '#14b8a6',
-  'internet-redes': '#14b8a6',
-  security: '#f43f5e',
-  seguridad: '#f43f5e',
-  pools: '#0ea5e9',
-  piscinas: '#0ea5e9',
-};
-
-// Get default color for category
-const getCategoryColor = (category: Category): string => {
-  // First try name_key
-  if (category.name_key) {
-    const key = category.name_key.toLowerCase();
-    if (CATEGORY_COLOR_MAP[key]) {
-      return CATEGORY_COLOR_MAP[key];
-    }
-  }
-  // Use color from backend if available, otherwise fallback
-  return category.color || '#6B7280';
 };
 
 export default function CategoriesScreen() {
@@ -160,80 +26,31 @@ export default function CategoriesScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [providerCounts, setProviderCounts] = useState<Record<string, number>>({});
 
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
   // Dark theme colors matching the design exactly
-  const bgColor = isDark ? '#1a1a2e' : '#F9FAFB';
-  const cardBg = isDark ? '#252542' : '#FFFFFF';
-  const textPrimary = isDark ? '#FFFFFF' : '#1F2937';
-  const textSecondary = isDark ? '#9CA3AF' : '#6B7280';
-  const borderColor = isDark ? '#374151' : '#E5E7EB';
-  const primaryColor = '#3b82f6';
-  const inputBg = isDark ? '#252542' : '#FFFFFF';
+  const bgColor = isDark ? "#1a1a2e" : "#F9FAFB";
+  const cardBg = isDark ? "#252542" : "#FFFFFF";
+  const textPrimary = isDark ? "#FFFFFF" : "#1F2937";
+  const textSecondary = isDark ? "#9CA3AF" : "#6B7280";
+  const borderColor = isDark ? "#374151" : "#E5E7EB";
+  const primaryColor = "#3b82f6";
+  const inputBg = isDark ? "#252542" : "#FFFFFF";
 
   // Load categories on mount
   React.useEffect(() => {
     loadCategories();
   }, []);
 
-  // List of 16 main categories to prioritize
-  const MAIN_CATEGORIES = [
-    'cleaning',
-    'plumbing',
-    'electrical',
-    'painting',
-    'air-conditioning',
-    'gardening',
-    'locksmith',
-    'moving',
-    'carpentry',
-    'masonry',
-    'fumigation',
-    'waterproofing',
-    'tv-installation',
-    'internet-networks',
-    'security',
-    'pools',
-  ];
-
-  // Filter categories based on search query and prioritize main 16 categories
+  // Filter categories by search; full list in API order (sort_order)
   const filteredCategories = useMemo(() => {
-    let filtered = categories;
-    
-    // If there's a search query, filter by it
-    if (searchQuery.trim()) {
-      filtered = categories.filter((cat) =>
-        cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    } else {
-      // If no search, prioritize main 16 categories first, then others
-      const mainCats = categories.filter((cat) => {
-        const key = cat.name_key?.toLowerCase() || '';
-        return MAIN_CATEGORIES.includes(key);
-      });
-      const otherCats = categories.filter((cat) => {
-        const key = cat.name_key?.toLowerCase() || '';
-        return !MAIN_CATEGORIES.includes(key);
-      });
-      // Sort main categories by MAIN_CATEGORIES order
-      mainCats.sort((a, b) => {
-        const aKey = a.name_key?.toLowerCase() || '';
-        const bKey = b.name_key?.toLowerCase() || '';
-        const aIndex = MAIN_CATEGORIES.indexOf(aKey);
-        const bIndex = MAIN_CATEGORIES.indexOf(bKey);
-        if (aIndex === -1 && bIndex === -1) return 0;
-        if (aIndex === -1) return 1;
-        if (bIndex === -1) return -1;
-        return aIndex - bIndex;
-      });
-      filtered = [...mainCats, ...otherCats];
-    }
-    
-    return filtered;
+    if (!searchQuery.trim()) return categories;
+    const q = searchQuery.toLowerCase();
+    return categories.filter((cat) => cat.name.toLowerCase().includes(q) || (cat.name_key && cat.name_key.toLowerCase().includes(q)));
   }, [searchQuery, categories]);
 
   const loadCategories = async () => {
@@ -242,14 +59,14 @@ export default function CategoriesScreen() {
       setError(null);
       const data = await fetchCategories();
       setCategories(data);
-      
+
       // Load provider counts for each category in parallel
       loadProviderCounts(data);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError(t('errors.connectionFailed'));
+        setError(t("errors.connectionFailed"));
       }
     } finally {
       setLoading(false);
@@ -266,7 +83,7 @@ export default function CategoriesScreen() {
             limit: 1, // We only need the total count
           });
           // Safely extract total count
-          const total = typeof response?.total === 'number' ? response.total : 0;
+          const total = typeof response?.total === "number" ? response.total : 0;
           return { categoryId: category.id, count: total };
         } catch (error) {
           console.error(`[Categories] Failed to load count for category ${category.id}:`, error);
@@ -281,7 +98,7 @@ export default function CategoriesScreen() {
       });
       setProviderCounts(countsMap);
     } catch (error) {
-      console.error('[Categories] Failed to load provider counts:', error);
+      console.error("[Categories] Failed to load provider counts:", error);
       // Don't show error to user, just log it
     }
   };
@@ -289,23 +106,23 @@ export default function CategoriesScreen() {
   const handleCategoryPress = (category: Category) => {
     try {
       // Validate category ID before navigation
-      if (!category?.id || typeof category.id !== 'string') {
-        console.error('[Categories] Invalid category ID:', category);
+      if (!category?.id || typeof category.id !== "string") {
+        console.error("[Categories] Invalid category ID:", category);
         return;
       }
-      
+
       setSelectedCategory(category.id);
       // Navigate to category services screen
       router.push(`/services/${category.id}`).catch((navError) => {
-        console.error('[Categories] Navigation error:', navError);
+        console.error("[Categories] Navigation error:", navError);
       });
     } catch (error) {
-      console.error('[Categories] Error in handleCategoryPress:', error);
+      console.error("[Categories] Error in handleCategoryPress:", error);
     }
   };
 
   const handleClearSearch = () => {
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
   // Render category card for grid view
@@ -314,7 +131,7 @@ export default function CategoriesScreen() {
     if (!category || !category.id) {
       return null;
     }
-    
+
     const isSelected = selectedCategory === category.id;
     const categoryColor = getCategoryColor(category);
     const iconBgColor = hexToRgba(categoryColor, 0.2);
@@ -327,7 +144,7 @@ export default function CategoriesScreen() {
           styles.gridCard,
           {
             backgroundColor: cardBg,
-            borderColor: isSelected ? primaryColor : 'transparent',
+            borderColor: isSelected ? primaryColor : "transparent",
             borderWidth: isSelected ? 2 : 0,
           },
         ]}
@@ -347,21 +164,12 @@ export default function CategoriesScreen() {
         </View>
 
         {/* Category Name */}
-        <Text
-          style={[styles.gridCategoryName, { color: textPrimary }]}
-          numberOfLines={2}
-        >
-          {category.name}
+        <Text style={[styles.gridCategoryName, { color: textPrimary }]} numberOfLines={2}>
+          {getCategoryDisplayName(category, t)}
         </Text>
 
         {/* Provider Count */}
-        {providerCount > 0 && (
-          <Text style={[styles.gridProviderCount, { color: textSecondary }]}>
-            {providerCount === 1
-              ? t('categories.providerAvailable', { count: providerCount })
-              : t('categories.providersAvailable', { count: providerCount })}
-          </Text>
-        )}
+        {providerCount > 0 && <Text style={[styles.gridProviderCount, { color: textSecondary }]}>{providerCount === 1 ? t("categories.providerAvailable", { count: providerCount }) : t("categories.providersAvailable", { count: providerCount })}</Text>}
       </TouchableOpacity>
     );
   };
@@ -372,7 +180,7 @@ export default function CategoriesScreen() {
     if (!category || !category.id) {
       return null;
     }
-    
+
     const isSelected = selectedCategory === category.id;
     const categoryColor = getCategoryColor(category);
     const iconBgColor = hexToRgba(categoryColor, 0.2);
@@ -385,7 +193,7 @@ export default function CategoriesScreen() {
           styles.listCard,
           {
             backgroundColor: cardBg,
-            borderColor: isSelected ? primaryColor : 'transparent',
+            borderColor: isSelected ? primaryColor : "transparent",
             borderWidth: isSelected ? 2 : 0,
           },
         ]}
@@ -406,28 +214,14 @@ export default function CategoriesScreen() {
 
         {/* Category Info */}
         <View style={styles.listInfo}>
-          <Text
-            style={[styles.listCategoryName, { color: textPrimary }]}
-            numberOfLines={1}
-          >
-            {category.name}
+          <Text style={[styles.listCategoryName, { color: textPrimary }]} numberOfLines={1}>
+            {getCategoryDisplayName(category, t)}
           </Text>
-          {providerCount > 0 && (
-            <Text style={[styles.listProviderCount, { color: textSecondary }]}>
-              {providerCount === 1
-                ? t('categories.providerAvailable', { count: providerCount })
-                : t('categories.providersAvailable', { count: providerCount })}
-            </Text>
-          )}
+          {providerCount > 0 && <Text style={[styles.listProviderCount, { color: textSecondary }]}>{providerCount === 1 ? t("categories.providerAvailable", { count: providerCount }) : t("categories.providersAvailable", { count: providerCount })}</Text>}
         </View>
 
         {/* Arrow */}
-        <Ionicons 
-          name="chevron-forward" 
-          size={18} 
-          color={textSecondary} 
-          style={styles.listArrow}
-        />
+        <Ionicons name="chevron-forward" size={18} color={textSecondary} style={styles.listArrow} />
       </TouchableOpacity>
     );
   };
@@ -445,18 +239,14 @@ export default function CategoriesScreen() {
       >
         <Ionicons name="search-outline" size={36} color={textSecondary} />
       </View>
-      <Text style={[styles.emptyStateTitle, { color: textPrimary }]}>
-        {t('categories.notFound')}
-      </Text>
-      <Text style={[styles.emptyStateMessage, { color: textSecondary }]}>
-        {t('categories.noCategoriesMatch', { query: searchQuery })}
-      </Text>
+      <Text style={[styles.emptyStateTitle, { color: textPrimary }]}>{t("categories.notFound")}</Text>
+      <Text style={[styles.emptyStateMessage, { color: textSecondary }]}>{t("categories.noCategoriesMatch", { query: searchQuery })}</Text>
     </View>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={["top", "bottom"]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={primaryColor} />
         </View>
@@ -466,11 +256,11 @@ export default function CategoriesScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={["top", "bottom"]}>
         <View style={styles.centerContainer}>
           <Text style={[styles.errorText, { color: textPrimary }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
-            <Text style={styles.retryText}>{t('chat.retry')}</Text>
+            <Text style={styles.retryText}>{t("chat.retry")}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -478,11 +268,9 @@ export default function CategoriesScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={["top", "bottom"]}>
       {/* Header */}
-      <View
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={[
@@ -494,9 +282,7 @@ export default function CategoriesScreen() {
         >
           <Ionicons name="arrow-back" size={20} color={textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: textPrimary }]}>
-          {t('categories.title')}
-        </Text>
+        <Text style={[styles.headerTitle, { color: textPrimary }]}>{t("categories.title")}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -511,21 +297,8 @@ export default function CategoriesScreen() {
             },
           ]}
         >
-          <Ionicons
-            name="search"
-            size={16}
-            color={textSecondary}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={[styles.searchInput, { color: textPrimary }]}
-            placeholder={t('categories.searchCategoryPlaceholder')}
-            placeholderTextColor={textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+          <Ionicons name="search" size={16} color={textSecondary} style={styles.searchIcon} />
+          <TextInput style={[styles.searchInput, { color: textPrimary }]} placeholder={t("categories.searchCategoryPlaceholder")} placeholderTextColor={textSecondary} value={searchQuery} onChangeText={setSearchQuery} autoCapitalize="none" autoCorrect={false} />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
               <Ionicons name="close-circle" size={18} color={textSecondary} />
@@ -536,70 +309,65 @@ export default function CategoriesScreen() {
 
       {/* Categories Count and View Toggle */}
       <View style={styles.viewToggleContainer}>
-        <Text style={[styles.categoriesCount, { color: textSecondary }]}>
-          {filteredCategories.length === 1
-            ? t('categories.availableOne', { count: filteredCategories.length })
-            : t('categories.available', { count: filteredCategories.length })}
-        </Text>
+        <Text style={[styles.categoriesCount, { color: textSecondary }]}>{filteredCategories.length === 1 ? t("categories.availableOne", { count: filteredCategories.length }) : t("categories.available", { count: filteredCategories.length })}</Text>
         <View style={styles.toggleButtons}>
           <TouchableOpacity
             style={[
               styles.toggleButton,
               {
-                backgroundColor: viewMode === 'grid' ? primaryColor : cardBg,
+                backgroundColor: viewMode === "grid" ? primaryColor : cardBg,
               },
             ]}
-            onPress={() => setViewMode('grid')}
+            onPress={() => setViewMode("grid")}
           >
             <Text
               style={[
                 styles.toggleButtonText,
                 {
-                  color: viewMode === 'grid' ? '#FFFFFF' : textSecondary,
+                  color: viewMode === "grid" ? "#FFFFFF" : textSecondary,
                 },
               ]}
             >
-              {t('categories.grid')}
+              {t("categories.grid")}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.toggleButton,
               {
-                backgroundColor: viewMode === 'list' ? primaryColor : cardBg,
+                backgroundColor: viewMode === "list" ? primaryColor : cardBg,
               },
             ]}
-            onPress={() => setViewMode('list')}
+            onPress={() => setViewMode("list")}
           >
             <Text
               style={[
                 styles.toggleButtonText,
                 {
-                  color: viewMode === 'list' ? '#FFFFFF' : textSecondary,
+                  color: viewMode === "list" ? "#FFFFFF" : textSecondary,
                 },
               ]}
             >
-              {t('categories.list')}
+              {t("categories.list")}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Categories List/Grid */}
-      {filteredCategories.length === 0 ? (
+      {filteredCategories.length === 0 ?
         renderEmptyState()
-      ) : (
-        <FlashList
+      : <FlashList
           data={filteredCategories}
-          renderItem={viewMode === 'grid' ? renderGridItem : renderListItem}
+          renderItem={viewMode === "grid" ? renderGridItem : renderListItem}
           keyExtractor={(item) => item?.id || `category-${Math.random()}`}
-          numColumns={viewMode === 'grid' ? 3 : 1}
-          estimatedItemSize={viewMode === 'grid' ? 160 : 64}
+          numColumns={viewMode === "grid" ? 3 : 1}
+          estimatedItemSize={viewMode === "grid" ? 160 : 64}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={<View style={{ height: insets.bottom + 20 }} />}
         />
-      )}
+      }
     </SafeAreaView>
   );
 }
@@ -610,14 +378,14 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 16,
@@ -626,14 +394,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: "700",
     flex: 1,
-    textAlign: 'center',
+    textAlign: "center",
   },
   headerSpacer: {
     width: 40,
@@ -643,8 +411,8 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 14,
     borderWidth: 1,
     paddingVertical: 14,
@@ -661,9 +429,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   viewToggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 16,
   },
@@ -671,7 +439,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   toggleButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   toggleButton: {
@@ -681,7 +449,7 @@ const styles = StyleSheet.create({
   },
   toggleButtonText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   listContent: {
     paddingHorizontal: 20,
@@ -693,17 +461,17 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 12,
-    alignItems: 'center',
+    alignItems: "center",
     margin: 4,
     minHeight: 160,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   gridIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 10,
   },
   gridIcon: {
@@ -712,20 +480,20 @@ const styles = StyleSheet.create({
   },
   gridCategoryName: {
     fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontWeight: "600",
+    textAlign: "center",
     marginBottom: 4,
     lineHeight: 16,
   },
   gridProviderCount: {
     fontSize: 10,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 14,
   },
   // List View Styles - Improved UI with icon on the left
   listCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -736,8 +504,8 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 14,
     flexShrink: 0,
   },
@@ -748,11 +516,11 @@ const styles = StyleSheet.create({
   listInfo: {
     flex: 1,
     minWidth: 0,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   listCategoryName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -767,43 +535,43 @@ const styles = StyleSheet.create({
   // Empty State
   emptyStateContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 60,
   },
   emptyStateIconContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 20,
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyStateMessage: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
   },
   errorText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
