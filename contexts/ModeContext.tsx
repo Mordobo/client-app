@@ -1,4 +1,5 @@
 import { getSettings, updateSettings } from '@/services/settings';
+import { checkProviderStatus } from '@/services/providers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -6,7 +7,7 @@ export type UserMode = 'client' | 'provider';
 
 interface ModeContextType {
   mode: UserMode;
-  setMode: (mode: UserMode) => Promise<void>;
+  setMode: (mode: UserMode) => Promise<{ needsOnboarding?: boolean }>;
   isLoading: boolean;
 }
 
@@ -83,9 +84,33 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
     }
   };
 
-  const setMode = useCallback(async (newMode: UserMode) => {
+  const setMode = useCallback(async (newMode: UserMode): Promise<{ needsOnboarding?: boolean }> => {
     const previousMode = mode;
     try {
+      // If switching to provider, check if user needs onboarding
+      if (newMode === 'provider' && isAuthenticated) {
+        try {
+          const providerStatus = await checkProviderStatus();
+          
+          // If provider is not verified or onboarding not completed, return needsOnboarding flag
+          if (!providerStatus.isVerified || !providerStatus.onboardingCompleted) {
+            // Update local state first
+            setModeState(newMode);
+            await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
+            
+            // Return flag indicating onboarding is needed
+            // Don't sync to backend yet - wait until onboarding is complete
+            return { needsOnboarding: true };
+          }
+        } catch (error) {
+          console.error('[ModeContext] Failed to check provider status:', error);
+          // If check fails, assume onboarding is needed
+          setModeState(newMode);
+          await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
+          return { needsOnboarding: true };
+        }
+      }
+
       // Update local state optimistically
       setModeState(newMode);
       await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
@@ -103,6 +128,8 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
           throw error;
         }
       }
+
+      return { needsOnboarding: false };
     } catch (error) {
       console.error('[ModeContext] Failed to save mode:', error);
       // Re-throw error so caller can handle it
