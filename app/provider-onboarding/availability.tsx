@@ -1,11 +1,36 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+type TimePickerField = "start" | "end" | "lunchStart" | "lunchEnd" | null;
+
+function parseTimeString(timeStr: string): Date {
+  const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return new Date();
+  let hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const isPM = (match[3] || "").toUpperCase() === "PM";
+  if (isPM && hours !== 12) hours += 12;
+  if (!isPM && hours === 12) hours = 0;
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
+function formatTimeToDisplay(date: Date): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const isPM = hours >= 12;
+  const h = hours % 12 || 12;
+  const m = minutes.toString().padStart(2, "0");
+  return `${h}:${m} ${isPM ? "PM" : "AM"}`;
+}
 
 const TOTAL_STEPS = 8;
 const DAYS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -21,6 +46,35 @@ export default function ProviderOnboardingAvailabilityScreen() {
   const [lunchStart, setLunchStart] = useState("01:00 PM");
   const [lunchEnd, setLunchEnd] = useState("02:00 PM");
   const [radiusKm, setRadiusKm] = useState(15);
+  const [showTimePicker, setShowTimePicker] = useState<TimePickerField>(null);
+
+  const handleTimeChange = useCallback(
+    (field: TimePickerField) => (_event: unknown, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowTimePicker(null);
+        if (selectedDate && (_event as { type: string })?.type === "set") {
+          const formatted = formatTimeToDisplay(selectedDate);
+          if (field === "start") setStartTime(formatted);
+          else if (field === "end") setEndTime(formatted);
+          else if (field === "lunchStart") setLunchStart(formatted);
+          else if (field === "lunchEnd") setLunchEnd(formatted);
+        }
+      } else {
+        if (selectedDate) {
+          const formatted = formatTimeToDisplay(selectedDate);
+          if (field === "start") setStartTime(formatted);
+          else if (field === "end") setEndTime(formatted);
+          else if (field === "lunchStart") setLunchStart(formatted);
+          else if (field === "lunchEnd") setLunchEnd(formatted);
+        }
+      }
+    },
+    [],
+  );
+
+  const openTimePicker = useCallback((field: TimePickerField) => {
+    setShowTimePicker(field);
+  }, []);
 
   const toggleDay = (index: number) => {
     if (activeDays.includes(index)) {
@@ -58,21 +112,21 @@ export default function ProviderOnboardingAvailabilityScreen() {
           })}
         </View>
 
-        <View style={styles.scheduleCard}>
+        <View style={styles.scheduleCard} collapsable={false}>
           <Text style={styles.cardLabel}>{t("providerOnboarding.availability.schedule")}</Text>
           <View style={styles.timeContainer}>
             <View style={styles.timeField}>
               <Text style={styles.timeLabel}>{t("providerOnboarding.availability.from")}</Text>
-              <View style={styles.timeValue}>
+              <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("start")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.from")}>
                 <Text style={styles.timeText}>{startTime}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
             <Text style={styles.arrow}>→</Text>
             <View style={styles.timeField}>
               <Text style={styles.timeLabel}>{t("providerOnboarding.availability.to")}</Text>
-              <View style={styles.timeValue}>
+              <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("end")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.to")}>
                 <Text style={styles.timeText}>{endTime}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -86,18 +140,47 @@ export default function ProviderOnboardingAvailabilityScreen() {
             <View style={styles.lunchTimeRow}>
               <View style={styles.timeField}>
                 <Text style={styles.timeLabel}>{t("providerOnboarding.availability.lunchFrom")}</Text>
-                <View style={styles.timeValue}>
+                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("lunchStart")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.lunchFrom")}>
                   <Text style={styles.timeText}>{lunchStart}</Text>
-                </View>
+                </TouchableOpacity>
               </View>
               <Text style={styles.arrow}>→</Text>
               <View style={styles.timeField}>
                 <Text style={styles.timeLabel}>{t("providerOnboarding.availability.lunchTo")}</Text>
-                <View style={styles.timeValue}>
+                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("lunchEnd")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.lunchTo")}>
                   <Text style={styles.timeText}>{lunchEnd}</Text>
-                </View>
+                </TouchableOpacity>
               </View>
             </View>
+          )}
+
+          {showTimePicker !== null && (
+            <>
+              <DateTimePicker
+                value={
+                  showTimePicker === "start" ? parseTimeString(startTime)
+                  : showTimePicker === "end" ?
+                    parseTimeString(endTime)
+                  : showTimePicker === "lunchStart" ?
+                    parseTimeString(lunchStart)
+                  : parseTimeString(lunchEnd)
+                }
+                mode="time"
+                display={Platform.OS === "ios" ? "spinner" : "default"}
+                onChange={handleTimeChange(showTimePicker)}
+                locale={Platform.OS === "ios" ? "es-ES" : undefined}
+              />
+              {Platform.OS === "ios" && (
+                <View style={styles.iosTimePickerActions}>
+                  <TouchableOpacity style={styles.iosTimePickerButton} onPress={() => setShowTimePicker(null)} activeOpacity={0.7}>
+                    <Text style={styles.iosTimePickerButtonText}>{t("common.cancel")}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.iosTimePickerButton, styles.iosTimePickerButtonPrimary]} onPress={() => setShowTimePicker(null)} activeOpacity={0.7}>
+                    <Text style={[styles.iosTimePickerButtonText, styles.iosTimePickerButtonTextPrimary]}>{t("common.ok")}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
           )}
         </View>
 
@@ -321,6 +404,29 @@ const styles = StyleSheet.create({
   radiusChipTextActive: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  iosTimePickerActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+    marginTop: 12,
+  },
+  iosTimePickerButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  iosTimePickerButtonPrimary: {
+    backgroundColor: "rgba(139, 92, 246, 0.6)",
+  },
+  iosTimePickerButtonText: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  iosTimePickerButtonTextPrimary: {
+    color: "#FFFFFF",
   },
   buttonContainer: {
     flexDirection: "row",
