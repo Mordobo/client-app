@@ -1,25 +1,30 @@
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { t } from '@/i18n';
-import { ProgressBar } from '@/components/onboarding/ProgressBar';
+import { ProgressBar } from "@/components/onboarding/ProgressBar";
+import { t } from "@/i18n";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
-const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+const DAYS = ["L", "M", "X", "J", "V", "S", "D"];
+const RADIUS_OPTIONS_KM = [5, 10, 15, 20, 25, 30];
 
 export default function ProviderOnboardingAvailabilityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [activeDays, setActiveDays] = useState([0, 1, 2, 3, 4]);
-  const [startTime, setStartTime] = useState('08:00 AM');
-  const [endTime, setEndTime] = useState('06:00 PM');
+  const [startTime, setStartTime] = useState("08:00 AM");
+  const [endTime, setEndTime] = useState("06:00 PM");
+  const [hasLunchBreak, setHasLunchBreak] = useState(false);
+  const [lunchStart, setLunchStart] = useState("01:00 PM");
+  const [lunchEnd, setLunchEnd] = useState("02:00 PM");
+  const [radiusKm, setRadiusKm] = useState(15);
 
   const toggleDay = (index: number) => {
     if (activeDays.includes(index)) {
-      setActiveDays(activeDays.filter(d => d !== index));
+      setActiveDays(activeDays.filter((d) => d !== index));
     } else {
       setActiveDays([...activeDays, index].sort());
     }
@@ -30,110 +35,95 @@ export default function ProviderOnboardingAvailabilityScreen() {
   };
 
   const handleContinue = () => {
-    router.push('/provider-onboarding/documents');
+    router.push("/provider-onboarding/documents");
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ProgressBar currentStep={3} totalSteps={TOTAL_STEPS} />
-      
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>
-          {t('providerOnboarding.availability.title')}
-        </Text>
-        <Text style={styles.subtitle}>
-          {t('providerOnboarding.availability.subtitle')}
-        </Text>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{t("providerOnboarding.availability.title")}</Text>
+        <Text style={styles.subtitle}>{t("providerOnboarding.availability.subtitle")}</Text>
 
         <View style={styles.daysContainer}>
-          {DAYS.map((day, index) => (
-            <TouchableOpacity
-              key={day}
-              style={[
-                styles.dayButton,
-                activeDays.includes(index) && styles.dayButtonActive,
-              ]}
-              onPress={() => toggleDay(index)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.dayText,
-                  activeDays.includes(index) && styles.dayTextActive,
-                ]}
-              >
-                {day}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {DAYS.map((day, index) => {
+            const isActive = activeDays.includes(index);
+            return (
+              <TouchableOpacity key={day} style={[styles.dayButton, isActive && styles.dayButtonActive]} onPress={() => toggleDay(index)} activeOpacity={0.7} accessibilityState={{ selected: isActive }} accessibilityLabel={`${day}, ${isActive ? t("providerOnboarding.availability.daySelected") : t("providerOnboarding.availability.dayNotSelected")}`}>
+                {isActive && <Ionicons name="checkmark-circle" size={14} color="#A78BFA" style={styles.dayCheck} />}
+                <Text style={[styles.dayText, isActive && styles.dayTextActive]}>{day}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <View style={styles.scheduleCard}>
-          <Text style={styles.cardLabel}>
-            {t('providerOnboarding.availability.schedule')}
-          </Text>
+          <Text style={styles.cardLabel}>{t("providerOnboarding.availability.schedule")}</Text>
           <View style={styles.timeContainer}>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>
-                {t('providerOnboarding.availability.from')}
-              </Text>
+              <Text style={styles.timeLabel}>{t("providerOnboarding.availability.from")}</Text>
               <View style={styles.timeValue}>
                 <Text style={styles.timeText}>{startTime}</Text>
               </View>
             </View>
             <Text style={styles.arrow}>→</Text>
             <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>
-                {t('providerOnboarding.availability.to')}
-              </Text>
+              <Text style={styles.timeLabel}>{t("providerOnboarding.availability.to")}</Text>
               <View style={styles.timeValue}>
                 <Text style={styles.timeText}>{endTime}</Text>
               </View>
             </View>
           </View>
+
+          <TouchableOpacity style={styles.lunchToggleRow} onPress={() => setHasLunchBreak(!hasLunchBreak)} activeOpacity={0.7}>
+            <Text style={styles.lunchToggleLabel}>{t("providerOnboarding.availability.lunchBreak")}</Text>
+            <View style={[styles.toggleTrack, hasLunchBreak && styles.toggleTrackOn]}>
+              <View style={[styles.toggleThumb, hasLunchBreak && styles.toggleThumbOn]} />
+            </View>
+          </TouchableOpacity>
+          {hasLunchBreak && (
+            <View style={styles.lunchTimeRow}>
+              <View style={styles.timeField}>
+                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.lunchFrom")}</Text>
+                <View style={styles.timeValue}>
+                  <Text style={styles.timeText}>{lunchStart}</Text>
+                </View>
+              </View>
+              <Text style={styles.arrow}>→</Text>
+              <View style={styles.timeField}>
+                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.lunchTo")}</Text>
+                <View style={styles.timeValue}>
+                  <Text style={styles.timeText}>{lunchEnd}</Text>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.coverageCard}>
-          <Text style={styles.cardLabel}>
-            {t('providerOnboarding.availability.coverage')}
-          </Text>
+          <Text style={styles.cardLabel}>{t("providerOnboarding.availability.coverage")}</Text>
           <View style={styles.coverageContent}>
             <Ionicons name="location" size={24} color="#A78BFA" />
-            <Text style={styles.radiusText}>
-              {t('providerOnboarding.availability.radius')} 15 km
-            </Text>
+            <Text style={styles.radiusLabel}>{t("providerOnboarding.availability.radiusLabel")}</Text>
+            <View style={styles.radiusOptions}>
+              {RADIUS_OPTIONS_KM.map((km) => (
+                <TouchableOpacity key={km} style={[styles.radiusChip, radiusKm === km && styles.radiusChipActive]} onPress={() => setRadiusKm(km)} activeOpacity={0.7}>
+                  <Text style={[styles.radiusChipText, radiusKm === km && styles.radiusChipTextActive]}>{km} km</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBack}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.backButtonText}>
-            {t('providerOnboarding.availability.back')}
-          </Text>
+        <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
+          <Text style={styles.backButtonText}>{t("providerOnboarding.availability.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.continueButton}
-          onPress={handleContinue}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={['#6366F1', '#8B5CF6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.continueButtonGradient}
-          >
-            <Text style={styles.continueButtonText}>
-              {t('providerOnboarding.availability.continue')}
-            </Text>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
+          <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
+            <Text style={styles.continueButtonText}>{t("providerOnboarding.availability.continue")}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -144,7 +134,7 @@ export default function ProviderOnboardingAvailabilityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#12121A',
+    backgroundColor: "#12121A",
   },
   scrollView: {
     flex: 1,
@@ -155,18 +145,18 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: "700",
+    color: "#FFFFFF",
     marginBottom: 4,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 20,
   },
   daysContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 6,
     marginBottom: 20,
   },
@@ -174,40 +164,49 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderWidth: 2,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
   },
   dayButtonActive: {
-    backgroundColor: 'transparent',
+    backgroundColor: "rgba(139, 92, 246, 0.2)",
+    borderColor: "#A78BFA",
+  },
+  dayCheck: {
+    position: "absolute",
+    top: 4,
+    right: 4,
   },
   dayText: {
     fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.4)",
   },
   dayTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   scheduleCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: "rgba(255, 255, 255, 0.06)",
     marginBottom: 16,
   },
   cardLabel: {
     fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.7)',
-    textTransform: 'uppercase',
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.7)",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 12,
   },
   timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   timeField: {
@@ -215,48 +214,116 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: "rgba(255, 255, 255, 0.4)",
     marginBottom: 4,
   },
   timeValue: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   timeText: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   arrow: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.2)',
+    color: "rgba(255, 255, 255, 0.2)",
     marginTop: 20,
+  },
+  lunchToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.06)",
+  },
+  lunchToggleLabel: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  toggleTrack: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 2,
+  },
+  toggleTrackOn: {
+    backgroundColor: "rgba(139, 92, 246, 0.5)",
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    alignSelf: "flex-start",
+  },
+  toggleThumbOn: {
+    backgroundColor: "#A78BFA",
+    alignSelf: "flex-end",
+  },
+  lunchTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 12,
   },
   coverageCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: "rgba(255, 255, 255, 0.06)",
     flex: 1,
     minHeight: 96,
   },
   coverageContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(139, 92, 246, 0.1)",
     borderRadius: 8,
     padding: 16,
   },
-  radiusText: {
+  radiusLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 4,
+    marginBottom: 12,
+  },
+  radiusOptions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    justifyContent: "center",
+  },
+  radiusChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  radiusChipActive: {
+    backgroundColor: "rgba(139, 92, 246, 0.4)",
+    borderWidth: 1,
+    borderColor: "#A78BFA",
+  },
+  radiusChipText: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.6)",
+  },
+  radiusChipTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
     paddingHorizontal: 20,
     paddingBottom: 24,
@@ -265,28 +332,28 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   backButtonText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.7)",
   },
   continueButton: {
     flex: 2,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   continueButtonGradient: {
     paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   continueButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });
