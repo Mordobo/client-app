@@ -118,7 +118,9 @@ export default function ProviderOnboardingBusinessScreen() {
                   <Text style={[styles.selectText, !selectedCategory && styles.selectPlaceholder]} numberOfLines={1}>
                     {selectedCategory ? `${selectedCategory.icon} ${selectedCategory.name}` : t("providerOnboarding.business.selectCategory")}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="rgba(255, 255, 255, 0.4)" style={styles.selectIcon} />
+                  <View style={styles.selectIconWrap}>
+                    <Ionicons name="chevron-down" size={16} color="rgba(255, 255, 255, 0.4)" />
+                  </View>
                 </>
               }
             </TouchableOpacity>
@@ -232,7 +234,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingRight: 40,
     borderRadius: 12,
     backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderWidth: 1,
@@ -253,11 +254,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  selectIcon: {
-    position: "absolute",
-    right: 16,
-    top: "50%",
-    transform: [{ translateY: -8 }],
+  selectIconWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+    minWidth: 24,
   },
   modalOverlay: {
     flex: 1,
