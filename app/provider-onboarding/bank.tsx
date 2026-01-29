@@ -97,7 +97,7 @@ export default function ProviderOnboardingBankScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ProgressBar currentStep={6} totalSteps={TOTAL_STEPS} />
+      <ProgressBar currentStep={5} totalSteps={TOTAL_STEPS} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{t("providerOnboarding.bank.title")}</Text>
