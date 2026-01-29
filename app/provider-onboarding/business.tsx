@@ -10,6 +10,7 @@ import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TextI
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
+const MIN_DESCRIPTION_LENGTH = 25;
 
 export interface CategoryOption {
   id: string;
@@ -77,8 +78,10 @@ export default function ProviderOnboardingBusinessScreen() {
     router.back();
   };
 
+  const canContinue = businessName.trim().length > 0 && selectedCategory !== null && description.trim().length >= MIN_DESCRIPTION_LENGTH;
+
   const handleContinue = () => {
-    // TODO: Save data and navigate to next step
+    if (!canContinue) return;
     router.push("/provider-onboarding/services");
   };
 
@@ -161,9 +164,9 @@ export default function ProviderOnboardingBusinessScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.business.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
-          <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
-            <Text style={styles.continueButtonText}>{t("providerOnboarding.business.continue")}</Text>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue}>
+          <LinearGradient colors={canContinue ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.continueButtonGradient, !canContinue && styles.continueButtonDisabled]}>
+            <Text style={[styles.continueButtonText, !canContinue && styles.continueButtonTextDisabled]}>{t("providerOnboarding.business.continue")}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -343,9 +346,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  continueButtonDisabled: {
+    opacity: 0.6,
+  },
   continueButtonText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  continueButtonTextDisabled: {
+    color: "rgba(255, 255, 255, 0.7)",
   },
 });
