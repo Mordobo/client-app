@@ -5,7 +5,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type TimePickerField = "start" | "end" | "lunchStart" | "lunchEnd" | null;
@@ -114,28 +114,30 @@ export default function ProviderOnboardingAvailabilityScreen() {
 
         <View style={styles.scheduleCard} collapsable={false}>
           <Text style={styles.cardLabel}>{t("providerOnboarding.availability.schedule")}</Text>
-          <View style={styles.timeContainer}>
-            <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>{t("providerOnboarding.availability.from")}</Text>
-              <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("start")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.from")}>
-                <Text style={styles.timeText}>{startTime}</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.arrow}>→</Text>
-            <View style={styles.timeField}>
-              <Text style={styles.timeLabel}>{t("providerOnboarding.availability.to")}</Text>
-              <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("end")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.to")}>
-                <Text style={styles.timeText}>{endTime}</Text>
-              </TouchableOpacity>
+          <View style={styles.timeRowWrapper}>
+            <View style={styles.timeContainer}>
+              <View style={styles.timeField}>
+                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.from")}</Text>
+                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("start")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.from")}>
+                  <Text style={styles.timeText}>{startTime}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.arrowWrapper}>
+                <Text style={styles.arrow}>→</Text>
+              </View>
+              <View style={styles.timeField}>
+                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.to")}</Text>
+                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("end")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.to")}>
+                  <Text style={styles.timeText}>{endTime}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.lunchToggleRow} onPress={() => setHasLunchBreak(!hasLunchBreak)} activeOpacity={0.7}>
+          <View style={styles.lunchToggleRow}>
             <Text style={styles.lunchToggleLabel}>{t("providerOnboarding.availability.lunchBreak")}</Text>
-            <View style={[styles.toggleTrack, hasLunchBreak && styles.toggleTrackOn]}>
-              <View style={[styles.toggleThumb, hasLunchBreak && styles.toggleThumbOn]} />
-            </View>
-          </TouchableOpacity>
+            <Switch value={hasLunchBreak} onValueChange={setHasLunchBreak} trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: "rgba(139, 92, 246, 0.5)" }} thumbColor={hasLunchBreak ? "#A78BFA" : "rgba(255, 255, 255, 0.5)"} accessibilityLabel={t("providerOnboarding.availability.lunchBreak")} />
+          </View>
           {hasLunchBreak && (
             <View style={styles.lunchTimeRow}>
               <View style={styles.timeField}>
@@ -287,9 +289,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   },
+  timeRowWrapper: {
+    minHeight: 56,
+  },
   timeContainer: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
   timeField: {
@@ -310,10 +315,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#FFFFFF",
   },
+  arrowWrapper: {
+    justifyContent: "center",
+    paddingTop: 22,
+  },
   arrow: {
     fontSize: 16,
     color: "rgba(255, 255, 255, 0.2)",
-    marginTop: 20,
   },
   lunchToggleRow: {
     flexDirection: "row",
@@ -327,29 +335,6 @@ const styles = StyleSheet.create({
   lunchToggleLabel: {
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.8)",
-  },
-  toggleTrack: {
-    width: 44,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 2,
-  },
-  toggleTrackOn: {
-    backgroundColor: "rgba(139, 92, 246, 0.5)",
-  },
-  toggleThumb: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
-    alignSelf: "flex-start",
-  },
-  toggleThumbOn: {
-    backgroundColor: "#A78BFA",
-    alignSelf: "flex-end",
   },
   lunchTimeRow: {
     flexDirection: "row",
