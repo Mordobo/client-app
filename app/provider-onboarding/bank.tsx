@@ -111,7 +111,9 @@ export default function ProviderOnboardingBankScreen() {
               <Text style={[styles.selectText, !selectedBank && styles.selectPlaceholder]} numberOfLines={1}>
                 {selectedBank ? selectedBank.name : t("providerOnboarding.bank.selectBank")}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="rgba(255, 255, 255, 0.4)" style={styles.selectIcon} />
+              <View style={styles.selectIconWrapper}>
+                <Ionicons name="chevron-down" size={16} color="rgba(255, 255, 255, 0.4)" />
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -268,11 +270,14 @@ const styles = StyleSheet.create({
   selectPlaceholder: {
     color: "rgba(255, 255, 255, 0.3)",
   },
-  selectIcon: {
+  selectIconWrapper: {
     position: "absolute",
-    right: 16,
-    top: "50%",
-    transform: [{ translateY: -8 }],
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   paymentInfoCard: {
     flexDirection: "row",
