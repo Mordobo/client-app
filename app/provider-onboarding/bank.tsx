@@ -69,7 +69,9 @@ export default function ProviderOnboardingBankScreen() {
   const accountHolderTrimmed = accountHolder.trim();
   const accountHolderError = touched.accountHolder && !accountHolderTrimmed ? t("providerOnboarding.bank.errorAccountHolderRequired") : null;
 
-  const canContinue = selectedBank !== null && clabeValidation.isValid && accountHolderTrimmed.length > 0;
+  const hasAnyBankData = selectedBank !== null || clabeRaw.trim().length > 0 || accountHolderTrimmed.length > 0;
+  const isBankFormValid = selectedBank !== null && clabeValidation.isValid && accountHolderTrimmed.length > 0;
+  const canContinue = !hasAnyBankData || isBankFormValid;
 
   const handleClabeChange = useCallback((text: string) => {
     const digits = text.replace(/\D/g, "").slice(0, 18);
@@ -82,7 +84,11 @@ export default function ProviderOnboardingBankScreen() {
 
   const handleContinue = () => {
     setTouched({ clabe: true, accountHolder: true });
-    if (!selectedBank) return;
+    if (!hasAnyBankData) {
+      router.push("/provider-onboarding/terms");
+      return;
+    }
+    if (!isBankFormValid) return;
     const clabe = normalizeClabe(clabeRaw);
     const validation = validateClabe(clabe);
     if (!validation.isValid || !accountHolderTrimmed) return;

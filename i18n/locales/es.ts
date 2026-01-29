@@ -977,7 +977,7 @@ export default {
     },
     bank: {
       title: "Cuenta bancaria",
-      subtitle: "Para recibir tus pagos",
+      subtitle: "Para recibir tus pagos (opcional)",
       bank: "Banco",
       selectBank: "Selecciona tu banco",
       clabe: "Número de cuenta / CLABE Interbancaria",
