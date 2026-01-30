@@ -1,11 +1,12 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
+import { submitOnboardingStep } from "@/services/providers";
 import { formatClabeDisplay, normalizeClabe, validateClabe } from "@/utils/clabeValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
@@ -69,7 +70,8 @@ export default function ProviderOnboardingBankScreen() {
   const accountHolderTrimmed = accountHolder.trim();
   const accountHolderError = touched.accountHolder && !accountHolderTrimmed ? t("providerOnboarding.bank.errorAccountHolderRequired") : null;
 
-  const canContinue = selectedBank !== null && clabeValidation.isValid && accountHolderTrimmed.length > 0;
+  const hasValidBankData = selectedBank !== null && clabeValidation.isValid && accountHolderTrimmed.length > 0;
+  const canContinue = true;
 
   const handleClabeChange = useCallback((text: string) => {
     const digits = text.replace(/\D/g, "").slice(0, 18);
@@ -80,14 +82,26 @@ export default function ProviderOnboardingBankScreen() {
     router.back();
   };
 
-  const handleContinue = () => {
-    setTouched({ clabe: true, accountHolder: true });
-    if (!selectedBank) return;
-    const clabe = normalizeClabe(clabeRaw);
-    const validation = validateClabe(clabe);
-    if (!validation.isValid || !accountHolderTrimmed) return;
-    // TODO: persist securely (encrypt before sending to API)
-    router.push("/provider-onboarding/terms");
+  const [saving, setSaving] = useState(false);
+
+  const handleContinue = async () => {
+    setSaving(true);
+    try {
+      if (hasValidBankData) {
+        const clabe = normalizeClabe(clabeRaw);
+        await submitOnboardingStep(5, {
+          bankName: selectedBank!.name,
+          clabe,
+          accountHolder: accountHolderTrimmed,
+        });
+      } else {
+        await submitOnboardingStep(5, {});
+      }
+      router.push("/provider-onboarding/terms");
+    } catch (e) {
+      console.error("[Bank] submitOnboardingStep failed:", e);
+      setSaving(false);
+    }
   };
 
   const handleSelectBank = (bank: { id: string; name: string }) => {
@@ -152,9 +166,9 @@ export default function ProviderOnboardingBankScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.bank.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue}>
-          <LinearGradient colors={canContinue ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
-            <Text style={[styles.continueButtonText, !canContinue && styles.continueButtonTextDisabled]}>{t("providerOnboarding.bank.continue")}</Text>
+        <TouchableOpacity style={[styles.continueButton, (!canContinue || saving) && styles.continueButtonDisabled]} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue || saving}>
+          <LinearGradient colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
+            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={[styles.continueButtonText, (!canContinue || saving) && styles.continueButtonTextDisabled]}>{t("providerOnboarding.bank.continue")}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>

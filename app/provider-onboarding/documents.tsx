@@ -1,6 +1,6 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
-import { getOnboardingDocuments, type OnboardingDocumentType, uploadOnboardingDocument } from "@/services/providers";
+import { getOnboardingDocuments, submitOnboardingStep, type OnboardingDocumentType, uploadOnboardingDocument } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
@@ -106,12 +106,21 @@ export default function ProviderOnboardingDocumentsScreen() {
     }
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleContinue = () => {
-    router.push("/provider-onboarding/bank");
+  const handleContinue = async () => {
+    setSaving(true);
+    try {
+      await submitOnboardingStep(4, {});
+      router.push("/provider-onboarding/bank");
+    } catch (e) {
+      console.error("[Documents] submitOnboardingStep failed:", e);
+      setSaving(false);
+    }
   };
 
   return (
@@ -162,9 +171,9 @@ export default function ProviderOnboardingDocumentsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.documents.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={saving}>
           <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
-            <Text style={styles.continueButtonText}>{t("providerOnboarding.documents.continue")}</Text>
+            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.continueButtonText}>{t("providerOnboarding.documents.continue")}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>

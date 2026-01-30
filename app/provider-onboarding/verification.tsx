@@ -1,15 +1,37 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { t } from '@/i18n';
 import { useMode } from '@/contexts/ModeContext';
+import { t } from '@/i18n';
+import { submitOnboardingStep } from '@/services/providers';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+type SubmitState = 'idle' | 'submitting' | 'submitted' | 'error';
 
 export default function ProviderOnboardingVerificationScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { setMode } = useMode();
+  const [submitState, setSubmitState] = useState<SubmitState>('submitting');
+  const step7Sent = useRef(false);
+
+  const sendStep7 = useCallback(async () => {
+    setSubmitState('submitting');
+    try {
+      await submitOnboardingStep(7, {});
+      setSubmitState('submitted');
+    } catch (e) {
+      console.error('[Verification] submitOnboardingStep(7) failed:', e);
+      setSubmitState('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (step7Sent.current) return;
+    step7Sent.current = true;
+    sendStep7();
+  }, [sendStep7]);
 
   const handleBackToHome = async () => {
     try {
@@ -25,77 +47,119 @@ export default function ProviderOnboardingVerificationScreen() {
   };
 
   const steps = [
-    { label: t('providerOnboarding.verification.step1'), status: 'done' },
-    { label: t('providerOnboarding.verification.step2'), status: 'progress' },
-    { label: t('providerOnboarding.verification.step3'), status: 'pending' },
+    { label: t('providerOnboarding.verification.step1'), status: 'done' as const },
+    { label: t('providerOnboarding.verification.step2'), status: 'progress' as const },
+    { label: t('providerOnboarding.verification.step3'), status: 'pending' as const },
   ];
+
+  const isSubmitting = submitState === 'submitting';
+  const isSubmitted = submitState === 'submitted';
+  const isError = submitState === 'error';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="shield-checkmark" size={40} color="#A78BFA" />
-          </View>
-        </View>
+        {isSubmitting && (
+          <>
+            <ActivityIndicator size="large" color="#A78BFA" style={styles.loader} />
+            <Text style={styles.submittingText}>
+              {t('providerOnboarding.verification.submitting')}
+            </Text>
+          </>
+        )}
 
-        <Text style={styles.title}>
-          {t('providerOnboarding.verification.title')}
-        </Text>
-        <Text style={styles.subtitle}>
-          {t('providerOnboarding.verification.subtitle')}
-        </Text>
-
-        <View style={styles.stepsContainer}>
-          {steps.map((step, index) => (
-            <View key={index} style={styles.stepItem}>
-              <View
-                style={[
-                  styles.stepIcon,
-                  step.status === 'done' && styles.stepIconDone,
-                  step.status === 'progress' && styles.stepIconProgress,
-                ]}
-              >
-                {step.status === 'done' && (
-                  <Ionicons name="checkmark" size={14} color="#22C55E" />
-                )}
-                {step.status === 'progress' && (
-                  <View style={styles.progressDot} />
-                )}
-                {step.status === 'pending' && (
-                  <View style={styles.pendingDot} />
-                )}
+        {isError && (
+          <>
+            <View style={styles.iconContainer}>
+              <View style={[styles.iconCircle, styles.iconCircleError]}>
+                <Ionicons name="alert-circle" size={40} color="#F87171" />
               </View>
-              <Text
-                style={[
-                  styles.stepText,
-                  step.status === 'pending' && styles.stepTextPending,
-                ]}
-              >
-                {step.label}
+            </View>
+            <Text style={styles.errorText}>
+              {t('providerOnboarding.verification.submitError')}
+            </Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => sendStep7()}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.retryButtonText}>
+                {t('providerOnboarding.verification.retry')}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {isSubmitted && (
+          <>
+            <View style={styles.iconContainer}>
+              <View style={styles.iconCircle}>
+                <Ionicons name="shield-checkmark" size={40} color="#A78BFA" />
+              </View>
+            </View>
+
+            <Text style={styles.title}>
+              {t('providerOnboarding.verification.title')}
+            </Text>
+            <Text style={styles.subtitle}>
+              {t('providerOnboarding.verification.subtitle')}
+            </Text>
+
+            <View style={styles.stepsContainer}>
+              {steps.map((step, index) => (
+                <View key={index} style={styles.stepItem}>
+                  <View
+                    style={[
+                      styles.stepIcon,
+                      step.status === 'done' && styles.stepIconDone,
+                      step.status === 'progress' && styles.stepIconProgress,
+                    ]}
+                  >
+                    {step.status === 'done' && (
+                      <Ionicons name="checkmark" size={14} color="#22C55E" />
+                    )}
+                    {step.status === 'progress' && (
+                      <View style={styles.progressDot} />
+                    )}
+                    {step.status === 'pending' && (
+                      <View style={styles.pendingDot} />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.stepText,
+                      step.status === 'pending' && styles.stepTextPending,
+                    ]}
+                  >
+                    {step.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.notificationCard}>
+              <Text style={styles.notificationText}>
+                {t('providerOnboarding.verification.notification')}
               </Text>
             </View>
-          ))}
-        </View>
+          </>
+        )}
 
-        <View style={styles.notificationCard}>
-          <Text style={styles.notificationText}>
-            {t('providerOnboarding.verification.notification')}
-          </Text>
-        </View>
       </View>
 
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={handleBackToHome}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.backButtonText}>
-            {t('providerOnboarding.verification.backToHome')}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {isSubmitted && (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBackToHome}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.backButtonText}>
+              {t('providerOnboarding.verification.backToHome')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -110,6 +174,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loader: {
+    marginBottom: 16,
+  },
+  submittingText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+  },
+  iconCircleError: {
+    backgroundColor: 'rgba(248, 113, 113, 0.2)',
+    borderColor: 'rgba(248, 113, 113, 0.3)',
+  },
+  errorText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.5)',
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   iconContainer: {
     marginBottom: 24,

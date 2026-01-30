@@ -1,6 +1,7 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
 import { fetchCategories, type Category } from "@/services/categories";
+import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -80,9 +81,22 @@ export default function ProviderOnboardingBusinessScreen() {
 
   const canContinue = businessName.trim().length > 0 && selectedCategory !== null && description.trim().length >= MIN_DESCRIPTION_LENGTH;
 
-  const handleContinue = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleContinue = async () => {
     if (!canContinue) return;
-    router.push("/provider-onboarding/services");
+    setSaving(true);
+    try {
+      await submitOnboardingStep(1, {
+        businessName: businessName.trim(),
+        categoryId: selectedCategory?.id,
+        description: description.trim(),
+      });
+      router.push("/provider-onboarding/services");
+    } catch (e) {
+      console.error("[Business] submitOnboardingStep failed:", e);
+      setSaving(false);
+    }
   };
 
   const handleSelectCategory = (option: CategoryOption) => {
@@ -166,9 +180,9 @@ export default function ProviderOnboardingBusinessScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.business.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue}>
-          <LinearGradient colors={canContinue ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.continueButtonGradient, !canContinue && styles.continueButtonDisabled]}>
-            <Text style={[styles.continueButtonText, !canContinue && styles.continueButtonTextDisabled]}>{t("providerOnboarding.business.continue")}</Text>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue || saving}>
+          <LinearGradient colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.continueButtonGradient, (!canContinue || saving) && styles.continueButtonDisabled]}>
+            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={[styles.continueButtonText, (!canContinue || saving) && styles.continueButtonTextDisabled]}>{t("providerOnboarding.business.continue")}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>

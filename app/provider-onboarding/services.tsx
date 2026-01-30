@@ -1,10 +1,11 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
+import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
@@ -81,12 +82,21 @@ export default function ProviderOnboardingServicesScreen() {
     );
   }, []);
 
+  const [saving, setSaving] = useState(false);
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleContinue = () => {
-    router.push("/provider-onboarding/availability");
+  const handleContinue = async () => {
+    setSaving(true);
+    try {
+      await submitOnboardingStep(2, {});
+      router.push("/provider-onboarding/availability");
+    } catch (e) {
+      console.error("[Services] submitOnboardingStep failed:", e);
+      setSaving(false);
+    }
   };
 
   const handleAddService = useCallback(() => {
@@ -161,9 +171,9 @@ export default function ProviderOnboardingServicesScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.services.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={saving}>
           <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
-            <Text style={styles.continueButtonText}>{t("providerOnboarding.services.continue")}</Text>
+            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.continueButtonText}>{t("providerOnboarding.services.continue")}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>

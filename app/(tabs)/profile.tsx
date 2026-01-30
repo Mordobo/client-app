@@ -163,7 +163,7 @@ export default function ProfileScreen() {
                 variant="pill"
                 currentMode={mode}
                 onModeChange={async (newMode) => {
-                  try {
+                    try {
                     // setMode will throw if backend sync fails
                     const result = await setMode(newMode);
 
@@ -174,7 +174,13 @@ export default function ProfileScreen() {
                       return;
                     }
 
-                    // Only show success if no error was thrown and we didn't navigate to onboarding
+                    // If switched to provider and already verified, go to provider dashboard
+                    if (newMode === "provider") {
+                      router.replace("/(provider-tabs)");
+                      return;
+                    }
+
+                    // Only show success if no error was thrown and we didn't navigate
                     setToastMessage(t("mode.modeChanged"));
                     setToastType("success");
                     setToastVisible(true);
