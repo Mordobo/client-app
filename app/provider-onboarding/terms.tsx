@@ -1,10 +1,11 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
+import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
@@ -28,16 +29,24 @@ export default function ProviderOnboardingTermsScreen() {
     setTerms(terms.map((t) => (t.id === id ? { ...t, checked: !t.checked } : t)));
   };
 
+  const [saving, setSaving] = useState(false);
+  const canContinue = terms[0].checked && terms[1].checked;
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleAccept = () => {
-    // TODO: Submit onboarding data
-    router.push("/provider-onboarding/verification");
+  const handleAccept = async () => {
+    if (!canContinue) return;
+    setSaving(true);
+    try {
+      await submitOnboardingStep(6, {});
+      router.push("/provider-onboarding/verification");
+    } catch (e) {
+      console.error("[Terms] submitOnboardingStep failed:", e);
+      setSaving(false);
+    }
   };
-
-  const canContinue = terms[0].checked && terms[1].checked;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -90,9 +99,9 @@ export default function ProviderOnboardingTermsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.terms.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.acceptButton, !canContinue && styles.acceptButtonDisabled]} onPress={handleAccept} disabled={!canContinue} activeOpacity={0.8}>
-          <LinearGradient colors={canContinue ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.acceptButtonGradient}>
-            <Text style={styles.acceptButtonText}>{t("providerOnboarding.terms.accept")}</Text>
+        <TouchableOpacity style={[styles.acceptButton, (!canContinue || saving) && styles.acceptButtonDisabled]} onPress={handleAccept} disabled={!canContinue || saving} activeOpacity={0.8}>
+          <LinearGradient colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.acceptButtonGradient}>
+            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.acceptButtonText}>{t("providerOnboarding.terms.accept")}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>

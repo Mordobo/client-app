@@ -91,20 +91,21 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
       if (newMode === 'provider' && isAuthenticated) {
         try {
           const providerStatus = await checkProviderStatus();
-          
-          // If provider is not verified or onboarding not completed, return needsOnboarding flag
-          if (!providerStatus.isVerified || !providerStatus.onboardingCompleted) {
-            // Update local state first
+          // If not yet a provider (no supplier record), we'd get isProvider: false - allow switch and onboarding will create it
+          if (!providerStatus.isProvider) {
             setModeState(newMode);
             await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
-            
-            // Return flag indicating onboarding is needed
-            // Don't sync to backend yet - wait until onboarding is complete
             return { needsOnboarding: true };
           }
+          // If onboarding not completed, send to onboarding; if completed (verified or in_review), allow provider mode
+          if (!providerStatus.onboardingCompleted) {
+            setModeState(newMode);
+            await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
+            return { needsOnboarding: true };
+          }
+          // Onboarding completed: allow provider mode (verified or still in_review - user can see provider dashboard)
         } catch (error) {
           console.error('[ModeContext] Failed to check provider status:', error);
-          // If check fails, assume onboarding is needed
           setModeState(newMode);
           await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
           return { needsOnboarding: true };

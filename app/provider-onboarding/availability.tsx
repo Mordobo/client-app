@@ -1,11 +1,12 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
+import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type TimePickerField = "start" | "end" | "lunchStart" | "lunchEnd" | null;
@@ -30,6 +31,14 @@ function formatTimeToDisplay(date: Date): string {
   const h = hours % 12 || 12;
   const m = minutes.toString().padStart(2, "0");
   return `${h}:${m} ${isPM ? "PM" : "AM"}`;
+}
+
+/** Convert display time "08:00 AM" / "06:00 PM" to API format "08:00" / "18:00" (24h). */
+function displayTimeToHHMM(display: string): string {
+  const d = parseTimeString(display);
+  const h = d.getHours();
+  const m = d.getMinutes();
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
 const TOTAL_STEPS = 8;
@@ -84,12 +93,28 @@ export default function ProviderOnboardingAvailabilityScreen() {
     }
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleBack = () => {
     router.back();
   };
 
-  const handleContinue = () => {
-    router.push("/provider-onboarding/documents");
+  const handleContinue = async () => {
+    setSaving(true);
+    try {
+      await submitOnboardingStep(3, {
+        availability: {
+          days: activeDays,
+          startTime: displayTimeToHHMM(startTime),
+          endTime: displayTimeToHHMM(endTime),
+          coverageRadius: radiusKm,
+        },
+      });
+      router.push("/provider-onboarding/documents");
+    } catch (e) {
+      console.error("[Availability] submitOnboardingStep failed:", e);
+      setSaving(false);
+    }
   };
 
   return (
@@ -206,9 +231,9 @@ export default function ProviderOnboardingAvailabilityScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.availability.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={saving}>
           <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
-            <Text style={styles.continueButtonText}>{t("providerOnboarding.availability.continue")}</Text>
+            {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.continueButtonText}>{t("providerOnboarding.availability.continue")}</Text>}
           </LinearGradient>
         </TouchableOpacity>
       </View>
