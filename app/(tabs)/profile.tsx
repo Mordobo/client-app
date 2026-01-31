@@ -49,6 +49,13 @@ export default function ProfileScreen() {
     loadStats();
   }, [loadStats]);
 
+  // When user is in provider mode, show provider profile instead of client profile
+  useEffect(() => {
+    if (mode === "provider") {
+      router.replace("/(provider-tabs)/profile");
+    }
+  }, [mode, router]);
+
   const handleLogout = () => {
     const performLogout = async () => {
       try {
