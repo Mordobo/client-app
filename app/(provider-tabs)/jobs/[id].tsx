@@ -1,20 +1,122 @@
 import { t } from "@/i18n";
+import {
+  EXAMPLE_ACTIVE_JOB_ID,
+  getExampleActiveJob,
+  getProviderActiveJobs,
+  type ProviderActiveJobDetail,
+} from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CARD_BG = "#1E1B2E";
 const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const SCREEN_BG = "#12121A";
+const GREEN_PRICE = "#22C55E";
+const GREEN_BUTTON = "#22C55E";
+const YELLOW_STAR = "#EAB308";
+
+function formatCurrency(value: number): string {
+  const str = value % 1 === 0 ? String(value) : value.toFixed(2);
+  return "$" + str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
 
-  const goBack = () => router.back();
+  const {
+    data: jobs = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["providerActiveJobs"],
+    queryFn: getProviderActiveJobs,
+    staleTime: 60 * 1000,
+  });
+
+  const job = useMemo((): ProviderActiveJobDetail | null => {
+    if (!id) return null;
+    const fromList = jobs.find((j) => j.id === id) as
+      | ProviderActiveJobDetail
+      | undefined;
+    if (fromList) return fromList;
+    if (id === EXAMPLE_ACTIVE_JOB_ID) return getExampleActiveJob();
+    return null;
+  }, [id, jobs]);
+
+  const goBack = useCallback(() => router.back(), [router]);
+
+  const handleChat = useCallback(() => {
+    if (!job) return;
+    router.push(`/booking/chat/${job.orderId}`);
+  }, [job, router]);
+
+  const handleCall = useCallback(() => {
+    if (!job?.clientPhone) return;
+    const url = job.clientPhone.startsWith("+")
+      ? `tel:${job.clientPhone}`
+      : `tel:${job.clientPhone}`;
+    Linking.openURL(url);
+  }, [job]);
+
+  const handleMarkAsCompleted = useCallback(() => {
+    Alert.alert(
+      t("providerDashboard.confirmCompleteTitle"),
+      t("providerDashboard.confirmCompleteMessage"),
+      [
+        { text: t("providerDashboard.cancel"), style: "cancel" },
+        {
+          text: t("providerDashboard.confirm"),
+          onPress: () => {
+            queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
+            goBack();
+          },
+        },
+      ]
+    );
+  }, [goBack, queryClient]);
+
+  if (isLoading && jobs.length === 0) {
+    return (
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color="#8B5CF6" />
+      </View>
+    );
+  }
+
+  if (isError || !job) {
+    return (
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+        <Text style={styles.errorText}>{t("providerDashboard.errors.activeJobsFailed")}</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+          <Text style={styles.backBtnLabel}>←</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const ratingLabel =
+    job.clientRating != null && job.reviewCount != null
+      ? t("providerDashboard.clientRatingReviews", {
+          rating: String(job.clientRating),
+          count: job.reviewCount,
+        })
+      : null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
@@ -22,27 +124,43 @@ export default function ProviderJobDetailScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
-        <Text style={styles.title}>{t("providerDashboard.viewDetails")}</Text>
+        <Text style={styles.title}>{t("providerDashboard.jobDetailTitle")}</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Client card */}
         <View style={[styles.card, styles.section]}>
           <View style={styles.clientRow}>
             <View style={styles.avatar}>
               <Ionicons name="person" size={28} color="rgba(255,255,255,0.6)" />
             </View>
             <View style={styles.clientInfo}>
-              <Text style={styles.clientName}>—</Text>
-              <Text style={styles.clientMeta}>—</Text>
+              <Text style={styles.clientName}>{job.clientName}</Text>
+              {ratingLabel ? (
+                <View style={styles.ratingRow}>
+                  <Ionicons name="star" size={14} color={YELLOW_STAR} />
+                  <Text style={styles.clientMeta}>{ratingLabel}</Text>
+                </View>
+              ) : (
+                <Text style={styles.clientMeta}>—</Text>
+              )}
             </View>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.iconBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={handleChat}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.iconBtn}
+                onPress={handleCall}
                 activeOpacity={0.7}
-                onPress={() => Linking.openURL("tel:")}
               >
                 <Ionicons name="call-outline" size={22} color="#FFFFFF" />
               </TouchableOpacity>
@@ -50,24 +168,41 @@ export default function ProviderJobDetailScreen() {
           </View>
         </View>
 
+        {/* Service card */}
         <View style={[styles.card, styles.section]}>
-          <Text style={styles.sectionLabel}>—</Text>
-          <Text style={styles.sectionTitle}>—</Text>
-          <Text style={styles.sectionSub}>—</Text>
+          <Text style={styles.sectionLabel}>{t("providerDashboard.serviceLabel")}</Text>
+          <Text style={styles.sectionTitle}>{job.serviceName}</Text>
+          {job.serviceDescription ? (
+            <Text style={styles.sectionSub}>{job.serviceDescription}</Text>
+          ) : null}
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>—</Text>
-            <Text style={styles.price}>—</Text>
+            <Text style={styles.priceLabel}>{t("providerDashboard.agreedPriceLabel")}</Text>
+            <Text style={styles.price}>{formatCurrency(job.agreedPrice)}</Text>
           </View>
         </View>
 
+        {/* Location card */}
         <View style={[styles.card, styles.section]}>
-          <Text style={styles.sectionLabel}>—</Text>
+          <Text style={styles.sectionLabel}>{t("providerDashboard.locationLabel")}</Text>
           <View style={styles.mapPlaceholder}>
             <Ionicons name="map-outline" size={48} color="rgba(255,255,255,0.3)" />
           </View>
-          <Text style={styles.address}>—</Text>
+          <Text style={styles.address}>{job.address}</Text>
+          {job.addressLine2 ? (
+            <Text style={styles.addressSub}>{job.addressLine2}</Text>
+          ) : null}
         </View>
-      </View>
+
+        {/* Mark as completed */}
+        <TouchableOpacity
+          style={styles.completeBtn}
+          onPress={handleMarkAsCompleted}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -77,6 +212,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: SCREEN_BG,
     paddingHorizontal: 20,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    marginBottom: 16,
   },
   header: {
     flexDirection: "row",
@@ -93,13 +237,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  backBtnLabel: {
+    fontSize: 18,
+    color: "rgba(255,255,255,0.6)",
+  },
   title: {
     fontSize: 18,
     fontWeight: "700",
     color: "#FFFFFF",
   },
-  content: {
+  scroll: {
     flex: 1,
+  },
+  content: {
+    paddingBottom: 24,
     gap: 16,
   },
   card: {
@@ -132,10 +283,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
   },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
+  },
   clientMeta: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
-    marginTop: 2,
+    color: "rgba(255,255,255,0.7)",
   },
   headerActions: {
     flexDirection: "row",
@@ -183,7 +339,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#22C55E",
+    color: GREEN_PRICE,
   },
   mapPlaceholder: {
     height: 128,
@@ -195,6 +351,25 @@ const styles = StyleSheet.create({
   },
   address: {
     fontSize: 14,
+    color: "#FFFFFF",
+  },
+  addressSub: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.4)",
+    marginTop: 2,
+  },
+  completeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: GREEN_BUTTON,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  completeBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
     color: "#FFFFFF",
   },
 });

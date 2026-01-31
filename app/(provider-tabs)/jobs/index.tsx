@@ -1,23 +1,25 @@
 import { t } from "@/i18n";
 import {
-  getProviderActiveJobs,
-  type ProviderActiveJob,
-  type ProviderActiveJobStatus,
+    getExampleActiveJob,
+    getProviderActiveJobs,
+    EXAMPLE_ACTIVE_JOB_ID,
+    type ProviderActiveJob,
+    type ProviderActiveJobStatus,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useQuery } from "@tanstack/react-query";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Linking,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Linking,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -169,7 +171,7 @@ export default function ProviderJobsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const {
-    data: jobs = [],
+    data: rawJobs = [],
     isLoading,
     refetch,
     isRefetching,
@@ -179,6 +181,11 @@ export default function ProviderJobsScreen() {
     refetchInterval: ETA_REFETCH_MS,
     staleTime: 30 * 1000,
   });
+
+  const jobs = useMemo(() => {
+    const fromApi = rawJobs.filter((j) => j.id !== EXAMPLE_ACTIVE_JOB_ID);
+    return [getExampleActiveJob(), ...fromApi];
+  }, [rawJobs]);
 
   const filteredJobs = useMemo(
     () => getFilteredJobs(jobs, filter),
