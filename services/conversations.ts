@@ -56,25 +56,7 @@ export interface Message {
 
 // GET /conversations - Fetch all conversations
 export const fetchConversations = async (): Promise<Conversation[]> => {
-  // #region agent log
-  const token = await getToken();
-  let decodedToken: any = null;
-  if (token) {
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        decodedToken = JSON.parse(atob(parts[1]));
-      }
-    } catch (e) {
-      // ignore decode errors
-    }
-  }
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:59',message:'fetchConversations START',data:{hasToken:!!token,tokenLength:token?.length||0,tokenUserId:decodedToken?.userId||'NONE',tokenUserType:decodedToken?.userType||'NONE'},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'})}).catch(()=>{});
-  // #endregion
   try {
-    // Use request() from auth.ts which handles token refresh automatically
-    // #region agent log
-    // #endregion
     const data = await request<{ conversations: Conversation[] }>(
       '/conversations',
       {
@@ -82,30 +64,18 @@ export const fetchConversations = async (): Promise<Conversation[]> => {
       },
       t('errors.requestFailedStatus', { status: 0 })
     );
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:73',message:'fetchConversations response received',data:{hasConversations:!!data?.conversations,conversationsCount:data?.conversations?.length||0,rawResponse:JSON.stringify(data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
     if (!data.conversations) {
-      // #region agent log
-      // #endregion
       throw new ApiError('Invalid response format: missing conversations', 500);
     }
-    // Validate and sanitize data to prevent crashes
     const sanitized = data.conversations.map((conv) => ({
       ...conv,
-      // Ensure last_message_at is either a valid string or null
       last_message_at: conv.last_message_at || null,
-      // Ensure other fields have defaults
       last_message: conv.last_message || null,
       other_user_image: conv.other_user_image || null,
       unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
     }));
-    // #region agent log
-    // #endregion
     return sanitized;
   } catch (error) {
-    // #region agent log
-    // #endregion
     if (error instanceof ApiError) {
       throw error;
     }

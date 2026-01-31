@@ -44,6 +44,15 @@ export default function ProviderTabLayout() {
           }}
         />
         <Tabs.Screen
+          name="messages"
+          options={{
+            title: t("providerDashboard.inbox.title"),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "chatbubbles" : "chatbubbles-outline"} size={20} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="requests"
           options={{
             href: null,

@@ -1,7 +1,10 @@
+import { t } from '@/i18n';
+import { ApiError, fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
@@ -10,10 +13,97 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+function formatScheduledAt(scheduledAt: string | undefined): string {
+  if (!scheduledAt) return '';
+  const d = new Date(scheduledAt);
+  return d.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    pending: t('orders.status.pending'),
+    accepted: t('orders.status.confirmed'),
+    in_progress: t('orders.status.inProgress'),
+    completed: t('orders.status.completed'),
+    cancelled: t('orders.status.cancelled'),
+  };
+  return map[status] ?? status;
+}
+
 export default function ScheduledBookingScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const insets = useSafeAreaInsets();
+  const [orderDetail, setOrderDetail] = useState<Awaited<ReturnType<typeof fetchOrderDetail>> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadOrder = useCallback(async () => {
+    if (!orderId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchOrderDetail(orderId);
+      setOrderDetail(data);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t('errors.requestFailed'));
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
+
+  const order = orderDetail?.order;
+  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.full_name ?? orderDetail?.supplier?.business_name ?? t('orders.provider');
+  const serviceName = order?.service_name ?? t('orders.service');
+  const scheduledLabel = formatScheduledAt(order?.scheduled_at);
+  const statusLabel = order?.status ? getStatusLabel(order.status) : t('orders.status.confirmed');
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('booking.bookingScheduled')}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('booking.bookingScheduled')}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error ?? t('errors.requestFailed')}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadOrder}>
+            <Text style={styles.retryText}>{t('chat.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -22,7 +112,7 @@ export default function ScheduledBookingScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking Scheduled</Text>
+        <Text style={styles.headerTitle}>{t('booking.bookingScheduled')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -43,21 +133,23 @@ export default function ScheduledBookingScreen() {
 
         {/* Booking Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.serviceTitle}>House Cleaning</Text>
-          <Text style={styles.providerName}>John Smith</Text>
+          <Text style={styles.serviceTitle}>{serviceName}</Text>
+          <Text style={styles.providerName}>{providerName}</Text>
           
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={20} color="#6B7280" />
-            <Text style={styles.infoText}>March 25, 2024 • 2:00 PM</Text>
-          </View>
+          {scheduledLabel ? (
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+              <Text style={styles.infoText}>{scheduledLabel}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={20} color="#6B7280" />
-            <Text style={styles.infoText}>Confirmed</Text>
+            <Text style={styles.infoText}>{statusLabel}</Text>
           </View>
 
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>Status: Confirmed</Text>
+            <Text style={styles.statusText}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -125,6 +217,29 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#EF4444',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+  },
+  retryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   iconContainer: {
     alignItems: 'center',
