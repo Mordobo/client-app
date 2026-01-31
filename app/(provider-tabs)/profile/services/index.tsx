@@ -1,27 +1,27 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { t } from "@/i18n";
+import {
+    deleteProviderService,
+    getProviderServices,
+    type ProviderService,
+    updateProviderServiceStatus,
+} from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FlashList } from "@shopify/flash-list";
-import { t } from "@/i18n";
-import {
-  deleteProviderService,
-  getProviderServices,
-  type ProviderService,
-  updateProviderServiceStatus,
-} from "@/services/providerServices";
 
 const BACKGROUND = "#12121A";
 const CARD_BG = "#1E1B2E";

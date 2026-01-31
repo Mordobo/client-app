@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initializeGoogleSignIn } from "@/config/google-signin";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/services/auth";
 import { ModeProvider } from "@/contexts/ModeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -71,6 +72,19 @@ function RootLayoutNav() {
 export default function RootLayout() {
   useEffect(() => {
     initializeGoogleSignIn();
+  }, []);
+
+  // Prevent "Uncaught Error" overlay when token expired (session expired already emitted, app redirects to login)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (event: PromiseRejectionEvent) => {
+      const reason = event?.reason;
+      if (reason instanceof ApiError && reason.sessionExpired) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
   }, []);
 
   return (
