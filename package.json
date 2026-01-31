@@ -53,6 +53,7 @@
     "expo-system-ui": "~6.0.9",
     "expo-updates": "~29.0.15",
     "expo-web-browser": "~15.0.10",
+    "date-fns": "^3.6.0",
     "i18n-js": "^4.5.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -73,5 +74,10 @@
     "react-native-gradle-plugin": "^0.71.19",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "pnpm": {
+    "overrides": {
+      "yallist": "4.0.0"
+    }
+  }
 }
