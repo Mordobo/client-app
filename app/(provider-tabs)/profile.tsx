@@ -4,7 +4,7 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { useRouter } from "expo-router";
 import React, { useCallback } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 export default function ProviderProfileScreen() {
   const router = useRouter();

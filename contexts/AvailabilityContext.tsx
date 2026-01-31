@@ -1,14 +1,14 @@
 import {
-  getAvailability,
-  setAvailability as setAvailabilityApi,
+    getAvailability,
+    setAvailability as setAvailabilityApi,
 } from "@/services/providerDashboard";
 import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
+    createContext,
+    ReactNode,
+    useCallback,
+    useContext,
+    useEffect,
+    useState,
 } from "react";
 
 interface AvailabilityContextType {

@@ -32,6 +32,24 @@ export interface ProviderDashboardScheduleItem {
   status: string;
 }
 
+export type ProviderActiveJobStatus = "in_progress" | "on_way" | "scheduled";
+
+export interface ProviderActiveJob {
+  id: string;
+  orderId: string;
+  clientId: string;
+  clientName: string;
+  clientPhone?: string;
+  serviceId: string;
+  serviceName: string;
+  status: ProviderActiveJobStatus;
+  address: string;
+  agreedPrice: number;
+  scheduledAt: string | null;
+  /** ETA in minutes from now (for on_way) or remaining minutes (for in_progress). Updated periodically. */
+  etaMinutes?: number;
+}
+
 export const getDashboardStats = async (): Promise<ProviderDashboardStats> => {
   return request<ProviderDashboardStats>(
     "/api/providers/dashboard/stats",
@@ -116,4 +134,16 @@ export const rejectOrder = async (orderId: string): Promise<{ order: { id: strin
     },
     t("providerDashboard.errors.rejectFailed"),
   );
+};
+
+export const getProviderActiveJobs = async (): Promise<ProviderActiveJob[]> => {
+  const res = await request<{ jobs: ProviderActiveJob[] }>(
+    "/api/providers/dashboard/active-jobs",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.errors.activeJobsFailed"),
+  );
+  return res?.jobs ?? [];
 };

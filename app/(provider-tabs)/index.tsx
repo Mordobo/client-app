@@ -1,35 +1,35 @@
-import { useAvailability } from "@/contexts/AvailabilityContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAvailability } from "@/contexts/AvailabilityContext";
 import { t } from "@/i18n";
 import {
-  acceptOrder,
-  getDashboardRequests,
-  getDashboardSchedule,
-  getDashboardStats,
-  rejectOrder,
-  type ProviderDashboardRequest,
-  type ProviderDashboardScheduleItem,
-  type ProviderDashboardStats,
+    acceptOrder,
+    getDashboardRequests,
+    getDashboardSchedule,
+    getDashboardStats,
+    rejectOrder,
+    type ProviderDashboardRequest,
+    type ProviderDashboardScheduleItem,
+    type ProviderDashboardStats,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
