@@ -191,9 +191,19 @@ export default function ProviderDashboardScreen() {
               <Text style={styles.welcomeLabel}>{t("providerDashboard.welcome")}</Text>
               <Text style={styles.welcomeName}>{displayName || "—"}</Text>
             </View>
-            <TouchableOpacity style={styles.profileIcon} activeOpacity={0.8}>
-              <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />
-            </TouchableOpacity>
+            <View style={styles.headerIcons}>
+              <TouchableOpacity
+                style={styles.bellIcon}
+                onPress={() => router.push("/(provider-tabs)/notifications")}
+                activeOpacity={0.8}
+                accessibilityLabel={t("providerDashboard.providerNotifications.title")}
+              >
+                <Ionicons name="notifications-outline" size={24} color="rgba(255,255,255,0.9)" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.profileIcon} activeOpacity={0.8}>
+                <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.availabilityCard}>
             <View style={styles.availabilityLeft}>
@@ -389,6 +399,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 20,
     fontWeight: "700",
+  },
+  headerIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  bellIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
   },
   profileIcon: {
     width: 48,
