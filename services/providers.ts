@@ -1,6 +1,83 @@
 import { t } from "@/i18n";
 import { request } from "./auth";
 
+// ========== Provider profile (edit screen) ==========
+
+export interface ProviderProfile {
+  displayName: string;
+  email: string;
+  phoneNumber: string;
+  categoryId: string | null;
+  categoryName: string | null;
+  bio: string;
+  avatarUrl: string | null;
+  yearsExperience: number | null;
+  isEmailVerified: boolean;
+}
+
+export interface UpdateProviderProfilePayload {
+  displayName?: string;
+  categoryId?: string | null;
+  categoryName?: string;
+  bio?: string;
+  phoneNumber?: string;
+  yearsExperience?: number | null;
+}
+
+/**
+ * Get current provider profile (for edit form)
+ */
+export const getProviderProfile = async (): Promise<ProviderProfile> => {
+  return request<ProviderProfile>(
+    "/api/providers/profile",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("errors.getProviderProfileFailed"),
+  );
+};
+
+/**
+ * Update provider profile
+ */
+export const updateProviderProfile = async (
+  payload: UpdateProviderProfilePayload,
+): Promise<{ message: string }> => {
+  return request<{ message: string }>(
+    "/api/providers/profile",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    t("errors.updateProviderProfileFailed"),
+  );
+};
+
+/**
+ * Upload provider avatar (base64). Returns new avatar URL.
+ */
+export const uploadProviderAvatar = async (
+  fileBase64: string,
+  fileName?: string,
+  mimeType?: string,
+): Promise<{ message: string; avatarUrl: string }> => {
+  return request<{ message: string; avatarUrl: string }>(
+    "/api/providers/profile/avatar",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileBase64,
+        fileName: fileName ?? "avatar.jpg",
+        mimeType: mimeType ?? "image/jpeg",
+      }),
+    },
+    t("errors.uploadProviderAvatarFailed"),
+  );
+};
+
 export interface ProviderStatusResponse {
   isProvider: boolean;
   isVerified: boolean;

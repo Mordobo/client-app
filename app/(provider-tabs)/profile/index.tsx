@@ -75,7 +75,7 @@ export default function ProviderProfileScreen() {
   const isVerified = false; // TODO: from API when provider verification exists
 
   const handleEditProfile = useCallback(() => {
-    router.push("/profile/edit");
+    router.push("/(provider-tabs)/profile/edit");
   }, [router]);
 
   const handleShareProfile = useCallback(async () => {
