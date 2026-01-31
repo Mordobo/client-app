@@ -61,6 +61,39 @@ export interface ProviderActiveJob {
   etaMinutes?: number;
 }
 
+/** Extended job for detail screen (optional description, address line 2, client rating). */
+export interface ProviderActiveJobDetail extends ProviderActiveJob {
+  serviceDescription?: string;
+  addressLine2?: string;
+  clientRating?: number;
+  reviewCount?: number;
+}
+
+export const EXAMPLE_ACTIVE_JOB_ID = "example-1";
+
+/** Example active job for demo; matches design (Ana Martínez, Reparación de calentador, Av. Insurgentes). */
+export function getExampleActiveJob(): ProviderActiveJobDetail {
+  return {
+    id: EXAMPLE_ACTIVE_JOB_ID,
+    orderId: "example-order-1",
+    clientId: "example-client-1",
+    clientName: "Ana Martínez",
+    clientPhone: "+525512345678",
+    serviceId: "example-service-1",
+    serviceName: "Reparación de calentador",
+    status: "in_progress",
+    address: "Av. Insurgentes Sur 234",
+    agreedPrice: 450,
+    scheduledAt: null,
+    etaMinutes: 45,
+    serviceDescription:
+      "El calentador no enciende y hace ruidos extraños al intentar prender.",
+    addressLine2: "Col. Roma Norte, CDMX",
+    clientRating: 4.8,
+    reviewCount: 23,
+  };
+}
+
 export const getDashboardStats = async (): Promise<ProviderDashboardStats> => {
   return request<ProviderDashboardStats>(
     "/api/providers/dashboard/stats",

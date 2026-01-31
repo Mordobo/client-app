@@ -1,28 +1,28 @@
+import { t } from "@/i18n";
 import {
-  acceptOrder,
-  getDashboardRequestCounts,
-  getDashboardRequests,
-  rejectOrder,
-  type ProviderDashboardRequest,
-  type ProviderRequestStatusFilter,
+    acceptOrder,
+    getDashboardRequestCounts,
+    getDashboardRequests,
+    rejectOrder,
+    type ProviderDashboardRequest,
+    type ProviderRequestStatusFilter,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { FlashList } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { t } from "@/i18n";
 
 const SCREEN_BG = "#12121A";
 const CARD_BG = "#1E1B2E";
