@@ -6,6 +6,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import { fetchOrders } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -268,9 +269,11 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Version - From requirements */}
+        {/* Version from app.config */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version 2.0.1</Text>
+          <Text style={styles.versionText}>
+            {t("profile.version")} {Constants.expoConfig?.version ?? "1.0.0"}
+          </Text>
         </View>
       </ScrollView>
 

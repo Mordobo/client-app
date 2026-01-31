@@ -115,12 +115,6 @@ export default function ProviderProfileScreen() {
       href: "/(provider-tabs)/profile/services",
     },
     {
-      icon: "cash-outline",
-      labelKey: "providerDashboard.providerProfile.pricing",
-      descKey: "providerDashboard.providerProfile.pricingDesc",
-      href: "/(provider-tabs)/earnings",
-    },
-    {
       icon: "calendar-outline",
       labelKey: "providerDashboard.providerProfile.availability",
       descKey: "providerDashboard.providerProfile.availabilityDesc",
@@ -141,7 +135,7 @@ export default function ProviderProfileScreen() {
         rating: stats?.averageRating?.toFixed(1) ?? "0",
         count: stats?.reviewCount ?? 0,
       },
-      href: null,
+      href: "/(provider-tabs)/profile/reviews",
     },
     {
       icon: "location-outline",
