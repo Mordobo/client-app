@@ -269,6 +269,13 @@ export default function ConversationsListScreen() {
           <Text style={[styles.emptySubtitle, { color: '#9ca3af' }]}>
             {t('chat.noMessagesDesc')}
           </Text>
+          <TouchableOpacity
+            style={styles.exampleButton}
+            onPress={() => router.push('/chat/demo')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.exampleButtonText}>{t('chat.openExample')}</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
@@ -448,6 +455,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 40,
     color: '#9ca3af', // Hardcode secondary text
+  },
+  exampleButton: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#8B5CF6',
+  },
+  exampleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   errorText: {
     fontSize: 16,
