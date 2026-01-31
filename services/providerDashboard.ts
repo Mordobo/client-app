@@ -202,3 +202,120 @@ export const getProviderActiveJobs = async (): Promise<ProviderActiveJob[]> => {
   );
   return res?.jobs ?? [];
 };
+
+// ========== EARNINGS ==========
+export type EarningsPeriod = "today" | "week" | "month" | "custom" | "all";
+export type EarningsTransactionStatus = "completed" | "pending" | "processing";
+
+export interface ProviderEarningsSummary {
+  balance: number;
+  todayEarnings: number;
+  weekEarnings: number;
+  monthEarnings: number;
+  nextPayoutDate: string;
+  totalJobs: number;
+  averagePerJob: number;
+  topServiceName: string | null;
+}
+
+export interface ProviderEarningsChartPoint {
+  date: string;
+  total: number;
+}
+
+export interface ProviderEarningsTransaction {
+  id: string;
+  orderId: string;
+  date: string;
+  clientName: string;
+  serviceName: string;
+  amount: number;
+  status: EarningsTransactionStatus;
+  type: "income" | "pending_income" | "withdrawal";
+}
+
+export interface ProviderEarningsTransactionsResponse {
+  transactions: ProviderEarningsTransaction[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export const getEarningsSummary = async (
+  params?: { period?: EarningsPeriod; from?: string; to?: string },
+): Promise<ProviderEarningsSummary> => {
+  const q = new URLSearchParams();
+  if (params?.period) q.set("period", params.period);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  const qs = q.toString();
+  return request<ProviderEarningsSummary>(
+    `/api/providers/dashboard/earnings/summary${qs ? `?${qs}` : ""}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.earnings.errors.summaryFailed"),
+  );
+};
+
+export const getEarningsChart = async (
+  period: "week" | "month" = "week",
+): Promise<{ data: ProviderEarningsChartPoint[] }> => {
+  return request<{ data: ProviderEarningsChartPoint[] }>(
+    `/api/providers/dashboard/earnings/chart?period=${period}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.earnings.errors.chartFailed"),
+  );
+};
+
+export const getEarningsTransactions = async (
+  params?: {
+    period?: EarningsPeriod;
+    from?: string;
+    to?: string;
+    status?: "all" | EarningsTransactionStatus;
+    page?: number;
+    limit?: number;
+  },
+): Promise<ProviderEarningsTransactionsResponse> => {
+  const q = new URLSearchParams();
+  if (params?.period) q.set("period", params.period);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  if (params?.status) q.set("status", params.status);
+  if (params?.page != null) q.set("page", String(params.page));
+  if (params?.limit != null) q.set("limit", String(params.limit));
+  const qs = q.toString();
+  return request<ProviderEarningsTransactionsResponse>(
+    `/api/providers/dashboard/earnings/transactions${qs ? `?${qs}` : ""}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.earnings.errors.transactionsFailed"),
+  );
+};
+
+export const exportEarnings = async (
+  params?: { format?: "csv"; period?: EarningsPeriod; from?: string; to?: string },
+): Promise<{ csv: string; filename: string }> => {
+  const q = new URLSearchParams();
+  q.set("format", params?.format ?? "csv");
+  if (params?.period) q.set("period", params.period);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  const qs = q.toString();
+  return request<{ csv: string; filename: string }>(
+    `/api/providers/dashboard/earnings/export?${qs}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.earnings.errors.exportFailed"),
+  );
+};
