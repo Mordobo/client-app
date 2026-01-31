@@ -13,7 +13,7 @@ import {
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -102,6 +102,7 @@ function AvailabilityToggle({
 export default function ProviderDashboardScreen() {
   const { user } = useAuth();
   const { isAvailable, setAvailability } = useAvailability();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<ProviderDashboardStats | null>(null);
   const [requests, setRequests] = useState<ProviderDashboardRequest[]>([]);
@@ -249,14 +250,24 @@ export default function ProviderDashboardScreen() {
 
             {/* New requests */}
             <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>{t("providerDashboard.newRequests")}</Text>
-              {requests.length > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {t("providerDashboard.newCount", { count: requests.length })}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>{t("providerDashboard.newRequests")}</Text>
+                {requests.length > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {t("providerDashboard.newCount", { count: requests.length })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={styles.seeAllLink}
+                onPress={() => router.push("/(provider-tabs)/requests")}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.seeAllLinkText}>{t("providerDashboard.requestsScreenTitle")}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#8B5CF6" />
+              </TouchableOpacity>
             </View>
             {requests.length === 0 ? (
               <View style={styles.card}>
@@ -476,6 +487,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  seeAllLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  seeAllLinkText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#8B5CF6",
   },
   sectionTitle: {
     color: "#FFFFFF",

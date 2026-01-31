@@ -44,6 +44,16 @@ export default function ProviderTabLayout() {
           }}
         />
         <Tabs.Screen
+          name="requests"
+          options={{
+            href: null,
+            title: t("providerDashboard.requestsScreenTitle"),
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? "document-text" : "document-text-outline"} size={20} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="jobs"
           options={{
             title: t("providerDashboard.jobsTab"),

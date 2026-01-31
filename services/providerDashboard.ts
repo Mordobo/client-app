@@ -10,6 +10,8 @@ export interface ProviderDashboardStats {
   reviewCount: number;
 }
 
+export type ProviderRequestStatusFilter = "new" | "pending" | "all";
+
 export interface ProviderDashboardRequest {
   id: string;
   clientId: string;
@@ -19,6 +21,15 @@ export interface ProviderDashboardRequest {
   scheduledAt: string | null;
   address: string;
   quoteTotal: number | null;
+  createdAt?: string | null;
+  isUrgent?: boolean;
+  /** Order status: 'pending' = can accept/decline, 'accepted' = scheduled */
+  status?: string;
+}
+
+export interface ProviderRequestCounts {
+  newCount: number;
+  pendingCount: number;
 }
 
 export interface ProviderDashboardScheduleItem {
@@ -61,12 +72,23 @@ export const getDashboardStats = async (): Promise<ProviderDashboardStats> => {
   );
 };
 
-export const getDashboardRequests = async (): Promise<{
-  requests: ProviderDashboardRequest[];
-  count: number;
-}> => {
+export const getDashboardRequestCounts = async (): Promise<ProviderRequestCounts> => {
+  return request<ProviderRequestCounts>(
+    "/api/providers/dashboard/requests/counts",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.errors.requestsFailed"),
+  );
+};
+
+export const getDashboardRequests = async (
+  status?: ProviderRequestStatusFilter,
+): Promise<{ requests: ProviderDashboardRequest[]; count: number }> => {
+  const qs = status && status !== "new" ? `?status=${encodeURIComponent(status)}` : "";
   return request<{ requests: ProviderDashboardRequest[]; count: number }>(
-    "/api/providers/dashboard/requests",
+    `/api/providers/dashboard/requests${qs}`,
     {
       method: "GET",
       headers: { "Content-Type": "application/json" },
