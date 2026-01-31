@@ -161,6 +161,7 @@ export default {
     tooManyDeleteAttempts: "Too many account deletion attempts. Please wait before trying again.",
     forgotPasswordFailed: "Failed to request password reset. Please try again.",
     resetPasswordFailed: "Failed to reset password. Please try again.",
+    uploadOnboardingDocumentFailed: "Failed to upload document. Please try again.",
   },
   warnings: {
     googleSignInModuleUnavailable: "[GoogleSignIn] Module not available. Are you running a native build with the plugin configured?",

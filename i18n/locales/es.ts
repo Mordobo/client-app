@@ -161,6 +161,7 @@ export default {
     tooManyDeleteAttempts: "Demasiados intentos de eliminación de cuenta. Por favor espera antes de intentar de nuevo.",
     forgotPasswordFailed: "Error al solicitar restablecimiento de contraseña. Por favor intenta de nuevo.",
     resetPasswordFailed: "Error al restablecer contraseña. Por favor intenta de nuevo.",
+    uploadOnboardingDocumentFailed: "Error al subir el documento. Por favor intenta de nuevo.",
   },
   warnings: {
     googleSignInModuleUnavailable: "[GoogleSignIn] Módulo no disponible. ¿Estás ejecutando una compilación nativa con el plugin configurado?",
