@@ -1,4 +1,5 @@
 import { EmptyState } from '@/components/EmptyState';
+import { t } from '@/i18n';
 import { fetchOrders, Order } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -89,7 +90,7 @@ export default function OrdersScreen() {
               <View style={styles.orderHeader}>
                 <Ionicons name="broom" size={24} color="#3B82F6" />
                 <View style={styles.orderInfo}>
-                  <Text style={styles.orderTitle}>House Cleaning</Text>
+                  <Text style={styles.orderTitle}>{order.service_name || t('orders.service')}</Text>
                   <Text style={styles.orderDate}>
                     {order.scheduled_at
                       ? new Date(order.scheduled_at).toLocaleDateString()

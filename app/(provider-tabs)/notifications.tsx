@@ -1,27 +1,26 @@
 import { t } from '@/i18n';
 import {
-  type Notification,
-  type NotificationCategory,
-  deleteAllNotifications,
-  deleteNotification,
-  fetchNotifications,
-  getNotificationCategory,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
+    type Notification,
+    type NotificationCategory,
+    deleteAllNotifications,
+    deleteNotification,
+    fetchNotifications,
+    getNotificationCategory,
+    markAllNotificationsAsRead,
+    markNotificationAsRead,
 } from '@/services/notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Modal,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

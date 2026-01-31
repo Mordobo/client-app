@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { ApiError, approveQuote, fetchOrderDetail, OrderDetailResponse } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -109,7 +110,7 @@ export default function QuoteScreen() {
         <View style={styles.section}>
           <View style={styles.serviceHeader}>
             <Ionicons name="broom" size={24} color="#3B82F6" />
-            <Text style={styles.serviceTitle}>House Cleaning</Text>
+            <Text style={styles.serviceTitle}>{orderData.order.service_name || t('orders.service')}</Text>
           </View>
           {quote.description && (
             <Text style={styles.description}>{quote.description}</Text>
