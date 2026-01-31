@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-export default function ProviderProfileLayout() {
+export default function ProviderServicesLayout() {
   return (
     <Stack
       screenOptions={{
@@ -9,8 +9,7 @@ export default function ProviderProfileLayout() {
       }}
     >
       <Stack.Screen name="index" />
-      <Stack.Screen name="edit" />
-      <Stack.Screen name="services" />
+      <Stack.Screen name="add" />
     </Stack>
   );
 }
