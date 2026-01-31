@@ -1,41 +1,41 @@
 import { Toast } from "@/components/Toast";
 import { t } from "@/i18n";
-import {
-  getProviderProfile,
-  updateProviderProfile,
-  uploadProviderAvatar,
-  type UpdateProviderProfilePayload,
-} from "@/services/providers";
 import { fetchCategoriesTree, type CategoryTreeItem } from "@/services/categories";
+import {
+    getProviderProfile,
+    updateProviderProfile,
+    uploadProviderAvatar,
+    type UpdateProviderProfilePayload,
+} from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as ImagePicker from "expo-image-picker";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Controller,
-  useFieldArray,
-  useForm,
-  type SubmitHandler,
+    Controller,
+    useFieldArray,
+    useForm,
+    type SubmitHandler,
 } from "react-hook-form";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { Image } from "expo-image";
 
 const BACKGROUND = "#12121A";
 const CARD_BG = "#1E1B2E";

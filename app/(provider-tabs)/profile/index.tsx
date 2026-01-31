@@ -2,21 +2,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { getDashboardStats } from "@/services/providerDashboard";
-import { useQuery } from "@tanstack/react-query";
+import { getProviderServices } from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    Share,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -50,6 +51,13 @@ export default function ProviderProfileScreen() {
     queryFn: getDashboardStats,
     staleTime: 60_000,
   });
+
+  const { data: servicesData } = useQuery({
+    queryKey: ["providerServices"],
+    queryFn: () => getProviderServices(),
+    staleTime: 60_000,
+  });
+  const activeServicesCount = servicesData?.activeCount ?? 0;
 
   const onRefresh = useCallback(() => {
     refetchStats();
@@ -103,8 +111,8 @@ export default function ProviderProfileScreen() {
       icon: "construct-outline",
       labelKey: "providerDashboard.providerProfile.myServices",
       descKey: "providerDashboard.providerProfile.myServicesDesc",
-      descParams: { count: 5 },
-      href: "/provider-onboarding/services",
+      descParams: { count: activeServicesCount },
+      href: "/(provider-tabs)/profile/services",
     },
     {
       icon: "cash-outline",
