@@ -68,7 +68,7 @@ export default function ProviderSettingsScreen() {
     { icon: "document-text-outline", labelKey: "providerDashboard.providerSettings.documents", descKey: "providerDashboard.providerSettings.documentsDesc" },
   ];
   const preferencesRows: SettingsRow[] = [
-    { icon: "notifications-outline", labelKey: "providerDashboard.providerSettings.notifications", descKey: "providerDashboard.providerSettings.notificationsDesc" },
+    { icon: "notifications-outline", labelKey: "providerDashboard.providerSettings.notifications", descKey: "providerDashboard.providerSettings.notificationsDesc", route: "/(provider-tabs)/profile/notification-preferences" },
     { icon: "language-outline", labelKey: "providerDashboard.providerSettings.language", descKey: "providerDashboard.providerSettings.languageDesc" },
     { icon: "moon-outline", labelKey: "providerDashboard.providerSettings.theme", descKey: "providerDashboard.providerSettings.themeDesc" },
   ];
@@ -109,6 +109,7 @@ export default function ProviderSettingsScreen() {
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionPreferences"
           rows={preferencesRows}
+          onRowPress={(route) => router.push(route)}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionBusiness"
