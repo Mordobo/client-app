@@ -2,11 +2,11 @@ import { t } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -19,31 +19,40 @@ type SettingsRow = {
   icon: keyof typeof Ionicons.glyphMap;
   labelKey: string;
   descKey: string;
+  route?: string;
 };
 
 function SettingsSection({
   sectionTitleKey,
   rows,
+  onRowPress,
 }: {
   sectionTitleKey: string;
   rows: SettingsRow[];
+  onRowPress?: (route: string) => void;
 }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{t(sectionTitleKey)}</Text>
       <View style={styles.sectionRows}>
-        {rows.map((row, idx) => (
-          <View key={idx} style={styles.row}>
-            <View style={styles.iconBox}>
-              <Ionicons name={row.icon} size={20} color="#8B5CF6" />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={styles.rowLabel}>{t(row.labelKey)}</Text>
-              <Text style={styles.rowDesc}>{t(row.descKey)}</Text>
-            </View>
-            <Text style={styles.arrow}>→</Text>
-          </View>
-        ))}
+        {rows.map((row, idx) => {
+          const Wrapper = row.route ? TouchableOpacity : View;
+          const wrapperProps = row.route
+            ? { onPress: () => onRowPress?.(row.route!), activeOpacity: 0.8 }
+            : {};
+          return (
+            <Wrapper key={idx} style={styles.row} {...wrapperProps}>
+              <View style={styles.iconBox}>
+                <Ionicons name={row.icon} size={20} color="#8B5CF6" />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={styles.rowLabel}>{t(row.labelKey)}</Text>
+                <Text style={styles.rowDesc}>{t(row.descKey)}</Text>
+              </View>
+              <Text style={styles.arrow}>→</Text>
+            </Wrapper>
+          );
+        })}
       </View>
     </View>
   );
@@ -64,7 +73,7 @@ export default function ProviderSettingsScreen() {
     { icon: "moon-outline", labelKey: "providerDashboard.providerSettings.theme", descKey: "providerDashboard.providerSettings.themeDesc" },
   ];
   const businessRows: SettingsRow[] = [
-    { icon: "card-outline", labelKey: "providerDashboard.providerSettings.paymentMethods", descKey: "providerDashboard.providerSettings.paymentMethodsDesc" },
+    { icon: "card-outline", labelKey: "providerDashboard.providerSettings.paymentMethods", descKey: "providerDashboard.providerSettings.paymentMethodsDesc", route: "/(provider-tabs)/profile/payment-methods" },
     { icon: "location-outline", labelKey: "providerDashboard.providerSettings.serviceArea", descKey: "providerDashboard.providerSettings.serviceAreaDesc" },
     { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc" },
   ];
@@ -104,6 +113,7 @@ export default function ProviderSettingsScreen() {
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionBusiness"
           rows={businessRows}
+          onRowPress={(route) => router.push(route)}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionSupport"

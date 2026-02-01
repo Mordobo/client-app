@@ -255,6 +255,26 @@ export const getProviderActiveJobs = async (): Promise<ProviderActiveJob[]> => {
   return res?.jobs ?? [];
 };
 
+// ========== PAYMENT METHODS (BANK ACCOUNTS) ==========
+export interface ProviderBankAccount {
+  id: string;
+  bankName: string;
+  maskedClabe: string;
+  primary: boolean;
+}
+
+export const getProviderBankAccounts = async (): Promise<ProviderBankAccount[]> => {
+  const res = await request<{ accounts: ProviderBankAccount[] }>(
+    "/api/providers/bank-accounts",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.paymentMethods.errors.bankAccountsFailed"),
+  );
+  return res?.accounts ?? [];
+};
+
 // ========== EARNINGS ==========
 export type EarningsPeriod = "today" | "week" | "month" | "custom" | "all";
 export type EarningsTransactionStatus = "completed" | "pending" | "processing";

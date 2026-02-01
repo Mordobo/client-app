@@ -13,6 +13,7 @@ export default function ProviderProfileLayout() {
       <Stack.Screen name="availability" />
       <Stack.Screen name="reviews" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="payment-methods" />
       <Stack.Screen name="services" />
     </Stack>
   );
