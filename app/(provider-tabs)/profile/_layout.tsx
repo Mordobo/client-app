@@ -10,6 +10,7 @@ export default function ProviderProfileLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="edit" />
+      <Stack.Screen name="availability" />
       <Stack.Screen name="reviews" />
       <Stack.Screen name="services" />
     </Stack>

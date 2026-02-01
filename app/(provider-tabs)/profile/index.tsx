@@ -118,7 +118,7 @@ export default function ProviderProfileScreen() {
       icon: "calendar-outline",
       labelKey: "providerDashboard.providerProfile.availability",
       descKey: "providerDashboard.providerProfile.availabilityDesc",
-      href: "/provider-onboarding/availability",
+      href: "/(provider-tabs)/profile/availability",
     },
     {
       icon: "images-outline",

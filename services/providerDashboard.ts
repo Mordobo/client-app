@@ -169,6 +169,58 @@ export const setAvailability = async (
   );
 };
 
+// ========== PROVIDER SCHEDULE CONFIG (Availability screen) ==========
+export interface TimeSlot {
+  start: string; // "08:00"
+  end: string;   // "18:00"
+}
+
+export type WeeklyScheduleConfig = Record<string, TimeSlot[]>;
+
+export interface BlockedDateItem {
+  id?: string;
+  startDate: string;
+  endDate: string;
+  label?: string;
+}
+
+export interface ProviderScheduleConfigResponse {
+  scheduleConfig: WeeklyScheduleConfig;
+  bufferMinutes: number;
+  maxJobsPerDay: number;
+  coverageRadiusKm: number | null;
+  blockedDates: BlockedDateItem[];
+}
+
+export const getProviderScheduleConfig = async (): Promise<ProviderScheduleConfigResponse> => {
+  return request<ProviderScheduleConfigResponse>(
+    "/api/providers/schedule-config",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.availabilityConfig.errors.loadFailed"),
+  );
+};
+
+export const putProviderScheduleConfig = async (payload: {
+  scheduleConfig: WeeklyScheduleConfig;
+  bufferMinutes?: number;
+  maxJobsPerDay?: number;
+  coverageRadiusKm?: number;
+  blockedDates?: BlockedDateItem[];
+}): Promise<ProviderScheduleConfigResponse> => {
+  return request<ProviderScheduleConfigResponse>(
+    "/api/providers/schedule-config",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    t("providerDashboard.availabilityConfig.errors.saveFailed"),
+  );
+};
+
 export const acceptOrder = async (orderId: string): Promise<{ order: { id: string; status: string }; message: string }> => {
   return request<{ order: { id: string; status: string }; message: string }>(
     `/api/providers/orders/${orderId}/accept`,
