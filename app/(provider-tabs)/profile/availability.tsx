@@ -1,30 +1,30 @@
 import { Toast } from "@/components/Toast";
 import { t } from "@/i18n";
 import {
-  getProviderScheduleConfig,
-  putProviderScheduleConfig,
-  type BlockedDateItem,
-  type WeeklyScheduleConfig,
+    getProviderScheduleConfig,
+    putProviderScheduleConfig,
+    type BlockedDateItem,
+    type WeeklyScheduleConfig,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { LinearGradient } from "expo-linear-gradient";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const isWeb = Platform.OS === "web";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BACKGROUND = "#12121A";
 const CARD_BG = "#1E1B2E";

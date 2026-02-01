@@ -1,10 +1,10 @@
 import { Toast } from "@/components/Toast";
 import { t } from "@/i18n";
 import {
-  deletePortfolioProject,
-  getPortfolio,
-  getPortfolioProject,
-  type PortfolioProject,
+    deletePortfolioProject,
+    getPortfolio,
+    getPortfolioProject,
+    type PortfolioProject,
 } from "@/services/portfolio";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,14 +13,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

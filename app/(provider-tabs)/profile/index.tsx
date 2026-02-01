@@ -146,11 +146,10 @@ export default function ProviderProfileScreen() {
       href: "/(provider-tabs)/profile/reviews",
     },
     {
-      icon: "location-outline",
-      labelKey: "providerDashboard.providerProfile.coverageArea",
-      descKey: "providerDashboard.providerProfile.coverageAreaDesc",
-      descParams: { km: 15 },
-      href: null,
+      icon: "settings-outline",
+      labelKey: "providerDashboard.providerProfile.configuration",
+      descKey: "providerDashboard.providerProfile.configurationDesc",
+      href: "/(provider-tabs)/profile/settings",
     },
   ];
 

@@ -1,13 +1,13 @@
+import { StarRating } from "@/components/StarRating";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import {
-  getProviderReviews,
-  respondToReview,
-  type ProviderReview,
-  type ProviderReviewsFilter,
-  type ProviderReviewsSort,
+    getProviderReviews,
+    respondToReview,
+    type ProviderReview,
+    type ProviderReviewsFilter,
+    type ProviderReviewsSort,
 } from "@/services/reviews";
-import { StarRating } from "@/components/StarRating";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,13 +15,13 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
