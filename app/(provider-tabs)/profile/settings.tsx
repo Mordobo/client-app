@@ -74,7 +74,7 @@ export default function ProviderSettingsScreen() {
   ];
   const businessRows: SettingsRow[] = [
     { icon: "card-outline", labelKey: "providerDashboard.providerSettings.paymentMethods", descKey: "providerDashboard.providerSettings.paymentMethodsDesc", route: "/(provider-tabs)/profile/payment-methods" },
-    { icon: "location-outline", labelKey: "providerDashboard.providerSettings.serviceArea", descKey: "providerDashboard.providerSettings.serviceAreaDesc" },
+    { icon: "location-outline", labelKey: "providerDashboard.providerSettings.serviceArea", descKey: "providerDashboard.providerSettings.serviceAreaDesc", route: "/(provider-tabs)/profile/service-area" },
     { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc" },
   ];
   const supportRows: SettingsRow[] = [
