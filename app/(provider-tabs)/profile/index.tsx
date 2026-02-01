@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
+import { getPortfolio } from "@/services/portfolio";
 import { getDashboardStats } from "@/services/providerDashboard";
 import { getProviderServices } from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
@@ -58,6 +59,13 @@ export default function ProviderProfileScreen() {
     staleTime: 60_000,
   });
   const activeServicesCount = servicesData?.activeCount ?? 0;
+
+  const { data: portfolioData } = useQuery({
+    queryKey: ["providerPortfolio"],
+    queryFn: getPortfolio,
+    staleTime: 60_000,
+  });
+  const portfolioPhotoCount = portfolioData?.stats?.totalPhotos ?? 0;
 
   const onRefresh = useCallback(() => {
     refetchStats();
@@ -124,8 +132,8 @@ export default function ProviderProfileScreen() {
       icon: "images-outline",
       labelKey: "providerDashboard.providerProfile.portfolio",
       descKey: "providerDashboard.providerProfile.portfolioDesc",
-      descParams: { count: 24 },
-      href: null,
+      descParams: { count: portfolioPhotoCount },
+      href: "/(provider-tabs)/profile/portfolio",
     },
     {
       icon: "star-outline",
