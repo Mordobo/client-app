@@ -4,6 +4,11 @@ alwaysApply: true
 ---
 When a feature affects both mobile and API repositories:
 
+0. REUSE BEFORE CREATING:
+   - Before creating any new database structure or API endpoint, check if it already exists or can be reused.
+   - Search the codebase (mobile/services/, API/src/routes/) and API documentation for existing endpoints, tables, and columns.
+   - Prefer extending existing endpoints or tables over adding new ones when the data fits the same domain.
+
 1. BACKEND FIRST (Mordobo/API):
    - Implement endpoint in API/src/routes/
    - Validate with Zod schemas

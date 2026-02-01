@@ -372,38 +372,6 @@ export default function ProviderAvailabilityScreen() {
           </View>
         </View>
 
-        {/* Coverage area - design: map placeholder + −/+ buttons, radio editable */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.coverage")}</Text>
-        <View style={styles.card}>
-          <View style={styles.coverageMapPlaceholder}>
-            <View style={styles.coverageMapCircle}>
-              <View style={styles.coverageMapDot} />
-            </View>
-            <View style={styles.coverageRadiusButtons}>
-              <TouchableOpacity
-                style={styles.coverageRadiusButton}
-                onPress={() => setCoverageRadiusKm((km) => Math.max(5, km - 5))}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.coverageRadiusButtonText}>−</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.coverageRadiusButton}
-                onPress={() => setCoverageRadiusKm((km) => Math.min(100, km + 5))}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.coverageRadiusButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.coverageRow}>
-            <Text style={styles.coverageLabel}>
-              {t("providerDashboard.availabilityConfig.coverageRadius")}
-            </Text>
-            <Text style={styles.coverageValue}>{coverageRadiusKm} km</Text>
-          </View>
-        </View>
-
         {/* Blocked dates */}
         <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.specialDays")}</Text>
         <View style={styles.card}>
@@ -808,64 +776,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     minWidth: 24,
     textAlign: "center",
-  },
-  coverageMapPlaceholder: {
-    height: 112,
-    borderRadius: 12,
-    backgroundColor: "rgba(139, 92, 246, 0.1)",
-    marginBottom: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
-  coverageMapCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 2,
-    borderColor: "rgba(168, 85, 247, 0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverageMapDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "#A78BFA",
-  },
-  coverageRadiusButtons: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
-    flexDirection: "row",
-    gap: 4,
-  },
-  coverageRadiusButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  coverageRadiusButtonText: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.6)",
-    fontWeight: "600",
-  },
-  coverageRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  coverageLabel: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
-  },
-  coverageValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#A78BFA",
   },
   blockedRow: {
     flexDirection: "row",
