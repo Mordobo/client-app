@@ -3,7 +3,6 @@ import { Toast } from "@/components/Toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
-import { ApiError } from "@/services/auth";
 import { fetchOrders } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
@@ -28,6 +27,12 @@ export default function ProfileScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
+  // Defer ModeSwitch mount to avoid Fabric "child already has a parent" when opening Profile tab (Reanimated + Fabric race).
+  const [showModeSwitch, setShowModeSwitch] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setShowModeSwitch(true), 100);
+    return () => clearTimeout(id);
+  }, []);
 
   const loadStats = useCallback(async () => {
     try {
@@ -50,11 +55,15 @@ export default function ProfileScreen() {
     loadStats();
   }, [loadStats]);
 
-  // When user is in provider mode, show provider profile instead of client profile
+  // When user is in provider mode, show provider profile instead of client profile.
+  // Delay redirect to next frame to avoid Fabric "child already has a parent" when
+  // this screen mounts and immediately navigates away (race during mount).
   useEffect(() => {
-    if (mode === "provider") {
+    if (mode !== "provider") return;
+    const id = setTimeout(() => {
       router.replace("/(provider-tabs)/profile");
-    }
+    }, 0);
+    return () => clearTimeout(id);
   }, [mode, router]);
 
   const handleLogout = () => {
@@ -133,7 +142,7 @@ export default function ProfileScreen() {
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} collapsable={false}>
       <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         {/* Header - Exact match to JSX: padding: '50px 20px 30px', backgroundColor: colors.bgCard */}
         <View
@@ -163,58 +172,25 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Mode Switch - Prominently displayed in profile header */}
-          <View style={styles.modeSwitchContainer}>
-            <Text style={styles.modeSwitchLabel}>{t("mode.switchMode")}</Text>
-            <View style={{ alignItems: "center", width: "100%" }}>
-              <ModeSwitch
-                variant="pill"
-                currentMode={mode}
-                onModeChange={async (newMode) => {
-                    try {
-                    // setMode will throw if backend sync fails
-                    const result = await setMode(newMode);
-
-                    // Check if onboarding is needed
-                    if (result.needsOnboarding) {
-                      // Navigate to onboarding
-                      router.push("/provider-onboarding");
-                      return;
-                    }
-
-                    // If switched to provider and already verified, go to provider dashboard
+          {/* Mode Switch - deferred mount to avoid Fabric view attachment race on Android */}
+          {showModeSwitch && (
+            <View style={styles.modeSwitchContainer} collapsable={false}>
+              <Text style={styles.modeSwitchLabel}>{t("mode.switchMode")}</Text>
+              <View style={{ alignItems: "center", width: "100%" }} collapsable={false}>
+                <ModeSwitch
+                  variant="pill"
+                  currentMode={mode}
+                  onModeChange={(newMode) => {
                     if (newMode === "provider") {
-                      router.replace("/(provider-tabs)");
-                      return;
+                      router.push({ pathname: "/switch-mode", params: { target: "provider" } });
                     }
-
-                    // Only show success if no error was thrown and we didn't navigate
-                    setToastMessage(t("mode.modeChanged"));
-                    setToastType("success");
-                    setToastVisible(true);
-                  } catch (error: unknown) {
-                    console.error("[Profile] Failed to change mode:", error);
-                    // Extract error message from ApiError
-                    let errorMessage = t("errors.updateSettingsFailed");
-                    if (error instanceof ApiError) {
-                      errorMessage = error.message;
-                      // If the error has a data object with a message, prefer that
-                      if (error.data && typeof error.data === "object" && "message" in error.data) {
-                        errorMessage = String(error.data.message);
-                      }
-                    } else if (error instanceof Error) {
-                      errorMessage = error.message;
-                    }
-                    setToastMessage(errorMessage);
-                    setToastType("error");
-                    setToastVisible(true);
-                  }
-                }}
-                size="medium"
-                showLabels={true}
-              />
+                  }}
+                  size="medium"
+                  showLabels={true}
+                />
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
         {/* Stats Cards - Exact match: display: 'flex', padding: '20px', gap: '12px', marginTop: '-10px' */}

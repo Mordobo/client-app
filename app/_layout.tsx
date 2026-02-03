@@ -8,10 +8,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initializeGoogleSignIn } from "@/config/google-signin";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { ApiError } from "@/services/auth";
 import { ModeProvider } from "@/contexts/ModeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ApiError } from "@/services/auth";
 import { useEffect } from "react";
 
 export const unstable_settings = {
@@ -49,13 +49,21 @@ function RootLayoutNav() {
       <Stack
         screenOptions={{
           headerShown: false,
+          contentStyle: { backgroundColor: colorScheme === "dark" ? "#12121A" : "#F9FAFB" },
         }}
         key={isAuthenticated ? "authenticated" : "unauthenticated"}
       >
         {isAuthenticated ?
           <>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(provider-tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="(provider-tabs)"
+              options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+            />
+            <Stack.Screen
+              name="switch-mode"
+              options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+            />
             <Stack.Screen name="chat" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
           </>
@@ -75,16 +83,19 @@ export default function RootLayout() {
   }, []);
 
   // Prevent "Uncaught Error" overlay when token expired (session expired already emitted, app redirects to login)
+  // Only on web: window.addEventListener/removeEventListener do not exist in React Native (APK)
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (Platform.OS !== "web") return;
+    const w = typeof window !== "undefined" ? window : null;
+    if (!w?.addEventListener || !w?.removeEventListener) return;
     const handler = (event: PromiseRejectionEvent) => {
       const reason = event?.reason;
       if (reason instanceof ApiError && reason.sessionExpired) {
         event.preventDefault();
       }
     };
-    window.addEventListener("unhandledrejection", handler);
-    return () => window.removeEventListener("unhandledrejection", handler);
+    w.addEventListener("unhandledrejection", handler);
+    return () => w.removeEventListener("unhandledrejection", handler);
   }, []);
 
   return (

@@ -1,4 +1,11 @@
 import { getLocale, t } from "@/i18n";
+import {
+    getEarningsSummary,
+    getEarningsTransactions,
+    getProviderBankAccounts,
+    type ProviderBankAccount,
+    type ProviderEarningsTransaction,
+} from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -7,24 +14,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  getEarningsSummary,
-  getEarningsTransactions,
-  getProviderBankAccounts,
-  type ProviderBankAccount,
-  type ProviderEarningsTransaction,
-} from "@/services/providerDashboard";
 
 const BACKGROUND = "#12121A";
 const CARD_BG = "#1E1B2E";
