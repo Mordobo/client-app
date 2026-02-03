@@ -1,3 +1,4 @@
+import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
@@ -40,7 +41,7 @@ export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { setMode } = useMode();
+  const { mode } = useMode();
 
   const {
     data: stats,
@@ -71,19 +72,6 @@ export default function ProviderProfileScreen() {
     refetchStats();
   }, [refetchStats]);
 
-  const handleModeChange = useCallback(
-    async (newMode: "client" | "provider") => {
-      if (newMode !== "client") return;
-      try {
-        await setMode("client");
-        router.replace("/(tabs)");
-      } catch (e) {
-        console.error("[ProviderProfile] Switch to client failed:", e);
-      }
-    },
-    [setMode, router]
-  );
-
   const displayName = user
     ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email
     : "—";
@@ -97,7 +85,7 @@ export default function ProviderProfileScreen() {
   const handleShareProfile = useCallback(async () => {
     try {
       await Share.share({
-        message: `${displayName} - ${t("providerDashboard.providerProfile.viewAsClient")}`,
+        message: displayName,
         url: "https://mordobo.com/profile", // TODO: real profile URL when available
         title: displayName,
       });
@@ -232,6 +220,19 @@ export default function ProviderProfileScreen() {
                 </View>
               )}
             </View>
+            <View style={styles.modeSwitchWrap}>
+              <ModeSwitch
+                variant="pill"
+                currentMode={mode}
+                onModeChange={(newMode) => {
+                  if (newMode === "client") {
+                    router.push({ pathname: "/switch-mode", params: { target: "client" } });
+                  }
+                }}
+                size="small"
+                showLabels={true}
+              />
+            </View>
           </View>
         </View>
 
@@ -312,16 +313,6 @@ export default function ProviderProfileScreen() {
             ))}
           </View>
 
-          {/* View as client */}
-          <TouchableOpacity
-            style={styles.viewAsClientButton}
-            onPress={() => handleModeChange("client")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.viewAsClientText}>
-              👁️ {t("providerDashboard.providerProfile.viewAsClient")}
-            </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -381,6 +372,10 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -48,
     left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   avatarWrapper: {
     width: 96,
@@ -535,19 +530,7 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.3)",
     fontSize: 14,
   },
-  viewAsClientButton: {
-    marginTop: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: "rgba(139, 92, 246, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(139, 92, 246, 0.3)",
-    alignItems: "center",
-  },
-  viewAsClientText: {
-    color: "#A78BFA",
-    fontSize: 14,
-    fontWeight: "500",
+  modeSwitchWrap: {
+    alignItems: "flex-end",
   },
 });

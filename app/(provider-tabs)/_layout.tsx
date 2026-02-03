@@ -4,15 +4,19 @@ import { t } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const PROVIDER_SCREEN_BG = "#12121A";
 
 export default function ProviderTabLayout() {
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, 24);
 
   return (
-    <AvailabilityProvider enabled>
-      <Tabs
+    <View style={styles.screenBg} collapsable={false}>
+      <AvailabilityProvider enabled>
+        <Tabs
         screenOptions={{
           headerShown: false,
           tabBarButton: HapticTab,
@@ -110,5 +114,13 @@ export default function ProviderTabLayout() {
         />
       </Tabs>
     </AvailabilityProvider>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  screenBg: {
+    flex: 1,
+    backgroundColor: PROVIDER_SCREEN_BG,
+  },
+});

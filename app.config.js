@@ -19,7 +19,7 @@ export default {
   expo: {
     name: getAppName(),
     slug: "mordobo",
-    version: "1.0.8",
+    version: "2.0.3",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "mordobo",
