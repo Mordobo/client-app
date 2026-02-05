@@ -13,11 +13,12 @@ import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm, type SubmitHandler } from "react-hook-form";
 import {
     ActivityIndicator,
     Alert,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -74,6 +75,12 @@ export default function PortfolioAddScreen() {
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const [selectedUris, setSelectedUris] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const { data: projectData, isLoading: projectLoading } = useQuery({
     queryKey: ["providerPortfolioProject", projectId],
@@ -138,6 +145,25 @@ export default function PortfolioAddScreen() {
 
   const onSubmit: SubmitHandler<FormValues> = useCallback(
     async (values) => {
+      Keyboard.dismiss();
+
+      const showError = (message: string) => {
+        if (isMountedRef.current) {
+          setUploading(false);
+          setToast({ message });
+        }
+      };
+
+      const showSuccessAndBack = (message: string) => {
+        if (!isMountedRef.current) return;
+        setUploading(false);
+        setToast({ message });
+        queryClient.invalidateQueries({ queryKey: ["providerPortfolio"] });
+        setTimeout(() => {
+          if (isMountedRef.current) router.back();
+        }, 800);
+      };
+
       try {
         if (isEdit && projectId) {
           await updatePortfolioProject(projectId, {
@@ -146,9 +172,10 @@ export default function PortfolioAddScreen() {
             categoryTag: values.categoryTag?.trim() || undefined,
             isBeforeAfter: values.isBeforeAfter,
           });
-          if (selectedUris.length > 0) {
+          if (selectedUris.length > 0 && isMountedRef.current) {
             setUploading(true);
             for (let i = 0; i < selectedUris.length; i++) {
+              if (!isMountedRef.current) break;
               const uri = selectedUris[i];
               const manipulated = await ImageManipulator.manipulateAsync(
                 uri,
@@ -159,17 +186,23 @@ export default function PortfolioAddScreen() {
               await uploadPortfolioImage(projectId, base64, "image.jpg", "image/jpeg");
             }
           }
-          setToast({ message: t("providerDashboard.portfolio.updateSuccess") });
+          showSuccessAndBack(t("providerDashboard.portfolio.updateSuccess"));
         } else {
-          const { project: created } = await createPortfolioProject({
+          const data = await createPortfolioProject({
             title: values.title.trim(),
             description: values.description?.trim() || undefined,
             categoryTag: values.categoryTag?.trim() || undefined,
             isBeforeAfter: values.isBeforeAfter,
           });
-          if (selectedUris.length > 0) {
+          const created = data?.project;
+          if (!created?.id) {
+            showError(t("providerDashboard.portfolio.errors.createFailed"));
+            return;
+          }
+          if (selectedUris.length > 0 && isMountedRef.current) {
             setUploading(true);
             for (let i = 0; i < selectedUris.length; i++) {
+              if (!isMountedRef.current) break;
               const uri = selectedUris[i];
               const manipulated = await ImageManipulator.manipulateAsync(
                 uri,
@@ -180,18 +213,21 @@ export default function PortfolioAddScreen() {
               await uploadPortfolioImage(created.id, base64, "image.jpg", "image/jpeg");
             }
           }
-          setToast({ message: t("providerDashboard.portfolio.createSuccess") });
+          showSuccessAndBack(t("providerDashboard.portfolio.createSuccess"));
         }
-        setUploading(false);
-        queryClient.invalidateQueries({ queryKey: ["providerPortfolio"] });
-        setTimeout(() => router.back(), 800);
       } catch {
-        setUploading(false);
-        setToast({
-          message: isEdit
-            ? t("providerDashboard.portfolio.errors.updateFailed")
-            : t("providerDashboard.portfolio.errors.createFailed"),
-        });
+        try {
+          showError(
+            isEdit
+              ? t("providerDashboard.portfolio.errors.updateFailed")
+              : t("providerDashboard.portfolio.errors.createFailed")
+          );
+        } catch {
+          if (isMountedRef.current) {
+            setUploading(false);
+            setToast({ message: t("providerDashboard.portfolio.errors.createFailed") });
+          }
+        }
       }
     },
     [isEdit, projectId, selectedUris, queryClient, router]
