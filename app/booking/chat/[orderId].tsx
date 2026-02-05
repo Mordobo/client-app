@@ -51,9 +51,15 @@ export default function ChatScreen() {
   const [providerName, setProviderName] = useState<string>('Provider');
   const [providerImage, setProviderImage] = useState<string | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const resetKeyboardLayout = useCallback(() => {
+    setKeyboardVisible(false);
+    if (Platform.OS === 'android') setKeyboardHeight(0);
+  }, []);
 
   const loadMessages = useCallback(async (showLoading = true) => {
     if (!orderId) return;
@@ -119,8 +125,11 @@ export default function ChatScreen() {
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
+      (e) => {
         setKeyboardVisible(true);
+        if (Platform.OS === 'android') {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -131,7 +140,10 @@ export default function ChatScreen() {
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
         setKeyboardVisible(false);
-        // Force layout update when keyboard hides to reset position
+        if (Platform.OS === 'android') {
+          // Delay reset so layout runs after keyboard animation; fixes elevated chat (MDB-150)
+          setTimeout(() => setKeyboardHeight(0), 150);
+        }
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: false });
         }, 100);
@@ -373,6 +385,12 @@ export default function ChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 80 : 0}
         enabled={Platform.OS === 'ios'}
       >
+        <View
+          style={[
+            styles.flex,
+            Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
+          ]}
+        >
         {error ? (
           <View style={styles.centerContainer}>
             <Text style={styles.errorText}>{error}</Text>
@@ -394,7 +412,7 @@ export default function ChatScreen() {
             renderItem={renderMessage}
             contentContainerStyle={styles.messagesList}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
+            keyboardDismissMode="on-drag"
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             onLayout={() => {
               if (!keyboardVisible) {
@@ -428,6 +446,7 @@ export default function ChatScreen() {
                 flatListRef.current?.scrollToEnd({ animated: true });
               }, 100);
             }}
+            onBlur={resetKeyboardLayout}
           />
           <TouchableOpacity
             style={[styles.sendButton, (!messageText.trim() || sending) && styles.sendButtonDisabled]}
@@ -440,6 +459,7 @@ export default function ChatScreen() {
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             )}
           </TouchableOpacity>
+        </View>
         </View>
       </KeyboardAvoidingView>
     </View>

@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -249,7 +250,7 @@ export default function ProfileScreen() {
         {/* Version - From requirements */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            Version 1.0.10
+{t("profile.version")} {Constants.expoConfig?.version ?? "2.0.3"}
           </Text>
         </View>
       </ScrollView>
