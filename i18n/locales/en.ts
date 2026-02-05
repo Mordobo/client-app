@@ -1072,6 +1072,7 @@ export default {
   providerDashboard: {
     welcome: "Welcome,",
     youAreAvailable: "You are available",
+    youAreUnavailable: "Unavailable",
     today: "Today",
     thisWeek: "This week",
     rating: "Rating",

@@ -86,13 +86,13 @@ function AvailabilityToggle({
   }));
   return (
     <View style={styles.toggleRow}>
-      <View style={styles.toggleTrack}>
+      <View style={[styles.toggleTrack, value ? styles.toggleTrackActive : styles.toggleTrackInactive]}>
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => !disabled && onValueChange(!value)}
           style={styles.toggleTrackTouch}
         >
-          <Animated.View style={[styles.toggleThumb, thumbStyle]} />
+          <Animated.View style={[styles.toggleThumb, value ? styles.toggleThumbActive : styles.toggleThumbInactive, thumbStyle]} />
         </TouchableOpacity>
       </View>
     </View>
@@ -205,10 +205,12 @@ export default function ProviderDashboardScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.availabilityCard}>
+          <View style={[styles.availabilityCard, !isAvailable && styles.availabilityCardOff]}>
             <View style={styles.availabilityLeft}>
               {isAvailable && <GreenDotPulse />}
-              <Text style={styles.availabilityText}>{t("providerDashboard.youAreAvailable")}</Text>
+              <Text style={[styles.availabilityText, !isAvailable && styles.availabilityTextOff]}>
+                {t(isAvailable ? "providerDashboard.youAreAvailable" : "providerDashboard.youAreUnavailable")}
+              </Text>
             </View>
             <AvailabilityToggle
               value={isAvailable}
@@ -431,6 +433,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.15)",
   },
+  availabilityCardOff: {
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
   availabilityLeft: {
     flexDirection: "row",
     alignItems: "center",
@@ -446,6 +451,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
   },
+  availabilityTextOff: {
+    color: "rgba(255,255,255,0.7)",
+  },
   toggleRow: {
     marginLeft: 8,
   },
@@ -453,9 +461,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.3)",
     justifyContent: "center",
     paddingHorizontal: 2,
+  },
+  toggleTrackActive: {
+    backgroundColor: "#4ADE80",
+  },
+  toggleTrackInactive: {
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
   toggleTrackTouch: {
     flex: 1,
@@ -465,7 +478,12 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
+  },
+  toggleThumbActive: {
     backgroundColor: "#FFFFFF",
+  },
+  toggleThumbInactive: {
+    backgroundColor: "rgba(255,255,255,0.5)",
   },
   loadingWrap: {
     paddingVertical: 48,
