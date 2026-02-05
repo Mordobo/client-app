@@ -44,6 +44,7 @@ export default function ProviderOnboardingTermsScreen() {
       router.push("/provider-onboarding/verification");
     } catch (e) {
       console.error("[Terms] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };
