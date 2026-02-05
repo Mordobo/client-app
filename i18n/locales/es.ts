@@ -1214,6 +1214,7 @@ export default {
       bio: "Biografía",
       bioCharCount: "{{current}}/{{max}}",
       contactPhone: "Teléfono de contacto",
+      invalidPhone: "Número de teléfono inválido. Use entre 6 y 15 dígitos.",
       yearsExperience: "Años de experiencia",
       saveSuccess: "Perfil actualizado correctamente",
       unsavedChanges: "¿Descartar cambios?",

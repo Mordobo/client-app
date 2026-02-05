@@ -7,6 +7,7 @@ import {
     uploadProviderAvatar,
     type UpdateProviderProfilePayload,
 } from "@/services/providers";
+import { normalizePhoneInput, validatePhone } from "@/utils/phoneValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -47,7 +48,9 @@ const schema = z.object({
   categoryId: z.string().nullable(),
   specialties: z.array(z.string()),
   bio: z.string().max(BIO_MAX_LENGTH),
-  phoneNumber: z.string(),
+  phoneNumber: z.string().refine((val) => validatePhone(val).isValid, {
+    message: t("providerDashboard.providerEditProfile.invalidPhone"),
+  }),
   yearsExperience: z.union([z.string(), z.number()]).transform((v) => {
     const n = typeof v === "string" ? parseInt(v, 10) : v;
     return Number.isNaN(n) ? null : n;
@@ -153,7 +156,7 @@ export default function ProviderEditProfileScreen() {
       categoryId: resolvedCategoryId,
       specialties: (profile as { specialties?: string[] }).specialties ?? [],
       bio: profile.bio || "",
-      phoneNumber: profile.phoneNumber || "",
+      phoneNumber: normalizePhoneInput(profile.phoneNumber || ""),
       yearsExperience: profile.yearsExperience ?? null,
     });
     if (profile.avatarUrl) setAvatarUri(profile.avatarUrl);
@@ -524,11 +527,12 @@ export default function ProviderEditProfileScreen() {
                   <TextInput
                     style={[styles.input, errors.phoneNumber && styles.inputError]}
                     onBlur={onBlur}
-                    onChangeText={onChange}
+                    onChangeText={(text) => onChange(normalizePhoneInput(text))}
                     value={value}
                     placeholder="+52 55 1234 5678"
                     placeholderTextColor="rgba(255,255,255,0.3)"
                     keyboardType="phone-pad"
+                    maxLength={15}
                   />
                 )}
               />
