@@ -166,8 +166,8 @@ export default function HomeScreen() {
   const handleSearchPress = () => {
     if (searchQuery.trim()) {
       router.push({
-        pathname: "/services/categories",
-        params: { search: searchQuery.trim() },
+        pathname: "/services/search-results",
+        params: { query: searchQuery.trim() },
       });
     } else {
       router.push("/services/categories");
