@@ -1,23 +1,23 @@
 import { t } from "@/i18n";
 import {
-  EXAMPLE_ACTIVE_JOB_ID,
-  getExampleActiveJob,
-  getProviderActiveJobs,
-  type ProviderActiveJobDetail,
+    EXAMPLE_ACTIVE_JOB_ID,
+    getExampleActiveJob,
+    getProviderActiveJobs,
+    type ProviderActiveJobDetail,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Linking,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -250,6 +250,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flexGrow: 1,
     paddingBottom: 24,
     gap: 16,
   },
