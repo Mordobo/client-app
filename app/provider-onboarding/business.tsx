@@ -95,6 +95,7 @@ export default function ProviderOnboardingBusinessScreen() {
       router.push("/provider-onboarding/services");
     } catch (e) {
       console.error("[Business] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };

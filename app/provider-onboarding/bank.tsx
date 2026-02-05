@@ -100,6 +100,7 @@ export default function ProviderOnboardingBankScreen() {
       router.push("/provider-onboarding/terms");
     } catch (e) {
       console.error("[Bank] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };

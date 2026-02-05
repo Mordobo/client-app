@@ -119,6 +119,7 @@ export default function ProviderOnboardingDocumentsScreen() {
       router.push("/provider-onboarding/bank");
     } catch (e) {
       console.error("[Documents] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };

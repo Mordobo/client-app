@@ -113,6 +113,7 @@ export default function ProviderOnboardingAvailabilityScreen() {
       router.push("/provider-onboarding/documents");
     } catch (e) {
       console.error("[Availability] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };
