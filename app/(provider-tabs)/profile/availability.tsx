@@ -82,10 +82,11 @@ export default function ProviderAvailabilityScreen() {
   const [blockedLabel, setBlockedLabel] = useState("");
   const [blockedDatePickerField, setBlockedDatePickerField] = useState<"start" | "end" | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ["providerScheduleConfig"],
     queryFn: getProviderScheduleConfig,
     staleTime: 60_000,
+    retry: 2,
   });
 
   const [scheduleConfig, setScheduleConfig] = useState<WeeklyScheduleConfig>({});
@@ -197,6 +198,35 @@ export default function ProviderAvailabilityScreen() {
   }, [scheduleConfig, bufferMinutes, maxJobsPerDay, coverageRadiusKm, blockedDates, queryClient]);
 
   const handleBack = useCallback(() => router.back(), [router]);
+
+  if (isError) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack} accessibilityLabel={t("common.back")}>
+            <Text style={styles.backArrow}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t("providerDashboard.availabilityConfig.title")}</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>{t("providerDashboard.availabilityConfig.errors.loadFailed")}</Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => refetch()}
+            disabled={isRefetching}
+            accessibilityLabel={t("providerDashboard.availabilityConfig.errors.retry")}
+            accessibilityRole="button"
+          >
+            {isRefetching ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.retryButtonText}>{t("providerDashboard.availabilityConfig.errors.retry")}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (isLoading || !data) {
     return (
@@ -643,6 +673,27 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorText: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 15,
+    textAlign: "center",
+    marginBottom: 20,
+    paddingHorizontal: 24,
+  },
+  retryButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(139, 92, 246, 0.8)",
+    minWidth: 140,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   sectionLabel: {
     color: "rgba(255,255,255,0.5)",

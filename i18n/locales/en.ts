@@ -1489,6 +1489,7 @@ export default {
       errors: {
         loadFailed: "Failed to load availability",
         saveFailed: "Failed to save availability",
+        retry: "Retry",
       },
     },
     errors: {

@@ -1491,6 +1491,7 @@ export default {
       errors: {
         loadFailed: "Error al cargar disponibilidad",
         saveFailed: "Error al guardar disponibilidad",
+        retry: "Reintentar",
       },
     },
     errors: {
