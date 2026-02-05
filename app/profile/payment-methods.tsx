@@ -210,7 +210,11 @@ export default function PaymentMethodsScreen() {
           <ActivityIndicator size="large" color="#3b82f6" />
         </View>
       ) : (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Security Badge */}
           <View style={styles.securityBadge}>
           <Text style={styles.shieldIcon}>🛡️</Text>

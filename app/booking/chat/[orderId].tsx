@@ -1,10 +1,11 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { t } from '@/i18n';
 import { ApiError, fetchMessages, Message, sendMessage } from '@/services/messages';
 import { fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
@@ -13,16 +14,14 @@ import {
     Image,
     Keyboard,
     KeyboardAvoidingView,
-    Linking,
     Platform,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { t } from '@/i18n';
 
 const POLLING_INTERVAL = 5000; // 5 seconds
 

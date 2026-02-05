@@ -44,11 +44,14 @@ export interface AuthSuccessResponse extends RegisterResponse {
 export class ApiError extends Error {
   status: number;
   data?: unknown;
+  /** True when token expired and session expired was already emitted; UI should not show error overlay */
+  sessionExpired?: boolean;
 
-  constructor(message: string, status: number, data?: unknown) {
+  constructor(message: string, status: number, data?: unknown, sessionExpired?: boolean) {
     super(message);
     this.status = status;
     this.data = data;
+    this.sessionExpired = sessionExpired === true;
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
@@ -392,7 +395,7 @@ export const request = async <T>(
           } else if (!isRetryAuthError) {
             console.error('[API] Retry error response body', retryData);
           }
-          throw new ApiError(message, retryResponse.status, retryData);
+          throw new ApiError(message, retryResponse.status, retryData, isRetryAuthError);
         }
 
         if (!retryData || typeof retryData !== 'object') {
@@ -409,7 +412,7 @@ export const request = async <T>(
           typeof responseData === 'object' && responseData && 'message' in responseData
             ? String((responseData as { message: unknown }).message)
             : t('errors.tokenRefreshFailed');
-        throw new ApiError(message, response.status, responseData);
+        throw new ApiError(message, response.status, responseData, true);
       }
     }
 
@@ -438,7 +441,8 @@ export const request = async <T>(
       
       // If this is an auth error that wasn't handled above (e.g., retryOn401=false or path=/auth/refresh),
       // emit session expired event to trigger logout and redirect to Welcome
-      if (isAuthError && (path === '/auth/refresh' || !retryOn401)) {
+      const emittedSessionExpired = isAuthError && (path === '/auth/refresh' || !retryOn401);
+      if (emittedSessionExpired) {
         console.log('[API] Auth error on non-retryable endpoint, emitting session expired event');
         authEvents.emitSessionExpired();
       }
@@ -447,7 +451,7 @@ export const request = async <T>(
         console.error('[API] Error response body', responseData);
       }
       
-      throw new ApiError(message, response.status, responseData);
+      throw new ApiError(message, response.status, responseData, emittedSessionExpired);
     }
 
     if (!responseData || typeof responseData !== 'object') {

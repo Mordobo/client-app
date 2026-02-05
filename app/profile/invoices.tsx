@@ -27,35 +27,7 @@ export default function InvoicesScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    {
-      id: 'inv_001',
-      orderId: 'ORD-12345',
-      date: '2024-01-15',
-      amount: 230.00,
-      status: 'paid',
-      service: 'Plumbing Repair',
-      supplier: 'John Smith Plumbing',
-    },
-    {
-      id: 'inv_002',
-      orderId: 'ORD-12346',
-      date: '2024-01-20',
-      amount: 150.00,
-      status: 'pending',
-      service: 'Electrical Installation',
-      supplier: 'Electric Solutions Inc.',
-    },
-    {
-      id: 'inv_003',
-      orderId: 'ORD-12347',
-      date: '2024-01-10',
-      amount: 89.50,
-      status: 'paid',
-      service: 'HVAC Maintenance',
-      supplier: 'Cool Air Services',
-    },
-  ]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
 
   const handleInvoicePress = (invoice: Invoice) => {
     Alert.alert(
@@ -120,7 +92,11 @@ export default function InvoicesScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {invoices.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="document-text-outline" size={64} color="#9CA3AF" />

@@ -173,7 +173,7 @@ export default function ChatHistoryScreen() {
           data={conversations}
           renderItem={renderConversation}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

@@ -116,3 +116,55 @@ export const fetchUnreadNotificationCount = async (): Promise<number> => {
     return 0;
   }
 };
+
+/** Provider filter category (Jobs=purple, Payments=green, Reviews=yellow, System=blue) */
+export type NotificationCategory = 'jobs' | 'payments' | 'reviews' | 'system';
+
+/** Map API notification type to provider filter category */
+export function getNotificationCategory(type: NotificationType): NotificationCategory {
+  switch (type) {
+    case 'booking_confirmed':
+    case 'provider_on_way':
+    case 'new_message':
+      return 'jobs';
+    case 'payment_processed':
+      return 'payments';
+    case 'rate_service':
+      return 'reviews';
+    case 'offer':
+    default:
+      return 'system';
+  }
+}
+
+// DELETE /notifications/:id - Delete a single notification
+export const deleteNotification = async (notificationId: string): Promise<void> => {
+  try {
+    await request<void>(
+      `/notifications/${notificationId}`,
+      { method: 'DELETE' },
+      t('errors.requestFailedStatus', { status: 0 })
+    );
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(t('errors.networkError'), 0, error);
+  }
+};
+
+// DELETE /notifications/clear-all - Delete all notifications
+export const deleteAllNotifications = async (): Promise<void> => {
+  try {
+    await request<void>(
+      '/notifications/clear-all',
+      { method: 'DELETE' },
+      t('errors.requestFailedStatus', { status: 0 })
+    );
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(t('errors.networkError'), 0, error);
+  }
+};
