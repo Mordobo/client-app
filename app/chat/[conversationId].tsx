@@ -92,6 +92,11 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const resetKeyboardLayout = useCallback(() => {
+    setKeyboardVisible(false);
+    if (Platform.OS === 'android') setKeyboardHeight(0);
+  }, []);
+
   const loadMessages = useCallback(
     async (showLoading = true) => {
       if (!conversationId || conversationId === 'demo') return;
@@ -165,7 +170,8 @@ export default function ChatScreen() {
       () => {
         setKeyboardVisible(false);
         if (Platform.OS === 'android') {
-          setKeyboardHeight(0);
+          // Delay reset so layout runs after keyboard animation; fixes elevated chat (MDB-150)
+          setTimeout(() => setKeyboardHeight(0), 150);
         }
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
       }
@@ -665,7 +671,7 @@ export default function ChatScreen() {
             renderItem={(args) => renderMessage(args, displayMessages)}
             contentContainerStyle={styles.messagesList}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
+            keyboardDismissMode="on-drag"
             ListHeaderComponent={
               isDemo ? (
                 <View style={styles.systemMessage}>
@@ -710,6 +716,7 @@ export default function ChatScreen() {
               multiline
               maxLength={1000}
               onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)}
+              onBlur={resetKeyboardLayout}
             />
             <TouchableOpacity hitSlop={8}>
               <Text style={styles.emojiBtn}>😊</Text>
