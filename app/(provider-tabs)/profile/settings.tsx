@@ -63,7 +63,7 @@ export default function ProviderSettingsScreen() {
   const insets = useSafeAreaInsets();
 
   const accountRows: SettingsRow[] = [
-    { icon: "person-outline", labelKey: "providerDashboard.providerSettings.editProfile", descKey: "providerDashboard.providerSettings.editProfileDesc" },
+    { icon: "person-outline", labelKey: "providerDashboard.providerSettings.editProfile", descKey: "providerDashboard.providerSettings.editProfileDesc", route: "/(provider-tabs)/profile/edit" },
     { icon: "lock-closed-outline", labelKey: "providerDashboard.providerSettings.security", descKey: "providerDashboard.providerSettings.securityDesc" },
     { icon: "document-text-outline", labelKey: "providerDashboard.providerSettings.documents", descKey: "providerDashboard.providerSettings.documentsDesc" },
   ];
@@ -105,6 +105,7 @@ export default function ProviderSettingsScreen() {
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionAccount"
           rows={accountRows}
+          onRowPress={(route) => router.push(route)}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionPreferences"
