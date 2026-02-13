@@ -276,17 +276,11 @@ export const request = async <T>(
         keepalive: true,
       });
       clearTimeout(timeoutId);
-      // #region agent log
-      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response received',data:{path,status:response.status,ok:response.ok},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
-      // #endregion
       console.log('[API] ✅ Response received:', response.status, response.statusText, 'for', url);
     } catch (fetchError) {
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
       const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-      // #region agent log
-      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'fetch failed',data:{path,url,isTimeout,errorMessage},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
-      // #endregion
 
       console.error('[API] ❌ Fetch failed:', {
         url,
