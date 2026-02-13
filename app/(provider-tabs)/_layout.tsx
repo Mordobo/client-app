@@ -1,9 +1,10 @@
 import { HapticTab } from "@/components/haptic-tab";
 import { AvailabilityProvider } from "@/contexts/AvailabilityContext";
+import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs } from "expo-router";
-import React from "react";
+import { Tabs, useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,7 +12,16 @@ const PROVIDER_SCREEN_BG = "#12121A";
 
 export default function ProviderTabLayout() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { mode } = useMode();
   const bottomPadding = Math.max(insets.bottom, 24);
+
+  // Keep switch and view in sync: if mode is client we must show client UI, not provider profile
+  useEffect(() => {
+    if (mode === "client") {
+      router.replace("/(tabs)");
+    }
+  }, [mode, router]);
 
   return (
     <View style={styles.screenBg} collapsable={false}>
