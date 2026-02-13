@@ -4,7 +4,7 @@ import { submitOnboardingStep } from "@/services/providers";
 import { formatClabeDisplay, normalizeClabe, validateClabe } from "@/utils/clabeValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -84,6 +84,12 @@ export default function ProviderOnboardingBankScreen() {
 
   const [saving, setSaving] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      setSaving(false);
+    }, []),
+  );
+
   const handleContinue = async () => {
     setSaving(true);
     try {
@@ -100,6 +106,7 @@ export default function ProviderOnboardingBankScreen() {
       router.push("/provider-onboarding/terms");
     } catch (e) {
       console.error("[Bank] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };

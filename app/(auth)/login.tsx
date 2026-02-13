@@ -1,4 +1,3 @@
-import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
@@ -32,8 +31,6 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
-  const [showCodeModal, setShowCodeModal] = useState(false);
-  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const { login } = useAuth();
   const params = useLocalSearchParams<{ registered?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -148,26 +145,14 @@ export default function LoginScreen() {
           return;
         }
         
-        // Check if it's an SMTP/email error with code
-        if (errorCode === 'smtp_not_configured' || 
-            errorCode === 'email_send_timeout' || 
+        // Email/send errors: show message only (no modal with code)
+        if (errorCode === 'smtp_not_configured' ||
+            errorCode === 'email_send_timeout' ||
             errorCode === 'email_send_failed') {
-          // Check if backend returned the code as workaround
-          const code = errorData?.verificationCode as string | undefined;
-          
-          if (code) {
-            // Show modal with code
-            setVerificationCode(code);
-            setShowCodeModal(true);
-            
-            // Store email and password for verification
-            const emailToStore = currentIdentifier.toLowerCase();
-            await AsyncStorage.setItem('pending_verification_email', emailToStore);
-            await AsyncStorage.setItem('pending_verification_password', password);
-            
-            // Navigate to verification screen after modal is closed
-            return;
-          }
+          const detailedMessage = errorData?.message ? String(errorData.message) : error.message;
+          setErrorMessage(detailedMessage || t('errors.emailSendFailed'));
+          Alert.alert(t('common.error'), detailedMessage || t('errors.emailSendFailed'));
+          return;
         }
         
         // Handle API errors
@@ -311,27 +296,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-      
-      {/* Verification Code Modal */}
-      <VerificationCodeModal
-        visible={showCodeModal}
-        code={verificationCode}
-        onClose={async () => {
-          setShowCodeModal(false);
-          // Navigate to verification screen after closing modal
-          if (verificationCode) {
-            const storedEmail = await AsyncStorage.getItem('pending_verification_email');
-            if (storedEmail) {
-              router.replace({
-                pathname: '/(auth)/verify',
-                params: { 
-                  email: storedEmail,
-                },
-              });
-            }
-          }
-        }}
-      />
     </SafeAreaView>
   );
 }

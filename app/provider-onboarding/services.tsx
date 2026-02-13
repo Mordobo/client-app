@@ -3,7 +3,7 @@ import { t } from "@/i18n";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -84,6 +84,12 @@ export default function ProviderOnboardingServicesScreen() {
 
   const [saving, setSaving] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      setSaving(false);
+    }, []),
+  );
+
   const handleBack = () => {
     router.back();
   };
@@ -95,6 +101,7 @@ export default function ProviderOnboardingServicesScreen() {
       router.push("/provider-onboarding/availability");
     } catch (e) {
       console.error("[Services] submitOnboardingStep failed:", e);
+    } finally {
       setSaving(false);
     }
   };

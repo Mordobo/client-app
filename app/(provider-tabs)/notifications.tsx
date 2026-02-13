@@ -11,7 +11,7 @@ import {
 } from '@/services/notifications';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Modal,
@@ -20,9 +20,8 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
-import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BACKGROUND = '#12121A';
@@ -58,7 +57,6 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
   const category = getNotificationCategory(notification.type);
   const color = CATEGORY_COLORS[category];
   const iconName = CATEGORY_ICONS[category];
-  const swipeRef = useRef<Swipeable>(null);
 
   const formatTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -75,30 +73,10 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
     return date.toLocaleDateString();
   }, []);
 
-  const renderRightActions = useCallback(
-    () => (
-      <TouchableOpacity
-        style={styles.deleteAction}
-        onPress={() => {
-          swipeRef.current?.close();
-          onDelete();
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="trash-outline" size={22} color="#FFF" />
-        <Text style={styles.deleteActionText}>{t('providerDashboard.providerNotifications.delete')}</Text>
-      </TouchableOpacity>
-    ),
-    [onDelete]
-  );
-
   return (
-    <Swipeable ref={swipeRef} renderRightActions={renderRightActions} friction={2}>
+    <View style={styles.cardWrapper}>
       <TouchableOpacity
-        style={[
-          styles.card,
-          !notification.read && styles.cardUnread,
-        ]}
+        style={[styles.card, !notification.read && styles.cardUnread]}
         onPress={onPress}
         activeOpacity={0.7}
       >
@@ -117,8 +95,18 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
           </Text>
         </View>
         {!notification.read && <View style={[styles.unreadDot, { backgroundColor: color }]} />}
+        <TouchableOpacity
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={styles.cardDeleteBtn}
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Ionicons name="trash-outline" size={20} color="rgba(255,255,255,0.5)" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </Swipeable>
+    </View>
   );
 }
 
@@ -287,7 +275,7 @@ export default function ProviderNotificationsScreen() {
   };
 
   return (
-    <GestureHandlerRootView style={[styles.container, safePadding]}>
+    <View style={[styles.container, safePadding]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('providerDashboard.providerNotifications.title')}</Text>
@@ -406,7 +394,7 @@ export default function ProviderNotificationsScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
-    </GestureHandlerRootView>
+    </View>
   );
 }
 
@@ -491,12 +479,14 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     marginBottom: 12,
   },
+  cardWrapper: {
+    marginBottom: 8,
+  },
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 12,
     borderRadius: 12,
-    marginBottom: 8,
     backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: CARD_BORDER,
@@ -548,6 +538,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginLeft: 8,
     marginTop: 8,
+  },
+  cardDeleteBtn: {
+    paddingLeft: 8,
+    justifyContent: 'center',
+    marginTop: 2,
   },
   deleteAction: {
     backgroundColor: '#DC2626',

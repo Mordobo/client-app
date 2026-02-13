@@ -55,6 +55,11 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const resetKeyboardLayout = useCallback(() => {
+    setKeyboardVisible(false);
+    if (Platform.OS === 'android') setKeyboardHeight(0);
+  }, []);
+
   const loadMessages = useCallback(async (showLoading = true) => {
     if (!orderId) return;
     
@@ -135,9 +140,9 @@ export default function ChatScreen() {
       () => {
         setKeyboardVisible(false);
         if (Platform.OS === 'android') {
-          setKeyboardHeight(0);
+          // Delay reset so layout runs after keyboard animation; fixes elevated chat (MDB-150)
+          setTimeout(() => setKeyboardHeight(0), 150);
         }
-        // Force layout update when keyboard hides to reset position
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: false });
         }, 100);
@@ -406,7 +411,7 @@ export default function ChatScreen() {
             renderItem={renderMessage}
             contentContainerStyle={styles.messagesList}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
+            keyboardDismissMode="on-drag"
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             onLayout={() => {
               if (!keyboardVisible) {
@@ -440,6 +445,7 @@ export default function ChatScreen() {
                 flatListRef.current?.scrollToEnd({ animated: true });
               }, 100);
             }}
+            onBlur={resetKeyboardLayout}
           />
           <TouchableOpacity
             style={[styles.sendButton, (!messageText.trim() || sending) && styles.sendButtonDisabled]}

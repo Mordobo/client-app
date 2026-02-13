@@ -1,13 +1,7 @@
 import { t } from '@/i18n';
 import * as Haptics from 'expo-haptics';
-import React, { useCallback, useEffect } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -82,21 +76,20 @@ export function ModeSwitch({
   showConfirmation = false,
   onConfirmationRequest,
 }: ModeSwitchProps) {
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
   const isClient = currentMode === 'client';
 
   const handlePress = useCallback(() => {
     if (disabled) return;
 
-    // Haptic feedback
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
-    // Scale animation
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 300 }, () => {
-      scale.value = withSpring(1);
-    });
+    Animated.sequence([
+      Animated.spring(scale, { toValue: 0.98, useNativeDriver: true, damping: 15, stiffness: 300 }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, damping: 15, stiffness: 300 }),
+    ]).start();
 
     const newMode: UserMode = isClient ? 'provider' : 'client';
 
@@ -109,9 +102,7 @@ export function ModeSwitch({
     }
   }, [disabled, isClient, onModeChange, showConfirmation, onConfirmationRequest, scale]);
 
-  const animatedScaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const animatedScaleStyle = { transform: [{ scale }] };
 
   // Render based on variant
   switch (variant) {
@@ -202,7 +193,7 @@ interface VariantProps {
   disabled: boolean;
   showLabels: boolean;
   size: ModeSwitchSize;
-  animatedScaleStyle: any;
+  animatedScaleStyle: { transform: { scale: Animated.Value }[] };
 }
 
 function PillVariant({
@@ -214,41 +205,29 @@ function PillVariant({
   animatedScaleStyle,
 }: VariantProps) {
   const isClient = currentMode === 'client';
-  const slidePosition = useSharedValue(isClient ? 0 : 1);
   const sizeConfig = SIZE_CONFIG[size];
-
-  useEffect(() => {
-    slidePosition.value = withTiming(isClient ? 0 : 1, { duration: 300 });
-  }, [isClient, slidePosition]);
-
-  // Calculate exact dimensions
   const containerPadding = sizeConfig.padding;
   const availableWidth = sizeConfig.width - containerPadding * 2;
   const sliderWidth = availableWidth / 2;
   const sliderHeight = sizeConfig.height - containerPadding * 2;
 
-  const slideStyle = useAnimatedStyle(() => {
-    const translateX = slidePosition.value * sliderWidth;
-    return {
-      transform: [{ translateX }],
-    };
-  });
+  const slideAnim = useRef(new Animated.Value(isClient ? 0 : sliderWidth)).current;
+  const clientIconOpacity = useRef(new Animated.Value(isClient ? 1 : 0.35)).current;
+  const providerIconOpacity = useRef(new Animated.Value(isClient ? 0.35 : 1)).current;
+  const clientTextOpacity = useRef(new Animated.Value(isClient ? 1 : 0.5)).current;
+  const providerTextOpacity = useRef(new Animated.Value(isClient ? 0.5 : 1)).current;
 
-  const clientIconColor = useAnimatedStyle(() => ({
-    opacity: withTiming(isClient ? 1 : 0.35, { duration: 200 }),
-  }));
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue: isClient ? 0 : sliderWidth, duration: 300, useNativeDriver: true }),
+      Animated.timing(clientIconOpacity, { toValue: isClient ? 1 : 0.35, duration: 200, useNativeDriver: true }),
+      Animated.timing(providerIconOpacity, { toValue: isClient ? 0.35 : 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(clientTextOpacity, { toValue: isClient ? 1 : 0.5, duration: 200, useNativeDriver: true }),
+      Animated.timing(providerTextOpacity, { toValue: isClient ? 0.5 : 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  }, [isClient, slideAnim, clientIconOpacity, providerIconOpacity, clientTextOpacity, providerTextOpacity, sliderWidth]);
 
-  const providerIconColor = useAnimatedStyle(() => ({
-    opacity: withTiming(isClient ? 0.35 : 1, { duration: 200 }),
-  }));
-
-  const clientTextStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(isClient ? 1 : 0.5, { duration: 200 }),
-  }));
-
-  const providerTextStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(isClient ? 0.5 : 1, { duration: 200 }),
-  }));
+  const slideStyle = { transform: [{ translateX: slideAnim }] };
 
   return (
     <AnimatedTouchable
@@ -275,11 +254,10 @@ function PillVariant({
             borderRadius: sizeConfig.height / 2,
             borderWidth: 1,
             padding: containerPadding,
-            overflow: 'hidden', // Ensure slider doesn't overflow
+            overflow: 'hidden',
           },
         ]}
       >
-        {/* Slider with gradient */}
         <Animated.View
           style={[
             slideStyle,
@@ -290,7 +268,7 @@ function PillVariant({
               borderRadius: sliderHeight / 2,
               top: containerPadding,
               left: containerPadding,
-              overflow: 'hidden', // Ensure gradient doesn't overflow
+              overflow: 'hidden',
             },
           ]}
         >
@@ -306,26 +284,20 @@ function PillVariant({
           />
         </Animated.View>
 
-        {/* Content layer - above slider */}
         <View style={[styles.pillContent, { zIndex: 1 }]}>
           <View style={styles.pillOption}>
-            <Animated.View style={clientIconColor}>
-              <Ionicons 
-                name={isClient ? "person" : "person-outline"} 
-                size={sizeConfig.iconSize} 
-                color={COLORS.common.activeText} 
+            <Animated.View style={{ opacity: clientIconOpacity }}>
+              <Ionicons
+                name={isClient ? "person" : "person-outline"}
+                size={sizeConfig.iconSize}
+                color={COLORS.common.activeText}
               />
             </Animated.View>
             {showLabels && (
-              <Animated.Text 
+              <Animated.Text
                 style={[
-                  styles.pillText, 
-                  clientTextStyle, 
-                  { 
-                    fontSize: sizeConfig.fontSize,
-                    color: COLORS.common.activeText,
-                    fontWeight: isClient ? '700' : '500',
-                  }
+                  styles.pillText,
+                  { opacity: clientTextOpacity, fontSize: sizeConfig.fontSize, color: COLORS.common.activeText, fontWeight: isClient ? '700' : '500' },
                 ]}
               >
                 {t('mode.client')}
@@ -334,23 +306,18 @@ function PillVariant({
           </View>
 
           <View style={styles.pillOption}>
-            <Animated.View style={providerIconColor}>
-              <Ionicons 
-                name={!isClient ? "construct" : "construct-outline"} 
-                size={sizeConfig.iconSize} 
-                color={COLORS.common.activeText} 
+            <Animated.View style={{ opacity: providerIconOpacity }}>
+              <Ionicons
+                name={!isClient ? "construct" : "construct-outline"}
+                size={sizeConfig.iconSize}
+                color={COLORS.common.activeText}
               />
             </Animated.View>
             {showLabels && (
-              <Animated.Text 
+              <Animated.Text
                 style={[
-                  styles.pillText, 
-                  providerTextStyle, 
-                  { 
-                    fontSize: sizeConfig.fontSize,
-                    color: COLORS.common.activeText,
-                    fontWeight: !isClient ? '700' : '500',
-                  }
+                  styles.pillText,
+                  { opacity: providerTextOpacity, fontSize: sizeConfig.fontSize, color: COLORS.common.activeText, fontWeight: !isClient ? '700' : '500' },
                 ]}
               >
                 {t('mode.provider')}

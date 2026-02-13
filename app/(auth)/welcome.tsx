@@ -19,12 +19,12 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MordoboLogo from '@/components/MordoboLogo';
 import { ApiError } from '@/services/auth';
 
