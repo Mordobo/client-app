@@ -10,10 +10,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   LayoutChangeEvent,
+  PanResponder,
   Platform,
   ScrollView,
   StyleSheet,
@@ -44,6 +45,8 @@ export default function ProviderServiceAreaScreen() {
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const [editingAddress, setEditingAddress] = useState(false);
   const [sliderWidth, setSliderWidth] = useState(0);
+  const sliderWidthRef = useRef(0);
+  const sliderStartXRef = useRef(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,18 +87,46 @@ export default function ProviderServiceAreaScreen() {
   }, []);
 
   const onSliderLayout = useCallback((e: LayoutChangeEvent) => {
-    setSliderWidth(e.nativeEvent.layout.width);
+    const w = e.nativeEvent.layout.width;
+    setSliderWidth(w);
+    sliderWidthRef.current = w;
   }, []);
 
-  const onSliderPress = useCallback(
-    (locationX: number) => {
-      if (sliderWidth <= 0) return;
-      const ratio = Math.max(0, Math.min(1, locationX / sliderWidth));
+  const updateRadiusFromX = useCallback(
+    (x: number) => {
+      const w = sliderWidthRef.current;
+      if (w <= 0) return;
+      const ratio = Math.max(0, Math.min(1, x / w));
       const km = Math.round(RADIUS_MIN_KM + ratio * (RADIUS_MAX_KM - RADIUS_MIN_KM));
       setRadius(km);
     },
-    [sliderWidth, setRadius]
+    [setRadius]
   );
+
+  const updateRadiusFromXRef = useRef(updateRadiusFromX);
+  updateRadiusFromXRef.current = updateRadiusFromX;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => {
+        const w = sliderWidthRef.current;
+        const x = Math.max(0, Math.min(w, evt.nativeEvent.locationX));
+        sliderStartXRef.current = x;
+        updateRadiusFromXRef.current(x);
+        if (Platform.OS !== 'web') {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+      },
+      onPanResponderMove: (_evt, gestureState) => {
+        const w = sliderWidthRef.current;
+        if (w <= 0) return;
+        const x = Math.max(0, Math.min(w, sliderStartXRef.current + gestureState.dx));
+        updateRadiusFromXRef.current(x);
+      },
+    })
+  ).current;
 
   const toggleZone = useCallback((id: string, enabled: boolean) => {
     setState((prev) => {
@@ -208,15 +239,14 @@ export default function ProviderServiceAreaScreen() {
             <Text style={styles.radiusLabel}>{t('providerDashboard.providerServiceArea.currentRadius')}</Text>
             <Text style={styles.radiusValue}>{state.radiusKm} km</Text>
           </View>
-          <TouchableOpacity
+          <View
             style={styles.sliderTrack}
             onLayout={onSliderLayout}
-            activeOpacity={1}
-            onPressIn={(e) => onSliderPress(e.nativeEvent.locationX)}
+            {...panResponder.panHandlers}
           >
             <View style={[styles.sliderTrackInner, { width: `${radiusRatio * 100}%` }]} />
             <View style={[styles.sliderThumb, { left: `${radiusRatio * 100}%`, marginLeft: -10 }]} />
-          </TouchableOpacity>
+          </View>
           <View style={styles.sliderLabels}>
             <Text style={styles.sliderLabelText}>{RADIUS_MIN_KM} km</Text>
             <Text style={styles.sliderLabelText}>{RADIUS_MAX_KM} km</Text>
