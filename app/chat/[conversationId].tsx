@@ -1,36 +1,36 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import { t } from '@/i18n';
 import {
-  ConversationDetail,
-  fetchConversation,
-  fetchConversationMessages,
-  Message,
-  sendConversationMessage,
+    ConversationDetail,
+    fetchConversation,
+    fetchConversationMessages,
+    Message,
+    sendConversationMessage,
 } from '@/services/conversations';
 import { fetchOrderDetail, Order, OrderStatus } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  Keyboard,
-  KeyboardAvoidingView,
-  Linking,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    Keyboard,
+    KeyboardAvoidingView,
+    Linking,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { t } from '@/i18n';
 
 // Client UI colors (original design)
 const clientColors = {
@@ -86,10 +86,16 @@ export default function ChatScreen() {
   const [messageText, setMessageText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [expandedImageUri, setExpandedImageUri] = useState<string | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const resetKeyboardLayout = useCallback(() => {
+    setKeyboardVisible(false);
+    if (Platform.OS === 'android') setKeyboardHeight(0);
+  }, []);
 
   const loadMessages = useCallback(
     async (showLoading = true) => {
@@ -151,8 +157,11 @@ export default function ChatScreen() {
   useEffect(() => {
     const showSub = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
+      (e) => {
         setKeyboardVisible(true);
+        if (Platform.OS === 'android') {
+          setKeyboardHeight(e.endCoordinates.height);
+        }
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
     );
@@ -160,6 +169,10 @@ export default function ChatScreen() {
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
         setKeyboardVisible(false);
+        if (Platform.OS === 'android') {
+          // Delay reset so layout runs after keyboard animation; fixes elevated chat (MDB-150)
+          setTimeout(() => setKeyboardHeight(0), 150);
+        }
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: false }), 100);
       }
     );
@@ -492,6 +505,12 @@ export default function ChatScreen() {
           keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 80 : 0}
           enabled={Platform.OS === 'ios'}
         >
+          <View
+            style={[
+              clientStyles.flex,
+              Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
+            ]}
+          >
           {error ? (
             <View style={[clientStyles.centerContainer, clientStyles.flex]}>
               <Text style={clientStyles.errorText}>{error}</Text>
@@ -550,6 +569,7 @@ export default function ChatScreen() {
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               )}
             </TouchableOpacity>
+          </View>
           </View>
         </KeyboardAvoidingView>
         <Modal visible={!!expandedImageUri} transparent animationType="fade">
@@ -630,6 +650,12 @@ export default function ChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 120 : 0}
         enabled={Platform.OS === 'ios'}
       >
+        <View
+          style={[
+            styles.flex,
+            Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
+          ]}
+        >
         {error ? (
           <View style={[styles.centerContainer, styles.flex]}>
             <Text style={styles.errorText}>{error}</Text>
@@ -645,7 +671,7 @@ export default function ChatScreen() {
             renderItem={(args) => renderMessage(args, displayMessages)}
             contentContainerStyle={styles.messagesList}
             keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
+            keyboardDismissMode="on-drag"
             ListHeaderComponent={
               isDemo ? (
                 <View style={styles.systemMessage}>
@@ -690,6 +716,7 @@ export default function ChatScreen() {
               multiline
               maxLength={1000}
               onFocus={() => setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100)}
+              onBlur={resetKeyboardLayout}
             />
             <TouchableOpacity hitSlop={8}>
               <Text style={styles.emojiBtn}>😊</Text>
@@ -706,6 +733,7 @@ export default function ChatScreen() {
               <Ionicons name="arrow-forward" size={18} color={colors.textPrimary} />
             )}
           </TouchableOpacity>
+        </View>
         </View>
       </KeyboardAvoidingView>
 

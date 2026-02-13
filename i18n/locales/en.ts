@@ -1072,6 +1072,7 @@ export default {
   providerDashboard: {
     welcome: "Welcome,",
     youAreAvailable: "You are available",
+    youAreUnavailable: "Unavailable",
     today: "Today",
     thisWeek: "This week",
     rating: "Rating",
@@ -1212,6 +1213,7 @@ export default {
       bio: "Biography",
       bioCharCount: "{{current}}/{{max}}",
       contactPhone: "Contact phone",
+      invalidPhone: "Invalid phone number. Use 6 to 15 digits.",
       yearsExperience: "Years of experience",
       saveSuccess: "Profile updated successfully",
       unsavedChanges: "Discard changes?",

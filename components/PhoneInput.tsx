@@ -2,14 +2,14 @@ import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  FlatList,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    FlatList,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { type Country, COUNTRIES } from './CountryPicker';
 
@@ -87,9 +87,9 @@ export function PhoneInput({
     );
   }, [extensionSearchQuery]);
 
-  // Format phone number (numbers only)
+  // Format phone number (numbers only, max 15 digits per E.164)
   const handlePhoneNumberChange = (text: string) => {
-    const digitsOnly = text.replace(/\D/g, '');
+    const digitsOnly = text.replace(/\D/g, '').slice(0, 15);
     onPhoneNumberChange(digitsOnly);
   };
 

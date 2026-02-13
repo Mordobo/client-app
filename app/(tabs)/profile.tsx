@@ -248,7 +248,7 @@ export default function ProfileScreen() {
         {/* Version from app.config */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            {t("profile.version")} {Constants.expoConfig?.version ?? "1.0.0"}
+            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.3"}
           </Text>
         </View>
       </ScrollView>

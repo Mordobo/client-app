@@ -1,5 +1,6 @@
 import { Toast } from "@/components/Toast";
 import { t } from "@/i18n";
+import { ApiError } from "@/services/auth";
 import {
     createProviderService,
     getProviderService,
@@ -52,6 +53,7 @@ export default function ProviderServiceAddScreen() {
   const isEdit = Boolean(serviceId);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error">("success");
 
   const { data: serviceData, isLoading: serviceLoading } = useQuery({
     queryKey: ["providerService", serviceId],
@@ -87,8 +89,9 @@ export default function ProviderServiceAddScreen() {
     }
   }, [serviceData, reset]);
 
-  const showToast = useCallback((message: string) => {
+  const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToastMessage(message);
+    setToastType(type);
     setToastVisible(true);
   }, []);
 
@@ -118,12 +121,14 @@ export default function ProviderServiceAddScreen() {
         }
         queryClient.invalidateQueries({ queryKey: QUERY_KEY });
         setTimeout(() => router.back(), 800);
-      } catch {
-        showToast(
-          isEdit
-            ? t("providerDashboard.providerServices.errors.updateFailed")
-            : t("providerDashboard.providerServices.errors.createFailed")
-        );
+      } catch (err) {
+        const message =
+          err instanceof ApiError && err.message
+            ? err.message
+            : isEdit
+              ? t("providerDashboard.providerServices.errors.updateFailed")
+              : t("providerDashboard.providerServices.errors.createFailed");
+        showToast(message, "error");
       }
     },
     [isEdit, serviceId, queryClient, router, showToast]
@@ -269,6 +274,7 @@ export default function ProviderServiceAddScreen() {
       <Toast
         visible={toastVisible}
         message={toastMessage}
+        type={toastType}
         onHide={() => setToastVisible(false)}
       />
     </View>

@@ -1,28 +1,28 @@
-import { t } from "@/i18n";
-import { getLocale } from "@/i18n";
+import { getLocale, t } from "@/i18n";
 import {
-  getDashboardSchedule,
-  type ProviderDashboardScheduleItem,
+    getDashboardSchedule,
+    type ProviderDashboardScheduleItem,
 } from "@/services/providerDashboard";
 import { useQuery } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  addWeeks,
-  format,
-  parseISO,
-  startOfWeek,
-  subWeeks,
+    addWeeks,
+    format,
+    parseISO,
+    startOfWeek,
+    subWeeks,
 } from "date-fns";
 import { enUS, es } from "date-fns/locale";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -54,6 +54,7 @@ function formatTime(isoDate: string | null): string {
 }
 
 export default function ProviderScheduleScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
@@ -93,8 +94,8 @@ export default function ProviderScheduleScreen() {
   }, []);
 
   const onBlockSlot = useCallback(() => {
-    // TODO: open block-slot modal when API is ready
-  }, []);
+    router.push("/(provider-tabs)/profile/availability");
+  }, [router]);
 
   const monthYearLabel = format(selectedDate, "MMMM yyyy", {
     locale: dateFnsLocale,
