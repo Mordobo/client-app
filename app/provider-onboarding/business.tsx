@@ -5,8 +5,8 @@ import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -82,6 +82,12 @@ export default function ProviderOnboardingBusinessScreen() {
   const canContinue = businessName.trim().length > 0 && selectedCategory !== null && description.trim().length >= MIN_DESCRIPTION_LENGTH;
 
   const [saving, setSaving] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setSaving(false);
+    }, []),
+  );
 
   const handleContinue = async () => {
     if (!canContinue) return;
