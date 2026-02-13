@@ -271,7 +271,7 @@ export const request = async <T>(
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
       const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-      
+
       console.error('[API] ❌ Fetch failed:', {
         url,
         error: errorMessage,
