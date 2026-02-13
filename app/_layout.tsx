@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, Platform, View } from "react-native";
-import "react-native-reanimated";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initializeGoogleSignIn } from "@/config/google-signin";
@@ -53,24 +52,30 @@ function RootLayoutNav() {
         }}
         key={isAuthenticated ? "authenticated" : "unauthenticated"}
       >
-        {isAuthenticated ?
-          <>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="(provider-tabs)"
-              options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
-            />
-            <Stack.Screen
-              name="switch-mode"
-              options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
-            />
-            <Stack.Screen name="chat" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
-          </>
-        : <>
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          </>
-        }
+        {isAuthenticated && (
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        )}
+        {isAuthenticated && (
+          <Stack.Screen
+            name="(provider-tabs)"
+            options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+          />
+        )}
+        {isAuthenticated && (
+          <Stack.Screen
+            name="switch-mode"
+            options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+          />
+        )}
+        {isAuthenticated && (
+          <Stack.Screen name="chat" options={{ headerShown: false }} />
+        )}
+        {isAuthenticated && (
+          <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+        )}
+        {!isAuthenticated && (
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        )}
       </Stack>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} backgroundColor={statusBarBackgroundColor} translucent={Platform.OS === "android"} />
     </NavigationThemeProvider>

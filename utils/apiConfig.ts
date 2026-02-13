@@ -2,20 +2,12 @@ import { Platform } from 'react-native';
 
 /**
  * Centralized API configuration
- * 
- * Determines the API base URL based on environment and platform.
- * 
- * Priority for LOCAL DEVELOPMENT (web/emulator):
- * 1. Always use localhost (ignores EXPO_PUBLIC_API_URL if set to QA/production)
- * 
- * Priority for APK/BUILD:
- * 1. EXPO_PUBLIC_API_URL environment variable (from eas.json build profile)
- * 2. For Android emulator: converts localhost to 10.0.2.2
- * 3. Fallback: localhost for development
- * 
- * IMPORTANT:
- * - In local development (web/emulator): Always uses localhost:3000
- * - In APK builds: Uses EXPO_PUBLIC_API_URL from eas.json (QA for preview profile)
+ *
+ * All requests use EXPO_PUBLIC_API_URL when set (.env or eas.json build profile).
+ * - Set EXPO_PUBLIC_API_URL in .env to point to your API (localhost, IP, or production URL).
+ * - Android emulator: localhost is converted to 10.0.2.2 so the emulator reaches the host.
+ * - Physical phone: use your PC's IP (e.g. http://192.168.1.x:3000), same Wi‑Fi; localhost won't work.
+ * - Fallback when unset: localhost:3000 (or 10.0.2.2:3000 on Android).
  */
 const sanitizeBaseUrl = (url: string) => url.replace(/\/+$/, '');
 
@@ -74,37 +66,16 @@ const isLocalDevelopment = (): boolean => {
 };
 
 const getHost = (): string => {
-  const isLocal = isLocalDevelopment();
-  
-  // In local development, always use localhost (ignore EXPO_PUBLIC_API_URL if it points to QA/production)
-  if (isLocal) {
-    const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-    // Only use EXPO_PUBLIC_API_URL if it's already localhost
-    if (envUrl?.length && /localhost|127\.0\.0\.1|10\.0\.2\.2/i.test(envUrl)) {
-      // Convert localhost to 10.0.2.2 for Android emulator
-      if (Platform.OS === 'android' && /localhost|127\.0\.0\.1/i.test(envUrl)) {
-        return envUrl.replace(/(localhost|127\.0\.0\.1)/gi, '10.0.2.2');
-      }
-      return envUrl;
-    }
-    // Default to localhost for local development
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:3000';
-    }
-    return 'http://localhost:3000';
-  }
-  
-  // For APK builds, use EXPO_PUBLIC_API_URL from eas.json
+  // Single source of truth: always use EXPO_PUBLIC_API_URL when set (local, staging, production)
   const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (envUrl?.length) {
-    // Only convert localhost to 10.0.2.2 for Android (emulator detection)
+    // Android emulator: localhost must be 10.0.2.2 to reach host machine
     if (Platform.OS === 'android' && /localhost|127\.0\.0\.1/i.test(envUrl)) {
       return envUrl.replace(/(localhost|127\.0\.0\.1)/gi, '10.0.2.2');
     }
     return envUrl;
   }
-  
-  // Fallback: development defaults (shouldn't happen in APK, but just in case)
+  // Fallback when EXPO_PUBLIC_API_URL is not set
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:3000';
   }

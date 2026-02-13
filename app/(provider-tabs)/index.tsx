@@ -14,9 +14,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Animated,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -24,13 +25,6 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CARD_BG = "#1E1B2E";
@@ -54,18 +48,18 @@ function formatScheduleTime(iso: string | null): string {
 }
 
 function GreenDotPulse() {
-  const opacity = useSharedValue(1);
+  const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    opacity.value = withRepeat(
-      withSequence(withTiming(0.4, { duration: 800 }), withTiming(1, { duration: 800 })),
-      -1,
-      true,
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ]),
     );
+    anim.start();
+    return () => anim.stop();
   }, [opacity]);
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  return (
-    <Animated.View style={[styles.greenDot, animatedStyle]} />
-  );
+  return <Animated.View style={[styles.greenDot, { opacity }]} />;
 }
 
 function AvailabilityToggle({
@@ -77,13 +71,10 @@ function AvailabilityToggle({
   onValueChange: (v: boolean) => void;
   disabled?: boolean;
 }) {
-  const translateX = useSharedValue(value ? 20 : 0);
+  const translateX = useRef(new Animated.Value(value ? 20 : 0)).current;
   useEffect(() => {
-    translateX.value = withTiming(value ? 20 : 0, { duration: 200 });
+    Animated.timing(translateX, { toValue: value ? 20 : 0, duration: 200, useNativeDriver: true }).start();
   }, [value, translateX]);
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
   return (
     <View style={styles.toggleRow}>
       <View style={[styles.toggleTrack, value ? styles.toggleTrackActive : styles.toggleTrackInactive]}>
@@ -92,7 +83,7 @@ function AvailabilityToggle({
           onPress={() => !disabled && onValueChange(!value)}
           style={styles.toggleTrackTouch}
         >
-          <Animated.View style={[styles.toggleThumb, value ? styles.toggleThumbActive : styles.toggleThumbInactive, thumbStyle]} />
+          <Animated.View style={[styles.toggleThumb, value ? styles.toggleThumbActive : styles.toggleThumbInactive, { transform: [{ translateX }] }]} />
         </TouchableOpacity>
       </View>
     </View>

@@ -1,4 +1,3 @@
-import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, resendCode, verifyCode } from '@/services/auth';
@@ -31,16 +30,27 @@ export default function VerifyScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
+  // Email that is doing login/register — from params or AsyncStorage so the code is always sent to this address
+  const [emailForVerification, setEmailForVerification] = useState<string | null>(params.email ?? null);
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
-  const [showCodeModal, setShowCodeModal] = useState(false);
-  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Resolve email from params or AsyncStorage (login/register always set pending_verification_email)
+  useEffect(() => {
+    if (params.email?.trim()) {
+      setEmailForVerification(params.email.trim().toLowerCase());
+      return;
+    }
+    AsyncStorage.getItem('pending_verification_email').then((stored) => {
+      if (stored?.trim()) setEmailForVerification(stored.trim().toLowerCase());
+    });
+  }, [params.email]);
 
   const handleBack = () => {
     // Since we use router.replace() to get here, there's no history
@@ -175,18 +185,16 @@ export default function VerifyScreen() {
       return;
     }
 
-    const email = params.email;
+    const email = emailForVerification;
     if (!email) {
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       router.back();
       return;
     }
 
-    
     setLoading(true);
     try {
-      
-      // Call API to verify code
+      // Call API to verify code (same email that received the code from login/register)
       const apiResponse = await verifyCode({
         email,
         code: verificationCode,
@@ -281,9 +289,9 @@ export default function VerifyScreen() {
       return;
     }
 
-    const email = params.email;
+    const email = emailForVerification;
     if (!email) {
-      console.log('[Verify] Resend blocked - no email in params');
+      console.log('[Verify] Resend blocked - no email (params or AsyncStorage)');
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       return;
     }
@@ -344,37 +352,13 @@ export default function VerifyScreen() {
           return;
         }
         
-        // Show detailed error for SMTP failures
-        if (errorCode === 'smtp_not_configured' || 
-            errorCode === 'email_send_timeout' || 
+        // Email/send errors: show message only (no modal with code)
+        if (errorCode === 'smtp_not_configured' ||
+            errorCode === 'email_send_timeout' ||
             errorCode === 'email_send_failed') {
-          // Check if backend returned the code as workaround
-          const code = errorData?.verificationCode as string | undefined;
-          
-          if (code) {
-            // Reset cooldown even when SMTP fails (code was generated)
-            setResendCooldown(RESEND_COOLDOWN_SECONDS);
-            setCanResend(false);
-            
-            // Clear current code
-            setCode(Array(CODE_LENGTH).fill(''));
-            
-            // Show modal with code
-            setVerificationCode(code);
-            setShowCodeModal(true);
-            return;
-          } else {
-            // No code provided, show error but don't reset cooldown
-            const detailedMessage = errorData?.message 
-              ? String(errorData.message)
-              : errorMessage;
-            
-            Alert.alert(
-              t('common.error'),
-              `${t('errors.emailSendFailed')}\n\n${detailedMessage}`
-            );
-            return;
-          }
+          const detailedMessage = errorData?.message ? String(errorData.message) : errorMessage;
+          Alert.alert(t('common.error'), `${t('errors.emailSendFailed')}\n\n${detailedMessage}`);
+          return;
         }
         
         // Handle authentication errors
@@ -398,8 +382,8 @@ export default function VerifyScreen() {
   useEffect(() => {
   }, [isCodeComplete, code, loading]);
 
-  // Get email from params (this is where the verification code is sent)
-  const displayEmail = params.email || '';
+  // Email that is doing login/register (where the verification code was sent)
+  const displayEmail = emailForVerification || params.email || '';
 
   return (
     <View style={styles.container}>
@@ -509,15 +493,6 @@ export default function VerifyScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-      
-      {/* Verification Code Modal */}
-      <VerificationCodeModal
-        visible={showCodeModal}
-        code={verificationCode}
-        onClose={() => {
-          setShowCodeModal(false);
-        }}
-      />
     </View>
   );
 }
