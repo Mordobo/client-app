@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
+import { useMode } from '@/contexts/ModeContext';
 import { fetchUnreadCount } from '@/services/conversations';
 import { fetchUnreadNotificationCount } from '@/services/notifications';
 
@@ -69,6 +70,15 @@ function NotificationsTabIcon({ color, focused }: { color: string; focused: bool
 export default function TabLayout() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { mode, isLoading } = useMode();
+
+  // After login: redirect to provider dashboard when saved mode is provider (synced with DB)
+  useEffect(() => {
+    if (isLoading) return;
+    if (mode === 'provider') {
+      router.replace('/(provider-tabs)');
+    }
+  }, [isLoading, mode, router]);
 
   // Hardcode dark colors like Home screen to ensure consistency in APK
   // Calculate bottom padding respecting safe area

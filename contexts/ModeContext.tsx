@@ -95,12 +95,22 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
           if (!providerStatus.isProvider) {
             setModeState(newMode);
             await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
+            try {
+              await updateSettings({ user_mode: newMode });
+            } catch (e) {
+              console.warn('[ModeContext] Could not persist user_mode to backend:', e);
+            }
             return { needsOnboarding: true };
           }
           // If onboarding not completed, send to onboarding; if completed (verified or in_review), allow provider mode
           if (!providerStatus.onboardingCompleted) {
             setModeState(newMode);
             await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
+            try {
+              await updateSettings({ user_mode: newMode });
+            } catch (e) {
+              console.warn('[ModeContext] Could not persist user_mode to backend:', e);
+            }
             return { needsOnboarding: true };
           }
           // Onboarding completed: allow provider mode (verified or still in_review - user can see provider dashboard)
@@ -108,6 +118,11 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
           console.error('[ModeContext] Failed to check provider status:', error);
           setModeState(newMode);
           await AsyncStorage.setItem(MODE_STORAGE_KEY, newMode);
+          try {
+            await updateSettings({ user_mode: newMode });
+          } catch (e) {
+            console.warn('[ModeContext] Could not persist user_mode to backend:', e);
+          }
           return { needsOnboarding: true };
         }
       }
