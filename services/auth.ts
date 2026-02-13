@@ -10,6 +10,13 @@ const buildUrl = (path: string) => {
   return `${base}/${sanitizedPath}`;
 };
 
+/** Hint when on physical device and API URL is local: device cannot reach PC's localhost. */
+const getPhysicalDeviceHint = (): string => {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return '';
+  if (!/localhost|127\.0\.0\.1|10\.0\.2\.2/i.test(API_BASE)) return '';
+  return '\n\nSi usas un dispositivo físico (no emulador), en .env pon EXPO_PUBLIC_API_URL con la IP de tu PC, ej: http://192.168.1.x:3000 (misma Wi‑Fi).';
+};
+
 export interface RegisterPayload {
   fullName: string;
   email: string;
@@ -247,9 +254,12 @@ export const request = async <T>(
     }
     console.log('[API] ========================================');
     
-    // Create AbortController for timeout (45 seconds - extended for Render cold start)
+    // Endpoints that send email can take 25s+ (Brevo SMTP); use longer timeout so emulator/host round-trip doesn't hit limit
+    const timeoutMs = path.includes('validate-email') || path.includes('resend-code')
+      ? 70000
+      : 45000;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     let response: Response;
     try {
@@ -266,12 +276,18 @@ export const request = async <T>(
         keepalive: true,
       });
       clearTimeout(timeoutId);
+      // #region agent log
+      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response received',data:{path,status:response.status,ok:response.ok},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
+      // #endregion
       console.log('[API] ✅ Response received:', response.status, response.statusText, 'for', url);
     } catch (fetchError) {
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
       const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-      
+      // #region agent log
+      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'fetch failed',data:{path,url,isTimeout,errorMessage},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
+      // #endregion
+
       console.error('[API] ❌ Fetch failed:', {
         url,
         error: errorMessage,
@@ -291,7 +307,7 @@ export const request = async <T>(
       
       // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
-        const timeoutMessage = t('errors.requestTimeout');
+        const timeoutMessage = t('errors.requestTimeout') + getPhysicalDeviceHint();
         console.error('[API] Request timeout - throwing ApiError with translated message');
         throw new ApiError(
           timeoutMessage,
@@ -299,10 +315,10 @@ export const request = async <T>(
           { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
         );
       }
-      
+
       // Handle network errors (TypeError usually means connection failed)
       if (fetchError instanceof TypeError) {
-        const connectionMessage = t('errors.connectionFailed');
+        const connectionMessage = t('errors.connectionFailed') + getPhysicalDeviceHint();
         console.error('[API] Network error - throwing ApiError with translated message');
         throw new ApiError(
           connectionMessage,
@@ -417,6 +433,9 @@ export const request = async <T>(
     }
 
     if (!response.ok) {
+      // #region agent log
+      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response not ok',data:{path,status:response.status,code:(responseData as {code?:string})?.code},timestamp:Date.now(),hypothesisId:'H2',runId:'validate-email'})}).catch(()=>{});
+      // #endregion
       const message =
         typeof responseData === 'object' && responseData && 'message' in responseData
           ? String((responseData as { message: unknown }).message)
@@ -488,7 +507,7 @@ export const request = async <T>(
         (error instanceof TypeError && errorMessage.includes('fetch'));
       
       if (isConnectionError) {
-        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}`;
+        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}${getPhysicalDeviceHint()}`;
         throw new ApiError(
           detailedMessage,
           0,
@@ -630,6 +649,9 @@ export const validateEmail = async (
     email: payload.email.trim().toLowerCase(),
     password: payload.password.trim(), // Ensure password is trimmed
   };
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:validateEmail',message:'validateEmail called',data:{email:body.email,path:'/auth/validate-email'},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
+  // #endregion
 
   return request<ValidateEmailResponse>(
     '/auth/validate-email',

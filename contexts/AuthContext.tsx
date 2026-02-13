@@ -63,9 +63,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   const loadUserFromStorage = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:65',message:'loadUserFromStorage START',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     try {
       console.log('AuthContext - Loading user from storage...');
       // Add timeout to prevent blocking if AsyncStorage is slow
@@ -79,15 +76,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ),
       ]);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:78',message:'After AsyncStorage.getItem',data:{hasUserData:!!userData,userDataLength:userData?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       console.log('AuthContext - User data from storage:', userData ? 'found' : 'not found');
       if (userData) {
         const parsedUser = JSON.parse(userData);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:84',message:'Parsed user from storage',data:{userId:parsedUser?.id,email:parsedUser?.email,hasAuthToken:!!parsedUser?.authToken,authTokenLength:parsedUser?.authToken?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         console.log('AuthContext - Parsed user:', parsedUser);
         setUser(parsedUser);
         

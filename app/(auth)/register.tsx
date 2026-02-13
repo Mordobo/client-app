@@ -1,6 +1,5 @@
 import { CountryPicker, COUNTRIES, type Country } from '@/components/CountryPicker';
 import { PhoneInput } from '@/components/PhoneInput';
-import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, registerUser } from '@/services/auth';
@@ -157,8 +156,6 @@ export default function RegisterScreen() {
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ password?: string; country?: string; terms?: string }>({});
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [showCodeModal, setShowCodeModal] = useState(false);
-  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const googleStatusCodes = getGoogleStatusCodes();
   const webGoogleSupported = isGoogleWebAvailable();
@@ -464,50 +461,29 @@ export default function RegisterScreen() {
           console.error('[Register] Error data:', validateError.data);
         }
         
-        // Check if it's an SMTP/email error
+        // Check if it's an SMTP/email error (no modal with code; show error only)
         if (validateError instanceof ApiError) {
           const errorData = validateError.data as Record<string, unknown> | undefined;
           const errorCode = errorData?.code as string | undefined;
           const errorMessage = validateError.message || t('errors.verificationFailed');
           
-          // Show detailed error for SMTP failures
-          if (errorCode === 'smtp_not_configured' || 
-              errorCode === 'email_send_timeout' || 
+          if (errorCode === 'smtp_not_configured' ||
+              errorCode === 'email_send_timeout' ||
               errorCode === 'email_send_failed') {
-            // Check if backend returned the code as workaround
-            const code = errorData?.verificationCode as string | undefined;
-            
-            if (code) {
-              // Show modal with code
-              setVerificationCode(code);
-              setShowCodeModal(true);
-              
-              // Store email and password for verification
-              await AsyncStorage.setItem('pending_verification_email', trimmedEmail.toLowerCase());
-              await AsyncStorage.setItem('pending_verification_password', password);
-              
-              // Navigate to verification screen after modal is closed
-              return;
-            } else {
-              // No code provided, show error and redirect
-              const detailedMessage = errorData?.message 
-                ? String(errorData.message)
-                : errorMessage;
-              
-              Alert.alert(
-                t('common.error'),
-                `${t('errors.emailSendFailed')}\n\n${detailedMessage}`,
-                [
-                  {
-                    text: t('common.ok'),
-                    onPress: () => {
-                      router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
-                    }
+            const detailedMessage = errorData?.message ? String(errorData.message) : errorMessage;
+            Alert.alert(
+              t('common.error'),
+              `${t('errors.emailSendFailed')}\n\n${detailedMessage}`,
+              [
+                {
+                  text: t('common.ok'),
+                  onPress: () => {
+                    router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
                   }
-                ]
-              );
-              return;
-            }
+                }
+              ]
+            );
+            return;
           }
           
           // For other errors, show generic message
@@ -815,24 +791,6 @@ export default function RegisterScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      
-      {/* Verification Code Modal */}
-      <VerificationCodeModal
-        visible={showCodeModal}
-        code={verificationCode}
-        onClose={() => {
-          setShowCodeModal(false);
-          // Navigate to verification screen after closing modal
-          if (verificationCode) {
-            router.replace({
-              pathname: '/(auth)/verify',
-              params: { 
-                email: formData.email.trim().toLowerCase(),
-              },
-            });
-          }
-        }}
-      />
     </SafeAreaView>
   );
 }
