@@ -218,16 +218,12 @@ export default function VerifyScreen() {
         'pending_verification_password',
       ]);
 
-      // Check if this is the first login using login_count from backend
-      const loginCount = (apiResponse.user as Record<string, unknown>).login_count as number | undefined;
-      const isFirstLogin = loginCount === 1 || loginCount === undefined;
-      
-      if (isFirstLogin) {
-        // Navigate to onboarding screens for first-time users
-        router.replace('/(auth)/onboarding');
-      } else {
-        // Navigate to home on success
+      // Use DB flag: show client onboarding only if not yet completed
+      const clientOnboardingCompleted = (apiResponse.user as Record<string, unknown>).client_onboarding_completed === true;
+      if (clientOnboardingCompleted) {
         router.replace('/(tabs)/home');
+      } else {
+        router.replace('/(auth)/onboarding');
       }
     } catch (error) {
       
