@@ -48,13 +48,19 @@ export default function SwitchModeScreen() {
     try {
       setSwitching(true);
       const result = await setMode("provider");
-      if (result.needsOnboarding) {
-        router.replace("/provider-onboarding");
+      const status = await checkProviderStatus();
+      // Not yet a provider or onboarding not completed → full onboarding from step 1
+      if (result.needsOnboarding || !status.onboardingCompleted) {
+        if (status.onboardingCompleted && !status.isVerified) {
+          router.replace("/provider-onboarding/verification");
+        } else {
+          router.replace("/provider-onboarding");
+        }
         return;
       }
-      const status = await checkProviderStatus();
-      if (!status.onboardingCompleted) {
-        router.replace("/provider-onboarding");
+      // Onboarding done but not approved → final (verification) screen
+      if (!status.isVerified) {
+        router.replace("/provider-onboarding/verification");
         return;
       }
       router.replace("/(provider-tabs)");

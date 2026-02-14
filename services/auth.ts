@@ -671,6 +671,18 @@ export interface VerifyCodeResponse extends AuthSuccessResponse {
   refreshToken?: string;
 }
 
+/** Mark client onboarding as completed so it is not shown again. Requires authenticated client. */
+export const completeClientOnboarding = async (): Promise<void> => {
+  await request<{ message: string }>(
+    '/api/users/me/complete-client-onboarding',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    },
+    t('errors.requestFailed')
+  );
+};
+
 export const verifyCode = async (
   payload: VerifyCodePayload
 ): Promise<VerifyCodeResponse> => {
