@@ -1,21 +1,13 @@
-import { ProviderCard } from '@/components/ProviderCard';
-import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from '@/services/categories';
-import { useTheme } from '@/contexts/ThemeContext';
-import { getAddresses } from '@/services/addresses';
-import { fetchSuppliers, Supplier } from '@/services/suppliers';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    FlatList,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
+import { ProviderCard } from "@/components/ProviderCard";
+import { useTheme } from "@/contexts/ThemeContext";
+import { getAddresses } from "@/services/addresses";
+import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
+import { fetchSuppliers, Supplier } from "@/services/suppliers";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
@@ -26,31 +18,31 @@ export default function CategoryDetailScreen() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'price' | 'distance'>('price');
+  const [sortBy, setSortBy] = useState<"price" | "distance">("price");
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  
+
   // Use exact colors from JSX design
   const colors = {
-    bg: '#1a1a2e',
-    bgCard: '#252542',
-    bgInput: '#2d2d4a',
-    primary: '#3b82f6',
-    secondary: '#10b981',
-    accent: '#f59e0b',
-    danger: '#ef4444',
-    textSecondary: '#9ca3af',
-    border: '#374151',
-    textPrimary: '#FFFFFF',
+    bg: "#1a1a2e",
+    bgCard: "#252542",
+    bgInput: "#2d2d4a",
+    primary: "#3b82f6",
+    secondary: "#10b981",
+    accent: "#f59e0b",
+    danger: "#ef4444",
+    textSecondary: "#9ca3af",
+    border: "#374151",
+    textPrimary: "#FFFFFF",
   };
 
   useEffect(() => {
     // Validate categoryId before loading data
-    if (categoryId && typeof categoryId === 'string' && categoryId.trim() !== '') {
+    if (categoryId && typeof categoryId === "string" && categoryId.trim() !== "") {
       loadUserLocation();
       loadData();
     } else {
-      setError('Invalid category ID');
+      setError("Invalid category ID");
       setLoading(false);
     }
   }, [categoryId, sortBy, selectedSubcategory]);
@@ -59,7 +51,7 @@ export default function CategoryDetailScreen() {
     try {
       const addresses = await getAddresses();
       const defaultAddress = addresses.find((addr) => addr.is_default) || addresses[0];
-      
+
       if (defaultAddress?.latitude && defaultAddress?.longitude) {
         setUserLocation({
           lat: defaultAddress.latitude,
@@ -67,15 +59,15 @@ export default function CategoryDetailScreen() {
         });
       }
     } catch (error) {
-      console.error('[CategoryDetail] Failed to load user location:', error);
+      console.error("[CategoryDetail] Failed to load user location:", error);
     }
   };
 
   const loadData = async () => {
     try {
       // Validate categoryId before making API calls
-      if (!categoryId || typeof categoryId !== 'string' || categoryId.trim() === '') {
-        setError('Invalid category ID');
+      if (!categoryId || typeof categoryId !== "string" || categoryId.trim() === "") {
+        setError("Invalid category ID");
         setLoading(false);
         return;
       }
@@ -84,15 +76,15 @@ export default function CategoryDetailScreen() {
       setError(null);
       const [catData, suppliersData] = await Promise.all([
         fetchCategoryWithSubcategories(categoryId),
-        fetchSuppliers({ 
+        fetchSuppliers({
           category: selectedSubcategory || categoryId,
-          sort_by: sortBy === 'distance' ? 'distance' : 'price',
-          near_me: sortBy === 'distance' && userLocation !== null,
-          user_lat: sortBy === 'distance' && userLocation ? userLocation.lat : undefined,
-          user_lng: sortBy === 'distance' && userLocation ? userLocation.lng : undefined,
+          sort_by: sortBy === "distance" ? "distance" : "price",
+          near_me: sortBy === "distance" && userLocation !== null,
+          user_lat: sortBy === "distance" && userLocation ? userLocation.lat : undefined,
+          user_lng: sortBy === "distance" && userLocation ? userLocation.lng : undefined,
         }),
       ]);
-      
+
       setCategoryData(catData);
       // Safely handle suppliers data - ensure it's always an array
       const suppliersList = Array.isArray(suppliersData?.suppliers) ? suppliersData.suppliers : [];
@@ -101,7 +93,7 @@ export default function CategoryDetailScreen() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Failed to load data');
+        setError("Failed to load data");
       }
     } finally {
       setLoading(false);
@@ -134,7 +126,7 @@ export default function CategoryDetailScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error || 'Category not found'}</Text>
+          <Text style={styles.errorText}>{error || "Category not found"}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
@@ -177,7 +169,7 @@ export default function CategoryDetailScreen() {
                     style={[
                       styles.subcategoryText,
                       {
-                        color: isSelected ? '#FFFFFF' : colors.textPrimary,
+                        color: isSelected ? "#FFFFFF" : colors.textPrimary,
                       },
                     ]}
                   >
@@ -197,85 +189,44 @@ export default function CategoryDetailScreen() {
       {/* Sort Options */}
       <View style={[styles.sortContainer, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>Sort by:</Text>
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            { backgroundColor: '#374151' },
-            sortBy === 'price' && styles.sortButtonActive,
-          ]}
-          onPress={() => setSortBy('price')}
-        >
-          <Text
-            style={[
-              styles.sortButtonText,
-              { color: colors.textPrimary },
-              sortBy === 'price' && styles.sortButtonTextActive,
-            ]}
-          >
-            Price
-          </Text>
+        <TouchableOpacity style={[styles.sortButton, { backgroundColor: "#374151" }, sortBy === "price" && styles.sortButtonActive]} onPress={() => setSortBy("price")}>
+          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "price" && styles.sortButtonTextActive]}>Price</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.sortButton,
-            { backgroundColor: '#374151' },
-            sortBy === 'distance' && styles.sortButtonActive,
-          ]}
-          onPress={() => setSortBy('distance')}
-        >
-          <Text
-            style={[
-              styles.sortButtonText,
-              { color: colors.textPrimary },
-              sortBy === 'distance' && styles.sortButtonTextActive,
-            ]}
-          >
-            Distance
-          </Text>
+        <TouchableOpacity style={[styles.sortButton, { backgroundColor: "#374151" }, sortBy === "distance" && styles.sortButtonActive]} onPress={() => setSortBy("distance")}>
+          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "distance" && styles.sortButtonTextActive]}>Distance</Text>
         </TouchableOpacity>
       </View>
 
       {/* Suppliers List */}
-      {loading ? (
+      {loading ?
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
-      ) : error ? (
+      : error ?
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: '#EF4444' }]}>{error}</Text>
+          <Text style={[styles.errorText, { color: "#EF4444" }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <FlashList
+      : <FlatList
           data={suppliers}
           renderItem={({ item }) => {
-            // Validate item before rendering
             if (!item || !item.id) {
               return null;
             }
-            return (
-              <ProviderCard
-                supplier={item}
-                onPress={() => handleSupplierPress(item.id)}
-                onBookPress={() => handleBookPress(item.id)}
-              />
-            );
+            return <ProviderCard supplier={item} onPress={() => handleSupplierPress(item.id)} onBookPress={() => handleBookPress(item.id)} />;
           }}
           keyExtractor={(item) => item?.id || `supplier-${Math.random()}`}
-          estimatedItemSize={140}
           contentContainerStyle={[styles.suppliersSection, { paddingBottom: insets.bottom + 40 }]}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                No suppliers found for this category
-              </Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No suppliers found for this category</Text>
             </View>
           )}
           showsVerticalScrollIndicator={false}
         />
-      )}
+      }
     </View>
   );
 }
@@ -286,14 +237,14 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -301,12 +252,12 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   subcategoriesSection: {
     paddingVertical: 16,
@@ -314,7 +265,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
   },
   subcategoriesContent: {
@@ -330,11 +281,11 @@ const styles = StyleSheet.create({
   },
   subcategoryText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -350,14 +301,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   sortButtonActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: "#10b981",
   },
   sortButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   sortButtonTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   suppliersSection: {
     paddingHorizontal: 20,
@@ -366,43 +317,39 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     gap: 16,
   },
   emptyState: {
     padding: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
+    color: "#EF4444",
+    textAlign: "center",
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
-
-
-
-

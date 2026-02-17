@@ -1,10 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  getProviderScheduleConfig,
-  putProviderScheduleConfig,
-} from '@/services/providerDashboard';
+import { getProviderScheduleConfig, putProviderScheduleConfig } from "@/services/providerDashboard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const STORAGE_KEY = 'SERVICE_AREA_PROVIDER';
+const STORAGE_KEY = "SERVICE_AREA_PROVIDER";
 
 const RADIUS_MIN_KM = 5;
 const RADIUS_MAX_KM = 25;
@@ -26,20 +23,12 @@ export interface ProviderServiceAreaState {
   distanceChargeRatePerKm: number;
 }
 
-const DEFAULT_ZONES: ServiceZoneItem[] = [
-  { id: '1', name: 'Roma Norte', enabled: true },
-  { id: '2', name: 'Condesa', enabled: true },
-  { id: '3', name: 'Polanco', enabled: true },
-  { id: '4', name: 'Santa Fe', enabled: false },
-  { id: '5', name: 'Coyoacán', enabled: false },
-];
-
 const DEFAULT_STATE: ProviderServiceAreaState = {
-  baseAddress: '',
+  baseAddress: "",
   latitude: null,
   longitude: null,
   radiusKm: 15,
-  zones: DEFAULT_ZONES,
+  zones: [],
   distanceChargeEnabled: true,
   distanceChargeAfterKm: 10,
   distanceChargeRatePerKm: 5,
@@ -51,15 +40,9 @@ function clampRadius(km: number): number {
 
 /** Load service area: merge schedule-config (radius) with AsyncStorage (base location, zones, distance charge). */
 export async function loadProviderServiceArea(): Promise<ProviderServiceAreaState> {
-  const [config, stored] = await Promise.all([
-    getProviderScheduleConfig().catch(() => null),
-    AsyncStorage.getItem(STORAGE_KEY),
-  ]);
+  const [config, stored] = await Promise.all([getProviderScheduleConfig().catch(() => null), AsyncStorage.getItem(STORAGE_KEY)]);
 
-  const radiusFromApi =
-    config?.coverageRadiusKm != null
-      ? clampRadius(config.coverageRadiusKm)
-      : DEFAULT_STATE.radiusKm;
+  const radiusFromApi = config?.coverageRadiusKm != null ? clampRadius(config.coverageRadiusKm) : DEFAULT_STATE.radiusKm;
 
   const merged: ProviderServiceAreaState = {
     ...DEFAULT_STATE,
@@ -74,12 +57,9 @@ export async function loadProviderServiceArea(): Promise<ProviderServiceAreaStat
       if (parsed.longitude !== undefined) merged.longitude = parsed.longitude;
       if (parsed.radiusKm !== undefined) merged.radiusKm = clampRadius(parsed.radiusKm);
       if (Array.isArray(parsed.zones) && parsed.zones.length > 0) merged.zones = parsed.zones;
-      if (parsed.distanceChargeEnabled !== undefined)
-        merged.distanceChargeEnabled = parsed.distanceChargeEnabled;
-      if (parsed.distanceChargeAfterKm !== undefined)
-        merged.distanceChargeAfterKm = parsed.distanceChargeAfterKm;
-      if (parsed.distanceChargeRatePerKm !== undefined)
-        merged.distanceChargeRatePerKm = parsed.distanceChargeRatePerKm;
+      if (parsed.distanceChargeEnabled !== undefined) merged.distanceChargeEnabled = parsed.distanceChargeEnabled;
+      if (parsed.distanceChargeAfterKm !== undefined) merged.distanceChargeAfterKm = parsed.distanceChargeAfterKm;
+      if (parsed.distanceChargeRatePerKm !== undefined) merged.distanceChargeRatePerKm = parsed.distanceChargeRatePerKm;
     } catch {
       // ignore invalid stored json
     }
@@ -88,9 +68,7 @@ export async function loadProviderServiceArea(): Promise<ProviderServiceAreaStat
 }
 
 /** Save service area: persist to AsyncStorage and sync radius to API (schedule-config). Does not overwrite other schedule config. */
-export async function saveProviderServiceArea(
-  state: ProviderServiceAreaState
-): Promise<void> {
+export async function saveProviderServiceArea(state: ProviderServiceAreaState): Promise<void> {
   const toStore: ProviderServiceAreaState = {
     ...state,
     radiusKm: clampRadius(state.radiusKm),
@@ -108,4 +86,5 @@ export async function saveProviderServiceArea(
   }
 }
 
-export { RADIUS_MIN_KM, RADIUS_MAX_KM };
+export { RADIUS_MAX_KM, RADIUS_MIN_KM };
+

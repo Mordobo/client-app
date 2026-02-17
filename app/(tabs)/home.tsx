@@ -130,14 +130,11 @@ export default function HomeScreen() {
 
   const handleCategoryPress = (categoryId: string) => {
     try {
-      // Validate category ID before navigation
       if (!categoryId || typeof categoryId !== "string") {
         console.error("[Home] Invalid category ID:", categoryId);
         return;
       }
-      router.push(`/services/${categoryId}`).catch((error) => {
-        console.error("[Home] Navigation error:", error);
-      });
+      router.push(`/services/${categoryId}`);
     } catch (error) {
       console.error("[Home] Error in handleCategoryPress:", error);
     }
@@ -145,9 +142,7 @@ export default function HomeScreen() {
 
   const handleViewAllCategories = () => {
     try {
-      router.push("/services/categories").catch((error) => {
-        console.error("[Home] Navigation error in handleViewAllCategories:", error);
-      });
+      router.push("/services/categories");
     } catch (error) {
       console.error("[Home] Error in handleViewAllCategories:", error);
     }
@@ -155,9 +150,7 @@ export default function HomeScreen() {
 
   const handleViewAllProviders = () => {
     try {
-      router.push("/services/categories").catch((error) => {
-        console.error("[Home] Navigation error in handleViewAllProviders:", error);
-      });
+      router.push("/services/categories");
     } catch (error) {
       console.error("[Home] Error in handleViewAllProviders:", error);
     }

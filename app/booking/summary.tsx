@@ -1,56 +1,32 @@
-import {
-  fetchSupplierProfile,
-  Supplier,
-  SupplierService,
-  fetchSupplierServices,
-  ApiError,
-} from '@/services/suppliers';
-import { getAddresses, Address } from '@/services/addresses';
-import { createOrder, ApiError as OrderApiError } from '@/services/orders';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { t, getLocale } from '@/i18n';
+import { getLocale, t } from "@/i18n";
+import { Address, getAddresses } from "@/services/addresses";
+import { createOrder, ApiError as OrderApiError } from "@/services/orders";
+import { ApiError, fetchSupplierProfile, fetchSupplierServices, Supplier, SupplierService } from "@/services/suppliers";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Theme colors matching the JSX design
 const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-  white: '#ffffff',
+  bg: "#1a1a2e",
+  bgCard: "#252542",
+  bgInput: "#2d2d4a",
+  primary: "#3b82f6",
+  secondary: "#10b981",
+  accent: "#f59e0b",
+  danger: "#ef4444",
+  purple: "#8b5cf6",
+  pink: "#ec4899",
+  textSecondary: "#9ca3af",
+  border: "#374151",
+  white: "#ffffff",
 };
 
 export default function BookingSummaryScreen() {
   const router = useRouter();
-  const {
-    supplierId,
-    serviceId,
-    scheduledAt,
-    duration,
-    addressId,
-  } = useLocalSearchParams<{
+  const { supplierId, serviceId, scheduledAt, duration, addressId } = useLocalSearchParams<{
     supplierId: string;
     serviceId: string;
     scheduledAt: string;
@@ -64,15 +40,15 @@ export default function BookingSummaryScreen() {
   const [address, setAddress] = useState<Address | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [additionalNotes, setAdditionalNotes] = useState('');
-  const [appliedDiscount, setAppliedDiscount] = useState(20); // Percentage discount (demo: 20% as per JSX)
+  const [additionalNotes, setAdditionalNotes] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
   useEffect(() => {
     if (supplierId && serviceId && scheduledAt && duration && addressId) {
       loadData();
     } else {
-      setError(t('booking.missingBookingData'));
+      setError(t("booking.missingBookingData"));
       setLoading(false);
     }
   }, [supplierId, serviceId, scheduledAt, duration, addressId]);
@@ -83,11 +59,7 @@ export default function BookingSummaryScreen() {
       setError(null);
 
       // Load supplier, service, and address in parallel
-      const [supplierData, servicesData, addressesData] = await Promise.all([
-        fetchSupplierProfile(supplierId),
-        fetchSupplierServices(supplierId),
-        getAddresses(),
-      ]);
+      const [supplierData, servicesData, addressesData] = await Promise.all([fetchSupplierProfile(supplierId), fetchSupplierServices(supplierId), getAddresses()]);
 
       setSupplier(supplierData);
       const selectedService = servicesData.find((s) => s.id === serviceId);
@@ -97,16 +69,16 @@ export default function BookingSummaryScreen() {
       setAddress(selectedAddress || null);
 
       if (!selectedService) {
-        setError(t('booking.serviceNotFound'));
+        setError(t("booking.serviceNotFound"));
       }
       if (!selectedAddress) {
-        setError(t('booking.addressNotFound'));
+        setError(t("booking.addressNotFound"));
       }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError(t('errors.requestFailed'));
+        setError(t("errors.requestFailed"));
       }
     } finally {
       setLoading(false);
@@ -116,12 +88,12 @@ export default function BookingSummaryScreen() {
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
-      const locale = getLocale() === 'es' ? 'es-ES' : 'en-US';
+      const locale = getLocale() === "es" ? "es-ES" : "en-US";
       return date.toLocaleDateString(locale, {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       });
     } catch {
       return dateString;
@@ -131,10 +103,10 @@ export default function BookingSummaryScreen() {
   const formatTime = (dateString: string): string => {
     try {
       const date = new Date(dateString);
-      const locale = getLocale() === 'es' ? 'es-ES' : 'en-US';
+      const locale = getLocale() === "es" ? "es-ES" : "en-US";
       return date.toLocaleTimeString(locale, {
-        hour: '2-digit',
-        minute: '2-digit',
+        hour: "2-digit",
+        minute: "2-digit",
         hour12: true,
       });
     } catch {
@@ -143,14 +115,8 @@ export default function BookingSummaryScreen() {
   };
 
   const formatAddress = (addr: Address): string => {
-    const parts = [
-      addr.name,
-      addr.address_line1,
-      addr.address_line2,
-      addr.city,
-      addr.state,
-    ].filter(Boolean);
-    return parts.join(', ');
+    const parts = [addr.name, addr.address_line1, addr.address_line2, addr.city, addr.state].filter(Boolean);
+    return parts.join(", ");
   };
 
   // Calculate pricing
@@ -171,7 +137,6 @@ export default function BookingSummaryScreen() {
     const serviceFee = 5.0;
     const subtotal = serviceCost + serviceFee;
 
-    // Apply discount if promo code is applied (20% for demo)
     const discountPercent = appliedDiscount > 0 ? appliedDiscount : 0;
     const discount = subtotal * (discountPercent / 100);
     const total = subtotal - discount;
@@ -186,10 +151,9 @@ export default function BookingSummaryScreen() {
 
   const pricing = calculatePricing();
 
-
   const handleProceedToPayment = async () => {
     if (!supplierId || !serviceId || !scheduledAt || !duration || !addressId || !address || !service) {
-      Alert.alert(t('common.error'), t('booking.missingBookingData'));
+      Alert.alert(t("common.error"), t("booking.missingBookingData"));
       return;
     }
 
@@ -208,7 +172,7 @@ export default function BookingSummaryScreen() {
           formattedScheduledAt = date.toISOString();
         }
       } catch (e) {
-        console.warn('[BookingSummary] Could not format scheduled_at:', e);
+        console.warn("[BookingSummary] Could not format scheduled_at:", e);
       }
 
       // Prepare order data
@@ -234,7 +198,7 @@ export default function BookingSummaryScreen() {
         orderData.notes = additionalNotes.trim();
       }
 
-      console.log('[BookingSummary] Creating order with data:', {
+      console.log("[BookingSummary] Creating order with data:", {
         ...orderData,
         // Don't log full address for privacy
         address: addressString ? `${addressString.substring(0, 20)}...` : undefined,
@@ -243,35 +207,35 @@ export default function BookingSummaryScreen() {
       // Create order first with all required fields
       const order = await createOrder(orderData);
 
-      console.log('[BookingSummary] Order created successfully:', order.id);
+      console.log("[BookingSummary] Order created successfully:", order.id);
 
       // Navigate to payment screen with the created order ID
       router.push({
-        pathname: '/booking/payment/[orderId]',
+        pathname: "/booking/payment/[orderId]",
         params: {
           orderId: order.id,
           totalAmount: pricing.total.toString(),
         },
       });
     } catch (err) {
-      console.error('[BookingSummary] Failed to create order:', err);
-      
-      let errorMessage = t('booking.createBookingFailed');
-      
+      console.error("[BookingSummary] Failed to create order:", err);
+
+      let errorMessage = t("booking.createBookingFailed");
+
       if (err instanceof OrderApiError) {
         // Try to extract more detailed error message
-        if (err.originalError && typeof err.originalError === 'object') {
-          const errorData = err.originalError as { 
-            issues?: Array<{ path: string[]; message: string }>; 
+        if (err.originalError && typeof err.originalError === "object") {
+          const errorData = err.originalError as {
+            issues?: Array<{ path: string[]; message: string }>;
             message?: string;
             code?: string;
           };
-          
-          console.error('[BookingSummary] Error details:', errorData);
-          
+
+          console.error("[BookingSummary] Error details:", errorData);
+
           if (errorData.issues && errorData.issues.length > 0) {
             const firstIssue = errorData.issues[0];
-            errorMessage = `${firstIssue.path.join('.')}: ${firstIssue.message}`;
+            errorMessage = `${firstIssue.path.join(".")}: ${firstIssue.message}`;
           } else if (errorData.message) {
             errorMessage = errorData.message;
           } else {
@@ -281,8 +245,8 @@ export default function BookingSummaryScreen() {
           errorMessage = err.message;
         }
       }
-      
-      Alert.alert(t('common.error'), errorMessage);
+
+      Alert.alert(t("common.error"), errorMessage);
     } finally {
       setCreatingOrder(false);
     }
@@ -302,11 +266,9 @@ export default function BookingSummaryScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>
-            {error || t('booking.missingBookingData')}
-          </Text>
+          <Text style={styles.errorText}>{error || t("booking.missingBookingData")}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryText}>{t('common.ok')}</Text>
+            <Text style={styles.retryText}>{t("common.ok")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -321,57 +283,29 @@ export default function BookingSummaryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {t('booking.confirmReservation')}
-        </Text>
+        <Text style={styles.headerTitle}>{t("booking.confirmReservation")}</Text>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={insets.top}
-      >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: 100 + insets.bottom },
-          ]}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-          keyboardShouldPersistTaps="handled"
-        >
+      <KeyboardAvoidingView style={styles.keyboardAvoidingView} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={insets.top}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled">
           {/* Provider Card */}
           <View style={styles.card}>
             <View style={styles.providerRow}>
               <View style={styles.providerAvatar}>
-                {supplier.profile_image ? (
-                  <Image
-                    source={{ uri: supplier.profile_image }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Text style={styles.avatarEmoji}>👨‍🔧</Text>
-                )}
+                {supplier.profile_image ?
+                  <Image source={{ uri: supplier.profile_image }} style={styles.avatarImage} />
+                : <Text style={styles.avatarEmoji}>👨‍🔧</Text>}
               </View>
               <View style={styles.providerInfo}>
                 <View style={styles.providerNameRow}>
-                  <Text style={styles.providerName}>
-                    {supplier.full_name || supplier.business_name}
-                  </Text>
-                  {supplier.verified && (
-                    <Text style={styles.verifiedCheckmark}>✓</Text>
-                  )}
+                  <Text style={styles.providerName}>{supplier.full_name || supplier.business_name}</Text>
+                  {supplier.verified && <Text style={styles.verifiedCheckmark}>✓</Text>}
                 </View>
                 <Text style={styles.ratingText}>
-                  ⭐ {Number(supplier.rating || 0).toFixed(1)} ({supplier.total_reviews || 0}{' '}
-                  {t('supplier.reviewsCount')})
+                  ⭐ {Number(supplier.rating || 0).toFixed(1)} ({supplier.total_reviews || 0} {t("supplier.reviewsCount")})
                 </Text>
               </View>
             </View>
@@ -379,99 +313,72 @@ export default function BookingSummaryScreen() {
 
           {/* Service Details Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {t('booking.serviceDetails')}
-            </Text>
+            <Text style={styles.cardTitle}>{t("booking.serviceDetails")}</Text>
 
             {/* Service */}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('booking.service')}</Text>
-              <Text style={styles.detailValue}>
-                {service.category_name || service.description || 'Service'}
-              </Text>
+              <Text style={styles.detailLabel}>{t("booking.service")}</Text>
+              <Text style={styles.detailValue}>{service.category_name || service.description || "Service"}</Text>
             </View>
 
             {/* Date */}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('booking.date')}</Text>
+              <Text style={styles.detailLabel}>{t("booking.date")}</Text>
               <Text style={styles.detailValue}>{formattedDate}</Text>
             </View>
 
             {/* Time */}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('booking.time')}</Text>
+              <Text style={styles.detailLabel}>{t("booking.time")}</Text>
               <Text style={styles.detailValue}>{formattedTime}</Text>
             </View>
 
             {/* Duration */}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>
-                {t('booking.estimatedDuration')}
-              </Text>
+              <Text style={styles.detailLabel}>{t("booking.estimatedDuration")}</Text>
               <Text style={styles.detailValue}>
-                {duration} {t('booking.hours')}
+                {duration} {t("booking.hours")}
               </Text>
             </View>
 
             {/* Address */}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>{t('booking.address')}</Text>
-              <Text style={[styles.detailValue, styles.addressValue]}>
-                {addressString}
-              </Text>
+              <Text style={styles.detailLabel}>{t("booking.address")}</Text>
+              <Text style={[styles.detailValue, styles.addressValue]}>{addressString}</Text>
             </View>
           </View>
 
           {/* Additional Notes Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>
-              {t('booking.additionalNotes')}
-            </Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder={t('booking.notesPlaceholder')}
-              placeholderTextColor={colors.textSecondary}
-              value={additionalNotes}
-              onChangeText={setAdditionalNotes}
-              multiline
-              numberOfLines={4}
-            />
+            <Text style={styles.cardTitle}>{t("booking.additionalNotes")}</Text>
+            <TextInput style={styles.notesInput} placeholder={t("booking.notesPlaceholder")} placeholderTextColor={colors.textSecondary} value={additionalNotes} onChangeText={setAdditionalNotes} multiline numberOfLines={4} />
           </View>
 
           {/* Payment Summary Card */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{t('booking.paymentSummary')}</Text>
+            <Text style={styles.cardTitle}>{t("booking.paymentSummary")}</Text>
 
             {/* Service Cost */}
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>
-                {service.category_name || 'Service'} ({duration}{' '}
-                {t('booking.hours')} x ${service.price || 60}/hr)
+                {service.category_name || "Service"} ({duration} {t("booking.hours")} x ${service.price || 60}/hr)
               </Text>
-              <Text style={styles.priceValue}>
-                ${pricing.serviceCost.toFixed(2)}
-              </Text>
+              <Text style={styles.priceValue}>${pricing.serviceCost.toFixed(2)}</Text>
             </View>
 
             {/* Service Fee */}
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>
-                {t('booking.travelFee')}
-              </Text>
-              <Text style={styles.priceValue}>
-                ${pricing.serviceFee.toFixed(2)}
-              </Text>
+              <Text style={styles.priceLabel}>{t("booking.travelFee")}</Text>
+              <Text style={styles.priceValue}>${pricing.serviceFee.toFixed(2)}</Text>
             </View>
 
             {/* Discount */}
             {pricing.discount > 0 && (
               <View style={styles.priceRow}>
                 <Text style={[styles.priceLabel, styles.discountLabel]}>
-                  {t('booking.discount')} ({appliedDiscount}% OFF)
+                  {t("booking.discount")} ({appliedDiscount}% OFF)
                 </Text>
-                <Text style={[styles.priceValue, styles.discountValue]}>
-                  -${pricing.discount.toFixed(2)}
-                </Text>
+                <Text style={[styles.priceValue, styles.discountValue]}>-${pricing.discount.toFixed(2)}</Text>
               </View>
             )}
 
@@ -480,37 +387,23 @@ export default function BookingSummaryScreen() {
 
             {/* Total */}
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{t('booking.total')}</Text>
-              <Text style={styles.totalValue}>
-                ${pricing.total.toFixed(2)}
-              </Text>
+              <Text style={styles.totalLabel}>{t("booking.total")}</Text>
+              <Text style={styles.totalValue}>${pricing.total.toFixed(2)}</Text>
             </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
       {/* CTA Button - Fixed at bottom */}
-      <View
-        style={[
-          styles.ctaContainer,
-          { paddingBottom: insets.bottom + 16 },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.ctaButton, creatingOrder && styles.ctaButtonDisabled]}
-          onPress={handleProceedToPayment}
-          disabled={creatingOrder}
-        >
-          {creatingOrder ? (
+      <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 16 }]}>
+        <TouchableOpacity style={[styles.ctaButton, creatingOrder && styles.ctaButtonDisabled]} onPress={handleProceedToPayment} disabled={creatingOrder}>
+          {creatingOrder ?
             <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <>
+          : <>
               <Text style={styles.ctaButtonEmoji}>💳</Text>
-              <Text style={styles.ctaButtonText}>
-                {t('booking.proceedToPayment')}
-              </Text>
+              <Text style={styles.ctaButtonText}>{t("booking.proceedToPayment")}</Text>
             </>
-          )}
+          }
         </TouchableOpacity>
       </View>
     </View>
@@ -524,14 +417,14 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     backgroundColor: colors.bg,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -544,7 +437,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     color: colors.white,
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   keyboardAvoidingView: {
     flex: 1,
@@ -568,21 +461,21 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 16,
   },
   providerRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 14,
-    alignItems: 'center',
+    alignItems: "center",
   },
   providerAvatar: {
     width: 64,
     height: 64,
     borderRadius: 32,
     backgroundColor: colors.bgInput,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   avatarImage: {
     width: 64,
@@ -596,15 +489,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   providerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 4,
   },
   providerName: {
     color: colors.white,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   verifiedCheckmark: {
     color: colors.secondary,
@@ -616,9 +509,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   detailLabel: {
@@ -628,15 +521,15 @@ const styles = StyleSheet.create({
   detailValue: {
     color: colors.white,
     fontSize: 14,
-    textAlign: 'right',
+    textAlign: "right",
     maxWidth: 180,
   },
   addressValue: {
     flex: 1,
-    textAlign: 'right',
+    textAlign: "right",
   },
   notesInput: {
-    width: '100%',
+    width: "100%",
     padding: 14,
     backgroundColor: colors.bgInput,
     borderWidth: 1,
@@ -645,11 +538,11 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 14,
     minHeight: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   priceLabel: {
@@ -673,22 +566,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   totalLabel: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   totalValue: {
     color: colors.secondary,
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   ctaContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -699,13 +592,13 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   ctaButton: {
-    width: '100%',
+    width: "100%",
     padding: 18,
     backgroundColor: colors.primary,
     borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   ctaButtonDisabled: {
@@ -717,12 +610,12 @@ const styles = StyleSheet.create({
   ctaButtonText: {
     color: colors.white,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   errorText: {
     color: colors.danger,
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
   },
   retryButton: {
@@ -734,6 +627,6 @@ const styles = StyleSheet.create({
   retryText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
