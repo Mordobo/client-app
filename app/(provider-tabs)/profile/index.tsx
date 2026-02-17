@@ -1,26 +1,17 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
-import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
+import { getProviderProfile } from "@/services/providers";
 import { getDashboardStats } from "@/services/providerDashboard";
 import { getProviderServices } from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BACKGROUND = "#12121A";
@@ -28,19 +19,26 @@ const CARD_BG = "#1E1B2E";
 const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const GRADIENT_COLORS = ["#6366F1", "#8B5CF6", "#EC4899"] as const;
 
-function getInitials(firstName?: string, lastName?: string): string {
-  const first = (firstName || "").trim().charAt(0).toUpperCase();
-  const last = (lastName || "").trim().charAt(0).toUpperCase();
-  if (first && last) return `${first}${last}`;
-  if (first) return first;
-  if (last) return last;
+/** Get initials from a display name string (e.g. "Business Name" → "BN", "Angelo Rivas" → "AR"). */
+function getInitialsFromDisplayName(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const first = parts[0].charAt(0).toUpperCase();
+    const last = parts[parts.length - 1].charAt(0).toUpperCase();
+    return first && last ? `${first}${last}` : first || last || "?";
+  }
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  if (parts.length === 1 && parts[0].length === 1) {
+    return parts[0].toUpperCase();
+  }
   return "?";
 }
 
 export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
   const { mode } = useMode();
 
   const {
@@ -68,14 +66,27 @@ export default function ProviderProfileScreen() {
   });
   const portfolioPhotoCount = portfolioData?.stats?.totalPhotos ?? 0;
 
+  const { data: providerProfile, refetch: refetchProviderProfile } = useQuery({
+    queryKey: ["providerProfile"],
+    queryFn: getProviderProfile,
+    staleTime: 60_000,
+  });
+  const providerAvatarUrl = providerProfile?.avatarUrl ?? null;
+  const displayName = (providerProfile?.displayName ?? "").trim() || "—";
+  const initials = getInitialsFromDisplayName(displayName);
+  const categoryName = (providerProfile?.categoryName ?? "").trim() || null;
+  const bio = (providerProfile?.bio ?? "").trim() || null;
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchProviderProfile();
+    }, [refetchProviderProfile])
+  );
+
   const onRefresh = useCallback(() => {
     refetchStats();
   }, [refetchStats]);
 
-  const displayName = user
-    ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email
-    : "—";
-  const initials = getInitials(user?.firstName, user?.lastName);
   const isVerified = false; // TODO: from API when provider verification exists
 
   const handleEditProfile = useCallback(() => {
@@ -161,54 +172,22 @@ export default function ProviderProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching && !statsLoading}
-            onRefresh={onRefresh}
-            tintColor="#8B5CF6"
-          />
-        }
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
         {/* Header with gradient and avatar */}
         <View style={styles.headerWrapper}>
-          <LinearGradient
-            colors={[...GRADIENT_COLORS]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientHeader}
-          />
+          <LinearGradient colors={[...GRADIENT_COLORS]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader} />
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={handleEditProfile}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.editButtonText}>
-                {t("providerDashboard.providerProfile.editProfile")} ✏️
-              </Text>
+            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile} activeOpacity={0.8}>
+              <Text style={styles.editButtonText}>{t("providerDashboard.providerProfile.editProfile")} ✏️</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.shareButton}
-              onPress={handleShareProfile}
-              activeOpacity={0.8}
-              accessibilityLabel={t("providerDashboard.providerProfile.shareProfile")}
-              accessibilityRole="button"
-            >
+            <TouchableOpacity style={styles.shareButton} onPress={handleShareProfile} activeOpacity={0.8} accessibilityLabel={t("providerDashboard.providerProfile.shareProfile")} accessibilityRole="button">
               <Ionicons name="share-outline" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
           <View style={styles.avatarRow}>
             <View style={styles.avatarWrapper}>
-              {user?.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                />
+              {providerAvatarUrl ? (
+                <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="cover" />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
@@ -243,24 +222,21 @@ export default function ProviderProfileScreen() {
               <Text style={styles.displayName}>{displayName}</Text>
               {isVerified && (
                 <View style={styles.verifiedPill}>
-                  <Text style={styles.verifiedPillText}>
-                    {t("providerDashboard.providerProfile.verified")}
-                  </Text>
+                  <Text style={styles.verifiedPillText}>{t("providerDashboard.providerProfile.verified")}</Text>
                 </View>
               )}
             </View>
             <Text style={styles.category}>
-              {t("providerDashboard.providerProfile.categoryPlaceholder")}
+              {categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}
             </Text>
           </View>
 
           {/* Stats */}
-          {statsLoading ? (
+          {statsLoading ?
             <View style={styles.statsRow}>
               <ActivityIndicator size="small" color="#8B5CF6" />
             </View>
-          ) : (
-            <View style={styles.statsRow}>
+          : <View style={styles.statsRow}>
               {statValues.map((stat, idx) => (
                 <View key={idx} style={styles.statCard}>
                   <Text style={styles.statValue}>{stat.value}</Text>
@@ -271,48 +247,31 @@ export default function ProviderProfileScreen() {
                 </View>
               ))}
             </View>
-          )}
+          }
 
           {/* Bio */}
           <View style={styles.bioCard}>
-            <Text style={styles.bioLabel}>
-              {t("providerDashboard.providerProfile.aboutMe")}
-            </Text>
+            <Text style={styles.bioLabel}>{t("providerDashboard.providerProfile.aboutMe")}</Text>
             <Text style={styles.bioText}>
-              {t("providerDashboard.providerProfile.bioPlaceholder")}
+              {bio || t("providerDashboard.providerProfile.bioPlaceholder")}
             </Text>
           </View>
 
           {/* Menu options */}
           <View style={styles.menuList}>
             {menuItems.map((item, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.menuItem}
-                onPress={() =>
-                  item.href ? router.push(item.href as never) : undefined
-                }
-                activeOpacity={0.7}
-                disabled={!item.href}
-              >
+              <TouchableOpacity key={idx} style={styles.menuItem} onPress={() => (item.href ? router.push(item.href as never) : undefined)} activeOpacity={0.7} disabled={!item.href}>
                 <View style={styles.menuIconBox}>
                   <Ionicons name={item.icon} size={20} color="#8B5CF6" />
                 </View>
                 <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuLabel}>
-                    {t(item.labelKey)}
-                  </Text>
-                  <Text style={styles.menuDesc}>
-                    {t(item.descKey, item.descParams)}
-                  </Text>
+                  <Text style={styles.menuLabel}>{t(item.labelKey)}</Text>
+                  <Text style={styles.menuDesc}>{t(item.descKey, item.descParams)}</Text>
                 </View>
-                {item.href && (
-                  <Text style={styles.menuArrow}>→</Text>
-                )}
+                {item.href && <Text style={styles.menuArrow}>→</Text>}
               </TouchableOpacity>
             ))}
           </View>
-
         </View>
       </ScrollView>
     </View>

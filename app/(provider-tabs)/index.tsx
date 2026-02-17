@@ -1,6 +1,6 @@
-import { useAuth } from "@/contexts/AuthContext";
 import { useAvailability } from "@/contexts/AvailabilityContext";
 import { t } from "@/i18n";
+import { getProviderProfile } from "@/services/providers";
 import {
     acceptOrder,
     getDashboardRequests,
@@ -12,6 +12,8 @@ import {
     type ProviderDashboardStats,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery } from "@tanstack/react-query";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -91,7 +93,6 @@ function AvailabilityToggle({
 }
 
 export default function ProviderDashboardScreen() {
-  const { user } = useAuth();
   const { isAvailable, setAvailability } = useAvailability();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -101,6 +102,14 @@ export default function ProviderDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  const { data: providerProfile } = useQuery({
+    queryKey: ["providerProfile"],
+    queryFn: getProviderProfile,
+    staleTime: 60_000,
+  });
+  const displayName = (providerProfile?.displayName ?? "").trim() || "—";
+  const providerAvatarUrl = providerProfile?.avatarUrl ?? null;
 
   const loadAll = useCallback(async () => {
     try {
@@ -158,8 +167,6 @@ export default function ProviderDashboardScreen() {
     }
   }, []);
 
-  const displayName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email : "";
-
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 80 }]}>
       <ScrollView
@@ -191,8 +198,17 @@ export default function ProviderDashboardScreen() {
               >
                 <Ionicons name="notifications-outline" size={24} color="rgba(255,255,255,0.9)" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.profileIcon} activeOpacity={0.8}>
-                <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />
+              <TouchableOpacity
+                style={styles.profileIcon}
+                onPress={() => router.push("/(provider-tabs)/profile")}
+                activeOpacity={0.8}
+                accessibilityLabel={t("providerDashboard.providerProfile.screenTitle")}
+              >
+                {providerAvatarUrl ? (
+                  <Image source={{ uri: providerAvatarUrl }} style={styles.profileAvatar} contentFit="cover" />
+                ) : (
+                  <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -414,6 +430,12 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.3)",
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
+  },
+  profileAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   availabilityCard: {
     flexDirection: "row",

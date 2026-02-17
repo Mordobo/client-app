@@ -69,31 +69,6 @@ export interface ProviderActiveJobDetail extends ProviderActiveJob {
   reviewCount?: number;
 }
 
-export const EXAMPLE_ACTIVE_JOB_ID = "example-1";
-
-/** Example active job for demo; matches design (Ana Martínez, Reparación de calentador, Av. Insurgentes). */
-export function getExampleActiveJob(): ProviderActiveJobDetail {
-  return {
-    id: EXAMPLE_ACTIVE_JOB_ID,
-    orderId: "example-order-1",
-    clientId: "example-client-1",
-    clientName: "Ana Martínez",
-    clientPhone: "+525512345678",
-    serviceId: "example-service-1",
-    serviceName: "Reparación de calentador",
-    status: "in_progress",
-    address: "Av. Insurgentes Sur 234",
-    agreedPrice: 450,
-    scheduledAt: null,
-    etaMinutes: 45,
-    serviceDescription:
-      "El calentador no enciende y hace ruidos extraños al intentar prender.",
-    addressLine2: "Col. Roma Norte, CDMX",
-    clientRating: 4.8,
-    reviewCount: 23,
-  };
-}
-
 export const getDashboardStats = async (): Promise<ProviderDashboardStats> => {
   return request<ProviderDashboardStats>(
     "/api/providers/dashboard/stats",
@@ -116,9 +91,7 @@ export const getDashboardRequestCounts = async (): Promise<ProviderRequestCounts
   );
 };
 
-export const getDashboardRequests = async (
-  status?: ProviderRequestStatusFilter,
-): Promise<{ requests: ProviderDashboardRequest[]; count: number }> => {
+export const getDashboardRequests = async (status?: ProviderRequestStatusFilter): Promise<{ requests: ProviderDashboardRequest[]; count: number }> => {
   const qs = status && status !== "new" ? `?status=${encodeURIComponent(status)}` : "";
   return request<{ requests: ProviderDashboardRequest[]; count: number }>(
     `/api/providers/dashboard/requests${qs}`,
@@ -130,9 +103,7 @@ export const getDashboardRequests = async (
   );
 };
 
-export const getDashboardSchedule = async (
-  date?: string,
-): Promise<{ schedule: ProviderDashboardScheduleItem[]; date: string }> => {
+export const getDashboardSchedule = async (date?: string): Promise<{ schedule: ProviderDashboardScheduleItem[]; date: string }> => {
   const qs = date ? `?date=${encodeURIComponent(date)}` : "";
   return request<{ schedule: ProviderDashboardScheduleItem[]; date: string }>(
     `/api/providers/dashboard/schedule${qs}`,
@@ -155,9 +126,7 @@ export const getAvailability = async (): Promise<{ isAvailable: boolean }> => {
   );
 };
 
-export const setAvailability = async (
-  isAvailable: boolean,
-): Promise<{ isAvailable: boolean }> => {
+export const setAvailability = async (isAvailable: boolean): Promise<{ isAvailable: boolean }> => {
   return request<{ isAvailable: boolean }>(
     "/api/providers/availability",
     {
@@ -172,7 +141,7 @@ export const setAvailability = async (
 // ========== PROVIDER SCHEDULE CONFIG (Availability screen) ==========
 export interface TimeSlot {
   start: string; // "08:00"
-  end: string;   // "18:00"
+  end: string; // "18:00"
 }
 
 export type WeeklyScheduleConfig = Record<string, TimeSlot[]>;
@@ -203,13 +172,7 @@ export const getProviderScheduleConfig = async (): Promise<ProviderScheduleConfi
   );
 };
 
-export const putProviderScheduleConfig = async (payload: {
-  scheduleConfig: WeeklyScheduleConfig;
-  bufferMinutes?: number;
-  maxJobsPerDay?: number;
-  coverageRadiusKm?: number;
-  blockedDates?: BlockedDateItem[];
-}): Promise<ProviderScheduleConfigResponse> => {
+export const putProviderScheduleConfig = async (payload: { scheduleConfig: WeeklyScheduleConfig; bufferMinutes?: number; maxJobsPerDay?: number; coverageRadiusKm?: number; blockedDates?: BlockedDateItem[] }): Promise<ProviderScheduleConfigResponse> => {
   return request<ProviderScheduleConfigResponse>(
     "/api/providers/schedule-config",
     {
@@ -314,9 +277,7 @@ export interface ProviderEarningsTransactionsResponse {
   hasMore: boolean;
 }
 
-export const getEarningsSummary = async (
-  params?: { period?: EarningsPeriod; from?: string; to?: string },
-): Promise<ProviderEarningsSummary> => {
+export const getEarningsSummary = async (params?: { period?: EarningsPeriod; from?: string; to?: string }): Promise<ProviderEarningsSummary> => {
   const q = new URLSearchParams();
   if (params?.period) q.set("period", params.period);
   if (params?.from) q.set("from", params.from);
@@ -332,9 +293,7 @@ export const getEarningsSummary = async (
   );
 };
 
-export const getEarningsChart = async (
-  period: "week" | "month" = "week",
-): Promise<{ data: ProviderEarningsChartPoint[] }> => {
+export const getEarningsChart = async (period: "week" | "month" = "week"): Promise<{ data: ProviderEarningsChartPoint[] }> => {
   return request<{ data: ProviderEarningsChartPoint[] }>(
     `/api/providers/dashboard/earnings/chart?period=${period}`,
     {
@@ -345,16 +304,7 @@ export const getEarningsChart = async (
   );
 };
 
-export const getEarningsTransactions = async (
-  params?: {
-    period?: EarningsPeriod;
-    from?: string;
-    to?: string;
-    status?: "all" | EarningsTransactionStatus;
-    page?: number;
-    limit?: number;
-  },
-): Promise<ProviderEarningsTransactionsResponse> => {
+export const getEarningsTransactions = async (params?: { period?: EarningsPeriod; from?: string; to?: string; status?: "all" | EarningsTransactionStatus; page?: number; limit?: number }): Promise<ProviderEarningsTransactionsResponse> => {
   const q = new URLSearchParams();
   if (params?.period) q.set("period", params.period);
   if (params?.from) q.set("from", params.from);
@@ -373,9 +323,7 @@ export const getEarningsTransactions = async (
   );
 };
 
-export const exportEarnings = async (
-  params?: { format?: "csv"; period?: EarningsPeriod; from?: string; to?: string },
-): Promise<{ csv: string; filename: string }> => {
+export const exportEarnings = async (params?: { format?: "csv"; period?: EarningsPeriod; from?: string; to?: string }): Promise<{ csv: string; filename: string }> => {
   const q = new URLSearchParams();
   q.set("format", params?.format ?? "csv");
   if (params?.period) q.set("period", params.period);

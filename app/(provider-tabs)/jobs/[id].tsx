@@ -1,24 +1,10 @@
 import { t } from "@/i18n";
-import {
-    EXAMPLE_ACTIVE_JOB_ID,
-    getExampleActiveJob,
-    getProviderActiveJobs,
-    type ProviderActiveJobDetail,
-} from "@/services/providerDashboard";
+import { getProviderActiveJobs, type ProviderActiveJobDetail } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CARD_BG = "#1E1B2E";
@@ -51,12 +37,7 @@ export default function ProviderJobDetailScreen() {
 
   const job = useMemo((): ProviderActiveJobDetail | null => {
     if (!id) return null;
-    const fromList = jobs.find((j) => j.id === id) as
-      | ProviderActiveJobDetail
-      | undefined;
-    if (fromList) return fromList;
-    if (id === EXAMPLE_ACTIVE_JOB_ID) return getExampleActiveJob();
-    return null;
+    return (jobs.find((j) => j.id === id) as ProviderActiveJobDetail | undefined) ?? null;
   }, [id, jobs]);
 
   const goBack = useCallback(() => router.back(), [router]);
@@ -68,27 +49,21 @@ export default function ProviderJobDetailScreen() {
 
   const handleCall = useCallback(() => {
     if (!job?.clientPhone) return;
-    const url = job.clientPhone.startsWith("+")
-      ? `tel:${job.clientPhone}`
-      : `tel:${job.clientPhone}`;
+    const url = job.clientPhone.startsWith("+") ? `tel:${job.clientPhone}` : `tel:${job.clientPhone}`;
     Linking.openURL(url);
   }, [job]);
 
   const handleMarkAsCompleted = useCallback(() => {
-    Alert.alert(
-      t("providerDashboard.confirmCompleteTitle"),
-      t("providerDashboard.confirmCompleteMessage"),
-      [
-        { text: t("providerDashboard.cancel"), style: "cancel" },
-        {
-          text: t("providerDashboard.confirm"),
-          onPress: () => {
-            queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
-            goBack();
-          },
+    Alert.alert(t("providerDashboard.confirmCompleteTitle"), t("providerDashboard.confirmCompleteMessage"), [
+      { text: t("providerDashboard.cancel"), style: "cancel" },
+      {
+        text: t("providerDashboard.confirm"),
+        onPress: () => {
+          queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
+          goBack();
         },
-      ]
-    );
+      },
+    ]);
   }, [goBack, queryClient]);
 
   if (isLoading && jobs.length === 0) {
@@ -111,12 +86,12 @@ export default function ProviderJobDetailScreen() {
   }
 
   const ratingLabel =
-    job.clientRating != null && job.reviewCount != null
-      ? t("providerDashboard.clientRatingReviews", {
-          rating: String(job.clientRating),
-          count: job.reviewCount,
-        })
-      : null;
+    job.clientRating != null && job.reviewCount != null ?
+      t("providerDashboard.clientRatingReviews", {
+        rating: String(job.clientRating),
+        count: job.reviewCount,
+      })
+    : null;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
@@ -127,11 +102,7 @@ export default function ProviderJobDetailScreen() {
         <Text style={styles.title}>{t("providerDashboard.jobDetailTitle")}</Text>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Client card */}
         <View style={[styles.card, styles.section]}>
           <View style={styles.clientRow}>
@@ -140,28 +111,18 @@ export default function ProviderJobDetailScreen() {
             </View>
             <View style={styles.clientInfo}>
               <Text style={styles.clientName}>{job.clientName}</Text>
-              {ratingLabel ? (
+              {ratingLabel ?
                 <View style={styles.ratingRow}>
                   <Ionicons name="star" size={14} color={YELLOW_STAR} />
                   <Text style={styles.clientMeta}>{ratingLabel}</Text>
                 </View>
-              ) : (
-                <Text style={styles.clientMeta}>—</Text>
-              )}
+              : <Text style={styles.clientMeta}>—</Text>}
             </View>
             <View style={styles.headerActions}>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={handleChat}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.iconBtn} onPress={handleChat} activeOpacity={0.7}>
                 <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.iconBtn}
-                onPress={handleCall}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.iconBtn} onPress={handleCall} activeOpacity={0.7}>
                 <Ionicons name="call-outline" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -172,9 +133,9 @@ export default function ProviderJobDetailScreen() {
         <View style={[styles.card, styles.section]}>
           <Text style={styles.sectionLabel}>{t("providerDashboard.serviceLabel")}</Text>
           <Text style={styles.sectionTitle}>{job.serviceName}</Text>
-          {job.serviceDescription ? (
+          {job.serviceDescription ?
             <Text style={styles.sectionSub}>{job.serviceDescription}</Text>
-          ) : null}
+          : null}
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>{t("providerDashboard.agreedPriceLabel")}</Text>
             <Text style={styles.price}>{formatCurrency(job.agreedPrice)}</Text>
@@ -188,17 +149,13 @@ export default function ProviderJobDetailScreen() {
             <Ionicons name="map-outline" size={48} color="rgba(255,255,255,0.3)" />
           </View>
           <Text style={styles.address}>{job.address}</Text>
-          {job.addressLine2 ? (
+          {job.addressLine2 ?
             <Text style={styles.addressSub}>{job.addressLine2}</Text>
-          ) : null}
+          : null}
         </View>
 
         {/* Mark as completed */}
-        <TouchableOpacity
-          style={styles.completeBtn}
-          onPress={handleMarkAsCompleted}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.completeBtn} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
           <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
           <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
         </TouchableOpacity>

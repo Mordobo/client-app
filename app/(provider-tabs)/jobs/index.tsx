@@ -1,26 +1,11 @@
 import { t } from "@/i18n";
-import {
-    getExampleActiveJob,
-    getProviderActiveJobs,
-    EXAMPLE_ACTIVE_JOB_ID,
-    type ProviderActiveJob,
-    type ProviderActiveJobStatus,
-} from "@/services/providerDashboard";
+import { getProviderActiveJobs, type ProviderActiveJob, type ProviderActiveJobStatus } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-    ActivityIndicator,
-    FlatList,
-    Linking,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_BG = "#12121A";
@@ -50,10 +35,7 @@ function sortByPriority(jobs: ProviderActiveJob[]): ProviderActiveJob[] {
   return [...jobs].sort((a, b) => order[a.status] - order[b.status]);
 }
 
-function getFilteredJobs(
-  jobs: ProviderActiveJob[],
-  filter: FilterType
-): ProviderActiveJob[] {
+function getFilteredJobs(jobs: ProviderActiveJob[], filter: FilterType): ProviderActiveJob[] {
   const sorted = sortByPriority(jobs);
   if (filter === "in_progress") {
     return sorted.filter((j) => j.status === "in_progress" || j.status === "on_way");
@@ -63,15 +45,9 @@ function getFilteredJobs(
 
 function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
   const isInProgress = status === "in_progress";
-  const label = isInProgress
-    ? t("providerDashboard.statusInProgress")
-    : t("providerDashboard.statusOnTheWay");
-  const style = isInProgress
-    ? { backgroundColor: STATUS_IN_PROGRESS_BG }
-    : { backgroundColor: STATUS_ON_WAY_BG };
-  const textStyle = isInProgress
-    ? { color: STATUS_IN_PROGRESS_TEXT }
-    : { color: STATUS_ON_WAY_TEXT };
+  const label = isInProgress ? t("providerDashboard.statusInProgress") : t("providerDashboard.statusOnTheWay");
+  const style = isInProgress ? { backgroundColor: STATUS_IN_PROGRESS_BG } : { backgroundColor: STATUS_ON_WAY_BG };
+  const textStyle = isInProgress ? { color: STATUS_IN_PROGRESS_TEXT } : { color: STATUS_ON_WAY_TEXT };
   return (
     <View style={[styles.badge, style]}>
       <Text style={[styles.badgeText, textStyle]}>{label}</Text>
@@ -79,32 +55,23 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
   );
 }
 
-function JobCard({
-  job,
-  onChat,
-  onCall,
-  onDetails,
-}: {
-  job: ProviderActiveJob;
-  onChat: (job: ProviderActiveJob) => void;
-  onCall: (job: ProviderActiveJob) => void;
-  onDetails: (job: ProviderActiveJob) => void;
-}) {
+function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void }) {
   const isScheduled = job.status === "scheduled";
-  const timeLabel = isScheduled
-    ? job.scheduledAt
-      ? new Date(job.scheduledAt).toLocaleTimeString(undefined, {
+  const timeLabel =
+    isScheduled ?
+      job.scheduledAt ?
+        new Date(job.scheduledAt).toLocaleTimeString(undefined, {
           hour: "numeric",
           minute: "2-digit",
         })
       : "—"
-    : job.etaMinutes != null
-      ? job.etaMinutes <= 60
-        ? t("providerDashboard.etaArrival", { time: `${job.etaMinutes} min` })
-        : t("providerDashboard.remainingTime", {
-            time: `${Math.floor(job.etaMinutes / 60)}h ${job.etaMinutes % 60}min`,
-          })
-      : "—";
+    : job.etaMinutes != null ?
+      job.etaMinutes <= 60 ?
+        t("providerDashboard.etaArrival", { time: `${job.etaMinutes} min` })
+      : t("providerDashboard.remainingTime", {
+          time: `${Math.floor(job.etaMinutes / 60)}h ${job.etaMinutes % 60}min`,
+        })
+    : "—";
 
   return (
     <View style={styles.card}>
@@ -133,31 +100,17 @@ function JobCard({
         </View>
       </View>
       <View style={styles.cardFooter}>
-        <TouchableOpacity
-          style={styles.footerBtn}
-          onPress={() => onChat(job)}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.footerBtn} onPress={() => onChat(job)} activeOpacity={0.7}>
           <Ionicons name="chatbubble-outline" size={18} color="rgba(255,255,255,0.6)" />
           <Text style={styles.footerBtnText}>{t("providerDashboard.chat")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.footerBtn, styles.footerBtnBorder]}
-          onPress={() => onCall(job)}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={[styles.footerBtn, styles.footerBtnBorder]} onPress={() => onCall(job)} activeOpacity={0.7}>
           <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.6)" />
           <Text style={styles.footerBtnText}>{t("providerDashboard.call")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.footerBtn, styles.footerBtnBorder]}
-          onPress={() => onDetails(job)}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={[styles.footerBtn, styles.footerBtnBorder]} onPress={() => onDetails(job)} activeOpacity={0.7}>
           <Ionicons name="document-text-outline" size={18} color="#A78BFA" />
-          <Text style={[styles.footerBtnText, styles.footerBtnTextAccent]}>
-            {t("providerDashboard.viewDetails")}
-          </Text>
+          <Text style={[styles.footerBtnText, styles.footerBtnTextAccent]}>{t("providerDashboard.viewDetails")}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -182,23 +135,11 @@ export default function ProviderJobsScreen() {
     staleTime: 30 * 1000,
   });
 
-  const jobs = useMemo(() => {
-    const fromApi = rawJobs.filter((j) => j.id !== EXAMPLE_ACTIVE_JOB_ID);
-    return [getExampleActiveJob(), ...fromApi];
-  }, [rawJobs]);
+  const jobs = useMemo(() => rawJobs, [rawJobs]);
 
-  const filteredJobs = useMemo(
-    () => getFilteredJobs(jobs, filter),
-    [jobs, filter]
-  );
-  const inProgressCount = useMemo(
-    () => jobs.filter((j) => j.status === "in_progress" || j.status === "on_way").length,
-    [jobs]
-  );
-  const scheduledCount = useMemo(
-    () => jobs.filter((j) => j.status === "scheduled").length,
-    [jobs]
-  );
+  const filteredJobs = useMemo(() => getFilteredJobs(jobs, filter), [jobs, filter]);
+  const inProgressCount = useMemo(() => jobs.filter((j) => j.status === "in_progress" || j.status === "on_way").length, [jobs]);
+  const scheduledCount = useMemo(() => jobs.filter((j) => j.status === "scheduled").length, [jobs]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -207,8 +148,11 @@ export default function ProviderJobsScreen() {
   }, [refetch]);
 
   const handleCall = React.useCallback((job: ProviderActiveJob) => {
-    const url = job.clientPhone
-      ? (job.clientPhone.startsWith("+") ? `tel:${job.clientPhone}` : `tel:${job.clientPhone}`)
+    const url =
+      job.clientPhone ?
+        job.clientPhone.startsWith("+") ?
+          `tel:${job.clientPhone}`
+        : `tel:${job.clientPhone}`
       : null;
     if (url) Linking.openURL(url);
   }, []);
@@ -217,14 +161,14 @@ export default function ProviderJobsScreen() {
     (job: ProviderActiveJob) => {
       router.push(`/booking/chat/${job.orderId}`);
     },
-    [router]
+    [router],
   );
 
   const handleDetails = React.useCallback(
     (job: ProviderActiveJob) => {
       router.push(`/(provider-tabs)/jobs/${job.id}`);
     },
-    [router]
+    [router],
   );
 
   return (
@@ -234,95 +178,45 @@ export default function ProviderJobsScreen() {
       </View>
 
       <View style={styles.filters}>
-        {filter === "in_progress" ? (
-          <TouchableOpacity
-            onPress={() => setFilter("in_progress")}
-            activeOpacity={0.8}
-            style={styles.filterBtnWrapper}
-          >
-            <LinearGradient
-              colors={FILTER_ACTIVE_GRADIENT as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.filterBtn}
-            >
+        {filter === "in_progress" ?
+          <TouchableOpacity onPress={() => setFilter("in_progress")} activeOpacity={0.8} style={styles.filterBtnWrapper}>
+            <LinearGradient colors={FILTER_ACTIVE_GRADIENT as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.filterBtn}>
               <Text style={[styles.filterBtnText, styles.filterBtnTextActive]}>
                 {t("providerDashboard.filterInProgress")} ({inProgressCount})
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setFilter("in_progress")}
-            activeOpacity={0.8}
-          >
+        : <TouchableOpacity style={styles.filterBtn} onPress={() => setFilter("in_progress")} activeOpacity={0.8}>
             <Text style={styles.filterBtnText}>
               {t("providerDashboard.filterInProgress")} ({inProgressCount})
             </Text>
           </TouchableOpacity>
-        )}
-        {filter === "scheduled" ? (
-          <TouchableOpacity
-            onPress={() => setFilter("scheduled")}
-            activeOpacity={0.8}
-            style={styles.filterBtnWrapper}
-          >
-            <LinearGradient
-              colors={FILTER_ACTIVE_GRADIENT as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.filterBtn}
-            >
+        }
+        {filter === "scheduled" ?
+          <TouchableOpacity onPress={() => setFilter("scheduled")} activeOpacity={0.8} style={styles.filterBtnWrapper}>
+            <LinearGradient colors={FILTER_ACTIVE_GRADIENT as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.filterBtn}>
               <Text style={[styles.filterBtnText, styles.filterBtnTextActive]}>
                 {t("providerDashboard.filterScheduled")} ({scheduledCount})
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setFilter("scheduled")}
-            activeOpacity={0.8}
-          >
+        : <TouchableOpacity style={styles.filterBtn} onPress={() => setFilter("scheduled")} activeOpacity={0.8}>
             <Text style={styles.filterBtnText}>
               {t("providerDashboard.filterScheduled")} ({scheduledCount})
             </Text>
           </TouchableOpacity>
-        )}
+        }
       </View>
 
-      {isLoading ? (
+      {isLoading ?
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#8B5CF6" />
         </View>
-      ) : filteredJobs.length === 0 ? (
+      : filteredJobs.length === 0 ?
         <View style={styles.centered}>
           <Text style={styles.emptyText}>{t("providerDashboard.emptyActiveJobs")}</Text>
         </View>
-      ) : (
-        <FlatList
-          data={filteredJobs}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <JobCard
-              job={item}
-              onChat={handleChat}
-              onCall={handleCall}
-              onDetails={handleDetails}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing || isRefetching}
-              onRefresh={onRefresh}
-              tintColor="#8B5CF6"
-            />
-          }
-        />
-      )}
+      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} />} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor="#8B5CF6" />} />}
     </View>
   );
 }
