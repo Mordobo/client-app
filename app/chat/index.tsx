@@ -26,7 +26,7 @@ export default function ConversationsListScreen() {
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchConversations();
+      const data = await fetchConversations('client');
       // Sort by most recent (last_message_at descending)
       // Handle null last_message_at by putting them at the end
       const sortedData = [...data].sort((a, b) => {

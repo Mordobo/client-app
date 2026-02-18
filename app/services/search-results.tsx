@@ -1,4 +1,5 @@
 import { ProviderCard } from '@/components/ProviderCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import { getAddresses } from '@/services/addresses';
@@ -38,6 +39,7 @@ const FILTERS: FilterOption[] = [
 
 export default function SearchResultsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ 
@@ -137,14 +139,14 @@ export default function SearchResultsScreen() {
         offset: currentOffset,
       });
 
-      // Safely handle response - ensure suppliers is always an array
       const suppliersList = Array.isArray(response?.suppliers) ? response.suppliers : [];
+      const filtered = user?.id ? suppliersList.filter((s) => s.id !== user.id) : suppliersList;
       const total = typeof response?.total === 'number' ? response.total : suppliersList.length;
 
       if (reset) {
-        setSuppliers(suppliersList);
+        setSuppliers(filtered);
       } else {
-        setSuppliers((prev) => [...prev, ...suppliersList]);
+        setSuppliers((prev) => [...prev, ...filtered]);
       }
 
       setTotal(total);

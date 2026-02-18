@@ -1,4 +1,5 @@
 import { FavoriteButton } from '@/components/FavoriteButton';
+import { useAuth } from '@/contexts/AuthContext';
 import { getOrCreateConversation } from '@/services/conversations';
 import {
   ApiError,
@@ -48,8 +49,10 @@ const PROFILE_IMAGE_OFFSET = -40; // Negative margin to overlap header
 
 export default function ProviderDetailScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { supplierId } = useLocalSearchParams<{ supplierId: string }>();
   const insets = useSafeAreaInsets();
+  const isSelfProvider = Boolean(supplierId && user?.id && supplierId === user.id);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [services, setServices] = useState<SupplierService[]>([]);
@@ -104,6 +107,10 @@ export default function ProviderDetailScreen() {
 
   const handleStartChat = async () => {
     if (!supplierId || startingChat) return;
+    if (isSelfProvider) {
+      Alert.alert(t('common.error'), t('supplier.cannotChatWithSelf'));
+      return;
+    }
 
     setStartingChat(true);
     try {
@@ -111,7 +118,9 @@ export default function ProviderDetailScreen() {
       router.push(`/chat/${conversation.id}`);
     } catch (err) {
       console.error('Error starting chat:', err);
-      Alert.alert(t('common.error'), 'Failed to start conversation. Please try again.');
+      const status = err && typeof err === 'object' && 'status' in err ? (err as { status: number }).status : 0;
+      const message = status === 403 ? t('supplier.cannotChatWithSelf') : t('errors.requestFailedStatus', { status: status || 0 });
+      Alert.alert(t('common.error'), message);
     } finally {
       setStartingChat(false);
     }
@@ -374,17 +383,19 @@ export default function ProviderDetailScreen() {
 
       {/* Fixed CTA Bottom Bar */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
-        <TouchableOpacity
-          style={styles.messageButton}
-          onPress={handleStartChat}
-          disabled={startingChat}
-        >
-          {startingChat ? (
-            <ActivityIndicator size="small" color={colors.white} />
-          ) : (
-            <Ionicons name="chatbubble-outline" size={24} color={colors.white} />
-          )}
-        </TouchableOpacity>
+        {!isSelfProvider && (
+          <TouchableOpacity
+            style={styles.messageButton}
+            onPress={handleStartChat}
+            disabled={startingChat}
+          >
+            {startingChat ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Ionicons name="chatbubble-outline" size={24} color={colors.white} />
+            )}
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[
             styles.bookButton,

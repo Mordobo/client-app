@@ -94,6 +94,20 @@ export default function ChatScreen() {
     if (!conversationId || conversationId === "demo") return;
     try {
       const conv = await fetchConversation(conversationId);
+      // Enforce role separation: do not allow viewing as provider a conversation where user is client, and vice versa
+      const userId = user?.id;
+      if (userId) {
+        const userIsSupplierInConv = conv.supplier_id === userId;
+        const userIsClientInConv = conv.client_id === userId;
+        if (isProvider && !userIsSupplierInConv) {
+          router.replace("/(provider-tabs)/messages");
+          return;
+        }
+        if (!isProvider && !userIsClientInConv) {
+          router.replace("/(tabs)/chat");
+          return;
+        }
+      }
       setConversation(conv);
       if (conv.order_id) {
         try {
@@ -111,7 +125,7 @@ export default function ChatScreen() {
     } catch (err) {
       setError(t("chat.failedToLoad"));
     }
-  }, [conversationId]);
+  }, [conversationId, user?.id, isProvider, router]);
 
   useEffect(() => {
     if (conversationId === "demo") {
