@@ -1,10 +1,10 @@
 import { t } from "@/i18n";
-import { Conversation, fetchConversations } from "@/services/conversations";
+import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ConversationsListScreen() {
@@ -14,12 +14,13 @@ export default function ConversationsListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [optionsConversation, setOptionsConversation] = useState<Conversation | null>(null);
 
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
-      const data = await fetchConversations();
+      const data = await fetchConversations('client');
       // Sort by most recent (last_message_at descending)
       // Handle null last_message_at by putting them at the end
       const sortedData = [...data].sort((a, b) => {
@@ -82,7 +83,6 @@ export default function ConversationsListScreen() {
 
   const handleConversationPress = (conversationId: string) => {
     try {
-      // Validate conversation ID before navigation
       if (!conversationId || typeof conversationId !== "string") {
         console.error("[Chat] Invalid conversation ID:", conversationId);
         return;
@@ -94,6 +94,62 @@ export default function ConversationsListScreen() {
       console.error("[Chat] Error in handleConversationPress:", error);
     }
   };
+
+  const showDeleteConfirm = useCallback((item: Conversation) => {
+    Alert.alert(
+      t("chat.deleteChat"),
+      t("chat.deleteConfirm"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("chat.deleteChat"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteConversation(item.id);
+              setConversations((prev) => prev.filter((c) => c.id !== item.id));
+            } catch (err) {
+              console.error("[Chat] Error deleting conversation:", err);
+              const message = err instanceof Error ? err.message : t("chat.deleteFailed");
+              Alert.alert(t("chat.deleteChat"), message);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const handleLongPressConversation = useCallback((item: Conversation) => {
+    showDeleteConfirm(item);
+  }, [showDeleteConfirm]);
+
+  const handleMenuPress = useCallback((item: Conversation) => {
+    setOptionsConversation(item);
+  }, []);
+
+  const closeOptionsMenu = useCallback(() => {
+    setOptionsConversation(null);
+  }, []);
+
+  const handleOptionDeleteChat = useCallback(async () => {
+    const item = optionsConversation;
+    closeOptionsMenu();
+    if (!item) return;
+    if (Platform.OS === "web") {
+      const ok = window.confirm(t("chat.deleteConfirm"));
+      if (!ok) return;
+      try {
+        await deleteConversation(item.id);
+        setConversations((prev) => prev.filter((c) => c.id !== item.id));
+      } catch (err) {
+        console.error("[Chat] Error deleting conversation:", err);
+        const message = err instanceof Error ? err.message : t("chat.deleteFailed");
+        window.alert(message);
+      }
+      return;
+    }
+    showDeleteConfirm(item);
+  }, [optionsConversation, closeOptionsMenu, showDeleteConfirm]);
 
   const formatTime = (dateString: string | null) => {
     // Handle null or invalid dates
@@ -148,34 +204,38 @@ export default function ConversationsListScreen() {
       const showBorder = index < 4;
 
       return (
-        <TouchableOpacity style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder, { backgroundColor: "#1a1a2e", borderBottomColor: "#374151" }]} onPress={() => handleConversationPress(item.id)} activeOpacity={0.7}>
-          <View style={styles.avatarContainer}>
-            {item.other_user_image ?
-              <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-            : <View style={[styles.avatarPlaceholder, { backgroundColor: "#252542" }]}>
-                <Text style={styles.avatarEmoji}>👨‍🔧</Text>
-              </View>
-            }
-            {isOnline && <View style={styles.onlineIndicator} />}
-          </View>
-
-          <View style={styles.conversationContent}>
-            <View style={styles.conversationHeader}>
-              <Text style={[styles.userName, { color: "#FFFFFF" }]}>{item.other_user_name}</Text>
-              <Text style={[styles.timeText, { color: item.unread_count > 0 ? "#3b82f6" : "#9ca3af" }]}>{formatTime(item.last_message_at)}</Text>
-            </View>
-            <View style={styles.lastMessageRow}>
-              <Text style={[styles.lastMessage, { color: item.unread_count > 0 ? "#FFFFFF" : "#9ca3af" }, item.unread_count > 0 && { fontWeight: "500" }]} numberOfLines={1}>
-                {item.last_message || t("chat.noMessages")}
-              </Text>
-              {item.unread_count > 0 && (
-                <View style={[styles.unreadBadge, item.unread_count < 10 && styles.unreadBadgeCircular]}>
-                  <Text style={styles.unreadText}>{item.unread_count > 9 ? "9+" : item.unread_count}</Text>
+        <View style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder, { backgroundColor: "#1a1a2e", borderBottomColor: "#374151" }]}>
+          <TouchableOpacity style={styles.conversationRowTouchable} onPress={() => handleConversationPress(item.id)} onLongPress={() => handleLongPressConversation(item)} activeOpacity={0.7}>
+            <View style={styles.avatarContainer}>
+              {item.other_user_image ?
+                <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
+              : <View style={[styles.avatarPlaceholder, { backgroundColor: "#252542" }]}>
+                  <Text style={styles.avatarEmoji}>👨‍🔧</Text>
                 </View>
-              )}
+              }
+              {isOnline && <View style={styles.onlineIndicator} />}
             </View>
-          </View>
-        </TouchableOpacity>
+            <View style={styles.conversationContent}>
+              <View style={styles.conversationHeader}>
+                <Text style={[styles.userName, { color: "#FFFFFF" }]}>{item.other_user_name}</Text>
+                <Text style={[styles.timeText, { color: item.unread_count > 0 ? "#3b82f6" : "#9ca3af" }]}>{formatTime(item.last_message_at)}</Text>
+              </View>
+              <View style={styles.lastMessageRow}>
+                <Text style={[styles.lastMessage, { color: item.unread_count > 0 ? "#FFFFFF" : "#9ca3af" }, item.unread_count > 0 && { fontWeight: "500" }]} numberOfLines={1}>
+                  {item.last_message || t("chat.noMessages")}
+                </Text>
+                {item.unread_count > 0 && (
+                  <View style={[styles.unreadBadge, item.unread_count < 10 && styles.unreadBadgeCircular]}>
+                    <Text style={styles.unreadText}>{item.unread_count > 9 ? "9+" : item.unread_count}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(item)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityLabel={t("chat.options")}>
+            <Ionicons name="ellipsis-vertical" size={22} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
       );
     } catch (error) {
       console.error("[Chat] Error rendering conversation:", error);
@@ -246,6 +306,21 @@ export default function ConversationsListScreen() {
           />
         </View>
       }
+
+      <Modal visible={optionsConversation !== null} transparent animationType="fade" onRequestClose={closeOptionsMenu}>
+        <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={closeOptionsMenu}>
+          <View style={styles.optionsBox} onStartShouldSetResponder={() => true}>
+            <Text style={styles.optionsTitle}>{t("chat.options")}</Text>
+            <TouchableOpacity style={styles.optionsButton} onPress={handleOptionDeleteChat}>
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Text style={styles.optionsButtonTextDestructive}>{t("chat.deleteChat")}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionsButton} onPress={closeOptionsMenu}>
+              <Text style={styles.optionsButtonText}>{t("common.cancel")}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -299,6 +374,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#374151", // Hardcode dark border
     backgroundColor: "#1a1a2e", // Hardcode dark background for each item
+  },
+  conversationRowTouchable: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  menuButton: {
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
   conversationItemNoBorder: {
     borderBottomWidth: 0,
@@ -427,5 +513,41 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  optionsOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  optionsBox: {
+    backgroundColor: "#252542",
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 220,
+  },
+  optionsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  optionsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  optionsButtonText: {
+    fontSize: 16,
+    color: "#9ca3af",
+  },
+  optionsButtonTextDestructive: {
+    fontSize: 16,
+    color: "#EF4444",
+    fontWeight: "500",
   },
 });

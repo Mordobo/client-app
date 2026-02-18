@@ -1,4 +1,5 @@
 import { Conversation, fetchConversations } from '@/services/conversations';
+import { useMode } from '@/contexts/ModeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function ChatHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { mode } = useMode();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,7 +27,7 @@ export default function ChatHistoryScreen() {
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchConversations();
+      const data = await fetchConversations(mode);
       setConversations(data);
     } catch (err) {
       setError('Failed to load chat history');
@@ -34,7 +36,7 @@ export default function ChatHistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     loadConversations();

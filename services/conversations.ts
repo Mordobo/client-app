@@ -54,14 +54,17 @@ export interface Message {
 }
 
 
-// GET /conversations - Fetch all conversations
-export const fetchConversations = async (): Promise<Conversation[]> => {
+/** Role for inbox: 'client' = conversations where user is client; 'provider' = where user is supplier */
+export type ConversationRole = 'client' | 'provider';
+
+// GET /conversations - Fetch conversations (optional role to separate client vs provider inbox)
+export const fetchConversations = async (role?: ConversationRole): Promise<Conversation[]> => {
   try {
+    const asParam = role === 'provider' ? 'supplier' : 'client';
+    // Role is sent only in the URL so we avoid custom headers and CORS preflight issues in browser
     const data = await request<{ conversations: Conversation[] }>(
-      '/conversations',
-      {
-        method: 'GET',
-      },
+      `/conversations?as=${asParam}`,
+      { method: 'GET' },
       t('errors.requestFailedStatus', { status: 0 })
     );
     if (!data.conversations) {
@@ -81,6 +84,41 @@ export const fetchConversations = async (): Promise<Conversation[]> => {
     }
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
+};
+
+// DELETE /conversations/:id - Remove conversation and its messages
+export const deleteConversation = async (conversationId: string): Promise<void> => {
+  const token = await getToken();
+  if (!token) {
+    handleUnauthorizedError();
+    throw new ApiError('Not authenticated. Please log in.', 401);
+  }
+  const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (response.status === 401 || response.status === 403) {
+    handleUnauthorizedError();
+    throw new ApiError('Session expired. Please log in again.', response.status);
+  }
+  if (response.status === 404) {
+    throw new ApiError(t('chat.conversationNotFound'), 404);
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    let message = t('chat.deleteFailed');
+    try {
+      const data = text ? JSON.parse(text) : {};
+      if (typeof data.message === 'string') message = data.message;
+    } catch {
+      // use default message
+    }
+    throw new ApiError(message, response.status);
+  }
+  // 204 No Content - success
 };
 
 // POST /conversations - Create or get existing conversation

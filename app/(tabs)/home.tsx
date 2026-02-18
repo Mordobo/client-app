@@ -25,11 +25,6 @@ export default function HomeScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState(t("home.location")); // Default fallback
 
-  useEffect(() => {
-    loadCategories();
-    loadTopProviders();
-  }, []);
-
   // Reload default address when screen comes into focus (e.g., after changing default address)
   useFocusEffect(
     useCallback(() => {
@@ -104,19 +99,19 @@ export default function HomeScreen() {
     }
   };
 
-  const loadTopProviders = async () => {
+  const loadTopProviders = useCallback(async () => {
     try {
       setProvidersLoading(true);
       const response = await fetchSuppliers({
         limit: 10,
         offset: 0,
       });
-      // Safely handle response - ensure suppliers is always an array
       const suppliers = Array.isArray(response?.suppliers) ? response.suppliers : [];
       if (suppliers.length > 0) {
-        // Sort by rating and take top 5
         const sorted = [...suppliers].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5);
-        setTopProviders(sorted);
+        // Exclude current user's provider profile (same account as client cannot see self in list)
+        const filtered = user?.id ? sorted.filter((s) => s.id !== user.id) : sorted;
+        setTopProviders(filtered);
       } else {
         setTopProviders([]);
       }
@@ -126,7 +121,12 @@ export default function HomeScreen() {
     } finally {
       setProvidersLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadCategories();
+    loadTopProviders();
+  }, [loadTopProviders]);
 
   const handleCategoryPress = (categoryId: string) => {
     try {
@@ -259,7 +259,17 @@ export default function HomeScreen() {
           : topProviders.length > 0 ?
             <View style={styles.providersList}>
               {topProviders.map((item) => (
-                <TopProviderCard key={item.id} id={item.id} name={item.full_name} profileImage={item.profile_image} serviceCategory={item.service_category} rating={item.rating} reviewCount={item.total_reviews} hourlyRate={item.hourly_rate} onPress={() => handleProviderPress(item.id)} />
+                <TopProviderCard
+                  key={item.id}
+                  id={item.id}
+                  name={item.business_name?.trim() || item.full_name}
+                  profileImage={item.profile_image}
+                  serviceCategory={item.service_category}
+                  rating={item.rating}
+                  reviewCount={item.total_reviews}
+                  hourlyRate={item.hourly_rate}
+                  onPress={() => handleProviderPress(item.id)}
+                />
               ))}
             </View>
           : <View style={styles.emptyState}>

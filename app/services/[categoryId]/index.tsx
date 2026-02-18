@@ -1,4 +1,5 @@
 import { ProviderCard } from "@/components/ProviderCard";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getAddresses } from "@/services/addresses";
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
@@ -11,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { colorScheme } = useTheme();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const insets = useSafeAreaInsets();
@@ -37,7 +39,6 @@ export default function CategoryDetailScreen() {
   };
 
   useEffect(() => {
-    // Validate categoryId before loading data
     if (categoryId && typeof categoryId === "string" && categoryId.trim() !== "") {
       loadUserLocation();
       loadData();
@@ -45,7 +46,7 @@ export default function CategoryDetailScreen() {
       setError("Invalid category ID");
       setLoading(false);
     }
-  }, [categoryId, sortBy, selectedSubcategory]);
+  }, [categoryId, sortBy, selectedSubcategory, user?.id]);
 
   const loadUserLocation = async () => {
     try {
@@ -86,9 +87,9 @@ export default function CategoryDetailScreen() {
       ]);
 
       setCategoryData(catData);
-      // Safely handle suppliers data - ensure it's always an array
       const suppliersList = Array.isArray(suppliersData?.suppliers) ? suppliersData.suppliers : [];
-      setSuppliers(suppliersList);
+      const filtered = user?.id ? suppliersList.filter((s) => s.id !== user.id) : suppliersList;
+      setSuppliers(filtered);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);

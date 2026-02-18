@@ -1,11 +1,14 @@
-import { Conversation, fetchConversations } from '@/services/conversations';
+import { Conversation, deleteConversation, fetchConversations } from '@/services/conversations';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Modal,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -86,6 +89,7 @@ export default function ProviderInboxScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [optionsConversation, setOptionsConversation] = useState<Conversation | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,7 +97,8 @@ export default function ProviderInboxScreen() {
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchConversations();
+      // Only show conversations where current user is the provider (supplier)
+      const data = await fetchConversations('provider');
       const sorted = [...data].sort((a, b) => {
         if (!a.last_message_at && !b.last_message_at) return 0;
         if (!a.last_message_at) return 1;
@@ -151,6 +156,62 @@ export default function ProviderInboxScreen() {
     [router]
   );
 
+  const showDeleteConfirm = useCallback((item: Conversation) => {
+    Alert.alert(
+      t('chat.deleteChat'),
+      t('chat.deleteConfirm'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('chat.deleteChat'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteConversation(item.id);
+              setConversations((prev) => prev.filter((c) => c.id !== item.id));
+            } catch (err) {
+              console.error('[Messages] Error deleting conversation:', err);
+              const message = err instanceof Error ? err.message : t('chat.deleteFailed');
+              Alert.alert(t('chat.deleteChat'), message);
+            }
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const handleLongPressConversation = useCallback((item: Conversation) => {
+    showDeleteConfirm(item);
+  }, [showDeleteConfirm]);
+
+  const handleMenuPress = useCallback((item: Conversation) => {
+    setOptionsConversation(item);
+  }, []);
+
+  const closeOptionsMenu = useCallback(() => {
+    setOptionsConversation(null);
+  }, []);
+
+  const handleOptionDeleteChat = useCallback(async () => {
+    const item = optionsConversation;
+    closeOptionsMenu();
+    if (!item) return;
+    if (Platform.OS === 'web') {
+      const ok = window.confirm(t('chat.deleteConfirm'));
+      if (!ok) return;
+      try {
+        await deleteConversation(item.id);
+        setConversations((prev) => prev.filter((c) => c.id !== item.id));
+      } catch (err) {
+        console.error('[Messages] Error deleting conversation:', err);
+        const message = err instanceof Error ? err.message : t('chat.deleteFailed');
+        window.alert(message);
+      }
+      return;
+    }
+    showDeleteConfirm(item);
+  }, [optionsConversation, closeOptionsMenu, showDeleteConfirm]);
+
   const renderConversation = useCallback(
     ({ item, index }: { item: Conversation; index: number }) => {
       const unread = item.unread_count > 0;
@@ -160,56 +221,69 @@ export default function ProviderInboxScreen() {
       const isOnline = false; // TODO: from backend when available
 
       return (
-        <TouchableOpacity
+        <View
           style={[
             styles.card,
             unread && styles.cardUnread,
             index === filteredConversations.length - 1 && styles.cardLast,
           ]}
-          onPress={() => handleConversationPress(item.id)}
-          activeOpacity={0.7}
         >
-          <View style={styles.avatarWrap}>
-            {item.other_user_image ? (
-              <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarEmoji}>👤</Text>
-              </View>
-            )}
-            {isOnline && <View style={styles.onlineIndicator} />}
-          </View>
-          <View style={styles.content}>
-            <View style={styles.row1}>
-              <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
-                {item.other_user_name}
-              </Text>
-              <Text style={[styles.time, unread && styles.timeUnread]}>
-                {formatTime(item.last_message_at)}
-              </Text>
-            </View>
-            <View style={styles.row2}>
-              <Text
-                style={[styles.preview, unread && styles.previewUnread]}
-                numberOfLines={1}
-              >
-                {item.last_message || t('chat.noMessages')}
-              </Text>
-              <View style={styles.badges}>
-                <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                  <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
+          <TouchableOpacity
+            style={styles.cardTouchable}
+            onPress={() => handleConversationPress(item.id)}
+            onLongPress={() => handleLongPressConversation(item)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.avatarWrap}>
+              {item.other_user_image ? (
+                <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarEmoji}>👤</Text>
                 </View>
-                {unread && (
-                  <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadText}>
-                      {item.unread_count > 9 ? '9+' : item.unread_count}
-                    </Text>
+              )}
+              {isOnline && <View style={styles.onlineIndicator} />}
+            </View>
+            <View style={styles.content}>
+              <View style={styles.row1}>
+                <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
+                  {item.other_user_name}
+                </Text>
+                <Text style={[styles.time, unread && styles.timeUnread]}>
+                  {formatTime(item.last_message_at)}
+                </Text>
+              </View>
+              <View style={styles.row2}>
+                <Text
+                  style={[styles.preview, unread && styles.previewUnread]}
+                  numberOfLines={1}
+                >
+                  {item.last_message || t('chat.noMessages')}
+                </Text>
+                <View style={styles.badges}>
+                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                    <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
                   </View>
-                )}
+                  {unread && (
+                    <View style={styles.unreadBadge}>
+                      <Text style={styles.unreadText}>
+                        {item.unread_count > 9 ? '9+' : item.unread_count}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => handleMenuPress(item)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel={t('chat.options')}
+          >
+            <Ionicons name="ellipsis-vertical" size={22} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+        </View>
       );
     },
     [filteredConversations.length, handleConversationPress]
@@ -315,6 +389,21 @@ export default function ProviderInboxScreen() {
           }
         />
       )}
+
+      <Modal visible={optionsConversation !== null} transparent animationType="fade" onRequestClose={closeOptionsMenu}>
+        <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={closeOptionsMenu}>
+          <View style={styles.optionsBox} onStartShouldSetResponder={() => true}>
+            <Text style={styles.optionsTitle}>{t('chat.options')}</Text>
+            <TouchableOpacity style={styles.optionsButton} onPress={handleOptionDeleteChat}>
+              <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              <Text style={styles.optionsButtonTextDestructive}>{t('chat.deleteChat')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.optionsButton} onPress={closeOptionsMenu}>
+              <Text style={styles.optionsButtonText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -417,6 +506,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CARD_BORDER,
     marginBottom: 8,
+  },
+  cardTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardUnread: {
     backgroundColor: UNREAD_BG,
@@ -558,5 +658,43 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  optionsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  optionsBox: {
+    backgroundColor: CARD_BG,
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 220,
+    borderWidth: 1,
+    borderColor: CARD_BORDER,
+  },
+  optionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  optionsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  optionsButtonText: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  optionsButtonTextDestructive: {
+    fontSize: 16,
+    color: '#EF4444',
+    fontWeight: '500',
   },
 });

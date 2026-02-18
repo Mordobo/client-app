@@ -1,4 +1,6 @@
 import { API_BASE } from '@/utils/apiConfig';
+import { getToken } from '@/utils/userStorage';
+import { createApiHeaders } from '@/utils/apiHeaders';
 
 export interface Supplier {
   id: string;
@@ -116,14 +118,14 @@ export const fetchSuppliers = async (
     if (params.offset) queryParams.append('offset', params.offset.toString());
 
     const url = `${API_BASE}/suppliers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    // #region agent log
-    // #endregion
+    const token = await getToken();
+    const headers = createApiHeaders(
+      token ? { Authorization: `Bearer ${token}` } : {}
+    );
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
     // #region agent log
     // #endregion
