@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useIsFocused } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { mode, setMode } = useMode();
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<UserStats>({ services: 0, reviews: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -56,15 +58,15 @@ export default function ProfileScreen() {
   }, [loadStats]);
 
   // When user is in provider mode, show provider profile instead of client profile.
-  // Delay redirect to next frame to avoid Fabric "child already has a parent" when
-  // this screen mounts and immediately navigates away (race during mount).
+  // Only redirect when this screen is actually focused to avoid background screens
+  // interfering with navigation during mode switches.
   useEffect(() => {
-    if (mode !== "provider") return;
+    if (mode !== "provider" || !isFocused) return;
     const id = setTimeout(() => {
       router.replace("/(provider-tabs)/profile");
     }, 0);
     return () => clearTimeout(id);
-  }, [mode, router]);
+  }, [mode, isFocused, router]);
 
   const handleLogout = () => {
     const performLogout = async () => {
