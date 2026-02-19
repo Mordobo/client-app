@@ -1,3 +1,5 @@
+import { CLIENT_TIERS } from "@/constants/tiers";
+import { useAuth } from "@/contexts/AuthContext";
 import { getLocale, t } from "@/i18n";
 import { Address, getAddresses } from "@/services/addresses";
 import { createOrder, ApiError as OrderApiError } from "@/services/orders";
@@ -26,6 +28,7 @@ const colors = {
 
 export default function BookingSummaryScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { supplierId, serviceId, scheduledAt, duration, addressId } = useLocalSearchParams<{
     supplierId: string;
     serviceId: string;
@@ -34,6 +37,7 @@ export default function BookingSummaryScreen() {
     addressId: string;
   }>();
   const insets = useSafeAreaInsets();
+  const tierConfig = CLIENT_TIERS[user?.tier ?? "bronze"];
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [service, setService] = useState<SupplierService | null>(null);
@@ -132,9 +136,9 @@ export default function BookingSummaryScreen() {
     }
 
     const durationHours = parseFloat(duration) || 2;
-    const hourlyRate = service.price || 60; // Default $60/hr
+    const hourlyRate = service.price || 60;
     const serviceCost = hourlyRate * durationHours;
-    const serviceFee = 5.0;
+    const serviceFee = tierConfig.platformFee;
     const subtotal = serviceCost + serviceFee;
 
     const discountPercent = appliedDiscount > 0 ? appliedDiscount : 0;
@@ -366,10 +370,19 @@ export default function BookingSummaryScreen() {
               <Text style={styles.priceValue}>${pricing.serviceCost.toFixed(2)}</Text>
             </View>
 
-            {/* Service Fee */}
+            {/* Platform Fee */}
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>{t("booking.travelFee")}</Text>
-              <Text style={styles.priceValue}>${pricing.serviceFee.toFixed(2)}</Text>
+              <View>
+                <Text style={styles.priceLabel}>{t("booking.travelFee")}</Text>
+                {tierConfig.key !== "bronze" && (
+                  <Text style={[styles.priceLabel, { color: tierConfig.color, fontSize: 11 }]}>
+                    {t("booking.tierFeeLabel", { tier: t(tierConfig.i18nKey) })}
+                  </Text>
+                )}
+              </View>
+              <Text style={[styles.priceValue, pricing.serviceFee === 0 && { color: "#10b981" }]}>
+                {pricing.serviceFee === 0 ? "$0.00" : `$${pricing.serviceFee.toFixed(2)}`}
+              </Text>
             </View>
 
             {/* Discount */}

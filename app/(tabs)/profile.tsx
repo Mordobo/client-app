@@ -1,5 +1,6 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { Toast } from "@/components/Toast";
+import { CLIENT_TIERS, getNextTier, getOrdersToNextTier } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
@@ -167,10 +168,17 @@ export default function ProfileScreen() {
               <Text style={styles.userName}>{fullName || t("profile.guest")}</Text>
               {/* Email - Exact match: fontSize: '14px', color: textSecondary */}
               <Text style={styles.userEmail}>{user?.email || ""}</Text>
-              {/* Badge - Exact match: backgroundColor: secondary20, padding: '4px 10px', borderRadius: '12px' */}
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>⭐ {t("profile.goldClient")}</Text>
-              </View>
+              {(() => {
+                const tier = user?.tier ?? "bronze";
+                const cfg = CLIENT_TIERS[tier];
+                return (
+                  <View style={[styles.badge, { backgroundColor: `${cfg.color}20` }]}>
+                    <Text style={[styles.badgeText, { color: cfg.color }]}>
+                      {cfg.emoji ? `${cfg.emoji} ` : ""}{t(cfg.i18nKey)}
+                    </Text>
+                  </View>
+                );
+              })()}
             </View>
           </View>
 
@@ -250,7 +258,7 @@ export default function ProfileScreen() {
         {/* Version from app.config */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.3"}
+            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.5"}
           </Text>
         </View>
       </ScrollView>
