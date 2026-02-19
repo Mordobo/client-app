@@ -14,6 +14,11 @@ export default function ProviderProfileLayout() {
       <Stack.Screen name="reviews" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="notification-preferences" />
+      <Stack.Screen name="security" />
+      <Stack.Screen name="documents" />
+      <Stack.Screen name="language" />
+      <Stack.Screen name="theme" />
+      <Stack.Screen name="statistics" />
       <Stack.Screen name="service-area" />
       <Stack.Screen name="payment-methods" />
       <Stack.Screen name="services" />
