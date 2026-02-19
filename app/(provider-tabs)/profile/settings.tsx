@@ -64,18 +64,18 @@ export default function ProviderSettingsScreen() {
 
   const accountRows: SettingsRow[] = [
     { icon: "person-outline", labelKey: "providerDashboard.providerSettings.editProfile", descKey: "providerDashboard.providerSettings.editProfileDesc", route: "/(provider-tabs)/profile/edit" },
-    { icon: "lock-closed-outline", labelKey: "providerDashboard.providerSettings.security", descKey: "providerDashboard.providerSettings.securityDesc" },
-    { icon: "document-text-outline", labelKey: "providerDashboard.providerSettings.documents", descKey: "providerDashboard.providerSettings.documentsDesc" },
+    { icon: "lock-closed-outline", labelKey: "providerDashboard.providerSettings.security", descKey: "providerDashboard.providerSettings.securityDesc", route: "/(provider-tabs)/profile/security" },
+    { icon: "document-text-outline", labelKey: "providerDashboard.providerSettings.documents", descKey: "providerDashboard.providerSettings.documentsDesc", route: "/(provider-tabs)/profile/documents" },
   ];
   const preferencesRows: SettingsRow[] = [
     { icon: "notifications-outline", labelKey: "providerDashboard.providerSettings.notifications", descKey: "providerDashboard.providerSettings.notificationsDesc", route: "/(provider-tabs)/profile/notification-preferences" },
-    { icon: "language-outline", labelKey: "providerDashboard.providerSettings.language", descKey: "providerDashboard.providerSettings.languageDesc" },
-    { icon: "moon-outline", labelKey: "providerDashboard.providerSettings.theme", descKey: "providerDashboard.providerSettings.themeDesc" },
+    { icon: "language-outline", labelKey: "providerDashboard.providerSettings.language", descKey: "providerDashboard.providerSettings.languageDesc", route: "/(provider-tabs)/profile/language" },
+    { icon: "moon-outline", labelKey: "providerDashboard.providerSettings.theme", descKey: "providerDashboard.providerSettings.themeDesc", route: "/(provider-tabs)/profile/theme" },
   ];
   const businessRows: SettingsRow[] = [
     { icon: "card-outline", labelKey: "providerDashboard.providerSettings.paymentMethods", descKey: "providerDashboard.providerSettings.paymentMethodsDesc", route: "/(provider-tabs)/profile/payment-methods" },
     { icon: "location-outline", labelKey: "providerDashboard.providerSettings.serviceArea", descKey: "providerDashboard.providerSettings.serviceAreaDesc", route: "/(provider-tabs)/profile/service-area" },
-    { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc" },
+    { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc", route: "/(provider-tabs)/profile/statistics" },
   ];
   const supportRows: SettingsRow[] = [
     { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc" },
