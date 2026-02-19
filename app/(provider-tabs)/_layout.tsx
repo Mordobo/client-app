@@ -2,6 +2,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { AvailabilityProvider } from "@/contexts/AvailabilityContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
+import { useIsFocused } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect } from "react";
@@ -14,14 +15,16 @@ export default function ProviderTabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { mode } = useMode();
+  const isFocused = useIsFocused();
   const bottomPadding = Math.max(insets.bottom, 24);
 
-  // Keep switch and view in sync: if mode is client we must show client UI, not provider profile
+  // Safety net: if mode becomes client while provider tabs are focused, redirect.
+  // Only fires when focused to avoid background screens competing with switch-mode navigation.
   useEffect(() => {
-    if (mode === "client") {
+    if (mode === "client" && isFocused) {
       router.replace("/(tabs)");
     }
-  }, [mode, router]);
+  }, [mode, isFocused, router]);
 
   return (
     <View style={styles.screenBg} collapsable={false}>
