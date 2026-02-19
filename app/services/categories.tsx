@@ -4,10 +4,9 @@ import { ApiError, Category, fetchCategories } from "@/services/categories";
 import { fetchSuppliers } from "@/services/suppliers";
 import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji } from "@/utils/categoryDisplay";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ViewMode = "grid" | "list";
@@ -247,7 +246,7 @@ export default function CategoriesScreen() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={["top", "bottom"]}>
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: bgColor }]}>
           <ActivityIndicator size="large" color={primaryColor} />
         </View>
       </SafeAreaView>
@@ -257,7 +256,7 @@ export default function CategoriesScreen() {
   if (error) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]} edges={["top", "bottom"]}>
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: bgColor }]}>
           <Text style={[styles.errorText, { color: textPrimary }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
             <Text style={styles.retryText}>{t("chat.retry")}</Text>
@@ -354,18 +353,19 @@ export default function CategoriesScreen() {
         </View>
       </View>
 
-      {/* Categories List/Grid */}
+      {/* Categories List/Grid - FlatList only (FlashList uses AutoLayoutView not available on web) */}
       {filteredCategories.length === 0 ?
-        renderEmptyState()
-      : <FlashList
+        <View style={[styles.emptyStateContainer, { backgroundColor: bgColor }]}>{renderEmptyState()}</View>
+      : <FlatList
           data={filteredCategories}
           renderItem={viewMode === "grid" ? renderGridItem : renderListItem}
           keyExtractor={(item) => item?.id || `category-${Math.random()}`}
           numColumns={viewMode === "grid" ? 3 : 1}
-          estimatedItemSize={viewMode === "grid" ? 160 : 64}
-          contentContainerStyle={styles.listContent}
+          key={viewMode === "grid" ? "grid" : "list"}
+          style={{ flex: 1, backgroundColor: bgColor }}
+          contentContainerStyle={[styles.listContent, { backgroundColor: bgColor }]}
           showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={{ height: insets.bottom + 20 }} />}
+          ListFooterComponent={<View style={{ height: insets.bottom + 20, backgroundColor: bgColor }} />}
         />
       }
     </SafeAreaView>

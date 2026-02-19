@@ -1,10 +1,9 @@
 import { t } from "@/i18n";
 import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ConversationsListScreen() {
@@ -243,8 +242,6 @@ export default function ConversationsListScreen() {
     }
   };
 
-  const estimatedItemSize = useMemo(() => 84, []);
-
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: "#1a1a2e" }]}>
@@ -295,12 +292,10 @@ export default function ConversationsListScreen() {
           <Text style={[styles.emptySubtitle, { color: "#9ca3af" }]}>{t("chat.noMessagesDesc")}</Text>
         </View>
       : <View style={{ flex: 1, backgroundColor: "#1a1a2e" }}>
-          <FlashList
+          <FlatList
             data={conversations}
             keyExtractor={(item) => item?.id || `conversation-${Math.random()}`}
             renderItem={renderConversation}
-            estimatedItemSize={estimatedItemSize}
-            style={{ flex: 1, backgroundColor: "#1a1a2e" }}
             contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 100 + insets.bottom, backgroundColor: "#1a1a2e" }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#3b82f6"]} />}
           />

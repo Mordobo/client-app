@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Modal,
   Platform,
@@ -16,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Design tokens from provider-communication-preview.jsx
@@ -289,8 +289,6 @@ export default function ProviderInboxScreen() {
     [filteredConversations.length, handleConversationPress]
   );
 
-  const estimatedItemSize = 88;
-
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
@@ -370,11 +368,10 @@ export default function ProviderInboxScreen() {
           <Text style={styles.emptySubtitle}>{t('providerDashboard.inbox.emptySubtitle')}</Text>
         </View>
       ) : (
-        <FlashList
+        <FlatList
           data={filteredConversations}
           keyExtractor={(item) => item.id}
           renderItem={renderConversation}
-          estimatedItemSize={estimatedItemSize}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: 24 + insets.bottom },
