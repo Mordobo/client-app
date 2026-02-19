@@ -14,10 +14,12 @@ export interface User {
   avatar?: string;
   country?: string;
   gender?: 'male' | 'female';
-  dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
+  dateOfBirth?: string;
   provider?: 'email' | 'google' | 'facebook' | 'apple';
   authToken?: string;
   refreshToken?: string;
+  tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+  completedOrdersCount?: number;
 }
 
 interface AuthContextType {
