@@ -189,14 +189,6 @@ export default function HomeScreen() {
     }
   };
 
-  const handleViewAllProviders = () => {
-    try {
-      router.push("/services/categories");
-    } catch (error) {
-      console.error("[Home] Error in handleViewAllProviders:", error);
-    }
-  };
-
   const handleSearchPress = () => {
     if (searchQuery.trim()) {
       router.push({
@@ -345,9 +337,6 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{t("home.topProviders")}</Text>
-            <TouchableOpacity onPress={handleViewAllProviders}>
-              <Text style={styles.viewAllText}>{t("home.viewAll")}</Text>
-            </TouchableOpacity>
           </View>
 
           {providersLoading ?
