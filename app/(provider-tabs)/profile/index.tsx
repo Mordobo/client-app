@@ -4,6 +4,7 @@ import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
 import { getProviderProfile } from "@/services/providers";
 import { getDashboardStats } from "@/services/providerDashboard";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import { getProviderServices } from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -71,7 +72,7 @@ export default function ProviderProfileScreen() {
     queryFn: getProviderProfile,
     staleTime: 60_000,
   });
-  const providerAvatarUrl = providerProfile?.avatarUrl ?? null;
+  const providerAvatarUrl = getProfileImageUrl(providerProfile?.avatarUrl ?? null) ?? null;
   const displayName = (providerProfile?.displayName ?? "").trim() || "—";
   const initials = getInitialsFromDisplayName(displayName);
   const categoryName = (providerProfile?.categoryName ?? "").trim() || null;
@@ -187,7 +188,7 @@ export default function ProviderProfileScreen() {
           <View style={styles.avatarRow}>
             <View style={styles.avatarWrapper}>
               {providerAvatarUrl ? (
-                <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="cover" />
+                <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="contain" />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>

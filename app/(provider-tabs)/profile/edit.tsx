@@ -7,11 +7,13 @@ import {
     uploadProviderAvatar,
     type UpdateProviderProfilePayload,
 } from "@/services/providers";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import { normalizePhoneInput, validatePhone } from "@/utils/phoneValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -187,8 +189,12 @@ export default function ProviderEditProfileScreen() {
       phoneNumber: normalizePhoneInput(profile.phoneNumber || ""),
       yearsExperience: profile.yearsExperience ?? null,
     });
-    if (profile.avatarUrl) setAvatarUri(profile.avatarUrl);
+    if (profile.avatarUrl) setAvatarUri(getProfileImageUrl(profile.avatarUrl) ?? profile.avatarUrl);
   }, [profile, resolvedCategoryId, reset]);
+
+  const goToProfile = useCallback(() => {
+    router.replace("/(provider-tabs)/profile");
+  }, [router]);
 
   const handleBack = useCallback(() => {
     if (isDirty) {
@@ -197,13 +203,13 @@ export default function ProviderEditProfileScreen() {
         t("providerDashboard.providerEditProfile.unsavedChangesMessage"),
         [
           { text: t("providerDashboard.providerEditProfile.cancel"), style: "cancel" },
-          { text: t("common.discard"), style: "destructive", onPress: () => router.back() },
+          { text: t("common.discard"), style: "destructive", onPress: goToProfile },
         ],
       );
     } else {
-      router.back();
+      goToProfile();
     }
-  }, [isDirty, router]);
+  }, [isDirty, goToProfile]);
 
 
   const pickImage = useCallback(async () => {
@@ -215,15 +221,14 @@ export default function ProviderEditProfileScreen() {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
         quality: 0.8,
       });
       if (result.canceled || !result.assets[0]) return;
       const uri = result.assets[0].uri;
       const compressed = await ImageManipulator.manipulateAsync(
         uri,
-        [{ resize: { width: 400, height: 400 } }],
+        [{ resize: { width: 400 } }],
         { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
       );
       setUploadingAvatar(true);
@@ -242,11 +247,16 @@ export default function ProviderEditProfileScreen() {
             reader.readAsDataURL(blob);
           });
         }
-        const fs = await import("expo-file-system");
-        return fs.default.readAsStringAsync(compressed.uri, { encoding: fs.EncodingType.Base64 });
+        return FileSystem.readAsStringAsync(compressed.uri, {
+          encoding: "base64",
+        } as { encoding: "base64" });
       })();
+      if (!base64 || base64.length === 0) {
+        Alert.alert(t("common.error"), t("errors.uploadProviderAvatarFailed"));
+        return;
+      }
       const { avatarUrl } = await uploadProviderAvatar(base64, "avatar.jpg", "image/jpeg");
-      setAvatarUri(avatarUrl);
+      setAvatarUri(getProfileImageUrl(avatarUrl) ?? avatarUrl);
       await queryClient.invalidateQueries({ queryKey: ["providerProfile"] });
     } catch (e) {
       console.error("[ProviderEditProfile] Avatar upload failed:", e);
@@ -279,13 +289,13 @@ export default function ProviderEditProfileScreen() {
         await queryClient.invalidateQueries({ queryKey: ["providerProfile"] });
         setToastMessage(t("providerDashboard.providerEditProfile.saveSuccess"));
         setToastVisible(true);
-        setTimeout(() => router.back(), 1500);
+        setTimeout(goToProfile, 1500);
       } catch (e) {
         console.error("[ProviderEditProfile] Update failed:", e);
         Alert.alert(t("common.error"), t("errors.updateProviderProfileFailed"));
       }
     },
-    [queryClient, router],
+    [queryClient, goToProfile],
   );
 
   if (profileLoading && !profile) {
@@ -338,7 +348,7 @@ export default function ProviderEditProfileScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickImage} style={styles.avatarWrap} activeOpacity={0.8} disabled={uploadingAvatar}>
               {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="cover" />
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="contain" />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>

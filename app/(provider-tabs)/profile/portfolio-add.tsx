@@ -9,6 +9,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as FileSystem from "expo-file-system/legacy";
 import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
@@ -61,8 +62,9 @@ async function uriToBase64(uri: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   }
-  const fs = await import("expo-file-system");
-  return fs.default.readAsStringAsync(uri, { encoding: fs.EncodingType.Base64 });
+  return FileSystem.readAsStringAsync(uri, {
+    encoding: "base64",
+  } as { encoding: "base64" });
 }
 
 export default function PortfolioAddScreen() {

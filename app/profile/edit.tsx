@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { updateProfile } from '@/services/profile';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
