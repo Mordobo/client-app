@@ -49,7 +49,7 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
         <View style={styles.info}>
           {/* Name and Favorite Row */}
           <View style={styles.headerRow}>
-            <Text style={styles.name} numberOfLines={1}>{supplier.full_name || 'Unknown'}</Text>
+            <Text style={styles.name} numberOfLines={1}>{supplier.business_name?.trim() || supplier.full_name || 'Unknown'}</Text>
             <TouchableOpacity 
               style={styles.favoriteButton}
               onPress={handleFavoritePress}

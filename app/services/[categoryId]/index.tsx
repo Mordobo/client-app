@@ -1,6 +1,7 @@
 import { ProviderCard } from "@/components/ProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { t } from "@/i18n";
 import { getAddresses } from "@/services/addresses";
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
 import { fetchSuppliers, Supplier } from "@/services/suppliers";
@@ -222,7 +223,7 @@ export default function CategoryDetailScreen() {
           contentContainerStyle={[styles.suppliersSection, { paddingBottom: insets.bottom + 40 }]}
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No suppliers found for this category</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("categories.noResultsForCategory")}</Text>
             </View>
           )}
           showsVerticalScrollIndicator={false}

@@ -72,9 +72,9 @@ export default function ChatHistoryScreen() {
       onPress={() => handleConversationPress(item.id)}
     >
       <View style={styles.avatarContainer}>
-        {item.supplier?.avatar ? (
+        {item.other_user_image ? (
           <Image
-            source={{ uri: item.supplier.avatar }}
+            source={{ uri: item.other_user_image }}
             style={styles.avatar}
           />
         ) : (
@@ -86,7 +86,7 @@ export default function ChatHistoryScreen() {
       <View style={styles.conversationInfo}>
         <View style={styles.conversationHeader}>
           <Text style={styles.supplierName}>
-            {item.supplier?.name || 'Unknown Supplier'}
+            {item.other_user_name || 'Unknown Supplier'}
           </Text>
           {item.lastMessage?.createdAt && (
             <Text style={styles.timeText}>

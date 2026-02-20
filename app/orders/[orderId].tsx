@@ -418,7 +418,7 @@ export default function OrderDetailScreen() {
           </View>
           <View style={styles.providerInfo}>
             <Text style={styles.providerName}>
-              {supplier?.full_name || 'Proveedor'}
+              {supplier?.business_name?.trim() || supplier?.full_name || 'Proveedor'}
             </Text>
             <View style={styles.locationRow}>
               <View style={styles.locationDot} />

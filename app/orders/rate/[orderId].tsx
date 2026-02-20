@@ -59,7 +59,7 @@ export default function RateExperienceScreen() {
 
   const order = orderDetail?.order;
   const supplierId = order?.supplier_id ?? orderDetail?.supplier?.id;
-  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.full_name ?? orderDetail?.supplier?.business_name ?? t('orders.provider');
+  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.business_name?.trim() ?? orderDetail?.supplier?.full_name ?? t('orders.provider');
   const serviceName = order?.service_name ?? '';
   const scheduledLabel = formatScheduledAt(order?.scheduled_at);
 

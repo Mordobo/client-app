@@ -222,7 +222,7 @@ export default function BookingSuccessScreen() {
               </View>
               <View style={styles.providerText}>
                 <Text style={styles.providerName}>
-                  {supplier?.full_name || supplier?.business_name || 'Provider'}
+                  {supplier?.business_name?.trim() || supplier?.full_name || 'Provider'}
                 </Text>
                 <Text style={styles.serviceName}>
                   {orderData.quote?.line_items?.[0]?.description || 'Service'}

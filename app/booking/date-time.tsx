@@ -448,7 +448,7 @@ export default function BookingDateTimeScreen() {
             />
           </View>
           <View style={styles.providerInfo}>
-            <Text style={styles.providerName}>{supplier.full_name}</Text>
+            <Text style={styles.providerName}>{supplier.business_name?.trim() || supplier.full_name}</Text>
             <Text style={styles.serviceInfo}>
               {service.category_name || 'Service'} • ${service.price || 0}{t('supplier.perHour')}
             </Text>
