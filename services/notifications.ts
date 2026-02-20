@@ -12,17 +12,26 @@ export interface Notification {
     orderId?: string;
     conversationId?: string;
     supplierId?: string;
+    quoteId?: string;
+    reviewId?: string;
+    paymentId?: string;
     [key: string]: unknown;
   };
 }
 
 export type NotificationType =
   | 'booking_confirmed'
+  | 'booking_cancelled'
   | 'new_message'
   | 'rate_service'
   | 'offer'
   | 'payment_processed'
-  | 'provider_on_way';
+  | 'payment_received'
+  | 'provider_on_way'
+  | 'new_booking_request'
+  | 'quote_received'
+  | 'quote_approved'
+  | 'new_review';
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -124,12 +133,18 @@ export type NotificationCategory = 'jobs' | 'payments' | 'reviews' | 'system';
 export function getNotificationCategory(type: NotificationType): NotificationCategory {
   switch (type) {
     case 'booking_confirmed':
+    case 'booking_cancelled':
     case 'provider_on_way':
+    case 'new_booking_request':
+    case 'quote_received':
+    case 'quote_approved':
     case 'new_message':
       return 'jobs';
     case 'payment_processed':
+    case 'payment_received':
       return 'payments';
     case 'rate_service':
+    case 'new_review':
       return 'reviews';
     case 'offer':
     default:

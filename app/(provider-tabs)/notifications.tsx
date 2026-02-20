@@ -161,10 +161,9 @@ export default function ProviderNotificationsScreen() {
     });
 
     const groups: NotificationGroup[] = [];
-    const ns = t("providerDashboard.providerNotifications");
-    if (today.length) groups.push({ label: ns.today.toUpperCase(), notifications: today });
-    if (yesterday.length) groups.push({ label: ns.yesterday.toUpperCase(), notifications: yesterday });
-    if (thisWeek.length) groups.push({ label: ns.thisWeek.toUpperCase(), notifications: thisWeek });
+    if (today.length) groups.push({ label: t("providerDashboard.providerNotifications.today").toUpperCase(), notifications: today });
+    if (yesterday.length) groups.push({ label: t("providerDashboard.providerNotifications.yesterday").toUpperCase(), notifications: yesterday });
+    if (thisWeek.length) groups.push({ label: t("providerDashboard.providerNotifications.thisWeek").toUpperCase(), notifications: thisWeek });
     return groups;
   }, [filteredNotifications]);
 
@@ -195,17 +194,27 @@ export default function ProviderNotificationsScreen() {
 
       switch (type) {
         case "booking_confirmed":
+        case "booking_cancelled":
         case "provider_on_way":
+        case "quote_approved":
           if (meta.orderId) router.push(`/(provider-tabs)/jobs/${meta.orderId}`);
+          break;
+        case "new_booking_request":
+          router.push("/(provider-tabs)/requests");
           break;
         case "new_message":
           if (meta.conversationId) router.push(`/chat/${meta.conversationId}`);
           else if (meta.orderId) router.push(`/booking/chat/${meta.orderId}`);
           break;
         case "payment_processed":
+        case "payment_received":
           router.push("/(provider-tabs)/earnings");
           break;
         case "rate_service":
+        case "new_review":
+          router.push("/(provider-tabs)/profile/reviews");
+          break;
+        case "quote_received":
           if (meta.orderId) router.push(`/(provider-tabs)/jobs/${meta.orderId}`);
           break;
         case "offer":
