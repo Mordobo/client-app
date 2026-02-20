@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
+import { ApiError as AuthApiError } from '@/services/auth';
 import {
   ApiError,
   addFavorite,
@@ -49,8 +50,14 @@ export function useFavorite(supplierId: string | undefined): UseFavoriteReturn {
       const ids = new Set(data.favorites.map((f) => f.id));
       setFavoriteIds(ids);
     } catch (error) {
-      console.error('[useFavorite] Error checking favorite:', error);
-      // Don't show error to user, just keep current state
+      const isAuthError =
+        error instanceof AuthApiError &&
+        (error.status === 401 || error.sessionExpired === true);
+      if (isAuthError) {
+        setFavoriteIds(new Set());
+      } else {
+        console.error('[useFavorite] Error checking favorite:', error);
+      }
     } finally {
       setLoading(false);
     }
