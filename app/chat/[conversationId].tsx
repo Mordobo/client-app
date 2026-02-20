@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { ConversationDetail, fetchConversation, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
 import { fetchOrderDetail, Order, OrderStatus } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
@@ -302,7 +303,8 @@ export default function ChatScreen() {
   };
 
   const otherUserName = user?.id === conversation?.client_id ? conversation?.supplier_name : conversation?.client_name;
-  const otherUserImage = user?.id === conversation?.client_id ? conversation?.supplier_image : null;
+  const otherUserImageRaw =
+    user?.id === conversation?.client_id ? conversation?.supplier_image : conversation?.client_image ?? null;
 
   if (loading) {
     return (
@@ -355,12 +357,12 @@ export default function ChatScreen() {
           <TouchableOpacity onPress={() => router.back()} style={clientStyles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          {otherUserImage ?
-            <Image source={{ uri: otherUserImage }} style={clientStyles.headerAvatar} />
-          : <View style={clientStyles.headerAvatarPlaceholder}>
-              <Text style={clientStyles.headerAvatarEmoji}>👑</Text>
-            </View>
-          }
+          <ProviderAvatar
+            profileImage={otherUserImageRaw}
+            size={44}
+            rounded
+            style={clientStyles.headerAvatar}
+          />
           <View style={clientStyles.headerInfo}>
             <Text style={clientStyles.headerName}>{otherUserName ?? t("chat.title")}</Text>
             <View style={clientStyles.statusContainer}>
@@ -431,12 +433,12 @@ export default function ChatScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
           <Ionicons name="arrow-back" size={22} color={colors.textMuted40} />
         </TouchableOpacity>
-        {otherUserImage ?
-          <Image source={{ uri: otherUserImage }} style={styles.headerAvatar} />
-        : <View style={styles.headerAvatarPlaceholder}>
-            <Text style={styles.headerAvatarEmoji}>👩</Text>
-          </View>
-        }
+        <ProviderAvatar
+          profileImage={otherUserImageRaw}
+          size={40}
+          rounded
+          style={styles.headerAvatar}
+        />
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{otherUserName ?? t("chat.title")}</Text>
           <Text style={styles.headerStatus}>{t("chat.online")}</Text>

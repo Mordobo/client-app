@@ -37,6 +37,7 @@ export interface ConversationDetail {
   client_name: string;
   supplier_name: string;
   supplier_image: string | null;
+  client_image?: string | null;
   supplier_phone_number?: string;
 }
 

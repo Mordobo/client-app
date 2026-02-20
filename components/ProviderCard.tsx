@@ -1,4 +1,5 @@
 import { useFavorite } from '@/hooks/useFavorite';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Supplier } from '@/services/suppliers';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -36,8 +37,10 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
       <View style={styles.content}>
         {/* Profile Image - 80x80px, borderRadius 14px */}
         <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: supplier.profile_image || 'https://via.placeholder.com/80' }}
+          <ProviderAvatar
+            profileImage={supplier.profile_image}
+            size={80}
+            rounded={false}
             style={styles.image}
           />
         </View>

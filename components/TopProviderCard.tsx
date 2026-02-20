@@ -1,7 +1,8 @@
 import { useFavorite } from '@/hooks/useFavorite';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface TopProviderCardProps {
   id: string;
@@ -38,8 +39,10 @@ export function TopProviderCard({
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Image
-        source={{ uri: profileImage || 'https://via.placeholder.com/70' }}
+      <ProviderAvatar
+        profileImage={profileImage}
+        size={70}
+        rounded={false}
         style={styles.image}
       />
       <View style={styles.info}>

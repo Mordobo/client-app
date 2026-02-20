@@ -1,3 +1,4 @@
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Conversation, deleteConversation, fetchConversations } from '@/services/conversations';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
@@ -235,13 +236,12 @@ export default function ProviderInboxScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.avatarWrap}>
-              {item.other_user_image ? (
-                <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarEmoji}>👤</Text>
-                </View>
-              )}
+              <ProviderAvatar
+                profileImage={item.other_user_image}
+                size={48}
+                rounded
+                style={styles.avatar}
+              />
               {isOnline && <View style={styles.onlineIndicator} />}
             </View>
             <View style={styles.content}>

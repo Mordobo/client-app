@@ -1,6 +1,8 @@
 import { FavoriteButton } from '@/components/FavoriteButton';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { getOrCreateConversation } from '@/services/conversations';
+import { getProfileImageUrl } from '@/utils/profileImage';
 import {
   ApiError,
   fetchSupplierProfile,
@@ -207,9 +209,9 @@ export default function ProviderDetailScreen() {
     );
   }
 
-  const headerImage = supplier.gallery && supplier.gallery.length > 0 
-    ? supplier.gallery[0] 
-    : supplier.profile_image || 'https://via.placeholder.com/400x200';
+  const headerImage = supplier.gallery && supplier.gallery.length > 0
+    ? supplier.gallery[0]
+    : getProfileImageUrl(supplier.profile_image) ?? 'https://via.placeholder.com/400x200';
 
   const aboutText = supplier.bio || '';
   const shouldShowReadMore = aboutText.length > 150;
@@ -276,13 +278,17 @@ export default function ProviderDetailScreen() {
         {/* Provider Info Section */}
         <View style={styles.providerInfoSection}>
           <View style={styles.providerInfoRow}>
-            <Image
-              source={{ uri: supplier.profile_image || 'https://via.placeholder.com/90' }}
+            <ProviderAvatar
+              profileImage={supplier.profile_image}
+              size={90}
+              rounded={false}
               style={styles.profileImage}
             />
             <View style={styles.providerInfoText}>
               <View style={styles.nameRow}>
-                <Text style={styles.providerName}>{supplier.full_name}</Text>
+                <Text style={styles.providerName}>
+                {supplier.business_name?.trim() || supplier.full_name}
+              </Text>
                 {supplier.verified && (
                   <Ionicons name="checkmark-circle" size={20} color={colors.secondary} />
                 )}

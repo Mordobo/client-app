@@ -1,5 +1,6 @@
 import { t } from '@/i18n';
 import { fetchOrderDetail, OrderDetailResponse, updateOrderStatus } from '@/services/orders';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -408,15 +409,12 @@ export default function OrderDetailScreen() {
         {/* Provider Card */}
         <View style={styles.providerCard}>
           <View style={styles.providerImageContainer}>
-            {supplier?.profile_image ? (
-              <View style={styles.providerImage}>
-                <Ionicons name="person" size={24} color="#9ca3af" />
-              </View>
-            ) : (
-              <View style={styles.providerImage}>
-                <Ionicons name="person" size={24} color="#9ca3af" />
-              </View>
-            )}
+            <ProviderAvatar
+              profileImage={supplier?.profile_image}
+              size={48}
+              rounded
+              style={styles.providerImage}
+            />
           </View>
           <View style={styles.providerInfo}>
             <Text style={styles.providerName}>

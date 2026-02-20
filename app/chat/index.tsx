@@ -1,3 +1,4 @@
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Conversation, fetchConversations } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -138,13 +139,12 @@ export default function ConversationsListScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.avatarContainer}>
-          {item.other_user_image ? (
-            <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>👨‍🔧</Text>
-            </View>
-          )}
+          <ProviderAvatar
+            profileImage={item.other_user_image}
+            size={56}
+            rounded
+            style={styles.avatar}
+          />
           {isOnline && (
             <View style={styles.onlineIndicator} />
           )}

@@ -1,3 +1,4 @@
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { t } from "@/i18n";
 import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
@@ -206,12 +207,12 @@ export default function ConversationsListScreen() {
         <View style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder, { backgroundColor: "#1a1a2e", borderBottomColor: "#374151" }]}>
           <TouchableOpacity style={styles.conversationRowTouchable} onPress={() => handleConversationPress(item.id)} onLongPress={() => handleLongPressConversation(item)} activeOpacity={0.7}>
             <View style={styles.avatarContainer}>
-              {item.other_user_image ?
-                <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-              : <View style={[styles.avatarPlaceholder, { backgroundColor: "#252542" }]}>
-                  <Text style={styles.avatarEmoji}>👨‍🔧</Text>
-                </View>
-              }
+              <ProviderAvatar
+                profileImage={item.other_user_image}
+                size={56}
+                rounded
+                style={styles.avatar}
+              />
               {isOnline && <View style={styles.onlineIndicator} />}
             </View>
             <View style={styles.conversationContent}>
