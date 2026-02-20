@@ -63,7 +63,7 @@ export default function ScheduledBookingScreen() {
   }, [loadOrder]);
 
   const order = orderDetail?.order;
-  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.full_name ?? orderDetail?.supplier?.business_name ?? t('orders.provider');
+  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.business_name?.trim() ?? orderDetail?.supplier?.full_name ?? t('orders.provider');
   const serviceName = order?.service_name ?? t('orders.service');
   const scheduledLabel = formatScheduledAt(order?.scheduled_at);
   const statusLabel = order?.status ? getStatusLabel(order.status) : t('orders.status.confirmed');

@@ -220,6 +220,7 @@ export default {
     price: "Price",
     distance: "Distance",
     noResults: "No suppliers found",
+    noResultsForCategory: "No suppliers found for this category",
     available: "{{count}} categories available",
     availableOne: "{{count}} category available",
     grid: "Grid",

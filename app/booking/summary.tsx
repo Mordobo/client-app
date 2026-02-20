@@ -309,7 +309,7 @@ export default function BookingSummaryScreen() {
               </View>
               <View style={styles.providerInfo}>
                 <View style={styles.providerNameRow}>
-                  <Text style={styles.providerName}>{supplier.full_name || supplier.business_name}</Text>
+                  <Text style={styles.providerName}>{supplier.business_name?.trim() || supplier.full_name}</Text>
                   {supplier.verified && <Text style={styles.verifiedCheckmark}>✓</Text>}
                 </View>
                 <Text style={styles.ratingText}>

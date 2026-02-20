@@ -91,7 +91,7 @@ export default function ChatScreen() {
           const orderDetails = await fetchOrderDetail(orderId);
           // Use supplier object if available (has more complete info)
           if (orderDetails.supplier) {
-            setProviderName(orderDetails.supplier.full_name || orderDetails.supplier.business_name || 'Provider');
+            setProviderName(orderDetails.supplier.business_name?.trim() || orderDetails.supplier.full_name || 'Provider');
             setProviderImage(getProfileImageUrl(orderDetails.supplier.profile_image) ?? null);
           } else if (orderDetails.order) {
             // Fallback to order fields if supplier object not available

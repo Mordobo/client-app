@@ -259,7 +259,7 @@ export default function FavoritesScreen() {
 
                 {/* Info in the middle */}
                 <View style={styles.providerInfo}>
-                  <Text style={styles.providerName}>{provider.full_name}</Text>
+                  <Text style={styles.providerName}>{provider.business_name?.trim() || provider.full_name}</Text>
                   <Text style={[styles.providerService, { color: colors.secondary }]}>
                     {getServiceName(provider)}
                   </Text>
@@ -276,7 +276,7 @@ export default function FavoritesScreen() {
                 {/* Heart and price on the right - Exact match to JSX */}
                 <View style={styles.rightSection}>
                   <TouchableOpacity
-                    onPress={() => handleRemoveFavorite(provider.id, provider.full_name)}
+                    onPress={() => handleRemoveFavorite(provider.id, provider.business_name?.trim() || provider.full_name)}
                     disabled={removingId === provider.id}
                     style={styles.heartButton}
                   >
