@@ -2,7 +2,7 @@ import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
 import { getOnboardingDocuments, submitOnboardingStep, type OnboardingDocumentType, uploadOnboardingDocument } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";

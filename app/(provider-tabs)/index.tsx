@@ -1,6 +1,7 @@
 import { useAvailability } from "@/contexts/AvailabilityContext";
 import { t } from "@/i18n";
 import { getProviderProfile } from "@/services/providers";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import {
     acceptOrder,
     getDashboardRequests,
@@ -109,7 +110,7 @@ export default function ProviderDashboardScreen() {
     staleTime: 60_000,
   });
   const displayName = (providerProfile?.displayName ?? "").trim() || "—";
-  const providerAvatarUrl = providerProfile?.avatarUrl ?? null;
+  const providerAvatarUrl = getProfileImageUrl(providerProfile?.avatarUrl ?? null) ?? null;
 
   const loadAll = useCallback(async () => {
     try {
@@ -205,7 +206,7 @@ export default function ProviderDashboardScreen() {
                 accessibilityLabel={t("providerDashboard.providerProfile.screenTitle")}
               >
                 {providerAvatarUrl ? (
-                  <Image source={{ uri: providerAvatarUrl }} style={styles.profileAvatar} contentFit="cover" />
+                  <Image source={{ uri: providerAvatarUrl }} style={styles.profileAvatar} contentFit="contain" />
                 ) : (
                   <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />
                 )}

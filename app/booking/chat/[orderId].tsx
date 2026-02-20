@@ -5,7 +5,7 @@ import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { fetchOrderDetail } from '@/services/orders';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
