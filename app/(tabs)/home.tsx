@@ -1,18 +1,24 @@
 import { CategoryCard } from "@/components/CategoryCard";
 import { TopProviderCard } from "@/components/TopProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { t } from "@/i18n";
+import { t, getLocale } from "@/i18n";
 import { getAddresses, type Address } from "@/services/addresses";
 import { Category, fetchCategories } from "@/services/categories";
+import { fetchPromotions, type Promotion } from "@/services/promotions";
 import { Supplier, fetchSuppliers } from "@/services/suppliers";
 import { useFavoritesStore } from "@/stores/favoritesStore";
 import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji } from "@/utils/categoryDisplay";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, type ViewToken } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const CAROUSEL_PADDING = 20;
+const CAROUSEL_ITEM_WIDTH = SCREEN_WIDTH - CAROUSEL_PADDING * 2;
+const AUTO_SCROLL_INTERVAL = 5000;
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -23,9 +29,22 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useState(t("home.location")); // Default fallback
+  const [location, setLocation] = useState(t("home.location"));
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [activePromoIndex, setActivePromoIndex] = useState(0);
+  const carouselRef = useRef<FlatList<Promotion>>(null);
+  const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Reload default address when screen comes into focus (e.g., after changing default address)
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setActivePromoIndex(viewableItems[0].index);
+      }
+    },
+  ).current;
+
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
   useFocusEffect(
     useCallback(() => {
       loadDefaultAddress();
@@ -123,10 +142,32 @@ export default function HomeScreen() {
     }
   }, [user?.id]);
 
+  const loadPromotions = useCallback(async () => {
+    const lang = getLocale();
+    const tier = user?.tier ?? "bronze";
+    const data = await fetchPromotions(lang, tier);
+    setPromotions(data);
+  }, [user?.tier]);
+
   useEffect(() => {
     loadCategories();
     loadTopProviders();
-  }, [loadTopProviders]);
+    loadPromotions();
+  }, [loadTopProviders, loadPromotions]);
+
+  useEffect(() => {
+    if (promotions.length <= 1) return;
+    autoScrollTimer.current = setInterval(() => {
+      setActivePromoIndex((prev) => {
+        const next = (prev + 1) % promotions.length;
+        carouselRef.current?.scrollToIndex({ index: next, animated: true });
+        return next;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+    return () => {
+      if (autoScrollTimer.current) clearInterval(autoScrollTimer.current);
+    };
+  }, [promotions.length]);
 
   const handleCategoryPress = (categoryId: string) => {
     try {
@@ -231,19 +272,74 @@ export default function HomeScreen() {
           }
         </View>
 
-        {/* Promo Banner */}
-        <View style={styles.promoSection}>
-          <TouchableOpacity activeOpacity={0.9} onPress={handleViewAllCategories}>
-            <LinearGradient colors={["#3B82F6", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.promoBanner}>
-              <Text style={styles.promoLabel}>{t("home.promoLabel")}</Text>
-              <Text style={styles.promoDiscount}>{t("home.promoDiscount")}</Text>
-              <Text style={styles.promoDescription}>{t("home.promoDescription")}</Text>
-              <TouchableOpacity style={styles.promoButton} onPress={handleViewAllCategories} activeOpacity={0.8}>
-                <Text style={styles.promoButtonText}>{t("home.promoButton")}</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        {/* Promotions Carousel */}
+        {promotions.length > 0 && (
+          <View style={styles.promoSection}>
+            <FlatList
+              ref={carouselRef}
+              data={promotions}
+              keyExtractor={(item) => item.id}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CAROUSEL_ITEM_WIDTH + 12}
+              decelerationRate="fast"
+              contentContainerStyle={{ paddingHorizontal: CAROUSEL_PADDING }}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
+              getItemLayout={(_, index) => ({
+                length: CAROUSEL_ITEM_WIDTH + 12,
+                offset: (CAROUSEL_ITEM_WIDTH + 12) * index,
+                index,
+              })}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={handleViewAllCategories}
+                  style={{ width: CAROUSEL_ITEM_WIDTH, marginRight: 12 }}
+                >
+                  <LinearGradient
+                    colors={[item.gradient_start, item.gradient_end]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.promoBanner}
+                  >
+                    {item.icon ? <Text style={styles.promoIcon}>{item.icon}</Text> : null}
+                    <Text style={styles.promoTitle}>{item.title}</Text>
+                    {item.subtitle ? (
+                      <Text style={styles.promoSubtitle}>{item.subtitle}</Text>
+                    ) : null}
+                    {item.description ? (
+                      <Text style={styles.promoDescription}>{item.description}</Text>
+                    ) : null}
+                    {item.cta_label ? (
+                      <TouchableOpacity
+                        style={styles.promoButton}
+                        onPress={handleViewAllCategories}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.promoButtonText}>{item.cta_label}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            />
+            {promotions.length > 1 && (
+              <View style={styles.paginationDots}>
+                {promotions.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      i === activePromoIndex && styles.dotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Top Providers Section */}
         <View style={styles.section}>
@@ -378,36 +474,41 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   promoSection: {
-    paddingHorizontal: 20,
     marginBottom: 20,
   },
   promoBanner: {
     borderRadius: 16,
     padding: 20,
-    minHeight: 160,
+    minHeight: 170,
     justifyContent: "center",
     alignItems: "center",
   },
-  promoLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    letterSpacing: 1,
-    marginBottom: 4,
-    opacity: 0.9,
+  promoIcon: {
+    fontSize: 28,
+    marginBottom: 6,
   },
-  promoDiscount: {
+  promoTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#FFFFFF",
-    marginBottom: 8,
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  promoSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 6,
+    textAlign: "center",
+    opacity: 0.95,
   },
   promoDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#FFFFFF",
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: "center",
-    opacity: 0.9,
+    opacity: 0.85,
+    paddingHorizontal: 8,
   },
   promoButton: {
     backgroundColor: "#FFFFFF",
@@ -419,6 +520,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#3B82F6",
+  },
+  paginationDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#4B5563",
+    marginHorizontal: 3,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: "#3B82F6",
+    borderRadius: 4,
   },
   providersList: {
     gap: 0,
