@@ -1,7 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, fetchMessages, Message, sendMessage } from '@/services/messages';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { fetchOrderDetail } from '@/services/orders';
+import { getProfileImageUrl } from '@/utils/profileImage';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
@@ -90,7 +92,7 @@ export default function ChatScreen() {
           // Use supplier object if available (has more complete info)
           if (orderDetails.supplier) {
             setProviderName(orderDetails.supplier.full_name || orderDetails.supplier.business_name || 'Provider');
-            setProviderImage(orderDetails.supplier.profile_image || null);
+            setProviderImage(getProfileImageUrl(orderDetails.supplier.profile_image) ?? null);
           } else if (orderDetails.order) {
             // Fallback to order fields if supplier object not available
             setProviderName(orderDetails.order.supplier_name || orderDetails.order.business_name || 'Provider');
@@ -356,13 +358,12 @@ export default function ChatScreen() {
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         
-        {providerImage ? (
-          <Image source={{ uri: providerImage }} style={styles.headerAvatar} />
-        ) : (
-          <View style={styles.headerAvatarPlaceholder}>
-            <Text style={styles.headerAvatarEmoji}>🧑‍🔧</Text>
-          </View>
-        )}
+        <ProviderAvatar
+          profileImage={providerImage}
+          size={44}
+          rounded
+          style={styles.headerAvatar}
+        />
         
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{providerName}</Text>

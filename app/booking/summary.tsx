@@ -1,6 +1,7 @@
 import { CLIENT_TIERS } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { getLocale, t } from "@/i18n";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { Address, getAddresses } from "@/services/addresses";
 import { createOrder, ApiError as OrderApiError } from "@/services/orders";
 import { ApiError, fetchSupplierProfile, fetchSupplierServices, Supplier, SupplierService } from "@/services/suppliers";
@@ -299,9 +300,12 @@ export default function BookingSummaryScreen() {
           <View style={styles.card}>
             <View style={styles.providerRow}>
               <View style={styles.providerAvatar}>
-                {supplier.profile_image ?
-                  <Image source={{ uri: supplier.profile_image }} style={styles.avatarImage} />
-                : <Text style={styles.avatarEmoji}>👨‍🔧</Text>}
+                <ProviderAvatar
+                  profileImage={supplier.profile_image}
+                  size={48}
+                  rounded
+                  style={styles.avatarImage}
+                />
               </View>
               <View style={styles.providerInfo}>
                 <View style={styles.providerNameRow}>

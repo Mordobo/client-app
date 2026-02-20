@@ -1,3 +1,4 @@
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { ApiError, fetchOrderDetail, OrderDetailResponse } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -5,7 +6,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -213,14 +213,12 @@ export default function BookingSuccessScreen() {
             {/* Provider Info */}
             <View style={styles.providerInfo}>
               <View style={styles.providerAvatar}>
-                {supplier?.profile_image ? (
-                  <Image
-                    source={{ uri: supplier.profile_image }}
-                    style={styles.avatarImage}
-                  />
-                ) : (
-                  <Ionicons name="person" size={24} color={colors.textSecondary} />
-                )}
+                <ProviderAvatar
+                  profileImage={supplier?.profile_image}
+                  size={48}
+                  rounded
+                  style={styles.avatarImage}
+                />
               </View>
               <View style={styles.providerText}>
                 <Text style={styles.providerName}>

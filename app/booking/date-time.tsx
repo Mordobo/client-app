@@ -6,6 +6,7 @@ import {
   SupplierService,
   ApiError,
 } from '@/services/suppliers';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -439,11 +440,12 @@ export default function BookingDateTimeScreen() {
         {/* Provider Mini Card */}
         <View style={styles.providerCard}>
           <View style={styles.providerImageContainer}>
-            {supplier.profile_image ? (
-              <Image source={{ uri: supplier.profile_image }} style={styles.providerImage} />
-            ) : (
-              <Ionicons name="person" size={24} color={colors.textSecondary} />
-            )}
+            <ProviderAvatar
+              profileImage={supplier.profile_image}
+              size={48}
+              rounded
+              style={styles.providerImage}
+            />
           </View>
           <View style={styles.providerInfo}>
             <Text style={styles.providerName}>{supplier.full_name}</Text>

@@ -7,6 +7,7 @@ import {
   fetchFavorites,
   removeFavorite,
 } from '@/services/favorites';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -248,17 +249,12 @@ export default function FavoritesScreen() {
                   onPress={() => handleCardPress(provider.id)}
                   activeOpacity={0.7}
                 >
-                  {provider.profile_image ? (
-                    <Image
-                      source={{ uri: provider.profile_image }}
-                      style={styles.providerPhoto}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View style={[styles.providerPhoto, { backgroundColor: colors.bgInput }]}>
-                      <Ionicons name="person" size={28} color={colors.textSecondary} />
-                    </View>
-                  )}
+                  <ProviderAvatar
+                    profileImage={provider.profile_image}
+                    size={64}
+                    rounded
+                    style={styles.providerPhoto}
+                  />
                 </TouchableOpacity>
 
                 {/* Info in the middle */}
