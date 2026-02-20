@@ -2,8 +2,13 @@ import { t } from '@/i18n';
 import { refreshTokens, setTokenUpdateCallback, clearTokenState } from '@/services/auth';
 import { getProfile } from '@/services/profile';
 import { authEvents } from '@/utils/authEvents';
+import { getTimeUntilExpiryMs, isTokenExpiringSoon } from '@/utils/tokenUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+
+const REFRESH_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes before expiry
+const REFRESH_SAFETY_MARGIN = 0.80; // refresh at 80% of token lifetime
 
 export interface User {
   id: string;
@@ -48,6 +53,8 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRefreshingRef = useRef(false);
 
   useEffect(() => {
     loadUserFromStorage();
@@ -261,6 +268,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshUserTokens = async (): Promise<boolean> => {
+    if (isRefreshingRef.current) return false;
+    isRefreshingRef.current = true;
     try {
       if (!user?.refreshToken) {
         console.log('[AuthContext] No refresh token available');
@@ -272,14 +281,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         authToken: refreshResponse.accessToken,
         refreshToken: refreshResponse.refreshToken,
       });
+      console.log('[AuthContext] Silent refresh successful');
       return true;
     } catch (error) {
       console.error('[AuthContext] Token refresh failed:', error);
-      // If refresh fails, logout user
       await logout();
       return false;
+    } finally {
+      isRefreshingRef.current = false;
     }
   };
+
+  const scheduleProactiveRefresh = useCallback((authToken: string | undefined) => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    if (!authToken) return;
+
+    const remaining = getTimeUntilExpiryMs(authToken);
+    if (remaining === null || remaining <= 0) return;
+
+    const delay = Math.max(remaining * REFRESH_SAFETY_MARGIN, 10_000);
+    console.log(`[AuthContext] Proactive refresh scheduled in ${Math.round(delay / 1000)}s`);
+
+    refreshTimerRef.current = setTimeout(async () => {
+      if (isRefreshingRef.current) return;
+      console.log('[AuthContext] Proactive refresh triggered');
+      await refreshUserTokens();
+    }, delay);
+  }, []);
+
+  // Schedule proactive refresh whenever the token changes
+  useEffect(() => {
+    scheduleProactiveRefresh(user?.authToken);
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [user?.authToken, scheduleProactiveRefresh]);
+
+  // Refresh token when app comes to foreground
+  useEffect(() => {
+    const handleAppState = async (next: AppStateStatus) => {
+      if (next !== 'active') return;
+      if (!user?.authToken || !user?.refreshToken) return;
+      if (isRefreshingRef.current) return;
+
+      if (isTokenExpiringSoon(user.authToken, REFRESH_THRESHOLD_MS)) {
+        console.log('[AuthContext] App foregrounded with expiring token, refreshing...');
+        await refreshUserTokens();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
+  }, [user?.authToken, user?.refreshToken]);
 
   // Calculate isAuthenticated - ensure it's always a boolean
   const isAuthenticated = !!user;
