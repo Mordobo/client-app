@@ -67,16 +67,27 @@ function getInitials(displayName: string): string {
   return displayName.trim().slice(0, 2).toUpperCase() || "?";
 }
 
-/** Flatten categories tree into options: parent then subcategories, value = id (prefer subcategory) */
-function flattenCategoryOptions(tree: CategoryTreeItem[]): { id: string; name: string; isSub: boolean }[] {
-  const out: { id: string; name: string; isSub: boolean }[] = [];
-  for (const cat of tree) {
-    out.push({ id: cat.id, name: cat.name, isSub: false });
-    for (const sub of cat.subcategories || []) {
-      out.push({ id: sub.id, name: `${cat.name} › ${sub.name}`, isSub: true });
-    }
+/** Parent categories only (for first dropdown) */
+function getParentCategoryOptions(tree: CategoryTreeItem[]): { id: string; name: string }[] {
+  return (tree || []).map((c) => ({ id: c.id, name: c.name }));
+}
+
+/** Get subcategories for a parent (for second dropdown). Returns empty if parentId not in tree. */
+function getSubcategoryOptions(tree: CategoryTreeItem[] | undefined, parentId: string | null): { id: string; name: string }[] {
+  if (!tree || !parentId) return [];
+  const parent = tree.find((c) => c.id === parentId);
+  return (parent?.subcategories || []).map((s) => ({ id: s.id, name: s.name }));
+}
+
+/** Resolve which parent is selected from current categoryId (parent id or subcategory's parent) */
+function getSelectedParentId(tree: CategoryTreeItem[] | undefined, categoryId: string | null): string | null {
+  if (!tree || !categoryId) return null;
+  const asParent = tree.find((c) => c.id === categoryId);
+  if (asParent) return categoryId;
+  for (const c of tree) {
+    if ((c.subcategories || []).some((s) => s.id === categoryId)) return c.id;
   }
-  return out;
+  return null;
 }
 
 export default function ProviderEditProfileScreen() {
@@ -88,6 +99,7 @@ export default function ProviderEditProfileScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
   const [specialtyModalVisible, setSpecialtyModalVisible] = useState(false);
   const [newSpecialtyText, setNewSpecialtyText] = useState("");
 
@@ -103,8 +115,8 @@ export default function ProviderEditProfileScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const categoryOptions = useMemo(
-    () => (categoriesTree ? flattenCategoryOptions(categoriesTree) : []),
+  const parentCategoryOptions = useMemo(
+    () => (categoriesTree ? getParentCategoryOptions(categoriesTree) : []),
     [categoriesTree],
   );
 
@@ -132,22 +144,38 @@ export default function ProviderEditProfileScreen() {
     name: "specialties",
   });
 
+  const selectedCategoryId = watch("categoryId");
+  const selectedParentId = useMemo(
+    () => getSelectedParentId(categoriesTree ?? undefined, selectedCategoryId),
+    [categoriesTree, selectedCategoryId],
+  );
+  const subcategoryOptions = useMemo(
+    () => getSubcategoryOptions(categoriesTree ?? undefined, selectedParentId),
+    [categoriesTree, selectedParentId],
+  );
+  const selectedParentLabel = selectedParentId
+    ? parentCategoryOptions.find((o) => o.id === selectedParentId)?.name ?? ""
+    : "";
+  const selectedSubcategoryLabel = selectedCategoryId && subcategoryOptions.some((s) => s.id === selectedCategoryId)
+    ? subcategoryOptions.find((o) => o.id === selectedCategoryId)?.name ?? ""
+    : "";
+
   const bioValue = watch("bio");
   const bioLength = typeof bioValue === "string" ? bioValue.length : 0;
 
   // Resolve categoryId from categoryName when onboarding saved only the name (e.g. parent category)
   const resolvedCategoryId = useMemo(() => {
     if (profile?.categoryId) return profile.categoryId;
-    if (!profile?.categoryName || !categoryOptions.length) return null;
+    if (!profile?.categoryName || !categoriesTree?.length) return null;
     const name = profile.categoryName.trim();
-    const found = categoryOptions.find(
-      (o) =>
-        o.name === name ||
-        o.name.endsWith(" › " + name) ||
-        o.name.startsWith(name + " › ")
-    );
-    return found?.id ?? null;
-  }, [profile?.categoryId, profile?.categoryName, categoryOptions]);
+    for (const c of categoriesTree) {
+      if (c.name === name) return c.id;
+      for (const s of c.subcategories || []) {
+        if (s.name === name) return s.id;
+      }
+    }
+    return null;
+  }, [profile?.categoryId, profile?.categoryName, categoriesTree]);
 
   useEffect(() => {
     if (!profile) return;
@@ -260,11 +288,6 @@ export default function ProviderEditProfileScreen() {
     [queryClient, router],
   );
 
-  const selectedCategoryId = watch("categoryId");
-  const selectedCategoryLabel = selectedCategoryId
-    ? categoryOptions.find((o) => o.id === selectedCategoryId)?.name ?? ""
-    : "";
-
   if (profileLoading && !profile) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -362,14 +385,14 @@ export default function ProviderEditProfileScreen() {
               <Controller
                 control={control}
                 name="categoryId"
-                render={({ field: { onChange, value } }) => (
+                render={({ field: { onChange } }) => (
                   <>
                     <TouchableOpacity
                       style={styles.input}
                       onPress={() => setCategoryModalVisible(true)}
                     >
-                      <Text style={value ? styles.inputText : styles.inputPlaceholder}>
-                        {selectedCategoryLabel || "Select category"}
+                      <Text style={selectedParentLabel ? styles.inputText : styles.inputPlaceholder}>
+                        {selectedParentLabel || t("providerDashboard.providerEditProfile.selectCategory")}
                       </Text>
                       <Ionicons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
                     </TouchableOpacity>
@@ -384,15 +407,66 @@ export default function ProviderEditProfileScreen() {
                         activeOpacity={1}
                         onPress={() => setCategoryModalVisible(false)}
                       >
-                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + 24 }]}>
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + 24 }]} onStartShouldSetResponder={() => true}>
                           <ScrollView>
-                            {categoryOptions.map((opt) => (
+                            {parentCategoryOptions.map((opt) => (
                               <TouchableOpacity
                                 key={opt.id}
                                 style={styles.modalOption}
                                 onPress={() => {
                                   onChange(opt.id);
                                   setCategoryModalVisible(false);
+                                }}
+                              >
+                                <Text style={styles.modalOptionText}>{opt.name}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      </TouchableOpacity>
+                    </Modal>
+                  </>
+                )}
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.label}>{t("providerDashboard.providerEditProfile.subcategory")}</Text>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field: { onChange } }) => (
+                  <>
+                    <TouchableOpacity
+                      style={[styles.input, !selectedParentId && styles.inputDisabled]}
+                      onPress={() => selectedParentId && setSubcategoryModalVisible(true)}
+                      disabled={!selectedParentId}
+                    >
+                      <Text style={selectedSubcategoryLabel ? styles.inputText : styles.inputPlaceholder}>
+                        {selectedSubcategoryLabel || t("providerDashboard.providerEditProfile.selectSubcategory")}
+                      </Text>
+                      <Ionicons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
+                    </TouchableOpacity>
+                    <Modal
+                      visible={subcategoryModalVisible}
+                      transparent
+                      animationType="slide"
+                      onRequestClose={() => setSubcategoryModalVisible(false)}
+                    >
+                      <TouchableOpacity
+                        style={styles.modalOverlay}
+                        activeOpacity={1}
+                        onPress={() => setSubcategoryModalVisible(false)}
+                      >
+                        <View style={[styles.modalContent, { paddingBottom: insets.bottom + 24 }]} onStartShouldSetResponder={() => true}>
+                          <ScrollView>
+                            {subcategoryOptions.map((opt) => (
+                              <TouchableOpacity
+                                key={opt.id}
+                                style={styles.modalOption}
+                                onPress={() => {
+                                  onChange(opt.id);
+                                  setSubcategoryModalVisible(false);
                                 }}
                               >
                                 <Text style={styles.modalOptionText}>{opt.name}</Text>
@@ -707,6 +781,9 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.3)",
     fontSize: 14,
     flex: 1,
+  },
+  inputDisabled: {
+    opacity: 0.6,
   },
   inputError: {
     borderColor: "#EF4444",
