@@ -17,7 +17,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Controller,
     useFieldArray,
@@ -27,6 +27,7 @@ import {
 import {
     ActivityIndicator,
     Alert,
+    findNodeHandle,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -104,6 +105,27 @@ export default function ProviderEditProfileScreen() {
   const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
   const [specialtyModalVisible, setSpecialtyModalVisible] = useState(false);
   const [newSpecialtyText, setNewSpecialtyText] = useState("");
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const contactPhoneFieldRef = useRef<View>(null);
+  const yearsExperienceFieldRef = useRef<View>(null);
+
+  const scrollToFocusedField = useCallback((fieldRef: React.RefObject<View | null>) => {
+    const scrollRef = scrollViewRef.current;
+    const node = fieldRef.current;
+    const scrollNativeHandle = scrollRef ? findNodeHandle(scrollRef) : null;
+    if (!scrollRef || !node || scrollNativeHandle == null) return;
+    node.measureLayout(
+      scrollNativeHandle,
+      (_x: number, y: number) => {
+        scrollRef.scrollTo({
+          y: Math.max(0, y - 100),
+          animated: true,
+        });
+      },
+      () => {},
+    );
+  }, []);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["providerProfile"],
@@ -318,8 +340,8 @@ export default function ProviderEditProfileScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={insets.top + 56}
       >
         {/* Back header with Save */}
         <View style={styles.header}>
@@ -339,6 +361,7 @@ export default function ProviderEditProfileScreen() {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scroll}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
@@ -602,7 +625,7 @@ export default function ProviderEditProfileScreen() {
               {errors.bio && <Text style={styles.errorText}>{errors.bio.message}</Text>}
             </View>
 
-            <View style={styles.field}>
+            <View ref={contactPhoneFieldRef} style={styles.field}>
               <Text style={styles.label}>{t("providerDashboard.providerEditProfile.contactPhone")}</Text>
               <Controller
                 control={control}
@@ -611,6 +634,7 @@ export default function ProviderEditProfileScreen() {
                   <TextInput
                     style={[styles.input, errors.phoneNumber && styles.inputError]}
                     onBlur={onBlur}
+                    onFocus={() => scrollToFocusedField(contactPhoneFieldRef)}
                     onChangeText={(text) => onChange(normalizePhoneInput(text))}
                     value={value}
                     placeholder="+52 55 1234 5678"
@@ -625,7 +649,7 @@ export default function ProviderEditProfileScreen() {
               )}
             </View>
 
-            <View style={styles.field}>
+            <View ref={yearsExperienceFieldRef} style={styles.field}>
               <Text style={styles.label}>{t("providerDashboard.providerEditProfile.yearsExperience")}</Text>
               <Controller
                 control={control}
@@ -634,6 +658,7 @@ export default function ProviderEditProfileScreen() {
                   <TextInput
                     style={[styles.input, errors.yearsExperience && styles.inputError]}
                     onBlur={onBlur}
+                    onFocus={() => scrollToFocusedField(yearsExperienceFieldRef)}
                     onChangeText={(v) => onChange(v === "" ? null : v)}
                     value={value == null ? "" : String(value)}
                     placeholder="10"
