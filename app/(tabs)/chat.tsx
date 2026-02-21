@@ -3,8 +3,8 @@ import { t } from "@/i18n";
 import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, AppStateStatus, ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ConversationsListScreen() {
@@ -16,10 +16,13 @@ export default function ConversationsListScreen() {
   const [error, setError] = useState<string | null>(null);
   const [optionsConversation, setOptionsConversation] = useState<Conversation | null>(null);
 
-  const loadConversations = useCallback(async () => {
+  const POLLING_INTERVAL_MS = 2000;
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadConversations = useCallback(async (showLoading = true) => {
     try {
       setError(null);
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const data = await fetchConversations('client');
       // Sort by most recent (last_message_at descending)
       // Handle null last_message_at by putting them at the end
@@ -73,19 +76,41 @@ export default function ConversationsListScreen() {
   }, []);
 
   useEffect(() => {
-    loadConversations();
+    loadConversations(true);
+  }, [loadConversations]);
+
+  useEffect(() => {
+    const startPolling = () => {
+      if (pollingRef.current) return;
+      pollingRef.current = setInterval(() => loadConversations(false), POLLING_INTERVAL_MS);
+    };
+    const stopPolling = () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+    const sub = AppState.addEventListener("change", (state: AppStateStatus) => {
+      if (state === "active") startPolling();
+      else stopPolling();
+    });
+    startPolling();
+    return () => {
+      sub.remove();
+      stopPolling();
+    };
   }, [loadConversations]);
 
   // Refetch when returning from chat so unread count and list stay in sync (MDB-160 / MDB-244)
   useFocusEffect(
     useCallback(() => {
-      loadConversations();
+      loadConversations(false);
     }, [loadConversations])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    loadConversations();
+    loadConversations(true);
   }, [loadConversations]);
 
   const handleConversationPress = (conversationId: string) => {
