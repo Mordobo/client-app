@@ -71,6 +71,9 @@ function RootLayoutNav() {
           <Stack.Screen name="chat" options={{ headerShown: false }} />
         )}
         {isAuthenticated && (
+          <Stack.Screen name="account" options={{ headerShown: false }} />
+        )}
+        {isAuthenticated && (
           <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
         )}
         {!isAuthenticated && (

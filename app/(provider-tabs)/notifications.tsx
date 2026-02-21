@@ -309,7 +309,7 @@ export default function ProviderNotificationsScreen() {
             </View>
           ))}
 
-          <TouchableOpacity style={styles.settingsButton} onPress={() => router.push("/profile/settings")} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.settingsButton} onPress={() => router.push("/account/settings")} activeOpacity={0.7}>
             <Ionicons name="settings-outline" size={20} color="rgba(255,255,255,0.5)" />
             <Text style={styles.settingsButtonText}>{t("providerDashboard.providerNotifications.settings")}</Text>
           </TouchableOpacity>

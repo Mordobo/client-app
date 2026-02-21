@@ -218,7 +218,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.locationSection}>
             <Text style={styles.locationLabel}>{t("home.locationLabel")}</Text>
-            <TouchableOpacity style={styles.locationButton} onPress={() => router.push("/profile/my-addresses")}>
+            <TouchableOpacity style={styles.locationButton} onPress={() => router.push("/account/my-addresses")}>
               <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
                 {location}
               </Text>
