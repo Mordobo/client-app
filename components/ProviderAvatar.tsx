@@ -1,13 +1,8 @@
 import { getProfileImageUrl } from '@/utils/profileImage';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import {
-  Image,
-  StyleSheet,
-  View,
-  type ImageStyle,
-  type ViewStyle,
-} from 'react-native';
+import { Image } from 'expo-image';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, type ImageStyle, type ViewStyle } from 'react-native';
 
 const PLACEHOLDER_BG = '#2d2d4a';
 const PLACEHOLDER_ICON_COLOR = '#9CA3AF';
@@ -21,8 +16,8 @@ interface ProviderAvatarProps {
 }
 
 /**
- * Avatar for providers (or any profile). Shows profile image when available,
- * or a local default placeholder (icon on background). Never relies on external URLs.
+ * Avatar for providers (or any profile). Uses expo-image for reliable loading
+ * and caching. Shows profile image when available, or placeholder icon.
  */
 export function ProviderAvatar({
   profileImage,
@@ -34,6 +29,10 @@ export function ProviderAvatar({
   const [error, setError] = useState(false);
   const uri = getProfileImageUrl(profileImage);
   const showImage = uri && !error;
+
+  useEffect(() => {
+    setError(false);
+  }, [uri]);
 
   const borderRadius = rounded ? size / 2 : 14;
   const containerStyle = [
@@ -50,11 +49,14 @@ export function ProviderAvatar({
   if (showImage) {
     return (
       <Image
+        key={uri}
         source={{ uri }}
         style={[
           { width: size, height: size, borderRadius },
           imageStyle,
         ]}
+        contentFit="cover"
+        cachePolicy="disk"
         onError={() => setError(true)}
       />
     );

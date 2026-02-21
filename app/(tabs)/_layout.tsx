@@ -27,6 +27,11 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
     return () => clearInterval(interval);
   }, [loadUnreadCount]);
 
+  // Refresh badge when user switches to Chat tab (e.g. after leaving a conversation) (MDB-160 / MDB-244)
+  useEffect(() => {
+    if (focused) loadUnreadCount();
+  }, [focused, loadUnreadCount]);
+
   return (
     <View>
       <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={20} color={color} />
