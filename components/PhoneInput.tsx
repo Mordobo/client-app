@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     FlatList,
+    KeyboardAvoidingView,
     Modal,
     Platform,
     StyleSheet,
@@ -69,22 +70,28 @@ export function PhoneInput({
     }
   }, [selectedCountry, phoneExtension, onExtensionChange]);
 
-  // Filter extensions based on search
+  // Filter extensions based on search (by extension number or country name)
   const filteredExtensions = useMemo(() => {
-    if (!extensionSearchQuery.trim()) {
-      // Show common extensions first, then all others
+    const list = (() => {
       const commonSet = new Set(COMMON_EXTENSIONS);
       const others = COUNTRIES.map(c => c.phoneExtension)
         .filter((ext, index, self) => self.indexOf(ext) === index)
         .filter(ext => !commonSet.has(ext))
         .sort();
       return [...COMMON_EXTENSIONS, ...others];
+    })();
+    if (!extensionSearchQuery.trim()) {
+      return list;
     }
-    const query = extensionSearchQuery.toLowerCase();
-    return COMMON_EXTENSIONS.filter(ext => 
-      ext.includes(query) || 
-      COUNTRIES.find(c => c.phoneExtension === ext && c.name.toLowerCase().includes(query))
-    );
+    const queryLower = extensionSearchQuery.toLowerCase();
+    const queryDigits = queryLower.replace(/\D/g, '');
+    return list.filter(ext => {
+      const extDigits = ext.replace(/\D/g, '');
+      const matchByNumber = queryDigits.length > 0 && extDigits.includes(queryDigits);
+      const country = COUNTRIES.find(c => c.phoneExtension === ext);
+      const matchByCountryName = country && country.name.toLowerCase().includes(queryLower);
+      return matchByNumber || matchByCountryName;
+    });
   }, [extensionSearchQuery]);
 
   // Format phone number (numbers only, max 15 digits per E.164)
@@ -158,83 +165,88 @@ export function PhoneInput({
           setExtensionSearchQuery('');
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('auth.selectExtension')}</Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setExtensionModalVisible(false);
-                  setExtensionSearchQuery('');
-                }}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={t('auth.searchExtension')}
-                placeholderTextColor="rgba(156, 163, 175, 0.5)"
-                value={extensionSearchQuery}
-                onChangeText={setExtensionSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {extensionSearchQuery.length > 0 && (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalKeyboardView}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t('auth.selectExtension')}</Text>
                 <TouchableOpacity
-                  onPress={() => setExtensionSearchQuery('')}
-                  style={styles.clearButton}
+                  onPress={() => {
+                    setExtensionModalVisible(false);
+                    setExtensionSearchQuery('');
+                  }}
+                  style={styles.closeButton}
                 >
-                  <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            {/* Extensions List */}
-            <FlatList
-              data={filteredExtensions}
-              keyExtractor={(item) => item}
-              renderItem={({ item: ext }) => {
-                const country = COUNTRIES.find(c => c.phoneExtension === ext);
-                return (
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder={t('auth.searchExtension')}
+                  placeholderTextColor="rgba(156, 163, 175, 0.5)"
+                  value={extensionSearchQuery}
+                  onChangeText={setExtensionSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {extensionSearchQuery.length > 0 && (
                   <TouchableOpacity
-                    style={[
-                      styles.extensionItem,
-                      phoneExtension === ext && styles.extensionItemSelected,
-                    ]}
-                    onPress={() => handleSelectExtension(ext)}
+                    onPress={() => setExtensionSearchQuery('')}
+                    style={styles.clearButton}
                   >
-                    <Text
-                      style={[
-                        styles.extensionItemText,
-                        phoneExtension === ext && styles.extensionItemTextSelected,
-                      ]}
-                    >
-                      {ext}
-                    </Text>
-                    {country && (
-                      <Text style={styles.extensionItemCountry}>
-                        {country.name}
-                      </Text>
-                    )}
-                    {phoneExtension === ext && (
-                      <Ionicons name="checkmark" size={20} color="#3B82F6" />
-                    )}
+                    <Ionicons name="close-circle" size={20} color="#9CA3AF" />
                   </TouchableOpacity>
-                );
-              }}
-              style={styles.extensionsList}
-              contentContainerStyle={styles.extensionsListContent}
-              showsVerticalScrollIndicator={true}
-            />
+                )}
+              </View>
+
+              {/* Extensions List */}
+              <FlatList
+                data={filteredExtensions}
+                keyExtractor={(item) => item}
+                renderItem={({ item: ext }) => {
+                  const country = COUNTRIES.find(c => c.phoneExtension === ext);
+                  return (
+                    <TouchableOpacity
+                      style={[
+                        styles.extensionItem,
+                        phoneExtension === ext && styles.extensionItemSelected,
+                      ]}
+                      onPress={() => handleSelectExtension(ext)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.extensionItemText,
+                          phoneExtension === ext && styles.extensionItemTextSelected,
+                        ]}
+                      >
+                        {ext}
+                      </Text>
+                      <Text style={styles.extensionItemCountry}>
+                        {country ? country.name : '\u2014'}
+                      </Text>
+                      {phoneExtension === ext && (
+                        <Ionicons name="checkmark" size={20} color="#3B82F6" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
+                style={styles.extensionsList}
+                contentContainerStyle={styles.extensionsListContent}
+                showsVerticalScrollIndicator={true}
+                keyboardShouldPersistTaps="handled"
+              />
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -299,6 +311,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6,
     fontWeight: '500',
+  },
+  modalKeyboardView: {
+    flex: 1,
   },
   modalOverlay: {
     flex: 1,
