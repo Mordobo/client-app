@@ -134,12 +134,12 @@ export default function ProfileScreen() {
   };
 
   const menuItems = [
-    { icon: "👤", label: t("profile.editProfile"), route: "/profile/edit" },
-    { icon: "📍", label: t("profile.myAddresses"), route: "/profile/my-addresses" },
-    { icon: "💳", label: t("profile.paymentMethods"), route: "/profile/payment-methods" },
-    { icon: "❤️", label: t("profile.favorites"), route: "/profile/favorites" },
-    { icon: "🔔", label: t("profile.notifications"), route: "/profile/settings" },
-    { icon: "❓", label: t("profile.helpCenter"), route: "/profile/support" },
+    { icon: "👤", label: t("profile.editProfile"), route: "/account/edit" },
+    { icon: "📍", label: t("profile.myAddresses"), route: "/account/my-addresses" },
+    { icon: "💳", label: t("profile.paymentMethods"), route: "/account/payment-methods" },
+    { icon: "❤️", label: t("profile.favorites"), route: "/account/favorites" },
+    { icon: "🔔", label: t("profile.notifications"), route: "/account/settings" },
+    { icon: "❓", label: t("profile.helpCenter"), route: "/account/support" },
   ];
 
   const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";

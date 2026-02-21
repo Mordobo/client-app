@@ -540,7 +540,7 @@ export default function OrderDetailScreen() {
               styles.supportButton,
               pressed && styles.supportButtonPressed
             ]}
-            onPress={() => router.push('/profile/support')}
+            onPress={() => router.push('/account/support')}
           >
             <Text style={styles.supportButtonText}>
               {t('orders.inProgress.contactSupport')}
