@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeOrderMessages } from '@/hooks/useRealtimeOrderMessages';
 import { t } from '@/i18n';
 import { ApiError, fetchMessages, Message, sendMessage } from '@/services/messages';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
@@ -7,9 +8,11 @@ import { getProfileImageUrl } from '@/utils/profileImage';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    AppState,
+    AppStateStatus,
     ActivityIndicator,
     Alert,
     FlatList,
@@ -17,6 +20,7 @@ import {
     Keyboard,
     KeyboardAvoidingView,
     Platform,
+    RefreshControl,
     StyleSheet,
     Text,
     TextInput,
@@ -25,7 +29,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const POLLING_INTERVAL = 5000; // 5 seconds
+/** Poll every 2s so new messages appear without leaving the screen; Realtime still used when configured. */
+const POLLING_INTERVAL_MS = 2000;
 
 // Colors from JSX design
 const colors = {
@@ -53,9 +58,22 @@ export default function ChatScreen() {
   const [providerImage, setProviderImage] = useState<string | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const mergeRealtimeMessage = useCallback((msg: Message) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      const next = [...prev, msg];
+      next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      return next;
+    });
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+  }, []);
+
+  useRealtimeOrderMessages(orderId, mergeRealtimeMessage);
 
   const resetKeyboardLayout = useCallback(() => {
     setKeyboardVisible(false);
@@ -80,6 +98,20 @@ export default function ChatScreen() {
       console.error('Error loading messages:', err);
     }
   }, [orderId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (orderId) {
+        loadMessages(false);
+      }
+    }, [orderId, loadMessages])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadMessages(false);
+    setRefreshing(false);
+  }, [loadMessages]);
 
   useEffect(() => {
     if (orderId) {
@@ -109,15 +141,26 @@ export default function ChatScreen() {
 
       initChat();
 
-      // Start polling
-      pollingRef.current = setInterval(() => {
-        loadMessages(false);
-      }, POLLING_INTERVAL);
-
-      return () => {
+      const startPolling = () => {
+        if (pollingRef.current) return;
+        pollingRef.current = setInterval(() => loadMessages(false), POLLING_INTERVAL_MS);
+      };
+      const stopPolling = () => {
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
+          pollingRef.current = null;
         }
+      };
+
+      const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+        if (state === 'active') startPolling();
+        else stopPolling();
+      });
+      startPolling();
+
+      return () => {
+        sub.remove();
+        stopPolling();
       };
     }
   }, [orderId, loadMessages]);
@@ -413,6 +456,7 @@ export default function ChatScreen() {
             contentContainerStyle={styles.messagesList}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             onLayout={() => {
               if (!keyboardVisible) {

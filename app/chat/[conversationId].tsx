@@ -2,14 +2,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
+import { useRealtimeConversationMessages } from "@/hooks/useRealtimeConversationMessages";
 import { ConversationDetail, fetchConversation, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
 import { fetchOrderDetail, Order, OrderStatus } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { AppState, AppStateStatus, ActivityIndicator, Alert, FlatList, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, RefreshControl, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Client UI colors (original design)
@@ -23,7 +24,8 @@ const clientColors = {
   border: "#374151",
 };
 
-const POLLING_INTERVAL = 5000;
+/** Poll every 2s so new messages appear without leaving the screen; Realtime still used when configured. */
+const POLLING_INTERVAL_MS = 2000;
 
 // Design colors from provider-communication-preview.jsx
 const colors = {
@@ -68,9 +70,22 @@ export default function ChatScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [expandedImageUri, setExpandedImageUri] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const mergeRealtimeMessage = useCallback((msg: Message) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      const next = [...prev, msg];
+      next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      return next;
+    });
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+  }, []);
+
+  useRealtimeConversationMessages(conversationId, mergeRealtimeMessage);
 
   const resetKeyboardLayout = useCallback(() => {
     setKeyboardVisible(false);
@@ -90,6 +105,14 @@ export default function ChatScreen() {
       }
     },
     [conversationId, isProvider],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (conversationId && conversationId !== "demo") {
+        loadMessages(false);
+      }
+    }, [conversationId, loadMessages])
   );
 
   const loadConversation = useCallback(async () => {
@@ -140,9 +163,27 @@ export default function ChatScreen() {
       setLoading(false);
     };
     initChat();
-    pollingRef.current = setInterval(() => loadMessages(false), POLLING_INTERVAL);
+
+    const startPolling = () => {
+      if (pollingRef.current) return;
+      pollingRef.current = setInterval(() => loadMessages(false), POLLING_INTERVAL_MS);
+    };
+    const stopPolling = () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+
+    const sub = AppState.addEventListener("change", (state: AppStateStatus) => {
+      if (state === "active") startPolling();
+      else stopPolling();
+    });
+    startPolling();
+
     return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
+      sub.remove();
+      stopPolling();
     };
   }, [conversationId, loadConversation, loadMessages, router]);
 
@@ -201,6 +242,12 @@ export default function ChatScreen() {
   };
 
   const isMyMessage = (message: Message) => message.sender_id === user?.id;
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadMessages(false);
+    setRefreshing(false);
+  }, [loadMessages]);
 
   const handleCall = () => {
     const phone = conversation?.supplier_phone_number;
@@ -398,6 +445,7 @@ export default function ChatScreen() {
                 contentContainerStyle={clientStyles.messagesList}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="interactive"
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[clientColors.primary]} />}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
                 onLayout={() => {
                   if (!keyboardVisible) flatListRef.current?.scrollToEnd({ animated: false });
@@ -500,6 +548,7 @@ export default function ChatScreen() {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               ListHeaderComponent={null}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.statusGreen]} tintColor={colors.textMuted} />}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
               onLayout={() => {
                 if (!keyboardVisible) flatListRef.current?.scrollToEnd({ animated: false });
