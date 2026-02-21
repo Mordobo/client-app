@@ -58,6 +58,9 @@ export interface Message {
 /** Role for inbox: 'client' = conversations where user is client; 'provider' = where user is supplier */
 export type ConversationRole = 'client' | 'provider';
 
+/** Role to use when fetching messages / marking as read. Pass when opening chat so unread count updates correctly for provider inbox. */
+export type MessageViewRole = ConversationRole;
+
 // GET /conversations - Fetch conversations (optional role to separate client vs provider inbox)
 export const fetchConversations = async (role?: ConversationRole): Promise<Conversation[]> => {
   try {
@@ -199,20 +202,27 @@ export const fetchConversation = async (conversationId: string): Promise<Convers
   }
 };
 
-// GET /conversations/:id/messages - Fetch messages
-export const fetchConversationMessages = async (conversationId: string): Promise<Message[]> => {
+// GET /conversations/:id/messages - Fetch messages (viewAs: pass 'provider' when opening from provider inbox so backend marks as read for supplier and unread count updates)
+export const fetchConversationMessages = async (
+  conversationId: string,
+  viewAs?: MessageViewRole
+): Promise<Message[]> => {
   try {
     const token = await getToken();
-    
+
     if (!token) {
       handleUnauthorizedError();
       throw new ApiError('Not authenticated. Please log in.', 401);
     }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+
+    const asParam = viewAs === 'provider' ? 'supplier' : viewAs === 'client' ? 'client' : undefined;
+    const url = asParam
+      ? `${API_BASE}/conversations/${conversationId}/messages?as=${asParam}`
+      : `${API_BASE}/conversations/${conversationId}/messages`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       }),
     });
 

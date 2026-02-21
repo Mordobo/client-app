@@ -82,13 +82,14 @@ export default function ChatScreen() {
       if (!conversationId || conversationId === "demo") return;
       try {
         if (showLoading) setError(null);
-        const msgs = await fetchConversationMessages(conversationId);
+        const viewAs = isProvider ? "provider" : "client";
+        const msgs = await fetchConversationMessages(conversationId, viewAs);
         setMessages(msgs);
       } catch (err) {
         if (showLoading) setError(t("chat.failedToLoad"));
       }
     },
-    [conversationId],
+    [conversationId, isProvider],
   );
 
   const loadConversation = useCallback(async () => {
