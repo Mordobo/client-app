@@ -1,7 +1,7 @@
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Conversation, fetchConversations } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
@@ -65,6 +65,13 @@ export default function ConversationsListScreen() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  // Refetch when returning from chat so unread count and list stay in sync (MDB-160 / MDB-244)
+  useFocusEffect(
+    useCallback(() => {
+      loadConversations();
+    }, [loadConversations])
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

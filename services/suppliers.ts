@@ -143,14 +143,19 @@ export const fetchSuppliers = async (
     const jsonData = await response.json();
     // #region agent log
     // #endregion
-    
+
     // Validate response structure to prevent crashes
     if (!jsonData || typeof jsonData !== 'object') {
       throw new ApiError('Invalid response format from server', 500);
     }
-    
-    // Ensure suppliers is always an array
-    const suppliers = Array.isArray(jsonData.suppliers) ? jsonData.suppliers : [];
+
+    // Ensure suppliers is always an array and normalize profile_image (API may send snake_case;
+    // accept profile_image_url from API when present so images stay in sync with provider avatars)
+    const rawSuppliers = Array.isArray(jsonData.suppliers) ? jsonData.suppliers : [];
+    const suppliers = rawSuppliers.map((s: Record<string, unknown>) => ({
+      ...s,
+      profile_image: (s.profile_image_url as string) ?? (s.profile_image as string) ?? (s.profileImage as string) ?? undefined,
+    }));
     
     // Ensure total is always a number
     const total = typeof jsonData.total === 'number' ? jsonData.total : suppliers.length;
