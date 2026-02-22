@@ -183,7 +183,7 @@ export default function ProviderOnboardingBusinessScreen() {
       </ScrollView>
 
       {/* Navigation Buttons */}
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.business.back")}</Text>
         </TouchableOpacity>

@@ -60,7 +60,7 @@ export default function ProviderOnboardingWelcomeScreen() {
       </View>
 
       {/* CTA Button */}
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
         <TouchableOpacity
           style={styles.button}
           onPress={handleGetStarted}

@@ -234,7 +234,7 @@ export default function ProviderOnboardingAvailabilityScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.buttonContainer}>
+      <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.availability.back")}</Text>
         </TouchableOpacity>

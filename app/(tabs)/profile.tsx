@@ -1,6 +1,6 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { Toast } from "@/components/Toast";
-import { CLIENT_TIERS, getNextTier, getOrdersToNextTier } from "@/constants/tiers";
+import { CLIENT_TIERS } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
@@ -258,7 +258,7 @@ export default function ProfileScreen() {
         {/* Version from app.config */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.5"}
+            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.6"}
           </Text>
         </View>
       </ScrollView>

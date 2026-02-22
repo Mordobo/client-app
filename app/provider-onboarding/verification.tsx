@@ -148,7 +148,7 @@ export default function ProviderOnboardingVerificationScreen() {
       </View>
 
       {isSubmitted && (
-        <View style={styles.buttonContainer}>
+        <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBackToHome}
