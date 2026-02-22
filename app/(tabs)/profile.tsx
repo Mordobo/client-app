@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -285,10 +286,10 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Version - From requirements */}
+        {/* Version from app.config */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            Version 1.0.3
+            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.6"}
           </Text>
         </View>
       </ScrollView>
