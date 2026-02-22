@@ -13,6 +13,4 @@ Mobile:
 - Return appropriate HTTP status codes (400, 401, 404, 409, 500)
 - Use descriptive error codes: validation_error, invalid_credentials, email_taken
 - Never expose internal error details in production
-- Log errors server-side but don't include sensitive data
-
-Always handle errors from the start, not as an afterthought.
+- Log errors server-side but don't include sensitive dataAlways handle errors from the start, not as an afterthought.

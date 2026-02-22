@@ -1,5 +1,5 @@
-import { request, ApiError as AuthApiError } from './auth';
 import { t } from '@/i18n';
+import { ApiError as AuthApiError, request } from './auth';
 
 export type OrderStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -17,6 +17,11 @@ export interface Order {
   status: OrderStatus;
   created_at: string;
   updated_at: string;
+  // Fields returned from backend JOINs
+  service_name?: string;
+  service_description?: string;
+  supplier_name?: string;
+  business_name?: string;
 }
 
 export interface Quote {

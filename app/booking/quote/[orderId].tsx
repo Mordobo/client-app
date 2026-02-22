@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { ApiError, approveQuote, fetchOrderDetail, OrderDetailResponse } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -92,7 +93,7 @@ export default function QuoteScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
@@ -100,12 +101,16 @@ export default function QuoteScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Service Info */}
         <View style={styles.section}>
           <View style={styles.serviceHeader}>
             <Ionicons name="broom" size={24} color="#3B82F6" />
-            <Text style={styles.serviceTitle}>House Cleaning</Text>
+            <Text style={styles.serviceTitle}>{orderData.order.service_name || t('orders.service')}</Text>
           </View>
           {quote.description && (
             <Text style={styles.description}>{quote.description}</Text>

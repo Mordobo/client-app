@@ -19,7 +19,7 @@ export interface Conversation {
   client_id: string;
   supplier_id: string;
   order_id: string | null;
-  last_message_at: string;
+  last_message_at: string | null; // Can be null if conversation has no messages yet
   created_at: string;
   other_user_name: string;
   other_user_image: string | null;
@@ -37,6 +37,8 @@ export interface ConversationDetail {
   client_name: string;
   supplier_name: string;
   supplier_image: string | null;
+  client_image?: string | null;
+  supplier_phone_number?: string;
 }
 
 export interface Message {
@@ -53,27 +55,74 @@ export interface Message {
 }
 
 
-// GET /conversations - Fetch all conversations
-export const fetchConversations = async (): Promise<Conversation[]> => {
+/** Role for inbox: 'client' = conversations where user is client; 'provider' = where user is supplier */
+export type ConversationRole = 'client' | 'provider';
+
+/** Role to use when fetching messages / marking as read. Pass when opening chat so unread count updates correctly for provider inbox. */
+export type MessageViewRole = ConversationRole;
+
+// GET /conversations - Fetch conversations (optional role to separate client vs provider inbox)
+export const fetchConversations = async (role?: ConversationRole): Promise<Conversation[]> => {
   try {
-    // Use request() from auth.ts which handles token refresh automatically
+    const asParam = role === 'provider' ? 'supplier' : 'client';
+    // Role is sent only in the URL so we avoid custom headers and CORS preflight issues in browser
     const data = await request<{ conversations: Conversation[] }>(
-      '/conversations',
-      {
-        method: 'GET',
-      },
+      `/conversations?as=${asParam}`,
+      { method: 'GET' },
       t('errors.requestFailedStatus', { status: 0 })
     );
     if (!data.conversations) {
       throw new ApiError('Invalid response format: missing conversations', 500);
     }
-    return data.conversations;
+    const sanitized = data.conversations.map((conv) => ({
+      ...conv,
+      last_message_at: conv.last_message_at || null,
+      last_message: conv.last_message || null,
+      other_user_image: conv.other_user_image || null,
+      unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
+    }));
+    return sanitized;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
     }
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
+};
+
+// DELETE /conversations/:id - Remove conversation and its messages
+export const deleteConversation = async (conversationId: string): Promise<void> => {
+  const token = await getToken();
+  if (!token) {
+    handleUnauthorizedError();
+    throw new ApiError('Not authenticated. Please log in.', 401);
+  }
+  const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (response.status === 401 || response.status === 403) {
+    handleUnauthorizedError();
+    throw new ApiError('Session expired. Please log in again.', response.status);
+  }
+  if (response.status === 404) {
+    throw new ApiError(t('chat.conversationNotFound'), 404);
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    let message = t('chat.deleteFailed');
+    try {
+      const data = text ? JSON.parse(text) : {};
+      if (typeof data.message === 'string') message = data.message;
+    } catch {
+      // use default message
+    }
+    throw new ApiError(message, response.status);
+  }
+  // 204 No Content - success
 };
 
 // POST /conversations - Create or get existing conversation
@@ -153,20 +202,27 @@ export const fetchConversation = async (conversationId: string): Promise<Convers
   }
 };
 
-// GET /conversations/:id/messages - Fetch messages
-export const fetchConversationMessages = async (conversationId: string): Promise<Message[]> => {
+// GET /conversations/:id/messages - Fetch messages (viewAs: pass 'provider' when opening from provider inbox so backend marks as read for supplier and unread count updates)
+export const fetchConversationMessages = async (
+  conversationId: string,
+  viewAs?: MessageViewRole
+): Promise<Message[]> => {
   try {
     const token = await getToken();
-    
+
     if (!token) {
       handleUnauthorizedError();
       throw new ApiError('Not authenticated. Please log in.', 401);
     }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
+
+    const asParam = viewAs === 'provider' ? 'supplier' : viewAs === 'client' ? 'client' : undefined;
+    const url = asParam
+      ? `${API_BASE}/conversations/${conversationId}/messages?as=${asParam}`
+      : `${API_BASE}/conversations/${conversationId}/messages`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       }),
     });
 

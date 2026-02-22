@@ -1,7 +1,7 @@
-import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, resendCode, verifyCode } from '@/services/auth';
+import { mapApiUserToUser } from '@/utils/authMapping';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CODE_LENGTH = 6;
-const RESEND_COOLDOWN_SECONDS = 45; // 45 seconds
+const RESEND_COOLDOWN_SECONDS = 60; // 60 seconds (sync with backend rate limit: 3 attempts per 2 minutes)
 const CODE_INPUT_GAP = 12;
 const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 
@@ -30,15 +30,27 @@ export default function VerifyScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
+  // Email that is doing login/register — from params or AsyncStorage so the code is always sent to this address
+  const [emailForVerification, setEmailForVerification] = useState<string | null>(params.email ?? null);
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
-  const [showCodeModal, setShowCodeModal] = useState(false);
-  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Resolve email from params or AsyncStorage (login/register always set pending_verification_email)
+  useEffect(() => {
+    if (params.email?.trim()) {
+      setEmailForVerification(params.email.trim().toLowerCase());
+      return;
+    }
+    AsyncStorage.getItem('pending_verification_email').then((stored) => {
+      if (stored?.trim()) setEmailForVerification(stored.trim().toLowerCase());
+    });
+  }, [params.email]);
 
   const handleBack = () => {
     // Since we use router.replace() to get here, there's no history
@@ -56,6 +68,11 @@ export default function VerifyScreen() {
     };
   }, []);
 
+  // Debug effect to monitor state changes
+  useEffect(() => {
+    console.log('[Verify] State changed', { canResend, resendCooldown });
+  }, [canResend, resendCooldown]);
+
   // Calculate code input width dynamically
   // Each input should be 48x56px according to specs, but we'll make it responsive
   const CODE_INPUT_TOTAL_GAP = CODE_INPUT_GAP * (CODE_LENGTH - 1);
@@ -66,14 +83,40 @@ export default function VerifyScreen() {
   const CODE_INPUT_HEIGHT = 56; // Fixed height as per specs
 
   useEffect(() => {
-    // Start cooldown timer
+    // Clear any existing interval first
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current);
+      cooldownIntervalRef.current = null;
+    }
+
+    // If cooldown is 0, enable resend immediately
+    if (resendCooldown === 0) {
+      setCanResend(true);
+      console.log('[Verify] Cooldown is 0, canResend set to true');
+      return;
+    }
+
+    // Start cooldown timer if cooldown is greater than 0
     if (resendCooldown > 0) {
+      setCanResend(false); // Ensure canResend is false when cooldown is active
+      console.log('[Verify] Starting cooldown timer', { resendCooldown });
+      
       cooldownIntervalRef.current = setInterval(() => {
         setResendCooldown((prev) => {
           if (prev <= 1) {
+            // Clear interval when cooldown reaches 0
+            if (cooldownIntervalRef.current) {
+              clearInterval(cooldownIntervalRef.current);
+              cooldownIntervalRef.current = null;
+            }
+            
+            // Enable resend
             setCanResend(true);
+            console.log('[Verify] Cooldown finished, canResend set to true');
+            
             return 0;
           }
+          
           return prev - 1;
         });
       }, 1000);
@@ -82,6 +125,7 @@ export default function VerifyScreen() {
     return () => {
       if (cooldownIntervalRef.current) {
         clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
       }
     };
   }, [resendCooldown]);
@@ -132,73 +176,38 @@ export default function VerifyScreen() {
   };
 
   const handleVerify = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:134',message:'handleVerify entry',data:{codeLength:code.join('').length,hasEmail:!!params.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     
     const verificationCode = code.join('');
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:137',message:'Verification code joined',data:{verificationCode,codeLength:verificationCode.length,expectedLength:CODE_LENGTH},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     
     if (verificationCode.length !== CODE_LENGTH) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:138',message:'Code length validation failed',data:{codeLength:verificationCode.length,expectedLength:CODE_LENGTH},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
 
-    const email = params.email;
+    const email = emailForVerification;
     if (!email) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:144',message:'Email missing from params',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       router.back();
       return;
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:149',message:'Before setLoading(true) and API call',data:{email,codeLength:verificationCode.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    
     setLoading(true);
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:152',message:'Before verifyCode API call',data:{email,code:verificationCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      
-      // Call API to verify code
+      // Call API to verify code (same email that received the code from login/register)
       const apiResponse = await verifyCode({
         email,
         code: verificationCode,
       });
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:156',message:'verifyCode API call succeeded',data:{hasUser:!!apiResponse.user,hasToken:!!apiResponse.accessToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
 
-      // Map API response to user data
-      const apiUser = apiResponse.user;
-      const fullName = apiUser.full_name || '';
-      const nameParts = fullName.split(/\s+/).filter(Boolean);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
-      const userData = {
-        id: apiUser.id,
-        email: apiUser.email,
-        firstName,
-        lastName,
-        phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
-        avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined,
-        country: (apiUser as Record<string, unknown>).country as string | undefined,
-        provider: 'email' as const,
-        authToken: apiResponse.accessToken || apiResponse.token,
-        refreshToken: apiResponse.refreshToken,
-      };
+      // Map API response to user data using helper function
+      const userData = mapApiUserToUser(
+        apiResponse.user,
+        'email',
+        apiResponse.accessToken || apiResponse.token,
+        apiResponse.refreshToken
+      );
 
       // Login user
       await login(userData);
@@ -209,21 +218,14 @@ export default function VerifyScreen() {
         'pending_verification_password',
       ]);
 
-      // Check if this is the first login using login_count from backend
-      const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
-      const isFirstLogin = loginCount === 1 || loginCount === undefined;
-      
-      if (isFirstLogin) {
-        // Navigate to onboarding screens for first-time users
-        router.replace('/(auth)/onboarding');
-      } else {
-        // Navigate to home on success
+      // Use DB flag: show client onboarding only if not yet completed
+      const clientOnboardingCompleted = (apiResponse.user as Record<string, unknown>).client_onboarding_completed === true;
+      if (clientOnboardingCompleted) {
         router.replace('/(tabs)/home');
+      } else {
+        router.replace('/(auth)/onboarding');
       }
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:197',message:'handleVerify error caught',data:{errorType:error instanceof Error?'Error':'Unknown',errorMessage:error instanceof Error?error.message:String(error),isApiError:error instanceof ApiError,status:error instanceof ApiError?error.status:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       console.error('Verification error:', error);
       console.error('Error details:', {
@@ -275,21 +277,30 @@ export default function VerifyScreen() {
   };
 
   const handleResend = async () => {
-    if (!canResend) {
+    console.log('[Verify] handleResend called', { canResend, resendCooldown });
+    
+    // Double check: verify both canResend state and cooldown value
+    if (!canResend || resendCooldown > 0) {
+      console.log('[Verify] Resend blocked', { canResend, resendCooldown });
       return;
     }
 
-    const email = params.email;
+    const email = emailForVerification;
     if (!email) {
+      console.log('[Verify] Resend blocked - no email (params or AsyncStorage)');
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       return;
     }
 
+    setResendLoading(true);
     try {
+      console.log('[Verify] Starting resend process for:', email);
+      
       // Get stored password from AsyncStorage
       const password = await AsyncStorage.getItem('pending_verification_password');
       
       if (!password) {
+        console.log('[Verify] Resend blocked - no password in storage');
         Alert.alert(
           t('common.error'),
           t('errors.unableToResendCode')
@@ -298,11 +309,15 @@ export default function VerifyScreen() {
         return;
       }
 
+      console.log('[Verify] Calling resendCode API...');
+      
       // Call API to resend code
       await resendCode({
         email,
         password,
       });
+      
+      console.log('[Verify] Resend API call successful');
       
       // Reset cooldown
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
@@ -321,30 +336,25 @@ export default function VerifyScreen() {
         const errorCode = errorData?.code as string | undefined;
         const errorMessage = error.message || t('errors.resendCodeFailed');
         
-        // Show detailed error for SMTP failures
-        if (errorCode === 'smtp_not_configured' || 
-            errorCode === 'email_send_timeout' || 
+        // Handle rate limiting (429 Too Many Requests)
+        if (error.status === 429) {
+          Alert.alert(
+            t('common.error'),
+            t('errors.rateLimitExceeded')
+          );
+          // Reset cooldown to prevent immediate retry
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+          setCanResend(false);
+          return;
+        }
+        
+        // Email/send errors: show message only (no modal with code)
+        if (errorCode === 'smtp_not_configured' ||
+            errorCode === 'email_send_timeout' ||
             errorCode === 'email_send_failed') {
-          // Check if backend returned the code as workaround
-          const code = errorData?.verificationCode as string | undefined;
-          
-          if (code) {
-            // Show modal with code
-            setVerificationCode(code);
-            setShowCodeModal(true);
-            return;
-          } else {
-            // No code provided, show error
-            const detailedMessage = errorData?.message 
-              ? String(errorData.message)
-              : errorMessage;
-            
-            Alert.alert(
-              t('common.error'),
-              `${t('errors.emailSendFailed')}\n\n${detailedMessage}`
-            );
-            return;
-          }
+          const detailedMessage = errorData?.message ? String(errorData.message) : errorMessage;
+          Alert.alert(t('common.error'), `${t('errors.emailSendFailed')}\n\n${detailedMessage}`);
+          return;
         }
         
         // Handle authentication errors
@@ -358,19 +368,18 @@ export default function VerifyScreen() {
       } else {
         Alert.alert(t('common.error'), t('errors.resendCodeFailed'));
       }
+    } finally {
+      setResendLoading(false);
     }
   };
 
   const isCodeComplete = code.every((digit) => digit !== '');
 
-  // #region agent log
   useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:334',message:'isCodeComplete state changed',data:{isCodeComplete,code:code.join(''),codeLength:code.join('').length,loading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
   }, [isCodeComplete, code, loading]);
-  // #endregion
 
-  // Get email from params (this is where the verification code is sent)
-  const displayEmail = params.email || '';
+  // Email that is doing login/register (where the verification code was sent)
+  const displayEmail = emailForVerification || params.email || '';
 
   return (
     <View style={styles.container}>
@@ -378,7 +387,7 @@ export default function VerifyScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={[styles.content, { paddingTop: Math.max(insets.top, 60) }]}>
+        <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
           {/* Back Button */}
           <Pressable
             style={({ pressed }) => [
@@ -435,9 +444,6 @@ export default function VerifyScreen() {
           <TouchableOpacity
             style={[styles.verifyButton, (!isCodeComplete || loading) && styles.verifyButtonDisabled]}
             onPress={() => {
-              // #region agent log
-              fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'verify.tsx:401',message:'Verify button onPress triggered',data:{isCodeComplete,loading,codeLength:code.join('').length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-              // #endregion
               handleVerify();
             }}
             disabled={!isCodeComplete || loading}
@@ -453,29 +459,36 @@ export default function VerifyScreen() {
           <View style={styles.resendContainer}>
             <Text style={styles.resendQuestion}>{t('auth.didntReceiveCode')}</Text>
             <TouchableOpacity
-              onPress={handleResend}
-              disabled={!canResend}
-              style={styles.resendButton}
-            >
-              <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
-                {canResend 
-                  ? t('auth.resendCode')
-                  : `${t('auth.resendCode')} (${formatTime(resendCooldown)})`
+              onPress={() => {
+                console.log('[Verify] Resend button pressed', { canResend, resendCooldown, resendLoading });
+                if (canResend && resendCooldown === 0 && !resendLoading) {
+                  handleResend();
+                } else {
+                  console.log('[Verify] Resend blocked by button check', { canResend, resendCooldown, resendLoading });
                 }
-              </Text>
+              }}
+              disabled={!canResend || resendCooldown > 0 || resendLoading}
+              style={styles.resendButton}
+              activeOpacity={canResend && resendCooldown === 0 && !resendLoading ? 0.7 : 1}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {resendLoading ? (
+                <View style={styles.resendLoadingContainer}>
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <Text style={[styles.resendLink, { marginLeft: 8 }]}>Enviando...</Text>
+                </View>
+              ) : (
+                <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
+                  {canResend 
+                    ? t('auth.resendCode')
+                    : `${t('auth.resendCode')} (${formatTime(resendCooldown)})`
+                  }
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
-      
-      {/* Verification Code Modal */}
-      <VerificationCodeModal
-        visible={showCodeModal}
-        code={verificationCode}
-        onClose={() => {
-          setShowCodeModal(false);
-        }}
-      />
     </View>
   );
 }
@@ -595,6 +608,11 @@ const styles = StyleSheet.create({
   },
   resendLinkDisabled: {
     color: '#3b82f6', // Still primary color even when disabled (shows timer)
+  },
+  resendLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

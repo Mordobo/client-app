@@ -2,8 +2,13 @@ import { t } from '@/i18n';
 import { refreshTokens, setTokenUpdateCallback, clearTokenState } from '@/services/auth';
 import { getProfile } from '@/services/profile';
 import { authEvents } from '@/utils/authEvents';
+import { getTimeUntilExpiryMs, isTokenExpiringSoon } from '@/utils/tokenUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+
+const REFRESH_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes before expiry
+const REFRESH_SAFETY_MARGIN = 0.80; // refresh at 80% of token lifetime
 
 export interface User {
   id: string;
@@ -13,9 +18,13 @@ export interface User {
   phone?: string;
   avatar?: string;
   country?: string;
+  gender?: 'male' | 'female';
+  dateOfBirth?: string;
   provider?: 'email' | 'google' | 'facebook' | 'apple';
   authToken?: string;
   refreshToken?: string;
+  tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+  completedOrdersCount?: number;
 }
 
 interface AuthContextType {
@@ -44,6 +53,8 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isRefreshingRef = useRef(false);
 
   useEffect(() => {
     loadUserFromStorage();
@@ -61,10 +72,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   const loadUserFromStorage = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:63',message:'loadUserFromStorage entry',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
-    
     try {
       console.log('AuthContext - Loading user from storage...');
       // Add timeout to prevent blocking if AsyncStorage is slow
@@ -77,10 +84,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }, 2000)
         ),
       ]);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:77',message:'loadUserFromStorage - userData retrieved',data:{hasUserData:!!userData,userDataLength:userData?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       
       console.log('AuthContext - User data from storage:', userData ? 'found' : 'not found');
       if (userData) {
@@ -108,6 +111,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const apiCountry = (apiUser as Record<string, unknown>).country as string | undefined;
             const apiPhone = (apiUser as Record<string, unknown>).phone_number as string | undefined;
             const apiAvatar = (apiUser as Record<string, unknown>).profile_image as string | undefined;
+            const apiGender = (apiUser as Record<string, unknown>).gender;
+            const apiDateOfBirth = (apiUser as Record<string, unknown>).date_of_birth as string | undefined;
+            
+            // Map gender: only accept 'male' or 'female', otherwise use existing or undefined
+            const gender = apiGender === 'male' || apiGender === 'female' 
+              ? apiGender 
+              : (parsedUser.gender || undefined);
+            
+            // Map dateOfBirth: use API value if present, otherwise keep existing
+            const dateOfBirth = apiDateOfBirth !== undefined && apiDateOfBirth.trim() !== ''
+              ? apiDateOfBirth.trim()
+              : (parsedUser.dateOfBirth || undefined);
+            
             const syncedUser: User = {
               ...parsedUser,
               firstName,
@@ -116,6 +132,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               phone: apiPhone !== undefined ? apiPhone : parsedUser.phone,
               avatar: apiAvatar !== undefined ? apiAvatar : parsedUser.avatar,
               country: apiCountry !== undefined ? apiCountry : parsedUser.country,
+              gender,
+              dateOfBirth,
             };
             
             console.log('AuthContext - Syncing user from backend - apiCountry:', apiCountry, 'syncedUser.country:', syncedUser.country);
@@ -152,9 +170,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = useCallback(async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:145',message:'logout() function entry',data:{hasUser:!!user,userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     
     try {
       console.log('[AuthContext] ========== LOGOUT INITIATED ==========');
@@ -168,17 +183,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // No-op callback to clear any existing callback
       });
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:160',message:'Before setUser(null)',data:{currentUser:user?user.id:'null'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       // Clear user state - this will trigger isAuthenticated to become false
       console.log('[AuthContext] Setting user to null...');
       setUser(null);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:162',message:'After setUser(null)',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       // Verify state was updated
       console.log('[AuthContext] User state set to null, isAuthenticated should now be false');
@@ -224,13 +233,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('[AuthContext] ========== LOGOUT COMPLETED ==========');
       console.log('[AuthContext] User state is now null, isAuthenticated should be false');
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:204',message:'logout() function exit - success',data:{storageCleared:!finalUserCheck},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:206',message:'logout() function exit - error',data:{error:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       
       console.error('[AuthContext] ========== LOGOUT ERROR ==========');
       console.error('[AuthContext] Error during logout:', error);
@@ -265,6 +268,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshUserTokens = async (): Promise<boolean> => {
+    if (isRefreshingRef.current) return false;
+    isRefreshingRef.current = true;
     try {
       if (!user?.refreshToken) {
         console.log('[AuthContext] No refresh token available');
@@ -276,23 +281,67 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         authToken: refreshResponse.accessToken,
         refreshToken: refreshResponse.refreshToken,
       });
+      console.log('[AuthContext] Silent refresh successful');
       return true;
     } catch (error) {
       console.error('[AuthContext] Token refresh failed:', error);
-      // If refresh fails, logout user
       await logout();
       return false;
+    } finally {
+      isRefreshingRef.current = false;
     }
   };
+
+  const scheduleProactiveRefresh = useCallback((authToken: string | undefined) => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+    if (!authToken) return;
+
+    const remaining = getTimeUntilExpiryMs(authToken);
+    if (remaining === null || remaining <= 0) return;
+
+    const delay = Math.max(remaining * REFRESH_SAFETY_MARGIN, 10_000);
+    console.log(`[AuthContext] Proactive refresh scheduled in ${Math.round(delay / 1000)}s`);
+
+    refreshTimerRef.current = setTimeout(async () => {
+      if (isRefreshingRef.current) return;
+      console.log('[AuthContext] Proactive refresh triggered');
+      await refreshUserTokens();
+    }, delay);
+  }, []);
+
+  // Schedule proactive refresh whenever the token changes
+  useEffect(() => {
+    scheduleProactiveRefresh(user?.authToken);
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [user?.authToken, scheduleProactiveRefresh]);
+
+  // Refresh token when app comes to foreground
+  useEffect(() => {
+    const handleAppState = async (next: AppStateStatus) => {
+      if (next !== 'active') return;
+      if (!user?.authToken || !user?.refreshToken) return;
+      if (isRefreshingRef.current) return;
+
+      if (isTokenExpiringSoon(user.authToken, REFRESH_THRESHOLD_MS)) {
+        console.log('[AuthContext] App foregrounded with expiring token, refreshing...');
+        await refreshUserTokens();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
+  }, [user?.authToken, user?.refreshToken]);
 
   // Calculate isAuthenticated - ensure it's always a boolean
   const isAuthenticated = !!user;
   
   // Log authentication state changes for debugging
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:244',message:'isAuthenticated state changed',data:{isAuthenticated,hasUser:!!user,userId:user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     
     console.log('[AuthContext] Authentication state changed:', {
       isAuthenticated,

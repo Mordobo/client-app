@@ -16,7 +16,7 @@ export default function TabTwoScreen() {
   return (
     <ScrollView 
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 20) }]}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}

@@ -29,17 +29,29 @@ function NotificationItem({ notification, onPress }: NotificationItemProps) {
   const getNotificationConfig = (type: NotificationType) => {
     switch (type) {
       case 'booking_confirmed':
-        return { icon: '✅', bgColor: '#10B981' }; // green
+        return { icon: '✅', bgColor: '#10B981' };
+      case 'booking_cancelled':
+        return { icon: '❌', bgColor: '#EF4444' };
       case 'new_message':
-        return { icon: '💬', bgColor: '#3B82F6' }; // blue
+        return { icon: '💬', bgColor: '#3B82F6' };
       case 'rate_service':
-        return { icon: '⭐', bgColor: '#F59E0B' }; // orange
+        return { icon: '⭐', bgColor: '#F59E0B' };
       case 'offer':
-        return { icon: '🎁', bgColor: '#EC4899' }; // pink
+        return { icon: '🎁', bgColor: '#EC4899' };
       case 'payment_processed':
-        return { icon: '💳', bgColor: '#10B981' }; // green
+        return { icon: '💳', bgColor: '#10B981' };
       case 'provider_on_way':
-        return { icon: '📍', bgColor: '#8B5CF6' }; // purple
+        return { icon: '📍', bgColor: '#8B5CF6' };
+      case 'quote_received':
+        return { icon: '📋', bgColor: '#6366F1' };
+      case 'new_booking_request':
+        return { icon: '📩', bgColor: '#8B5CF6' };
+      case 'quote_approved':
+        return { icon: '✅', bgColor: '#10B981' };
+      case 'payment_received':
+        return { icon: '💰', bgColor: '#10B981' };
+      case 'new_review':
+        return { icon: '⭐', bgColor: '#F59E0B' };
       default:
         return { icon: '🔔', bgColor: '#6B7280' };
     }
@@ -188,8 +200,10 @@ export default function NotificationsScreen() {
       const metadata = notification.metadata || {};
       switch (notification.type) {
         case 'booking_confirmed':
+        case 'booking_cancelled':
         case 'payment_processed':
         case 'provider_on_way':
+        case 'quote_received':
           if (metadata.orderId) {
             router.push(`/orders/${metadata.orderId}`);
           }
@@ -207,7 +221,6 @@ export default function NotificationsScreen() {
           }
           break;
         case 'offer':
-          // Navigate to offers or home
           router.push('/(tabs)/home');
           break;
         default:
@@ -292,7 +305,7 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -331,7 +344,7 @@ export default function NotificationsScreen() {
       ) : (
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

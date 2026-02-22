@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { completeClientOnboarding } from '@/services/auth';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -15,18 +16,25 @@ const ONBOARDING_SCREENS = 3;
 export default function OnboardingScreen() {
   const [currentScreen, setCurrentScreen] = useState(1);
 
+  const finishOnboarding = async () => {
+    try {
+      await completeClientOnboarding();
+    } catch (e) {
+      console.warn('[Onboarding] Could not mark client onboarding complete:', e);
+    }
+    router.replace('/(tabs)/home');
+  };
+
   const handleNext = () => {
     if (currentScreen < ONBOARDING_SCREENS) {
       setCurrentScreen(currentScreen + 1);
     } else {
-      // Last screen - go to home
-      router.replace('/(tabs)/home');
+      finishOnboarding();
     }
   };
 
   const handleSkip = () => {
-    // Skip all onboarding screens and go to home
-    router.replace('/(tabs)/home');
+    finishOnboarding();
   };
 
   const renderScreen = () => {

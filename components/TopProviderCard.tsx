@@ -1,6 +1,8 @@
+import { useFavorite } from '@/hooks/useFavorite';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface TopProviderCardProps {
   id: string;
@@ -14,6 +16,7 @@ interface TopProviderCardProps {
 }
 
 export function TopProviderCard({
+  id,
   name,
   profileImage,
   serviceCategory,
@@ -22,14 +25,24 @@ export function TopProviderCard({
   hourlyRate,
   onPress,
 }: TopProviderCardProps) {
+  // Favorite functionality
+  const { isFavorite, isLoading: isFavoriteLoading, toggleFavorite } = useFavorite(id);
+  
   // Convert rating to number to handle cases where API returns string or null/undefined
   const ratingValue = typeof rating === 'number' ? rating : (typeof rating === 'string' ? parseFloat(rating) : 0);
   const safeRating = isNaN(ratingValue) ? 0 : ratingValue;
 
+  const handleFavoritePress = (e: any) => {
+    e.stopPropagation(); // Prevent card press when clicking favorite button
+    toggleFavorite();
+  };
+
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
-      <Image
-        source={{ uri: profileImage || 'https://via.placeholder.com/70' }}
+      <ProviderAvatar
+        profileImage={profileImage}
+        size={70}
+        rounded={false}
         style={styles.image}
       />
       <View style={styles.info}>
@@ -40,8 +53,16 @@ export function TopProviderCard({
               <Text style={styles.category}>{serviceCategory}</Text>
             )}
           </View>
-          <TouchableOpacity style={styles.favoriteButton}>
-            <Ionicons name="heart-outline" size={18} color="#EF4444" />
+          <TouchableOpacity 
+            style={styles.favoriteButton}
+            onPress={handleFavoritePress}
+            disabled={isFavoriteLoading}
+          >
+            <Ionicons 
+              name={isFavorite ? "heart" : "heart-outline"} 
+              size={18} 
+              color={isFavorite ? "#EF4444" : "#9CA3AF"} 
+            />
           </TouchableOpacity>
         </View>
         <View style={styles.footerRow}>

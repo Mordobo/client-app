@@ -1,7 +1,7 @@
-import { VerificationCodeModal } from '@/components/VerificationCodeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
-import { ApiError, validateEmail } from '@/services/auth';
+import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
+import { mapApiUserToUser } from '@/utils/authMapping';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -31,8 +31,6 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
-  const [showCodeModal, setShowCodeModal] = useState(false);
-  const [verificationCode, setVerificationCode] = useState<string | null>(null);
   const { login } = useAuth();
   const params = useLocalSearchParams<{ registered?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,32 +84,44 @@ export default function LoginScreen() {
       const isEmail = currentIdentifier.includes('@');
       
       if (isEmail) {
-        // For email login, use verification flow (same as registration)
-        // Call validate-email endpoint to generate and send verification code
-        const validateResponse = await validateEmail({
+        // ALWAYS go through verification flow (regardless of user status)
+        // Call validateEmail to generate verification code
+        await validateEmail({
           email: currentIdentifier,
           password,
         });
-
-        // Store email and password temporarily for resend code and verification
-        await AsyncStorage.setItem('pending_verification_email', currentIdentifier.toLowerCase());
+        
+        // Store credentials for verification
+        const emailToStore = currentIdentifier.toLowerCase();
+        await AsyncStorage.setItem('pending_verification_email', emailToStore);
         await AsyncStorage.setItem('pending_verification_password', password);
-
-        // Redirect to verification screen
-        router.replace({
-          pathname: '/(auth)/verify',
-          params: { 
-            email: currentIdentifier.toLowerCase(),
-          },
+        
+        // Navigate to verification screen
+        router.push({
+          pathname: '/verify',
+          params: { email: emailToStore }
         });
+        setErrorMessage(null);
+        return;
       } else {
-        // Phone login is not supported by backend /auth/login endpoint
-        // Backend only accepts email in login endpoint
-        setErrorMessage(t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
-        Alert.alert(t('common.error'), t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
+        // Phone login - use phone_number field
+        const loginResponse = await loginWithCredentials({
+          phoneNumber: currentIdentifier,
+          password,
+        });
+
+        // Map API response to user data using helper function
+        const userData = mapApiUserToUser(
+          loginResponse.user,
+          'email',
+          loginResponse.accessToken || loginResponse.token,
+          loginResponse.refreshToken
+        );
+
+        // Login with the user data
+        await login(userData);
+        setErrorMessage(null);
       }
-      
-      setErrorMessage(null);
     } catch (error) {
       console.error('Login error:', error);
       
@@ -135,26 +145,14 @@ export default function LoginScreen() {
           return;
         }
         
-        // Check if it's an SMTP/email error with code
-        if (errorCode === 'smtp_not_configured' || 
-            errorCode === 'email_send_timeout' || 
+        // Email/send errors: show message only (no modal with code)
+        if (errorCode === 'smtp_not_configured' ||
+            errorCode === 'email_send_timeout' ||
             errorCode === 'email_send_failed') {
-          // Check if backend returned the code as workaround
-          const code = errorData?.verificationCode as string | undefined;
-          
-          if (code) {
-            // Show modal with code
-            setVerificationCode(code);
-            setShowCodeModal(true);
-            
-            // Store email and password for verification
-            const emailToStore = currentIdentifier.toLowerCase();
-            await AsyncStorage.setItem('pending_verification_email', emailToStore);
-            await AsyncStorage.setItem('pending_verification_password', password);
-            
-            // Navigate to verification screen after modal is closed
-            return;
-          }
+          const detailedMessage = errorData?.message ? String(errorData.message) : error.message;
+          setErrorMessage(detailedMessage || t('errors.emailSendFailed'));
+          Alert.alert(t('common.error'), detailedMessage || t('errors.emailSendFailed'));
+          return;
         }
         
         // Handle API errors
@@ -298,27 +296,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-      
-      {/* Verification Code Modal */}
-      <VerificationCodeModal
-        visible={showCodeModal}
-        code={verificationCode}
-        onClose={async () => {
-          setShowCodeModal(false);
-          // Navigate to verification screen after closing modal
-          if (verificationCode) {
-            const storedEmail = await AsyncStorage.getItem('pending_verification_email');
-            if (storedEmail) {
-              router.replace({
-                pathname: '/(auth)/verify',
-                params: { 
-                  email: storedEmail,
-                },
-              });
-            }
-          }
-        }}
-      />
     </SafeAreaView>
   );
 }

@@ -1,4 +1,5 @@
 import { Conversation, fetchConversations } from '@/services/conversations';
+import { useMode } from '@/contexts/ModeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function ChatHistoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { mode } = useMode();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -25,7 +27,7 @@ export default function ChatHistoryScreen() {
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchConversations();
+      const data = await fetchConversations(mode);
       setConversations(data);
     } catch (err) {
       setError('Failed to load chat history');
@@ -34,7 +36,7 @@ export default function ChatHistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     loadConversations();
@@ -70,9 +72,9 @@ export default function ChatHistoryScreen() {
       onPress={() => handleConversationPress(item.id)}
     >
       <View style={styles.avatarContainer}>
-        {item.supplier?.avatar ? (
+        {item.other_user_image ? (
           <Image
-            source={{ uri: item.supplier.avatar }}
+            source={{ uri: item.other_user_image }}
             style={styles.avatar}
           />
         ) : (
@@ -84,7 +86,7 @@ export default function ChatHistoryScreen() {
       <View style={styles.conversationInfo}>
         <View style={styles.conversationHeader}>
           <Text style={styles.supplierName}>
-            {item.supplier?.name || 'Unknown Supplier'}
+            {item.other_user_name || 'Unknown Supplier'}
           </Text>
           {item.lastMessage?.createdAt && (
             <Text style={styles.timeText}>
@@ -103,7 +105,7 @@ export default function ChatHistoryScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -123,7 +125,7 @@ export default function ChatHistoryScreen() {
   if (error && conversations.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backButton}
@@ -149,7 +151,7 @@ export default function ChatHistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -173,7 +175,7 @@ export default function ChatHistoryScreen() {
           data={conversations}
           renderItem={renderConversation}
           keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

@@ -10,6 +10,13 @@ const buildUrl = (path: string) => {
   return `${base}/${sanitizedPath}`;
 };
 
+/** Hint when on physical device and API URL is local: device cannot reach PC's localhost. */
+const getPhysicalDeviceHint = (): string => {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return '';
+  if (!/localhost|127\.0\.0\.1|10\.0\.2\.2/i.test(API_BASE)) return '';
+  return '\n\nSi usas un dispositivo físico (no emulador), en .env pon EXPO_PUBLIC_API_URL con la IP de tu PC, ej: http://192.168.1.x:3000 (misma Wi‑Fi).';
+};
+
 export interface RegisterPayload {
   fullName: string;
   email: string;
@@ -44,11 +51,14 @@ export interface AuthSuccessResponse extends RegisterResponse {
 export class ApiError extends Error {
   status: number;
   data?: unknown;
+  /** True when token expired and session expired was already emitted; UI should not show error overlay */
+  sessionExpired?: boolean;
 
-  constructor(message: string, status: number, data?: unknown) {
+  constructor(message: string, status: number, data?: unknown, sessionExpired?: boolean) {
     super(message);
     this.status = status;
     this.data = data;
+    this.sessionExpired = sessionExpired === true;
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
@@ -193,7 +203,7 @@ export const request = async <T>(
   retryOn401 = true
 ): Promise<T> => {
   // List of public endpoints that don't require authentication
-  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate'];
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
   
   // If logout was just called and this is not a public endpoint, throw error
@@ -244,9 +254,12 @@ export const request = async <T>(
     }
     console.log('[API] ========================================');
     
-    // Create AbortController for timeout (20 seconds - reduced for better UX)
+    // Endpoints that send email can take 25s+ (Brevo SMTP); use longer timeout so emulator/host round-trip doesn't hit limit
+    const timeoutMs = path.includes('validate-email') || path.includes('resend-code')
+      ? 70000
+      : 45000;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     let response: Response;
     try {
@@ -268,7 +281,7 @@ export const request = async <T>(
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
       const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-      
+
       console.error('[API] ❌ Fetch failed:', {
         url,
         error: errorMessage,
@@ -288,7 +301,7 @@ export const request = async <T>(
       
       // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
-        const timeoutMessage = t('errors.requestTimeout');
+        const timeoutMessage = t('errors.requestTimeout') + getPhysicalDeviceHint();
         console.error('[API] Request timeout - throwing ApiError with translated message');
         throw new ApiError(
           timeoutMessage,
@@ -296,10 +309,10 @@ export const request = async <T>(
           { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
         );
       }
-      
+
       // Handle network errors (TypeError usually means connection failed)
       if (fetchError instanceof TypeError) {
-        const connectionMessage = t('errors.connectionFailed');
+        const connectionMessage = t('errors.connectionFailed') + getPhysicalDeviceHint();
         console.error('[API] Network error - throwing ApiError with translated message');
         throw new ApiError(
           connectionMessage,
@@ -392,7 +405,7 @@ export const request = async <T>(
           } else if (!isRetryAuthError) {
             console.error('[API] Retry error response body', retryData);
           }
-          throw new ApiError(message, retryResponse.status, retryData);
+          throw new ApiError(message, retryResponse.status, retryData, isRetryAuthError);
         }
 
         if (!retryData || typeof retryData !== 'object') {
@@ -409,11 +422,14 @@ export const request = async <T>(
           typeof responseData === 'object' && responseData && 'message' in responseData
             ? String((responseData as { message: unknown }).message)
             : t('errors.tokenRefreshFailed');
-        throw new ApiError(message, response.status, responseData);
+        throw new ApiError(message, response.status, responseData, true);
       }
     }
 
     if (!response.ok) {
+      // #region agent log
+      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response not ok',data:{path,status:response.status,code:(responseData as {code?:string})?.code},timestamp:Date.now(),hypothesisId:'H2',runId:'validate-email'})}).catch(()=>{});
+      // #endregion
       const message =
         typeof responseData === 'object' && responseData && 'message' in responseData
           ? String((responseData as { message: unknown }).message)
@@ -438,7 +454,8 @@ export const request = async <T>(
       
       // If this is an auth error that wasn't handled above (e.g., retryOn401=false or path=/auth/refresh),
       // emit session expired event to trigger logout and redirect to Welcome
-      if (isAuthError && (path === '/auth/refresh' || !retryOn401)) {
+      const emittedSessionExpired = isAuthError && (path === '/auth/refresh' || !retryOn401);
+      if (emittedSessionExpired) {
         console.log('[API] Auth error on non-retryable endpoint, emitting session expired event');
         authEvents.emitSessionExpired();
       }
@@ -447,7 +464,7 @@ export const request = async <T>(
         console.error('[API] Error response body', responseData);
       }
       
-      throw new ApiError(message, response.status, responseData);
+      throw new ApiError(message, response.status, responseData, emittedSessionExpired);
     }
 
     if (!responseData || typeof responseData !== 'object') {
@@ -484,7 +501,7 @@ export const request = async <T>(
         (error instanceof TypeError && errorMessage.includes('fetch'));
       
       if (isConnectionError) {
-        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}`;
+        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}${getPhysicalDeviceHint()}`;
         throw new ApiError(
           detailedMessage,
           0,
@@ -626,6 +643,9 @@ export const validateEmail = async (
     email: payload.email.trim().toLowerCase(),
     password: payload.password.trim(), // Ensure password is trimmed
   };
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:validateEmail',message:'validateEmail called',data:{email:body.email,path:'/auth/validate-email'},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
+  // #endregion
 
   return request<ValidateEmailResponse>(
     '/auth/validate-email',
@@ -650,6 +670,18 @@ export interface VerifyCodeResponse extends AuthSuccessResponse {
   accessToken?: string;
   refreshToken?: string;
 }
+
+/** Mark client onboarding as completed so it is not shown again. Requires authenticated client. */
+export const completeClientOnboarding = async (): Promise<void> => {
+  await request<{ message: string }>(
+    '/api/users/me/complete-client-onboarding',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    },
+    t('errors.requestFailed')
+  );
+};
 
 export const verifyCode = async (
   payload: VerifyCodePayload
@@ -680,6 +712,7 @@ export interface ResendCodePayload {
 export interface ResendCodeResponse {
   message: string;
   email: string;
+  verificationCode?: string; // Only included when SMTP fails (for testing)
 }
 
 export const resendCode = async (

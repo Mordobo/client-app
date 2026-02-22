@@ -1,5 +1,13 @@
 import type { User } from '@/contexts/AuthContext';
+import type { ClientTier } from '@/constants/tiers';
 import type { AuthSuccessResponse, RegisterResponseUser } from '@/services/auth';
+
+const VALID_TIERS: ReadonlySet<string> = new Set(['bronze', 'silver', 'gold', 'platinum']);
+
+const extractTier = (raw: unknown): ClientTier | undefined => {
+  if (typeof raw === 'string' && VALID_TIERS.has(raw)) return raw as ClientTier;
+  return undefined;
+};
 
 export interface GoogleProfile {
   id: string;
@@ -62,6 +70,60 @@ const resolveName = (
   };
 };
 
+/**
+ * Map RegisterResponseUser to User (without Google profile)
+ * Used for email/phone login flows
+ */
+export const mapApiUserToUser = (
+  apiUser: RegisterResponseUser,
+  provider: User['provider'],
+  authToken?: string,
+  refreshToken?: string
+): User => {
+  const { firstName: splitFirst, lastName: splitLast } = extractNameParts(
+    stringOrUndefined(apiUser.full_name)
+  );
+  const apiFirst = stringOrUndefined((apiUser as Record<string, unknown>).first_name);
+  const apiLast = stringOrUndefined((apiUser as Record<string, unknown>).last_name);
+  
+  const firstName = apiFirst ?? splitFirst ?? '';
+  const lastName = apiLast ?? splitLast ?? '';
+  
+  // Extract gender and dateOfBirth from API response
+  const apiGender = (apiUser as Record<string, unknown>).gender;
+  const gender = apiGender === 'male' || apiGender === 'female' ? apiGender : undefined;
+  const dateOfBirth = stringOrUndefined((apiUser as Record<string, unknown>).date_of_birth);
+  
+  // Extract login_count from API response if available
+  const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
+
+  const raw = apiUser as Record<string, unknown>;
+  const tier = extractTier(raw.client_tier);
+  const completedOrdersCount = typeof raw.completed_orders_count === 'number' ? raw.completed_orders_count : undefined;
+
+  return {
+    id: stringOrUndefined(apiUser.id) ?? '',
+    email: stringOrUndefined(apiUser.email) ?? '',
+    firstName,
+    lastName,
+    phone:
+      stringOrUndefined(raw.phone_number) ??
+      stringOrUndefined(raw.phone),
+    avatar:
+      stringOrUndefined(raw.profile_image) ??
+      stringOrUndefined(raw.avatar),
+    country: stringOrUndefined(raw.country),
+    gender,
+    dateOfBirth,
+    provider,
+    authToken: authToken ? stringOrUndefined(authToken) : undefined,
+    refreshToken: refreshToken ? stringOrUndefined(refreshToken) : undefined,
+    tier,
+    completedOrdersCount,
+    loginCount,
+  } as User & { loginCount?: number };
+};
+
 export const mapAuthResponseToUser = (
   response: AuthSuccessResponse,
   googleUser: GoogleProfile,
@@ -70,8 +132,15 @@ export const mapAuthResponseToUser = (
   const apiUser = response.user;
   const { firstName, lastName } = resolveName(apiUser, googleUser);
   
-  // Extract login_count from API response if available
-  const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
+  const raw = apiUser as Record<string, unknown>;
+  const loginCount = raw.login_count as number | undefined;
+
+  const apiGender = raw.gender;
+  const gender = apiGender === 'male' || apiGender === 'female' ? apiGender : undefined;
+  const dateOfBirth = stringOrUndefined(raw.date_of_birth);
+
+  const tier = extractTier(raw.client_tier);
+  const completedOrdersCount = typeof raw.completed_orders_count === 'number' ? raw.completed_orders_count : undefined;
 
   return {
     id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(googleUser?.id) ?? '',
@@ -79,17 +148,20 @@ export const mapAuthResponseToUser = (
     firstName,
     lastName,
     phone:
-      stringOrUndefined((apiUser as Record<string, unknown>).phone_number) ??
-      stringOrUndefined((apiUser as Record<string, unknown>).phone),
+      stringOrUndefined(raw.phone_number) ??
+      stringOrUndefined(raw.phone),
     avatar:
-      stringOrUndefined((apiUser as Record<string, unknown>).profile_image) ??
-      stringOrUndefined((apiUser as Record<string, unknown>).avatar) ??
+      stringOrUndefined(raw.profile_image) ??
+      stringOrUndefined(raw.avatar) ??
       stringOrUndefined(googleUser?.photo),
-    country: stringOrUndefined((apiUser as Record<string, unknown>).country),
+    country: stringOrUndefined(raw.country),
+    gender,
+    dateOfBirth,
     provider,
     authToken: stringOrUndefined(response.token),
     refreshToken: stringOrUndefined(response.refreshToken),
-    // Store login_count as a custom property (not in User interface, but accessible)
+    tier,
+    completedOrdersCount,
     loginCount,
   } as User & { loginCount?: number };
 };

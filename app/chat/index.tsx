@@ -1,8 +1,9 @@
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { t } from '@/i18n';
 import { Conversation, fetchConversations } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,11 +27,29 @@ export default function ConversationsListScreen() {
   const loadConversations = useCallback(async () => {
     try {
       setError(null);
-      const data = await fetchConversations();
+      const data = await fetchConversations('client');
       // Sort by most recent (last_message_at descending)
+      // Handle null last_message_at by putting them at the end
       const sortedData = [...data].sort((a, b) => {
+        // If both are null, maintain order
+        if (!a.last_message_at && !b.last_message_at) {
+          return 0;
+        }
+        // If a is null, put it after b
+        if (!a.last_message_at) {
+          return 1;
+        }
+        // If b is null, put it after a
+        if (!b.last_message_at) {
+          return -1;
+        }
+        // Both have dates, compare them
         const dateA = new Date(a.last_message_at).getTime();
         const dateB = new Date(b.last_message_at).getTime();
+        // Check for invalid dates
+        if (isNaN(dateA) || isNaN(dateB)) {
+          return 0;
+        }
         return dateB - dateA;
       });
       setConversations(sortedData);
@@ -47,6 +66,13 @@ export default function ConversationsListScreen() {
     loadConversations();
   }, [loadConversations]);
 
+  // Refetch when returning from chat so unread count and list stay in sync (MDB-160 / MDB-244)
+  useFocusEffect(
+    useCallback(() => {
+      loadConversations();
+    }, [loadConversations])
+  );
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadConversations();
@@ -56,12 +82,23 @@ export default function ConversationsListScreen() {
     router.push(`/chat/${conversationId}`);
   };
 
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | null) => {
+    // Handle null or invalid dates
+    if (!dateString) {
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? 'Nuevo' : 'New';
+    }
+    
     const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      const locale = t('chat.messages') === 'Mensajes' ? 'es' : 'en';
+      return locale === 'es' ? 'Nuevo' : 'New';
+    }
+    
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMins < 60) {
@@ -109,13 +146,12 @@ export default function ConversationsListScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.avatarContainer}>
-          {item.other_user_image ? (
-            <Image source={{ uri: item.other_user_image }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>👨‍🔧</Text>
-            </View>
-          )}
+          <ProviderAvatar
+            profileImage={item.other_user_image}
+            size={56}
+            rounded
+            style={styles.avatar}
+          />
           {isOnline && (
             <View style={styles.onlineIndicator} />
           )}
@@ -161,7 +197,7 @@ export default function ConversationsListScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 50) }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={styles.headerTitle}>{t('chat.messages')}</Text>
         </View>
         <View style={styles.centerContainer}>
@@ -174,7 +210,7 @@ export default function ConversationsListScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { 
-        paddingTop: Math.max(insets.top + 20, 50), 
+        paddingTop: insets.top + 20, 
       }]}>
         <Text style={styles.headerTitle}>{t('chat.messages')}</Text>
       </View>
@@ -202,7 +238,7 @@ export default function ConversationsListScreen() {
             renderItem={renderConversation}
             estimatedItemSize={estimatedItemSize}
             style={{ flex: 1, backgroundColor: '#1a1a2e' }}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, backgroundColor: '#1a1a2e' }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 20 + insets.bottom, backgroundColor: '#1a1a2e' }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#3b82f6']} />
             }

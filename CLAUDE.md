@@ -103,6 +103,29 @@ Mordobo es una aplicación móvil multiplataforma (iOS, Android, Web) que permit
 - **Documentación solo cuando sea esencial** – Crear archivos .md únicamente cuando sean absolutamente necesarios para el funcionamiento del proyecto (ej: README.md, CLAUDE.md, documentación de API crítica)
 - **Preferir código sobre documentación** – Implementar la solución directamente en lugar de crear guías extensas
 
+### Git Workflow Policy
+
+**CRITICAL: NEVER execute Git commands automatically**
+
+- ❌ **NEVER run `git add`** – No agregar archivos al staging area automáticamente
+- ❌ **NEVER run `git commit`** – No crear commits sin autorización explícita del usuario
+- ❌ **NEVER run `git push`** – No subir cambios al repositorio remoto bajo ninguna circunstancia
+- ❌ **NEVER run `git pull`, `git merge`, `git rebase`** – No modificar el historial de Git
+
+**Razón:**
+- El usuario prefiere tener control total sobre cuándo y cómo se crean commits
+- Los commits deben ser decisión consciente del usuario, no automatizados
+- El usuario ejecutará los comandos git manualmente cuando lo considere apropiado
+
+**Qué hacer en su lugar:**
+- ✅ Hacer las modificaciones de código necesarias
+- ✅ Informar al usuario sobre los cambios realizados
+- ✅ El usuario decidirá si y cuándo hacer commit/push
+
+**Única excepción:**
+- Si el usuario EXPLÍCITAMENTE dice "haz commit" o "haz push", solo entonces ejecutar el comando solicitado
+- Pero por defecto, asumir que NO se deben ejecutar comandos git
+
 ### Priority Order (Context Hierarchy)
 
 1. **CLAUDE.md rules** (highest priority) – Este documento tiene precedencia absoluta

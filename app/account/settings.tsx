@@ -1,5 +1,7 @@
 import { Toast } from '@/components/Toast';
+import { ModeSwitch } from '@/components/common/ModeSwitch';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@/i18n';
 import {
@@ -67,6 +69,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { setTheme: setThemeContext, colorScheme } = useTheme();
+  const { mode, setMode } = useMode();
   const insets = useSafeAreaInsets();
   
   const isDark = colorScheme === 'dark';
@@ -807,6 +810,32 @@ export default function SettingsScreen() {
           },
           icon: 'color-palette-outline',
         },
+        {
+          type: 'action',
+          label: t('settings.userMode'),
+          rightComponent: (
+            <ModeSwitch
+              variant="pill"
+              currentMode={mode}
+              onModeChange={async (newMode) => {
+                try {
+                  await setMode(newMode);
+                  setToastMessage(t('mode.modeChanged'));
+                  setToastType('success');
+                  setToastVisible(true);
+                } catch (error) {
+                  console.error('[Settings] Failed to change mode:', error);
+                  setToastMessage(t('errors.updateSettingsFailed'));
+                  setToastType('error');
+                  setToastVisible(true);
+                }
+              }}
+              size="small"
+              showLabels={false}
+            />
+          ),
+          icon: 'swap-horizontal-outline',
+        },
       ],
     },
     {
@@ -842,7 +871,7 @@ export default function SettingsScreen() {
         {
           type: 'navigation',
           label: t('settings.appVersion'),
-          value: '1.0.0',
+          value: '1.0.9',
           icon: 'information-circle-outline',
         },
         {
@@ -877,7 +906,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, dynamicStyles.container]}>
-      <View style={[styles.header, dynamicStyles.header, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={[styles.header, dynamicStyles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={isDark ? '#ECEDEE' : '#1F2937'} />
         </TouchableOpacity>
@@ -900,7 +929,7 @@ export default function SettingsScreen() {
                     item.destructive && styles.itemDestructive,
                   ]}
                   onPress={() => {
-                    if (item.type === 'toggle') return;
+                    if (item.type === 'toggle' || item.rightComponent) return;
                     if (updating !== null) {
                       Alert.alert(t('common.error'), 'Please wait for the current update to complete');
                       return;
@@ -916,7 +945,7 @@ export default function SettingsScreen() {
                       console.log('[Settings] Item pressed but no onPress:', item.label);
                     }
                   }}
-                  disabled={item.type === 'toggle'}
+                  disabled={item.type === 'toggle' || !!item.rightComponent}
                 >
                   {item.icon && (
                     <Ionicons
@@ -935,7 +964,9 @@ export default function SettingsScreen() {
                   >
                     {item.label}
                   </Text>
-                  {item.type === 'toggle' ? (
+                  {item.rightComponent ? (
+                    item.rightComponent
+                  ) : item.type === 'toggle' ? (
                     <Switch
                       value={item.value as boolean}
                       onValueChange={item.onToggle}

@@ -2,9 +2,7 @@
 name: Rule Priority & CLAUDE.md
 alwaysApply: true
 ---
-CLAUDE.md files have the HIGHEST priority. Hierarchy:
-
-1. CLAUDE.md rules (highest priority) - This document has absolute precedence
+CLAUDE.md files have the HIGHEST priority. Hierarchy:1. CLAUDE.md rules (highest priority) - This document has absolute precedence
 2. Configuration files - package.json, app.json, tsconfig.json, .env
 3. Project structure - Respect established folder organization
 4. Project conventions - Patterns established in existing code

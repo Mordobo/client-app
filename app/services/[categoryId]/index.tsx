@@ -1,24 +1,19 @@
-import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from '@/services/categories';
-import { useTheme } from '@/contexts/ThemeContext';
-import { getOrCreateConversation } from '@/services/conversations';
-import { fetchSuppliers, Supplier } from '@/services/suppliers';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ProviderCard } from "@/components/ProviderCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { t } from "@/i18n";
+import { getAddresses } from "@/services/addresses";
+import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
+import { fetchSuppliers, Supplier } from "@/services/suppliers";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { colorScheme } = useTheme();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const insets = useSafeAreaInsets();
@@ -26,42 +21,81 @@ export default function CategoryDetailScreen() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<'price' | 'distance'>('price');
-  const [startingChatWith, setStartingChatWith] = useState<string | null>(null);
-  
-  const isDark = colorScheme === 'dark';
-  const themeColors = {
-    background: isDark ? '#151718' : '#F9FAFB',
-    surface: isDark ? '#1F2937' : '#FFFFFF',
-    textPrimary: isDark ? '#ECEDEE' : '#1F2937',
-    textSecondary: isDark ? '#9BA1A6' : '#6B7280',
-    border: isDark ? '#374151' : '#E5E7EB',
-    borderLight: isDark ? '#4B5563' : '#F3F4F6',
+  const [sortBy, setSortBy] = useState<"price" | "distance">("price");
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Use exact colors from JSX design
+  const colors = {
+    bg: "#1a1a2e",
+    bgCard: "#252542",
+    bgInput: "#2d2d4a",
+    primary: "#3b82f6",
+    secondary: "#10b981",
+    accent: "#f59e0b",
+    danger: "#ef4444",
+    textSecondary: "#9ca3af",
+    border: "#374151",
+    textPrimary: "#FFFFFF",
   };
 
   useEffect(() => {
-    if (categoryId) {
+    if (categoryId && typeof categoryId === "string" && categoryId.trim() !== "") {
+      loadUserLocation();
       loadData();
+    } else {
+      setError("Invalid category ID");
+      setLoading(false);
     }
-  }, [categoryId]);
+  }, [categoryId, sortBy, selectedSubcategory, user?.id]);
+
+  const loadUserLocation = async () => {
+    try {
+      const addresses = await getAddresses();
+      const defaultAddress = addresses.find((addr) => addr.is_default) || addresses[0];
+
+      if (defaultAddress?.latitude && defaultAddress?.longitude) {
+        setUserLocation({
+          lat: defaultAddress.latitude,
+          lng: defaultAddress.longitude,
+        });
+      }
+    } catch (error) {
+      console.error("[CategoryDetail] Failed to load user location:", error);
+    }
+  };
 
   const loadData = async () => {
     try {
+      // Validate categoryId before making API calls
+      if (!categoryId || typeof categoryId !== "string" || categoryId.trim() === "") {
+        setError("Invalid category ID");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
-      
       const [catData, suppliersData] = await Promise.all([
         fetchCategoryWithSubcategories(categoryId),
-        fetchSuppliers({ category: categoryId }),
+        fetchSuppliers({
+          category: selectedSubcategory || categoryId,
+          sort_by: sortBy === "distance" ? "distance" : "price",
+          near_me: sortBy === "distance" && userLocation !== null,
+          user_lat: sortBy === "distance" && userLocation ? userLocation.lat : undefined,
+          user_lng: sortBy === "distance" && userLocation ? userLocation.lng : undefined,
+        }),
       ]);
-      
+
       setCategoryData(catData);
-      setSuppliers(suppliersData.suppliers);
+      const suppliersList = Array.isArray(suppliersData?.suppliers) ? suppliersData.suppliers : [];
+      const filtered = user?.id ? suppliersList.filter((s) => s.id !== user.id) : suppliersList;
+      setSuppliers(filtered);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Failed to load data');
+        setError("Failed to load data");
       }
     } finally {
       setLoading(false);
@@ -72,26 +106,19 @@ export default function CategoryDetailScreen() {
     router.push(`/services/suppliers/${supplierId}`);
   };
 
-  const handleStartChat = async (supplierId: string) => {
-    if (startingChatWith) return;
-    
-    setStartingChatWith(supplierId);
-    try {
-      const { conversation } = await getOrCreateConversation(supplierId);
-      router.push(`/chat/${conversation.id}`);
-    } catch (err) {
-      console.error('Error starting chat:', err);
-      Alert.alert('Error', 'Failed to start conversation. Please try again.');
-    } finally {
-      setStartingChatWith(null);
-    }
+  const handleBookPress = (supplierId: string) => {
+    router.push(`/services/suppliers/${supplierId}`);
+  };
+
+  const handleSubcategoryPress = (subcategoryId: string) => {
+    setSelectedSubcategory(subcategoryId === selectedSubcategory ? null : subcategoryId);
   };
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={colors.secondary} />
         </View>
       </View>
     );
@@ -99,9 +126,9 @@ export default function CategoryDetailScreen() {
 
   if (error || !categoryData) {
     return (
-      <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error || 'Category not found'}</Text>
+          <Text style={styles.errorText}>{error || "Category not found"}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
@@ -111,111 +138,97 @@ export default function CategoryDetailScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: themeColors.textPrimary }]}>{categoryData.category.name}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{categoryData.category.name}</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Subcategories (if any) */}
-        {categoryData.subcategories.length > 0 && (
-          <View style={styles.subcategoriesSection}>
-            <Text style={[styles.sectionTitle, { color: themeColors.textPrimary }]}>Subcategories</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {categoryData.subcategories.map((sub) => (
-                <TouchableOpacity key={sub.id} style={[styles.subcategoryChip, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-                  <Text style={[styles.subcategoryText, { color: themeColors.textPrimary }]}>{sub.name}</Text>
+      {/* Subcategories (if any) */}
+      {categoryData.subcategories.length > 0 && (
+        <View style={styles.subcategoriesSection}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Subcategories</Text>
+          <FlatList
+            data={categoryData.subcategories}
+            renderItem={({ item }) => {
+              const isSelected = selectedSubcategory === item.id;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.subcategoryChip,
+                    {
+                      backgroundColor: isSelected ? colors.secondary : colors.bgCard,
+                      borderColor: isSelected ? colors.secondary : colors.border,
+                    },
+                  ]}
+                  onPress={() => handleSubcategoryPress(item.id)}
+                >
+                  <Text
+                    style={[
+                      styles.subcategoryText,
+                      {
+                        color: isSelected ? "#FFFFFF" : colors.textPrimary,
+                      },
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
+              );
+            }}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.subcategoriesContent}
+          />
+        </View>
+      )}
 
-        {/* Sort Options */}
-        <View style={[styles.sortContainer, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
-          <Text style={[styles.sortLabel, { color: themeColors.textSecondary }]}>Sort by:</Text>
-          <TouchableOpacity
-            style={[styles.sortButton, { backgroundColor: isDark ? '#374151' : '#F3F4F6' }, sortBy === 'price' && styles.sortButtonActive]}
-            onPress={() => setSortBy('price')}
-          >
-            <Text style={[styles.sortButtonText, { color: themeColors.textPrimary }, sortBy === 'price' && styles.sortButtonTextActive]}>
-              Price
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.sortButton, { backgroundColor: isDark ? '#374151' : '#F3F4F6' }, sortBy === 'distance' && styles.sortButtonActive]}
-            onPress={() => setSortBy('distance')}
-          >
-            <Text style={[styles.sortButtonText, { color: themeColors.textPrimary }, sortBy === 'distance' && styles.sortButtonTextActive]}>
-              Distance
-            </Text>
+      {/* Sort Options */}
+      <View style={[styles.sortContainer, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
+        <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>Sort by:</Text>
+        <TouchableOpacity style={[styles.sortButton, { backgroundColor: "#374151" }, sortBy === "price" && styles.sortButtonActive]} onPress={() => setSortBy("price")}>
+          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "price" && styles.sortButtonTextActive]}>Price</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.sortButton, { backgroundColor: "#374151" }, sortBy === "distance" && styles.sortButtonActive]} onPress={() => setSortBy("distance")}>
+          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "distance" && styles.sortButtonTextActive]}>Distance</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Suppliers List */}
+      {loading ?
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#10B981" />
+        </View>
+      : error ?
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: "#EF4444" }]}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+            <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Suppliers List */}
-        <View style={styles.suppliersSection}>
-          {suppliers.map((supplier) => (
-            <TouchableOpacity
-              key={supplier.id}
-              style={[styles.supplierCard, { backgroundColor: themeColors.surface }]}
-              onPress={() => handleSupplierPress(supplier.id)}
-            >
-              <View style={styles.supplierHeader}>
-                <Image
-                  source={{ uri: supplier.profile_image || 'https://via.placeholder.com/100' }}
-                  style={styles.supplierImage}
-                />
-                <View style={styles.supplierInfo}>
-                  <Text style={[styles.supplierName, { color: themeColors.textPrimary }]}>{supplier.full_name}</Text>
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={16} color="#F59E0B" />
-                    <Text style={[styles.rating, { color: themeColors.textPrimary }]}>{Number(supplier.rating).toFixed(1)}</Text>
-                    <Text style={[styles.reviewCount, { color: themeColors.textSecondary }]}>
-                      ({supplier.total_reviews} reviews)
-                    </Text>
-                  </View>
-                  {supplier.years_experience && (
-                    <Text style={[styles.experience, { color: themeColors.textSecondary }]}>
-                      {supplier.years_experience}+ years of experience
-                    </Text>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.supplierFooter}>
-                <TouchableOpacity
-                  style={styles.viewDetailsButton}
-                  onPress={() => handleSupplierPress(supplier.id)}
-                >
-                  <Text style={styles.viewDetailsText}>View Details</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.chatButton, { backgroundColor: isDark ? '#1F2937' : '#F0F9FF' }]}
-                  onPress={() => handleStartChat(supplier.id)}
-                  disabled={startingChatWith === supplier.id}
-                >
-                  {startingChatWith === supplier.id ? (
-                    <ActivityIndicator size="small" color="#10B981" />
-                  ) : (
-                    <Ionicons name="chatbubble-outline" size={20} color="#10B981" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))}
-
-          {suppliers.length === 0 && (
+      : <FlatList
+          data={suppliers}
+          renderItem={({ item }) => {
+            if (!item || !item.id) {
+              return null;
+            }
+            return <ProviderCard supplier={item} onPress={() => handleSupplierPress(item.id)} onBookPress={() => handleBookPress(item.id)} />;
+          }}
+          keyExtractor={(item) => item?.id || `supplier-${Math.random()}`}
+          contentContainerStyle={[styles.suppliersSection, { paddingBottom: insets.bottom + 40 }]}
+          ListEmptyComponent={() => (
             <View style={styles.emptyState}>
-              <Text style={[styles.emptyText, { color: themeColors.textSecondary }]}>No suppliers found for this category</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("categories.noResultsForCategory")}</Text>
             </View>
           )}
-        </View>
-      </ScrollView>
+          showsVerticalScrollIndicator={false}
+        />
+      }
     </View>
   );
 }
@@ -226,14 +239,14 @@ const styles = StyleSheet.create({
   },
   centerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
@@ -241,15 +254,12 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
+    fontWeight: "600",
   },
   subcategoriesSection: {
     paddingVertical: 16,
@@ -257,23 +267,27 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 12,
+  },
+  subcategoriesContent: {
+    paddingRight: 20,
+    gap: 8,
   },
   subcategoryChip: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    marginRight: 8,
     borderWidth: 1,
+    marginRight: 8,
   },
   subcategoryText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -289,116 +303,55 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   sortButtonActive: {
-    backgroundColor: '#10B981',
+    backgroundColor: "#10b981",
   },
   sortButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   sortButtonTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   suppliersSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-  },
-  supplierCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  supplierHeader: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  supplierImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 12,
-  },
-  supplierInfo: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  supplierName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  rating: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  reviewCount: {
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  experience: {
-    fontSize: 12,
-  },
-  supplierFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  viewDetailsButton: {
-    flex: 1,
-    backgroundColor: '#3B82F6',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  viewDetailsText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  chatButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 16,
   },
   emptyState: {
     padding: 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   errorText: {
     fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
+    color: "#EF4444",
+    textAlign: "center",
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
-
-
-
-

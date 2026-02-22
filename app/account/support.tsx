@@ -123,7 +123,7 @@ export default function HelpCenterScreen() {
         style={[
           styles.header,
           {
-            paddingTop: Math.max(insets.top + 16, 50),
+            paddingTop: insets.top + 16,
             paddingHorizontal: 20,
             paddingBottom: 20,
           },
@@ -150,7 +150,7 @@ export default function HelpCenterScreen() {
         style={[styles.scrollView, { backgroundColor: '#1a1a2e' }]}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: Math.max(insets.bottom, 20), backgroundColor: '#1a1a2e' },
+          { paddingBottom: insets.bottom + 20, backgroundColor: '#1a1a2e' },
         ]}
         showsVerticalScrollIndicator={false}
       >
