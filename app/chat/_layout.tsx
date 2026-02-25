@@ -6,6 +6,7 @@ export default function ChatLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="[conversationId]" />
+      <Stack.Screen name="create-quote" />
     </Stack>
   );
 }

@@ -13,6 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ApiError } from "@/services/auth";
 import { useEffect } from "react";
 
+
 export const unstable_settings = {
   anchor: "(auth)",
 };
@@ -20,17 +21,8 @@ export const unstable_settings = {
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const colorScheme = useColorScheme();
-
-  // Force re-render when authentication state changes
-  // This ensures navigation updates immediately
-  // IMPORTANT: useEffect must be called before any conditional returns
-  useEffect(() => {
-    console.log("[RootLayoutNav] Authentication state changed - isAuthenticated:", isAuthenticated, "user:", user ? "exists" : "null");
-  }, [isAuthenticated, user]);
-
-  console.log("[RootLayoutNav] Render - isAuthenticated:", isAuthenticated, "isLoading:", isLoading, "user:", user ? "exists" : "null");
 
   if (isLoading) {
     return (
@@ -40,7 +32,6 @@ function RootLayoutNav() {
     );
   }
 
-  // StatusBar colors matching theme
   const statusBarBackgroundColor = colorScheme === "dark" ? "#1a1a2e" : "#F9FAFB";
 
   return (
@@ -50,35 +41,20 @@ function RootLayoutNav() {
           headerShown: false,
           contentStyle: { backgroundColor: colorScheme === "dark" ? "#12121A" : "#F9FAFB" },
         }}
-        key={isAuthenticated ? "authenticated" : "unauthenticated"}
       >
-        {isAuthenticated && (
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        )}
-        {isAuthenticated && (
-          <Stack.Screen
-            name="(provider-tabs)"
-            options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
-          />
-        )}
-        {isAuthenticated && (
-          <Stack.Screen
-            name="switch-mode"
-            options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
-          />
-        )}
-        {isAuthenticated && (
-          <Stack.Screen name="chat" options={{ headerShown: false }} />
-        )}
-        {isAuthenticated && (
-          <Stack.Screen name="account" options={{ headerShown: false }} />
-        )}
-        {isAuthenticated && (
-          <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
-        )}
-        {!isAuthenticated && (
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        )}
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="(provider-tabs)"
+          options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+        />
+        <Stack.Screen
+          name="switch-mode"
+          options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+        />
+        <Stack.Screen name="chat" options={{ headerShown: false }} />
+        <Stack.Screen name="account" options={{ headerShown: false }} />
+        <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
       </Stack>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} backgroundColor={statusBarBackgroundColor} translucent={Platform.OS === "android"} />
     </NavigationThemeProvider>

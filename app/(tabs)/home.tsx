@@ -2,6 +2,7 @@ import { CategoryCard } from "@/components/CategoryCard";
 import { TopProviderCard } from "@/components/TopProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { t, getLocale } from "@/i18n";
+import { ApiError } from "@/services/auth";
 import { getAddresses, type Address } from "@/services/addresses";
 import { Category, fetchCategories } from "@/services/categories";
 import { fetchPromotions, type Promotion } from "@/services/promotions";
@@ -94,8 +95,10 @@ export default function HomeScreen() {
       }
       // If no addresses, keep the default fallback
     } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.sessionExpired)) {
+        return;
+      }
       console.error("[Home] Failed to load default address:", error);
-      // Keep the default fallback on error
     }
   };
 

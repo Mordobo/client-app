@@ -1,11 +1,13 @@
 import { t } from '@/i18n';
-import { refreshTokens, setTokenUpdateCallback, clearTokenState } from '@/services/auth';
+import { ApiError, refreshTokens, setTokenUpdateCallback, clearTokenState } from '@/services/auth';
 import { getProfile } from '@/services/profile';
 import { authEvents } from '@/utils/authEvents';
 import { getTimeUntilExpiryMs, isTokenExpiringSoon } from '@/utils/tokenUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+
+let isLoggingOut = false;
 
 const REFRESH_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes before expiry
 const REFRESH_SAFETY_MARGIN = 0.80; // refresh at 80% of token lifetime
@@ -61,12 +63,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // Register token update callback for automatic refresh
+    // Register token update callback for automatic refresh.
+    // Read user from AsyncStorage so we persist new tokens even during initial load
+    // when React state "user" may not be updated yet (stale closure).
     setTokenUpdateCallback(async (tokens) => {
-      if (user) {
-        const updatedUser = { ...user, authToken: tokens.accessToken, refreshToken: tokens.refreshToken } as User;
-        setUser(updatedUser);
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        const current = userData ? (JSON.parse(userData) as User) : user;
+        const base = current ?? user;
+        if (base) {
+          const updatedUser = { ...base, authToken: tokens.accessToken, refreshToken: tokens.refreshToken } as User;
+          setUser(updatedUser);
+          await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+      } catch (e) {
+        console.warn('[AuthContext] Failed to persist refreshed tokens:', e);
       }
     });
   }, [user]);
@@ -140,9 +151,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(syncedUser);
             await AsyncStorage.setItem('user', JSON.stringify(syncedUser));
             console.log('AuthContext - User synced from backend');
-          } catch (syncError) {
+          } catch (syncError: unknown) {
             console.warn('AuthContext - Failed to sync user from backend, using stored data:', syncError);
-            // Continue with stored user data if sync fails
           }
         }
       } else {
@@ -160,6 +170,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (userData: User) => {
     try {
       console.log('AuthContext - Login called with:', userData);
+      isLoggingOut = false;
+      authEvents.reset();
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       console.log('AuthContext - User set and saved to storage');
@@ -170,7 +182,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = useCallback(async () => {
-    
+    if (isLoggingOut) return;
+    isLoggingOut = true;
+
     try {
       console.log('[AuthContext] ========== LOGOUT INITIATED ==========');
       console.log('[AuthContext] Current user before logout:', user ? 'exists' : 'null');
@@ -285,7 +299,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return true;
     } catch (error) {
       console.error('[AuthContext] Token refresh failed:', error);
-      await logout();
+      // Only logout when refresh token is invalid/expired (401/403). Keep session on network errors.
+      const isRefreshTokenInvalid = error instanceof ApiError && (error.status === 401 || error.status === 403);
+      if (isRefreshTokenInvalid) {
+        await logout();
+      }
       return false;
     } finally {
       isRefreshingRef.current = false;

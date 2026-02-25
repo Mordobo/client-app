@@ -1,4 +1,5 @@
 import { useAvailability } from "@/contexts/AvailabilityContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
 import { getProviderProfile } from "@/services/providers";
 import { getProfileImageUrl } from "@/utils/profileImage";
@@ -95,8 +96,10 @@ function AvailabilityToggle({
 
 export default function ProviderDashboardScreen() {
   const { isAvailable, setAvailability } = useAvailability();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isAuthenticated = !!user;
   const [stats, setStats] = useState<ProviderDashboardStats | null>(null);
   const [requests, setRequests] = useState<ProviderDashboardRequest[]>([]);
   const [schedule, setSchedule] = useState<ProviderDashboardScheduleItem[]>([]);
@@ -108,11 +111,17 @@ export default function ProviderDashboardScreen() {
     queryKey: ["providerProfile"],
     queryFn: getProviderProfile,
     staleTime: 60_000,
+    enabled: isAuthenticated,
   });
   const displayName = (providerProfile?.displayName ?? "").trim() || "—";
   const providerAvatarUrl = getProfileImageUrl(providerProfile?.avatarUrl ?? null) ?? null;
 
   const loadAll = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const [statsRes, requestsRes, scheduleRes] = await Promise.all([
         getDashboardStats(),
@@ -128,20 +137,27 @@ export default function ProviderDashboardScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useFocusEffect(
     useCallback(() => {
-      loadAll();
-    }, [loadAll]),
+      if (isAuthenticated) loadAll();
+      else {
+        setStats(null);
+        setRequests([]);
+        setSchedule([]);
+        setLoading(false);
+      }
+    }, [loadAll, isAuthenticated]),
   );
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     const interval = setInterval(() => {
       getDashboardRequests().then((r) => setRequests(r.requests));
     }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

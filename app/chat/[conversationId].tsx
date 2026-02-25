@@ -3,8 +3,8 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useRealtimeConversationMessages } from "@/hooks/useRealtimeConversationMessages";
-import { ConversationDetail, fetchConversation, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
-import { fetchOrderDetail, Order, OrderStatus } from "@/services/orders";
+import { ConversationDetail, fetchConversation, fetchConversationActiveQuote, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
+import { fetchOrderDetail, Order, OrderStatus, Quote } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
@@ -46,7 +46,7 @@ const colors = {
   chipBg: "rgba(255,255,255,0.05)",
 };
 
-const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending", "accepted", "in_progress"];
+const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending", "quoted", "accepted", "in_progress"];
 
 function isImageContent(content: string): boolean {
   return content.startsWith("data:image/") || /^https?:\/\/.+(\.(jpg|jpeg|png|gif|webp)|image)/i.test(content);
@@ -63,6 +63,7 @@ export default function ChatScreen() {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [activeQuote, setActiveQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [messageText, setMessageText] = useState("");
@@ -107,12 +108,23 @@ export default function ChatScreen() {
     [conversationId, isProvider],
   );
 
+  const refreshActiveQuote = useCallback(async () => {
+    if (!conversationId || conversationId === "demo") return;
+    try {
+      const { quote } = await fetchConversationActiveQuote(conversationId);
+      setActiveQuote(quote);
+    } catch {
+      setActiveQuote(null);
+    }
+  }, [conversationId]);
+
   useFocusEffect(
     useCallback(() => {
       if (conversationId && conversationId !== "demo") {
         loadMessages(false);
+        refreshActiveQuote();
       }
-    }, [conversationId, loadMessages])
+    }, [conversationId, loadMessages, refreshActiveQuote])
   );
 
   const loadConversation = useCallback(async () => {
@@ -133,6 +145,20 @@ export default function ChatScreen() {
           return;
         }
       }
+      // Don't show self-chat to provider (conversation where client and supplier are the same person)
+      if (isProvider && conv) {
+        const clientName = (conv.client_name ?? "").trim();
+        const supplierName = (conv.supplier_name ?? "").trim();
+        const isSelfChat = !!(
+          clientName &&
+          supplierName &&
+          clientName.toLowerCase() === supplierName.toLowerCase()
+        );
+        if (isSelfChat) {
+          router.replace("/(provider-tabs)/messages");
+          return;
+        }
+      }
       setConversation(conv);
       if (conv.order_id) {
         try {
@@ -146,6 +172,13 @@ export default function ChatScreen() {
         }
       } else {
         setActiveOrder(null);
+      }
+      // Load active quote for this conversation
+      try {
+        const { quote } = await fetchConversationActiveQuote(conversationId);
+        setActiveQuote(quote);
+      } catch {
+        setActiveQuote(null);
       }
     } catch (err) {
       setError(t("chat.failedToLoad"));
@@ -305,11 +338,37 @@ export default function ChatScreen() {
     }
   };
 
-  const handleQuickAction = (key: string) => {
-    if (key === "Foto") handleAttachImage();
-    else if (key === "Ubicación" || key === "Cotización" || key === "Agendar") {
-      // Placeholder: could open location picker, quote flow, or schedule
+  const hasActiveQuote = !!activeQuote && ["draft", "sent", "pending", "approved"].includes(activeQuote.status);
+
+  const handleCreateQuote = () => {
+    if (hasActiveQuote) {
+      Alert.alert(t("common.error"), t("chat.quoteAlreadyActive"));
+      return;
     }
+    const otherName = user?.id === conversation?.client_id ? conversation?.supplier_name : conversation?.client_name;
+    router.push({
+      pathname: "/chat/create-quote",
+      params: {
+        ...(conversation?.order_id ? { orderId: conversation.order_id } : {}),
+        clientName: otherName ?? "",
+        serviceName: activeOrder?.service_name ?? "",
+        conversationId: conversationId ?? "",
+      },
+    });
+  };
+
+  const handleViewQuote = () => {
+    if (!activeQuote || !activeQuote.order_id) return;
+    if (isProvider) {
+      router.push(`/booking/quote/${activeQuote.order_id}`);
+    } else {
+      router.push(`/booking/quote/${activeQuote.order_id}`);
+    }
+  };
+
+  const handleQuickAction = (key: string) => {
+    if (key === t("chat.quickPhoto")) handleAttachImage();
+    else if (key === t("chat.quickQuote")) handleCreateQuote();
   };
 
   const renderMessage = ({ item, index }: { item: Message; index: number }, list: Message[]) => {
@@ -368,6 +427,7 @@ export default function ChatScreen() {
     activeOrder ?
       activeOrder.status === "in_progress" ? t("chat.jobBannerInProgress")
       : activeOrder.status === "accepted" ? t("chat.jobBannerScheduled")
+      : activeOrder.status === "quoted" ? t("chat.quoteStatus_sent")
       : t("chat.jobBannerPending")
     : "";
 
@@ -422,6 +482,21 @@ export default function ChatScreen() {
             <Ionicons name="call" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
+        {/* Active quote banner - client view */}
+        {hasActiveQuote && (
+          <TouchableOpacity style={clientStyles.quoteBanner} onPress={handleViewQuote} activeOpacity={0.7}>
+            <View style={clientStyles.quoteBannerIcon}>
+              <Ionicons name="document-text" size={20} color="#3b82f6" />
+            </View>
+            <View style={clientStyles.quoteBannerContent}>
+              <Text style={clientStyles.quoteBannerTitle}>{t("chat.activeQuote")}</Text>
+              <Text style={clientStyles.quoteBannerSub}>
+                ${Number(activeQuote!.total ?? 0).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+          </TouchableOpacity>
+        )}
         <KeyboardAvoidingView style={clientStyles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 80 : 0} enabled={Platform.OS === "ios"}>
           <View style={[clientStyles.flex, Platform.OS === "android" && keyboardHeight > 0 && { paddingBottom: keyboardHeight }]}>
             {error ?
@@ -492,16 +567,22 @@ export default function ChatScreen() {
           <Text style={styles.headerName}>{otherUserName ?? t("chat.title")}</Text>
           <Text style={styles.headerStatus}>{t("chat.online")}</Text>
         </View>
-        <TouchableOpacity onPress={handleCall} style={styles.headerBtn}>
-          <Ionicons name="call" size={20} color={colors.textPrimary} />
+        <TouchableOpacity
+          onPress={hasActiveQuote ? handleViewQuote : handleCreateQuote}
+          style={[styles.quoteHeaderBtn, hasActiveQuote && styles.quoteHeaderBtnView]}
+        >
+          <Ionicons name={hasActiveQuote ? "eye-outline" : "document-text-outline"} size={16} color={colors.textPrimary} />
+          <Text style={styles.quoteHeaderBtnText}>
+            {hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerBtn}>
           <Ionicons name="ellipsis-vertical" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
-      {/* Job banner - only when active order */}
-      {activeOrder && (
+      {/* Job banner - only when active order (not for 'quoted' orders — those show quote banner instead) */}
+      {activeOrder && activeOrder.status !== "quoted" && (
         <View style={styles.jobBanner}>
           <View style={styles.jobBannerIcon}>
             <Text style={styles.jobBannerIconText}>🔧</Text>
@@ -527,6 +608,22 @@ export default function ChatScreen() {
             <Text style={styles.jobBannerBadgeText}>{jobStatusLabel}</Text>
           </View>
         </View>
+      )}
+
+      {/* Active quote banner */}
+      {hasActiveQuote && (
+        <TouchableOpacity style={styles.quoteBanner} onPress={handleViewQuote} activeOpacity={0.7}>
+          <View style={styles.quoteBannerIcon}>
+            <Ionicons name="document-text" size={20} color="#8B5CF6" />
+          </View>
+          <View style={styles.quoteBannerContent}>
+            <Text style={styles.quoteBannerTitle}>{t("chat.activeQuote")}</Text>
+            <Text style={styles.quoteBannerSub}>
+              ${Number(activeQuote!.total ?? 0).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+        </TouchableOpacity>
       )}
 
       {/* Messages */}
@@ -620,6 +717,54 @@ const styles = StyleSheet.create({
     backgroundColor: colors.chipBg,
     justifyContent: "center",
     alignItems: "center",
+  },
+  quoteHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#8B5CF6",
+  },
+  quoteHeaderBtnView: {
+    backgroundColor: "rgba(139, 92, 246, 0.25)",
+  },
+  quoteHeaderBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  quoteBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(139, 92, 246, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(139, 92, 246, 0.25)",
+  },
+  quoteBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "rgba(139, 92, 246, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quoteBannerContent: { flex: 1 },
+  quoteBannerTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  quoteBannerSub: {
+    fontSize: 12,
+    color: colors.textMuted40,
+    marginTop: 2,
   },
   headerAvatar: {
     width: 40,
@@ -859,6 +1004,38 @@ const clientStyles = StyleSheet.create({
     backgroundColor: clientColors.bg,
   },
   flex: { flex: 1 },
+  quoteBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 4,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(59, 130, 246, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.25)",
+  },
+  quoteBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: "rgba(59, 130, 246, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quoteBannerContent: { flex: 1 },
+  quoteBannerTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  quoteBannerSub: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginTop: 2,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",

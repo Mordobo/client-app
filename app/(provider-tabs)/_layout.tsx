@@ -1,5 +1,6 @@
 import { HapticTab } from "@/components/haptic-tab";
 import { AvailabilityProvider } from "@/contexts/AvailabilityContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { useIsFocused } from "@react-navigation/native";
@@ -14,12 +15,19 @@ const PROVIDER_SCREEN_BG = "#12121A";
 export default function ProviderTabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
   const { mode } = useMode();
   const isFocused = useIsFocused();
   const bottomPadding = Math.max(insets.bottom, 24);
 
+  // Redirect when not authenticated (e.g. after logout) to avoid protected API calls without token.
+  useEffect(() => {
+    if (!user && isFocused) {
+      router.replace("/(tabs)");
+    }
+  }, [user, isFocused, router]);
+
   // Safety net: if mode becomes client while provider tabs are focused, redirect.
-  // Only fires when focused to avoid background screens competing with switch-mode navigation.
   useEffect(() => {
     if (mode === "client" && isFocused) {
       router.replace("/(tabs)");

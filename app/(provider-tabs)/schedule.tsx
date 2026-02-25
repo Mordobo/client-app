@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { getLocale, t } from "@/i18n";
 import {
     getDashboardSchedule,
@@ -54,8 +55,10 @@ function formatTime(isoDate: string | null): string {
 }
 
 export default function ProviderScheduleScreen() {
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isAuthenticated = !!user;
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
   const dateStr = useMemo(
@@ -71,6 +74,7 @@ export default function ProviderScheduleScreen() {
   } = useQuery({
     queryKey: ["providerSchedule", dateStr],
     queryFn: () => getDashboardSchedule(dateStr),
+    enabled: isAuthenticated,
   });
 
   const schedule = data?.schedule ?? [];

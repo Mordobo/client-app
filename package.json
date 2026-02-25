@@ -8,6 +8,7 @@
     "start:lan": "expo start --lan",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
+    "android:logs": "adb logcat \"*:S\" \"ReactNative:V\" \"ReactNativeJS:V\"",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
