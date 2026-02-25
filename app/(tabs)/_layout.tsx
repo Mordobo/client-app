@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs, useRouter } from 'expo-router';
+import { Redirect, Tabs, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { fetchUnreadCount } from '@/services/conversations';
 import { fetchUnreadNotificationCount } from '@/services/notifications';
@@ -75,7 +76,12 @@ function NotificationsTabIcon({ color, focused }: { color: string; focused: bool
 export default function TabLayout() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
   const { mode, isLoading } = useMode();
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
 
   // After login: redirect to provider dashboard when saved mode is provider (synced with DB)
   useEffect(() => {

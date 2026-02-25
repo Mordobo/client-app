@@ -1,25 +1,12 @@
-import { API_BASE } from '@/utils/apiConfig';
-import { handleUnauthorizedError } from '../utils/authEvents';
-import { getToken } from '../utils/userStorage';
-import { createApiHeaders } from '../utils/apiHeaders';
 import { request, ApiError } from './auth';
 import { t } from '@/i18n';
-
-// Helper to handle API responses and detect auth errors
-const handleApiResponse = async (response: Response): Promise<Response> => {
-  if (response.status === 401 || response.status === 403) {
-    handleUnauthorizedError();
-    throw new ApiError('Session expired. Please log in again.', response.status);
-  }
-  return response;
-};
 
 export interface Conversation {
   id: string;
   client_id: string;
   supplier_id: string;
   order_id: string | null;
-  last_message_at: string | null; // Can be null if conversation has no messages yet
+  last_message_at: string | null;
   created_at: string;
   other_user_name: string;
   other_user_image: string | null;
@@ -65,7 +52,6 @@ export type MessageViewRole = ConversationRole;
 export const fetchConversations = async (role?: ConversationRole): Promise<Conversation[]> => {
   try {
     const asParam = role === 'provider' ? 'supplier' : 'client';
-    // Role is sent only in the URL so we avoid custom headers and CORS preflight issues in browser
     const data = await request<{ conversations: Conversation[] }>(
       `/conversations?as=${asParam}`,
       { method: 'GET' },
@@ -74,55 +60,31 @@ export const fetchConversations = async (role?: ConversationRole): Promise<Conve
     if (!data.conversations) {
       throw new ApiError('Invalid response format: missing conversations', 500);
     }
-    const sanitized = data.conversations.map((conv) => ({
+    return data.conversations.map((conv) => ({
       ...conv,
       last_message_at: conv.last_message_at || null,
       last_message: conv.last_message || null,
       other_user_image: conv.other_user_image || null,
       unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
     }));
-    return sanitized;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
 
 // DELETE /conversations/:id - Remove conversation and its messages
 export const deleteConversation = async (conversationId: string): Promise<void> => {
-  const token = await getToken();
-  if (!token) {
-    handleUnauthorizedError();
-    throw new ApiError('Not authenticated. Please log in.', 401);
+  try {
+    await request<Record<string, never>>(
+      `/conversations/${conversationId}`,
+      { method: 'DELETE' },
+      t('chat.deleteFailed')
+    );
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
   }
-  const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (response.status === 401 || response.status === 403) {
-    handleUnauthorizedError();
-    throw new ApiError('Session expired. Please log in again.', response.status);
-  }
-  if (response.status === 404) {
-    throw new ApiError(t('chat.conversationNotFound'), 404);
-  }
-  if (!response.ok) {
-    const text = await response.text();
-    let message = t('chat.deleteFailed');
-    try {
-      const data = text ? JSON.parse(text) : {};
-      if (typeof data.message === 'string') message = data.message;
-    } catch {
-      // use default message
-    }
-    throw new ApiError(message, response.status);
-  }
-  // 204 No Content - success
 };
 
 // POST /conversations - Create or get existing conversation
@@ -131,36 +93,16 @@ export const getOrCreateConversation = async (
   orderId?: string
 ): Promise<{ conversation: ConversationDetail; created: boolean }> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations`, {
-      method: 'POST',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-      body: JSON.stringify({ supplierId, orderId }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to create conversation',
-        response.status
-      );
-    }
-
-    return await response.json();
+    return await request<{ conversation: ConversationDetail; created: boolean }>(
+      '/conversations',
+      {
+        method: 'POST',
+        body: JSON.stringify({ supplierId, orderId }),
+      },
+      'Failed to create conversation'
+    );
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
@@ -168,80 +110,68 @@ export const getOrCreateConversation = async (
 // GET /conversations/:id - Fetch conversation details
 export const fetchConversation = async (conversationId: string): Promise<ConversationDetail> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
-      method: 'GET',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch conversation',
-        response.status
-      );
-    }
-
-    const data = await response.json();
+    const data = await request<{ conversation: ConversationDetail }>(
+      `/conversations/${conversationId}`,
+      { method: 'GET' },
+      'Failed to fetch conversation'
+    );
     return data.conversation;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
 
-// GET /conversations/:id/messages - Fetch messages (viewAs: pass 'provider' when opening from provider inbox so backend marks as read for supplier and unread count updates)
+// GET /conversations/:id/client-address - Get client's default address for this conversation
+export const fetchConversationClientAddress = async (
+  conversationId: string
+): Promise<import('@/services/orders').ClientAddress | null> => {
+  try {
+    const data = await request<{ address: import('@/services/orders').ClientAddress | null }>(
+      `/conversations/${conversationId}/client-address`,
+      { method: 'GET' },
+      'Failed to fetch client address'
+    );
+    return data.address;
+  } catch {
+    return null;
+  }
+};
+
+// GET /conversations/:id/active-quote - Get active quote for conversation (if any)
+export const fetchConversationActiveQuote = async (
+  conversationId: string
+): Promise<{ quote: import('@/services/orders').Quote | null; order: import('@/services/orders').Order | null }> => {
+  try {
+    return await request<{ quote: import('@/services/orders').Quote | null; order: import('@/services/orders').Order | null }>(
+      `/conversations/${conversationId}/active-quote`,
+      { method: 'GET' },
+      'Failed to fetch active quote'
+    );
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
+// GET /conversations/:id/messages - Fetch messages
 export const fetchConversationMessages = async (
   conversationId: string,
   viewAs?: MessageViewRole
 ): Promise<Message[]> => {
   try {
-    const token = await getToken();
-
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-
     const asParam = viewAs === 'provider' ? 'supplier' : viewAs === 'client' ? 'client' : undefined;
     const url = asParam
-      ? `${API_BASE}/conversations/${conversationId}/messages?as=${asParam}`
-      : `${API_BASE}/conversations/${conversationId}/messages`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: createApiHeaders({
-        Authorization: `Bearer ${token}`,
-      }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch messages',
-        response.status
-      );
-    }
-
-    const data = await response.json();
+      ? `/conversations/${conversationId}/messages?as=${asParam}`
+      : `/conversations/${conversationId}/messages`;
+    const data = await request<{ messages: Message[] }>(
+      url,
+      { method: 'GET' },
+      'Failed to fetch messages'
+    );
     return data.messages;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
@@ -252,37 +182,17 @@ export const sendConversationMessage = async (
   content: string
 ): Promise<Message> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-      body: JSON.stringify({ content }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to send message',
-        response.status
-      );
-    }
-
-    const data = await response.json();
+    const data = await request<{ message: Message }>(
+      `/conversations/${conversationId}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+      },
+      'Failed to send message'
+    );
     return data.message;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
@@ -290,41 +200,13 @@ export const sendConversationMessage = async (
 // GET /conversations/unread-count - Fetch unread count
 export const fetchUnreadCount = async (): Promise<number> => {
   try {
-    const token = await getToken();
-    
-    // For unread count, silently return 0 if not authenticated (don't redirect)
-    if (!token) {
-      return 0;
-    }
-    
-    const url = `${API_BASE}/conversations/unread-count`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-    });
-
-    // For unread count, silently return 0 on 401 (polling shouldn't cause logout)
-    if (response.status === 401) {
-      return 0;
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch unread count',
-        response.status
-      );
-    }
-
-    const data = await response.json();
+    const data = await request<{ unreadCount: number }>(
+      '/conversations/unread-count',
+      { method: 'GET' },
+      'Failed to fetch unread count'
+    );
     return data.unreadCount;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError('Network error. Please check your connection.', 0, error);
+  } catch {
+    return 0;
   }
 };
-

@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
 import { type Notification, type NotificationCategory, deleteAllNotifications, deleteNotification, fetchNotifications, getNotificationCategory, markAllNotificationsAsRead, markNotificationAsRead } from "@/services/notifications";
 import { Ionicons } from "@expo/vector-icons";
@@ -102,8 +103,10 @@ const FILTER_TABS: { key: FilterTab; labelKey: string }[] = [
 ];
 
 export default function ProviderNotificationsScreen() {
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const isAuthenticated = !!user;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,6 +114,12 @@ export default function ProviderNotificationsScreen() {
   const [clearAllModalVisible, setClearAllModalVisible] = useState(false);
 
   const loadNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const data = await fetchNotifications();
       setNotifications(data);
@@ -120,11 +129,15 @@ export default function ProviderNotificationsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    if (isAuthenticated) loadNotifications();
+    else {
+      setNotifications([]);
+      setLoading(false);
+    }
+  }, [loadNotifications, isAuthenticated]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

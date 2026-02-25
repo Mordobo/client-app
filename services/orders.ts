@@ -1,13 +1,13 @@
 import { t } from '@/i18n';
 import { ApiError as AuthApiError, request } from './auth';
 
-export type OrderStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending' | 'quoted' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Order {
   id: string;
   client_id: string;
   supplier_id?: string;
-  service_id: string;
+  service_id?: string; // null for custom-quote orders created from conversation
   category_id?: string;
   quote_id?: string;
   scheduled_at?: string;
@@ -34,8 +34,12 @@ export interface Quote {
   subtotal: number;
   tax: number;
   total: number;
-  status: 'pending' | 'sent' | 'approved' | 'rejected' | 'expired';
+  status: 'draft' | 'pending' | 'sent' | 'approved' | 'rejected' | 'expired';
   valid_until?: string;
+  estimated_time?: number;
+  estimated_time_unit?: 'hours' | 'days';
+  notes?: string;
+  commission_rate?: number;
   created_at: string;
   updated_at: string;
 }
@@ -45,9 +49,38 @@ export interface QuoteLineItem {
   amount: number;
 }
 
+export interface CreateQuotePayload {
+  line_items: QuoteLineItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  description?: string;
+  scheduled_at?: string;
+  address?: string;
+  valid_until?: string;
+  estimated_time?: number;
+  estimated_time_unit?: 'hours' | 'days';
+  notes?: string;
+  commission_rate?: number;
+  status?: 'draft' | 'sent';
+}
+
 export interface OrdersResponse {
   orders: Order[];
   total: number;
+}
+
+export interface ClientAddress {
+  id: string;
+  name: string;
+  type: 'home' | 'office' | 'other';
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state?: string;
+  postal_code?: string;
+  country: string;
+  is_default: boolean;
 }
 
 export interface OrderDetailResponse {
@@ -60,6 +93,13 @@ export interface OrderDetailResponse {
     profile_image?: string;
     rating: number;
   };
+  client?: {
+    id: string;
+    full_name: string;
+  };
+  clientAddress?: ClientAddress;
+  /** Conversation id for this order (to open chat with client after withdraw/cancel) */
+  conversation_id?: string | null;
 }
 
 // Re-export ApiError from auth service for backward compatibility
@@ -191,6 +231,133 @@ export const approveQuote = async (orderId: string): Promise<Quote> => {
       t('errors.requestFailed')
     );
     return result.quote;
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
+
+// PATCH /orders/:id/quote/reject - Client rejects quote (so provider can send a new one)
+export const rejectQuote = async (orderId: string): Promise<Quote> => {
+  try {
+    const result = await request<{ quote: Quote }>(
+      `/orders/${orderId}/quote/reject`,
+      {
+        method: 'PATCH',
+      },
+      t('errors.requestFailed')
+    );
+    return result.quote;
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
+
+// POST /orders/:id/quote - Create quote (provider)
+export const createQuote = async (
+  orderId: string,
+  data: CreateQuotePayload
+): Promise<Quote> => {
+  try {
+    const result = await request<{ quote: Quote }>(
+      `/orders/${orderId}/quote`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      t('errors.requestFailed')
+    );
+    return result.quote;
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
+
+// PATCH /orders/:id/quote - Supplier updates quote (only when not yet approved)
+export const updateQuote = async (
+  orderId: string,
+  data: CreateQuotePayload
+): Promise<Quote> => {
+  try {
+    const result = await request<{ quote: Quote }>(
+      `/orders/${orderId}/quote`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+      t('errors.requestFailed')
+    );
+    return result.quote;
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
+
+// PATCH /orders/:id/quote/withdraw - Supplier withdraws their quote (only when not yet approved)
+export const withdrawQuote = async (orderId: string): Promise<Quote> => {
+  try {
+    const result = await request<{ quote: Quote }>(
+      `/orders/${orderId}/quote/withdraw`,
+      {
+        method: 'PATCH',
+      },
+      t('errors.requestFailed')
+    );
+    return result.quote;
+  } catch (error) {
+    if (error instanceof AuthApiError) {
+      throw new ApiError(error.message, error.status, error.data);
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
+
+/** Create order + quote from a conversation that has no order (custom/personalized quote flow). */
+export const createQuoteFromConversation = async (
+  conversationId: string,
+  data: CreateQuotePayload
+): Promise<{ order: Order; quote: Quote }> => {
+  try {
+    const result = await request<{ order: Order; quote: Quote }>(
+      `/orders/from-conversation/${conversationId}/quote`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      t('errors.requestFailed')
+    );
+    return { order: result.order, quote: result.quote };
   } catch (error) {
     if (error instanceof AuthApiError) {
       throw new ApiError(error.message, error.status, error.data);

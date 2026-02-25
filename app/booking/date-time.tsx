@@ -1,19 +1,20 @@
 import {
-  fetchSupplierAvailability,
+  BookingDateTimePicker,
+  type BookingDateTimePickerProviderCard,
+} from '@/components/BookingDateTimePicker';
+import {
   fetchSupplierProfile,
   fetchSupplierServices,
   Supplier,
   SupplierService,
   ApiError,
 } from '@/services/suppliers';
-import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -38,14 +39,6 @@ const colors = {
   border: '#374151',
   white: '#ffffff',
 };
-
-interface AvailabilitySlot {
-  date: string;
-  time: string;
-  available: boolean;
-}
-
-const TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
 
 // Get service duration in hours from service description or category
 const getServiceDurationHours = (service: SupplierService | null): number => {
@@ -85,18 +78,8 @@ export default function BookingDateTimeScreen() {
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [service, setService] = useState<SupplierService | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Date selection state
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [availableDates, setAvailableDates] = useState<Date[]>([]);
-  const [unavailableDates, setUnavailableDates] = useState<string[]>([]);
-
-  // Time selection
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
 
   useEffect(() => {
     console.log('[BookingDateTime] Component mounted with params:', { supplierId, serviceId });
@@ -110,64 +93,6 @@ export default function BookingDateTimeScreen() {
     
     loadData();
   }, [supplierId, serviceId]);
-
-  useEffect(() => {
-    if (selectedDate && supplierId) {
-      loadAvailabilityForDate(selectedDate);
-    }
-  }, [selectedDate, supplierId]);
-
-  // Define updateDatesForMonth before it's used
-  const updateDatesForMonth = useCallback((unavailableDatesList?: string[]) => {
-    const datesToCheck = unavailableDatesList !== undefined ? unavailableDatesList : unavailableDates;
-    
-    // Get the first day of the current month view
-    const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    
-    // Get today's date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Generate 7 days starting from the first day of the month or today (whichever is later)
-    const dates: Date[] = [];
-    const startDate = firstDayOfMonth > today ? firstDayOfMonth : today;
-    
-    // If we're viewing a future month, start from the first day of that month
-    const actualStartDate = firstDayOfMonth >= today ? firstDayOfMonth : today;
-    
-    let dateIndex = 0;
-    let currentDate = new Date(actualStartDate);
-    
-    // Generate 7 available dates
-    while (dates.length < 7 && dateIndex < 60) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      
-      // Only add dates that are today or in the future (not past dates)
-      if (currentDate >= today && !datesToCheck.includes(dateStr)) {
-        dates.push(new Date(currentDate));
-      }
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-      dateIndex++;
-    }
-    
-    setAvailableDates(dates);
-    
-    // If current selected date is not in the new list, select the first available
-    if (dates.length > 0) {
-      const isSelectedDateInList = selectedDate && dates.some(
-        d => d.toDateString() === selectedDate.toDateString()
-      );
-      if (!isSelectedDateInList) {
-        setSelectedDate(dates[0]);
-      }
-    }
-  }, [currentMonth, unavailableDates, selectedDate]);
-
-  // Update available dates when month changes
-  useEffect(() => {
-    updateDatesForMonth();
-  }, [currentMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     try {
@@ -197,9 +122,6 @@ export default function BookingDateTimeScreen() {
       }
 
       console.log('[BookingDateTime] Selected service:', selectedService.category_name);
-
-      // Load initial availability
-      await loadAvailability();
     } catch (err) {
       console.error('[BookingDateTime] Error loading data:', err);
       if (err instanceof ApiError) {
@@ -212,179 +134,12 @@ export default function BookingDateTimeScreen() {
     }
   };
 
-  const loadAvailability = async () => {
-    if (!supplierId) return;
-
-    try {
-      setLoadingAvailability(true);
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + 60); // Next 60 days to cover month navigation
-
-      console.log('[BookingDateTime] Loading availability for supplier:', supplierId);
-      
-      const availability = await fetchSupplierAvailability(
-        supplierId,
-        startDate.toISOString().split('T')[0],
-        endDate.toISOString().split('T')[0]
-      );
-
-      console.log('[BookingDateTime] Availability loaded successfully:', availability);
-      setUnavailableDates(availability.unavailable_dates || []);
-
-      // Initial dates will be set by updateDatesForMonth
-      updateDatesForMonth(availability.unavailable_dates || []);
-    } catch (err) {
-      console.error('[BookingDateTime] Error loading availability (using defaults):', err);
-      // Continue with default dates even if API fails
-      // This allows the booking flow to continue even if the availability endpoint is not implemented
-      setUnavailableDates([]);
-      updateDatesForMonth([]);
-    } finally {
-      setLoadingAvailability(false);
-    }
-  };
-
-  const loadAvailabilityForDate = async (date: Date) => {
-    if (!supplierId) return;
-
-    try {
-      const dateStr = date.toISOString().split('T')[0];
-      console.log('[BookingDateTime] Loading time slots for date:', dateStr);
-      
-      const availability = await fetchSupplierAvailability(
-        supplierId,
-        dateStr,
-        dateStr
-      );
-
-      console.log('[BookingDateTime] Time slots loaded:', availability.slots?.length || 0);
-
-      // Filter available times for selected date
-      let availableSlots = availability.slots
-        .filter(slot => slot.date === dateStr && slot.available)
-        .map(slot => slot.time);
-
-      // If no slots from API, use default time slots
-      if (availableSlots.length === 0) {
-        console.log('[BookingDateTime] No slots from API, using default time slots');
-        availableSlots = TIME_SLOTS;
-      }
-
-      // If selected date is today, filter out past hours
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selectedDateOnly = new Date(date);
-      selectedDateOnly.setHours(0, 0, 0, 0);
-      
-      if (selectedDateOnly.getTime() === today.getTime()) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        
-        // Filter out times that have already passed today
-        availableSlots = availableSlots.filter(time => {
-          const [hours, minutes] = time.split(':').map(Number);
-          const timeDate = new Date();
-          timeDate.setHours(hours, minutes, 0, 0);
-          
-          // Only include times that are in the future (at least 1 hour from now)
-          return timeDate > now;
-        });
-      }
-
-      setAvailableTimes(availableSlots);
-    } catch (err) {
-      console.error('[BookingDateTime] Error loading time slots (using defaults):', err);
-      // Default to all time slots if API fails, but still filter past hours if today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selectedDateOnly = new Date(date);
-      selectedDateOnly.setHours(0, 0, 0, 0);
-      
-      let defaultSlots = TIME_SLOTS;
-      if (selectedDateOnly.getTime() === today.getTime()) {
-        const now = new Date();
-        defaultSlots = TIME_SLOTS.filter(time => {
-          const [hours] = time.split(':').map(Number);
-          const timeDate = new Date();
-          timeDate.setHours(hours, 0, 0, 0);
-          return timeDate > now;
-        });
-      }
-      
-      console.log('[BookingDateTime] Using default time slots:', defaultSlots.length);
-      setAvailableTimes(defaultSlots);
-    }
-  };
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newMonth = new Date(currentMonth);
-    if (direction === 'prev') {
-      // Don't allow navigating to past months
-      const today = new Date();
-      const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      const newMonthStart = new Date(newMonth.getFullYear(), newMonth.getMonth() - 1, 1);
-      
-      if (newMonthStart < currentMonthStart) {
-        return; // Don't navigate to past months
-      }
-      newMonth.setMonth(newMonth.getMonth() - 1);
-    } else {
-      newMonth.setMonth(newMonth.getMonth() + 1);
-    }
-    setCurrentMonth(newMonth);
-  };
-
-  // Check if we can navigate to previous month
-  const canNavigatePrev = () => {
-    const today = new Date();
-    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const viewMonthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    return viewMonthStart > currentMonthStart;
-  };
-
-  const formatMonthYear = (date: Date): string => {
-    return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-  };
-
-  const formatDayName = (date: Date): string => {
-    return date.toLocaleDateString('es-ES', { weekday: 'short' });
-  };
-
-  const formatDayNumber = (date: Date): string => {
-    return date.getDate().toString();
-  };
-
-  const isDateUnavailable = (date: Date): boolean => {
-    const dateStr = date.toISOString().split('T')[0];
-    return unavailableDates.includes(dateStr);
-  };
-
-  const isTimeAvailable = (time: string): boolean => {
-    return availableTimes.includes(time);
-  };
-
-  const calculateEndTime = (startTime: string, duration: number): string => {
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const endHours = hours + duration;
-    return `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  };
-
   const handleContinue = () => {
-    if (!selectedDate || !selectedTime || !serviceId || !supplierId || !service) {
+    if (!scheduledAt || !serviceId || !supplierId || !service) {
       Alert.alert(t('common.error'), t('booking.selectAllFields'));
       return;
     }
-
-    // Get duration from service
     const serviceDuration = getServiceDurationHours(service);
-
-    // Navigate to address selection with booking data
-    const scheduledAt = new Date(selectedDate);
-    const [hours, minutes] = selectedTime.split(':').map(Number);
-    scheduledAt.setHours(hours, minutes, 0, 0);
-
     router.push({
       pathname: '/booking/address',
       params: {
@@ -419,7 +174,14 @@ export default function BookingDateTimeScreen() {
     );
   }
 
-  const canContinue = selectedDate && selectedTime;
+  const canContinue = !!scheduledAt;
+  const providerCardInfo: BookingDateTimePickerProviderCard | undefined = supplier && service
+    ? {
+        name: supplier.business_name?.trim() || supplier.full_name,
+        serviceInfo: `${service.category_name || 'Service'} • $${service.price || 0}${t('supplier.perHour')}`,
+        profileImage: supplier.profile_image,
+      }
+    : undefined;
 
   return (
     <View style={styles.container}>
@@ -434,119 +196,16 @@ export default function BookingDateTimeScreen() {
 
       <ScrollView 
         style={styles.scrollView} 
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Provider Mini Card */}
-        <View style={styles.providerCard}>
-          <View style={styles.providerImageContainer}>
-            <ProviderAvatar
-              profileImage={supplier.profile_image}
-              size={48}
-              rounded
-              style={styles.providerImage}
-            />
-          </View>
-          <View style={styles.providerInfo}>
-            <Text style={styles.providerName}>{supplier.business_name?.trim() || supplier.full_name}</Text>
-            <Text style={styles.serviceInfo}>
-              {service.category_name || 'Service'} • ${service.price || 0}{t('supplier.perHour')}
-            </Text>
-          </View>
-        </View>
-
-        {/* Month Navigation */}
-        <View style={styles.monthNavigation}>
-          <TouchableOpacity
-            onPress={() => navigateMonth('prev')}
-            disabled={!canNavigatePrev()}
-            style={!canNavigatePrev() && styles.monthNavButtonDisabled}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={canNavigatePrev() ? colors.textSecondary : colors.border}
-            />
-          </TouchableOpacity>
-          <Text style={styles.monthText}>
-            {formatMonthYear(currentMonth).charAt(0).toUpperCase() + formatMonthYear(currentMonth).slice(1)}
-          </Text>
-          <TouchableOpacity onPress={() => navigateMonth('next')}>
-            <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Date Selector - Horizontal Scroll */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.dateSelector}
-        >
-          {availableDates.map((date, index) => {
-            const isSelected = selectedDate?.toDateString() === date.toDateString();
-            const isUnavailable = isDateUnavailable(date);
-            
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dateItem,
-                  isSelected && styles.dateItemSelected,
-                  isUnavailable && styles.dateItemUnavailable,
-                ]}
-                onPress={() => !isUnavailable && setSelectedDate(date)}
-                disabled={isUnavailable}
-              >
-                <Text style={[
-                  styles.dateDayName,
-                  isSelected && styles.dateDayNameSelected,
-                  isUnavailable && styles.dateDayNameUnavailable,
-                ]}>
-                  {formatDayName(date)}
-                </Text>
-                <Text style={[
-                  styles.dateDayNumber,
-                  isSelected && styles.dateDayNumberSelected,
-                  isUnavailable && styles.dateDayNumberUnavailable,
-                ]}>
-                  {formatDayNumber(date)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Time Slots Grid */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitleCentered}>{t('booking.availableTimes')}</Text>
-          <View style={styles.timeGrid}>
-            {TIME_SLOTS.map((time) => {
-              const isSelected = selectedTime === time;
-              const isAvailable = isTimeAvailable(time);
-              
-              return (
-                <TouchableOpacity
-                  key={time}
-                  style={[
-                    styles.timeSlot,
-                    isSelected && styles.timeSlotSelected,
-                    !isAvailable && styles.timeSlotUnavailable,
-                  ]}
-                  onPress={() => isAvailable && setSelectedTime(time)}
-                  disabled={!isAvailable}
-                >
-                  <Text style={[
-                    styles.timeSlotText,
-                    isSelected && styles.timeSlotTextSelected,
-                    !isAvailable && styles.timeSlotTextUnavailable,
-                  ]}>
-                    {time}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        <BookingDateTimePicker
+          supplierId={supplierId!}
+          value={scheduledAt}
+          onChange={setScheduledAt}
+          showProviderCard={true}
+          providerCard={providerCardInfo}
+        />
 
         {/* Service Duration Info (Read-only) */}
         {service && (
@@ -614,107 +273,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  providerCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  providerImageContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.bgInput,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  providerInfo: {
-    flex: 1,
-  },
-  providerName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 2,
-  },
-  serviceInfo: {
-    fontSize: 13,
-    color: colors.secondary,
-  },
-  monthNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  monthNavButtonDisabled: {
-    opacity: 0.3,
-  },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  dateSelector: {
-    paddingHorizontal: 20,
-    gap: 6,
-    marginBottom: 24,
-  },
-  dateItem: {
-    width: 56,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  dateItemSelected: {
-    backgroundColor: colors.primary,
-  },
-  dateItemUnavailable: {
-    opacity: 0.3,
-  },
-  dateDayName: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  dateDayNameSelected: {
-    color: colors.white,
-  },
-  dateDayNameUnavailable: {
-    color: colors.textSecondary,
-  },
-  dateDayNumber: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  dateDayNumberSelected: {
-    color: colors.white,
-  },
-  dateDayNumberUnavailable: {
-    color: colors.textSecondary,
-  },
   section: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 16,
   },
   sectionTitleCentered: {
     fontSize: 16,
@@ -722,40 +283,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     marginBottom: 16,
     textAlign: 'center',
-  },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  timeSlot: {
-    width: '22%',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    backgroundColor: colors.bgCard,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timeSlotSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  timeSlotUnavailable: {
-    opacity: 0.3,
-  },
-  timeSlotText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.white,
-  },
-  timeSlotTextSelected: {
-    color: colors.white,
-  },
-  timeSlotTextUnavailable: {
-    color: colors.textSecondary,
   },
   durationInfoCard: {
     flexDirection: 'row',

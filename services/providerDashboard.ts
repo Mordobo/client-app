@@ -206,6 +206,20 @@ export const rejectOrder = async (orderId: string): Promise<{ order: { id: strin
   );
 };
 
+/** Cancel an order already accepted by the client (provider cancels the scheduled request). */
+export const cancelOrderByProvider = async (
+  orderId: string
+): Promise<{ order: { id: string; status: string }; message: string }> => {
+  return request<{ order: { id: string; status: string }; message: string }>(
+    `/api/providers/orders/${orderId}/cancel`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.errors.cancelFailed"),
+  );
+};
+
 export const getProviderActiveJobs = async (): Promise<ProviderActiveJob[]> => {
   const res = await request<{ jobs: ProviderActiveJob[] }>(
     "/api/providers/dashboard/active-jobs",

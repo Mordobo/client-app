@@ -1,4 +1,5 @@
 import { ProviderAvatar } from '@/components/ProviderAvatar';
+import { useAuth } from '@/contexts/AuthContext';
 import { Conversation, deleteConversation, fetchConversations } from '@/services/conversations';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
@@ -87,6 +88,7 @@ function getStatusLabel(statusKey: string): string {
 
 export default function ProviderInboxScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,10 +99,18 @@ export default function ProviderInboxScreen() {
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const isAuthenticated = !!user;
   const POLLING_INTERVAL_MS = 2000;
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadConversations = useCallback(async (showLoading = true) => {
+    if (!isAuthenticated) {
+      setConversations([]);
+      setLoading(false);
+      setRefreshing(false);
+      setError(null);
+      return;
+    }
     try {
       setError(null);
       if (showLoading) setLoading(true);
@@ -119,13 +129,20 @@ export default function ProviderInboxScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    loadConversations(true);
-  }, [loadConversations]);
+    if (isAuthenticated) {
+      loadConversations(true);
+    } else {
+      setConversations([]);
+      setLoading(false);
+      setError(null);
+    }
+  }, [isAuthenticated, loadConversations]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     const startPolling = () => {
       if (pollingRef.current) return;
       pollingRef.current = setInterval(() => loadConversations(false), POLLING_INTERVAL_MS);
@@ -145,13 +162,13 @@ export default function ProviderInboxScreen() {
       sub.remove();
       stopPolling();
     };
-  }, [loadConversations]);
+  }, [isAuthenticated, loadConversations]);
 
   // Refetch when returning from chat so unread count and list stay in sync (MDB-160 / MDB-244)
   useFocusEffect(
     useCallback(() => {
-      loadConversations(false);
-    }, [loadConversations])
+      if (isAuthenticated) loadConversations(false);
+    }, [isAuthenticated, loadConversations])
   );
 
   const onRefresh = useCallback(() => {

@@ -113,12 +113,7 @@ export const refreshTokens = async (
       t('errors.tokenRefreshFailed'),
       false // retryOn401 = false
     );
-  } catch (error: any) {
-    // If refresh token is invalid/expired, emit session expired event
-    if (error?.status === 401 || error?.status === 403) {
-      console.log('[API] Refresh token invalid/expired, emitting session expired event');
-      authEvents.emitSessionExpired();
-    }
+  } catch (error: unknown) {
     throw error;
   }
 };
@@ -160,9 +155,7 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
     try {
       const tokens = await getCurrentTokens();
       if (!tokens?.refreshToken) {
-        console.log('[API] No refresh token available, session expired');
-        // No refresh token means session is expired
-        authEvents.emitSessionExpired();
+        console.log('[API] No refresh token available');
         return null;
       }
 
@@ -183,10 +176,14 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
         refreshToken: refreshResponse.refreshToken,
       };
     } catch (error) {
-      console.error('[API] Token refresh failed:', error);
-      // If refresh token is invalid/expired, emit session expired event
-      // This will trigger logout and redirect to login
-      authEvents.emitSessionExpired();
+      const status = error && typeof error === 'object' && 'status' in error ? (error as { status: number }).status : undefined;
+      // Only emit session expired when refresh token is actually invalid/expired (401/403), not on network errors or timeouts
+      if (status === 401 || status === 403) {
+        console.log('[API] Refresh token invalid/expired, emitting session expired event');
+        authEvents.emitSessionExpired();
+      } else {
+        console.warn('[API] Token refresh failed (network or other), keeping session:', status ?? error);
+      }
       return null;
     } finally {
       refreshPromise = null;
@@ -255,9 +252,14 @@ export const request = async <T>(
     console.log('[API] ========================================');
     
     // Endpoints that send email can take 25s+ (Brevo SMTP); use longer timeout so emulator/host round-trip doesn't hit limit
-    const timeoutMs = path.includes('validate-email') || path.includes('resend-code')
-      ? 70000
-      : 45000;
+    // QA on Render can cold-start in 50–60s; use longer timeout when targeting Render
+    const isRender = url.includes('onrender.com');
+    const timeoutMs =
+      path.includes('validate-email') || path.includes('resend-code')
+        ? 70000
+        : isRender
+          ? 65000
+          : 45000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
@@ -281,55 +283,48 @@ export const request = async <T>(
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
       const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      const errorType = fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError;
 
-      console.error('[API] ❌ Fetch failed:', {
-        url,
-        error: errorMessage,
-        isTimeout,
-        errorType: fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError,
-        platform: Platform.OS,
-      });
-      
-      // Log more details for network errors
-      if (fetchError instanceof TypeError) {
-        console.error('[API] Network error - possible causes:');
-        console.error('[API] 1. Backend not running or not accessible');
-        console.error('[API] 2. Firewall blocking connection');
-        console.error('[API] 3. Wrong IP address (10.0.2.2 for Android emulator)');
-        console.error('[API] 4. Backend not listening on 0.0.0.0');
-      }
-      
+      // Single log to avoid multiple in-app error overlays (was 6+ console.error per failure)
+      const causes =
+        fetchError instanceof TypeError
+          ? ' Possible causes: (1) Backend not running or not accessible (2) Firewall (3) Wrong IP e.g. 10.0.2.2 for Android emulator (4) Backend not listening on 0.0.0.0'
+          : '';
+      console.error(
+        '[API] Fetch failed:',
+        JSON.stringify({
+          url,
+          error: errorMessage,
+          isTimeout,
+          errorType,
+          platform: Platform.OS,
+        }) + causes
+      );
+
       // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
-        const timeoutMessage = t('errors.requestTimeout') + getPhysicalDeviceHint();
-        console.error('[API] Request timeout - throwing ApiError with translated message');
         throw new ApiError(
-          timeoutMessage,
-          0, // Status 0 indicates network/timeout error
+          t('errors.requestTimeout') + getPhysicalDeviceHint(),
+          0,
           { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
         );
       }
 
       // Handle network errors (TypeError usually means connection failed)
       if (fetchError instanceof TypeError) {
-        const connectionMessage = t('errors.connectionFailed') + getPhysicalDeviceHint();
-        console.error('[API] Network error - throwing ApiError with translated message');
         throw new ApiError(
-          connectionMessage,
+          t('errors.connectionFailed') + getPhysicalDeviceHint(),
           0,
-          { code: 'network_error', errorType: fetchError.constructor.name, originalError: errorMessage }
+          { code: 'network_error', errorType, originalError: errorMessage }
         );
       }
-      
+
       // For any other fetch errors, wrap them in ApiError
-      const genericMessage = fetchError instanceof Error 
-        ? (fetchError.message || t('errors.connectionFailed'))
-        : t('errors.connectionFailed');
-      throw new ApiError(
-        genericMessage,
-        0,
-        { code: 'fetch_error', originalError: errorMessage }
-      );
+      const genericMessage =
+        fetchError instanceof Error
+          ? (fetchError.message || t('errors.connectionFailed'))
+          : t('errors.connectionFailed');
+      throw new ApiError(genericMessage, 0, { code: 'fetch_error', originalError: errorMessage });
     }
 
     const responseText = await response.text();
@@ -398,11 +393,7 @@ export const request = async <T>(
             (retryResponse.status === 403 && 
              (retryCode === 'invalid_token' || isRetryTokenExpired));
           
-          // If retry also failed with auth error, emit session expired
-          if (isRetryAuthError) {
-            console.log('[API] Retry also failed with auth error, emitting session expired event');
-            authEvents.emitSessionExpired();
-          } else if (!isRetryAuthError) {
+          if (!isRetryAuthError) {
             console.error('[API] Retry error response body', retryData);
           }
           throw new ApiError(message, retryResponse.status, retryData, isRetryAuthError);
@@ -414,15 +405,14 @@ export const request = async <T>(
 
         return retryData as T;
       } else {
-        // Refresh failed - token expired, emit session expired event
-        // Don't log this as an error since it's expected when session expires
-        console.log('[API] Token refresh failed, emitting session expired event');
-        authEvents.emitSessionExpired();
+        // Refresh failed (null). Session expired is only emitted inside attemptTokenRefresh
+        // when the refresh token is 401/403. Do not emit here so we don't log out on network errors.
+        console.log('[API] Token refresh failed (e.g. network or invalid refresh), not emitting session expired to avoid logout on transient errors');
         const message =
           typeof responseData === 'object' && responseData && 'message' in responseData
             ? String((responseData as { message: unknown }).message)
             : t('errors.tokenRefreshFailed');
-        throw new ApiError(message, response.status, responseData, true);
+        throw new ApiError(message, response.status, responseData, false);
       }
     }
 
@@ -452,19 +442,11 @@ export const request = async <T>(
         (response.status === 403 && 
          (errorCode === 'invalid_token' || isTokenExpiredMessage));
       
-      // If this is an auth error that wasn't handled above (e.g., retryOn401=false or path=/auth/refresh),
-      // emit session expired event to trigger logout and redirect to Welcome
-      const emittedSessionExpired = isAuthError && (path === '/auth/refresh' || !retryOn401);
-      if (emittedSessionExpired) {
-        console.log('[API] Auth error on non-retryable endpoint, emitting session expired event');
-        authEvents.emitSessionExpired();
-      }
-      
       if (!isAuthError && !isExpectedError) {
         console.error('[API] Error response body', responseData);
       }
       
-      throw new ApiError(message, response.status, responseData, emittedSessionExpired);
+      throw new ApiError(message, response.status, responseData, false);
     }
 
     if (!responseData || typeof responseData !== 'object') {

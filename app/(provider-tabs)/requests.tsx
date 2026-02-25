@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
 import {
     acceptOrder,
@@ -131,7 +132,9 @@ function RequestCard({
 }
 
 export default function ProviderRequestsScreen() {
+  const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const isAuthenticated = !!user;
   const [activeTab, setActiveTab] = useState<TabKey>("new");
   const [requests, setRequests] = useState<ProviderDashboardRequest[]>([]);
   const [counts, setCounts] = useState({ newCount: 0, pendingCount: 0 });
@@ -141,6 +144,12 @@ export default function ProviderRequestsScreen() {
   const [declineModalId, setDeclineModalId] = useState<string | null>(null);
 
   const loadRequests = useCallback(async () => {
+    if (!isAuthenticated) {
+      setRequests([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const res = await getDashboardRequests(activeTab);
       setRequests(res.requests);
@@ -150,32 +159,40 @@ export default function ProviderRequestsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTab]);
+  }, [activeTab, isAuthenticated]);
 
   const loadCounts = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       const c = await getDashboardRequestCounts();
       setCounts(c);
     } catch (e) {
       console.error("[ProviderRequests] loadCounts error:", e);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      loadRequests();
-      loadCounts();
-    }, [loadRequests, loadCounts]),
+      if (isAuthenticated) {
+        setLoading(true);
+        loadRequests();
+        loadCounts();
+      } else {
+        setRequests([]);
+        setCounts({ newCount: 0, pendingCount: 0 });
+        setLoading(false);
+      }
+    }, [loadRequests, loadCounts, isAuthenticated]),
   );
 
   useEffect(() => {
-    const t = setInterval(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
       loadCounts();
       if (activeTab === "new") loadRequests();
     }, 30000);
-    return () => clearInterval(t);
-  }, [activeTab, loadCounts, loadRequests]);
+    return () => clearInterval(interval);
+  }, [activeTab, loadCounts, loadRequests, isAuthenticated]);
 
   useEffect(() => {
     loadRequests();

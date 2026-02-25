@@ -205,7 +205,7 @@ export default function NotificationsScreen() {
         case 'provider_on_way':
         case 'quote_received':
           if (metadata.orderId) {
-            router.push(`/orders/${metadata.orderId}`);
+            router.push(`/booking/quote/${metadata.orderId}`);
           }
           break;
         case 'new_message':
