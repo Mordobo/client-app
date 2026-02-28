@@ -50,9 +50,14 @@ export function useFavorite(supplierId: string | undefined): UseFavoriteReturn {
       const ids = new Set(data.favorites.map((f) => f.id));
       setFavoriteIds(ids);
     } catch (error) {
+      const status = error && typeof (error as { status?: number }).status === 'number'
+        ? (error as { status: number }).status
+        : (error as { statusCode?: number }).statusCode;
+      const message = error instanceof Error ? error.message : String(error);
       const isAuthError =
         error instanceof AuthApiError &&
-        (error.status === 401 || error.sessionExpired === true);
+        (status === 401 || status === 403 || (error as AuthApiError).sessionExpired === true ||
+          /invalid|expired.*token|token.*expired/i.test(message));
       if (isAuthError) {
         setFavoriteIds(new Set());
       } else {
@@ -92,10 +97,21 @@ export function useFavorite(supplierId: string | undefined): UseFavoriteReturn {
         }
       }
     } catch (error) {
+      const status = error && typeof (error as { status?: number }).status === 'number'
+        ? (error as { status: number }).status
+        : (error as { statusCode?: number }).statusCode;
+      const message = error instanceof Error ? error.message : String(error);
+      const isAuthError =
+        (error instanceof ApiError || error instanceof AuthApiError) &&
+        (status === 401 || status === 403 ||
+          /invalid|expired.*token|token.*expired/i.test(message));
+      if (isAuthError) {
+        Alert.alert(t('common.error'), t('auth.signInToContinue'));
+        return;
+      }
       console.error('[useFavorite] Error toggling favorite:', error);
       if (error instanceof ApiError) {
         if (error.statusCode === 409) {
-          // Already favorited, just update store state
           addToStore(supplierId);
         } else {
           Alert.alert(t('common.error'), error.message);

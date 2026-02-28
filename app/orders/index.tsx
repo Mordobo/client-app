@@ -88,7 +88,7 @@ export default function OrdersScreen() {
               onPress={() => router.push(`/orders/${order.id}`)}
             >
               <View style={styles.orderHeader}>
-                <Ionicons name="broom" size={24} color="#3B82F6" />
+                <Ionicons name="brush-outline" size={24} color="#3B82F6" />
                 <View style={styles.orderInfo}>
                   <Text style={styles.orderTitle}>{order.service_name || t('orders.service')}</Text>
                   <Text style={styles.orderDate}>

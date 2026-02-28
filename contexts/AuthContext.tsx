@@ -281,34 +281,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const refreshUserTokens = async (): Promise<boolean> => {
+  const refreshUserTokens = useCallback(async (): Promise<boolean> => {
     if (isRefreshingRef.current) return false;
     isRefreshingRef.current = true;
     try {
-      if (!user?.refreshToken) {
-        console.log('[AuthContext] No refresh token available');
+      const stored = await AsyncStorage.getItem('user');
+      const currentToken = stored ? (JSON.parse(stored) as User).refreshToken : undefined;
+      if (!currentToken) {
+        console.log('[AuthContext] No refresh token in storage');
         return false;
       }
 
-      const refreshResponse = await refreshTokens(user.refreshToken);
-      await updateUser({
-        authToken: refreshResponse.accessToken,
-        refreshToken: refreshResponse.refreshToken,
-      });
+      const refreshResponse = await refreshTokens(currentToken);
+      const updatedUser = stored ? { ...(JSON.parse(stored) as User), authToken: refreshResponse.accessToken, refreshToken: refreshResponse.refreshToken } as User : null;
+      if (updatedUser) {
+        setUser(updatedUser);
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      }
       console.log('[AuthContext] Silent refresh successful');
       return true;
     } catch (error) {
-      console.error('[AuthContext] Token refresh failed:', error);
-      // Only logout when refresh token is invalid/expired (401/403). Keep session on network errors.
       const isRefreshTokenInvalid = error instanceof ApiError && (error.status === 401 || error.status === 403);
       if (isRefreshTokenInvalid) {
-        await logout();
+        console.warn('[AuthContext] Refresh token rejected (401/403), session will expire');
+      } else {
+        console.warn('[AuthContext] Proactive refresh failed (network?), will retry later');
       }
       return false;
     } finally {
       isRefreshingRef.current = false;
     }
-  };
+  }, []);
 
   const scheduleProactiveRefresh = useCallback((authToken: string | undefined) => {
     if (refreshTimerRef.current) {
@@ -328,7 +331,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('[AuthContext] Proactive refresh triggered');
       await refreshUserTokens();
     }, delay);
-  }, []);
+  }, [refreshUserTokens]);
 
   // Schedule proactive refresh whenever the token changes
   useEffect(() => {
@@ -342,18 +345,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const handleAppState = async (next: AppStateStatus) => {
       if (next !== 'active') return;
-      if (!user?.authToken || !user?.refreshToken) return;
       if (isRefreshingRef.current) return;
 
-      if (isTokenExpiringSoon(user.authToken, REFRESH_THRESHOLD_MS)) {
-        console.log('[AuthContext] App foregrounded with expiring token, refreshing...');
-        await refreshUserTokens();
+      try {
+        const stored = await AsyncStorage.getItem('user');
+        const currentAuth = stored ? (JSON.parse(stored) as User).authToken : undefined;
+        if (!currentAuth) return;
+
+        if (isTokenExpiringSoon(currentAuth, REFRESH_THRESHOLD_MS)) {
+          console.log('[AuthContext] App foregrounded with expiring token, refreshing...');
+          await refreshUserTokens();
+        }
+      } catch {
+        // Ignore storage read errors
       }
     };
 
     const subscription = AppState.addEventListener('change', handleAppState);
     return () => subscription.remove();
-  }, [user?.authToken, user?.refreshToken]);
+  }, [refreshUserTokens]);
 
   // Calculate isAuthenticated - ensure it's always a boolean
   const isAuthenticated = !!user;

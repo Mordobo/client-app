@@ -43,7 +43,7 @@ export interface ProviderDashboardScheduleItem {
   status: string;
 }
 
-export type ProviderActiveJobStatus = "in_progress" | "on_way" | "scheduled";
+export type ProviderActiveJobStatus = "pending" | "in_progress" | "on_way" | "scheduled";
 
 export interface ProviderActiveJob {
   id: string;

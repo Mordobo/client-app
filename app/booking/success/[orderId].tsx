@@ -201,6 +201,7 @@ export default function BookingSuccessScreen() {
               <Ionicons name="checkmark" size={40} color={colors.white} />
             </View>
           </View>
+          <Text style={styles.pendingBadge}>{t('booking.awaitingProvider')}</Text>
         </Animated.View>
 
         {/* Success Message */}
@@ -314,6 +315,18 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginBottom: 32,
+    alignItems: 'center',
+  },
+  pendingBadge: {
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#f59e0b',
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
   },
   iconOuterCircle: {
     width: 120,

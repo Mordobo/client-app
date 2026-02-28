@@ -222,32 +222,62 @@ export default function BookingSummaryScreen() {
           totalAmount: pricing.total.toString(),
         },
       });
-    } catch (err) {
+    } catch (err: unknown) {
+      const apiErr = err as { status?: number; data?: unknown; message?: string };
+      const apiData = apiErr.data ?? (apiErr as { originalError?: unknown }).originalError;
+      const errStatus = typeof apiErr.status === "number" ? apiErr.status : 0;
+      const errorCode = apiData && typeof apiData === "object" ? (apiData as { code?: string }).code : undefined;
+      const existingOrderId = apiData && typeof apiData === "object" ? (apiData as { orderId?: string }).orderId : undefined;
+
+      // Handle duplicate active order (409)
+      if (errorCode === "active_order_exists" || errStatus === 409) {
+        Alert.alert(
+          t("booking.activeOrderTitle"),
+          t("booking.activeOrderExists"),
+          [
+            { text: t("common.cancel"), style: "cancel" },
+            ...(existingOrderId
+              ? [{
+                  text: t("booking.viewExistingOrder"),
+                  onPress: () => router.push(`/orders/${existingOrderId}`),
+                }]
+              : []),
+          ]
+        );
+        return;
+      }
+
       console.error("[BookingSummary] Failed to create order:", err);
 
       let errorMessage = t("booking.createBookingFailed");
+      const rawMessage = typeof apiErr.message === "string" ? apiErr.message : "";
 
-      if (err instanceof OrderApiError) {
-        // Try to extract more detailed error message
-        if (err.originalError && typeof err.originalError === "object") {
-          const errorData = err.originalError as {
+      if (err instanceof OrderApiError || errStatus > 0) {
+        const isServiceFkError =
+          /orders_service_id_fkey|supplier_services|foreign key.*service_id/i.test(rawMessage) ||
+          (typeof apiData === "object" && apiData !== null &&
+            /orders_service_id_fkey|supplier_services|foreign key/i.test(
+              String((apiData as { message?: string; detail?: string }).message ?? (apiData as { detail?: string }).detail ?? "")
+            ));
+
+        if (isServiceFkError) {
+          errorMessage = t("booking.createOrderServiceInvalid");
+        } else if (apiData && typeof apiData === "object") {
+          const errorData = apiData as {
             issues?: Array<{ path: string[]; message: string }>;
             message?: string;
             code?: string;
           };
-
-          console.error("[BookingSummary] Error details:", errorData);
-
-          if (errorData.issues && errorData.issues.length > 0) {
-            const firstIssue = errorData.issues[0];
-            errorMessage = `${firstIssue.path.join(".")}: ${firstIssue.message}`;
+          if (errorData.issues?.length) {
+            const first = errorData.issues[0];
+            errorMessage = `${first.path.join(".")}: ${first.message}`;
           } else if (errorData.message) {
             errorMessage = errorData.message;
-          } else {
-            errorMessage = err.message;
+          } else if (rawMessage) {
+            errorMessage = rawMessage;
           }
-        } else {
-          errorMessage = err.message;
+        } else if (rawMessage) {
+          errorMessage = rawMessage;
         }
       }
 

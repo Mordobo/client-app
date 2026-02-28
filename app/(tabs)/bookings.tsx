@@ -24,10 +24,11 @@ interface BookingCardProps {
   order: Order;
   onPress: () => void;
   onMessagePress: () => void;
+  onReviewQuote?: () => void;
   colorScheme: 'light' | 'dark' | null;
 }
 
-function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCardProps) {
+function BookingCard({ order, onPress, onMessagePress, onReviewQuote, colorScheme }: BookingCardProps) {
   // Force dark mode for this screen (Bookings screen is always dark)
   const isDark = true;
   const themeColors = Colors[isDark ? 'dark' : 'light'];
@@ -38,6 +39,8 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
         return { label: t('orders.status.confirmed'), color: '#10B981' };
       case 'pending':
         return { label: t('orders.status.pending'), color: '#F59E0B' };
+      case 'quoted':
+        return { label: t('orders.status.quoteReceived'), color: '#8B5CF6' };
       case 'in_progress':
         return { label: t('orders.status.inProgress'), color: '#3B82F6' };
       case 'completed':
@@ -180,14 +183,26 @@ function BookingCard({ order, onPress, onMessagePress, colorScheme }: BookingCar
           </Text>
         </TouchableOpacity>
         
-        <TouchableOpacity
-          style={[styles.actionButton, styles.detailsButton, { backgroundColor: '#3B82F6' }]}
-          onPress={onPress}
-        >
-          <Text style={[styles.actionButtonText, { color: '#fff' }]}>
-            {t('orders.viewDetails')}
-          </Text>
-        </TouchableOpacity>
+        {order.status === 'quoted' && onReviewQuote ? (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: '#8B5CF6' }]}
+            onPress={onReviewQuote}
+          >
+            <Ionicons name="document-text-outline" size={16} color="#fff" />
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>
+              {t('orders.reviewQuote')}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.detailsButton, { backgroundColor: '#3B82F6' }]}
+            onPress={onPress}
+          >
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>
+              {t('orders.viewDetails')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -232,7 +247,7 @@ export default function BookingsScreen() {
     return orders.filter((order) => {
       switch (activeTab) {
         case 'active':
-          return ['pending', 'accepted', 'in_progress'].includes(order.status);
+          return ['pending', 'quoted', 'accepted', 'in_progress'].includes(order.status);
         case 'completed':
           return order.status === 'completed';
         case 'cancelled':
@@ -244,7 +259,7 @@ export default function BookingsScreen() {
   }, [orders, activeTab]);
 
   const tabCounts = useMemo(() => {
-    const active = orders.filter(o => ['pending', 'accepted', 'in_progress'].includes(o.status)).length;
+    const active = orders.filter(o => ['pending', 'quoted', 'accepted', 'in_progress'].includes(o.status)).length;
     const completed = orders.filter(o => o.status === 'completed').length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
     return { active, completed, cancelled };
@@ -262,6 +277,10 @@ export default function BookingsScreen() {
     if (order.supplier_id) {
       router.push(`/booking/chat/${order.id}`);
     }
+  };
+
+  const handleReviewQuote = (orderId: string) => {
+    router.push(`/booking/quote/${orderId}`);
   };
 
   const tabs = [
@@ -331,6 +350,7 @@ export default function BookingsScreen() {
                 order={order}
                 onPress={() => handleOrderPress(order.id)}
                 onMessagePress={() => handleMessagePress(order)}
+                onReviewQuote={order.status === 'quoted' ? () => handleReviewQuote(order.id) : undefined}
                 colorScheme={colorScheme}
               />
             ))

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ApiError as AuthApiError } from '@/services/auth';
 import { fetchFavorites } from '@/services/favorites';
 
 interface FavoritesStore {
@@ -52,7 +53,17 @@ export const useFavoritesStore = create<FavoritesStore>((set, get) => ({
       const ids = new Set(data.favorites.map((f) => f.id));
       set({ favoriteIds: ids, lastUpdated: Date.now(), isLoading: false });
     } catch (error) {
-      console.error('[favoritesStore] Error refreshing favorites:', error);
+      const status = error && typeof (error as { status?: number }).status === 'number'
+        ? (error as { status: number }).status
+        : (error as { statusCode?: number }).statusCode;
+      const message = error instanceof Error ? error.message : String(error);
+      const isAuthError =
+        error instanceof AuthApiError &&
+        (status === 401 || status === 403 ||
+          /invalid|expired.*token|token.*expired/i.test(message));
+      if (!isAuthError) {
+        console.error('[favoritesStore] Error refreshing favorites:', error);
+      }
       set({ isLoading: false });
     }
   },

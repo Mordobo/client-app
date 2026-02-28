@@ -1,15 +1,17 @@
 import { ProviderAvatar } from "@/components/ProviderAvatar";
+import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
 import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, AppStateStatus, ActivityIndicator, Alert, FlatList, Image, Modal, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { AppState, AppStateStatus, ActivityIndicator, Alert, FlatList, Image, Modal, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ConversationsListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isAuthenticated } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -18,52 +20,45 @@ export default function ConversationsListScreen() {
 
   const POLLING_INTERVAL_MS = 2000;
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
 
   const loadConversations = useCallback(async (showLoading = true) => {
+    if (!isAuthenticatedRef.current) return;
     try {
       setError(null);
       if (showLoading) setLoading(true);
       const data = await fetchConversations('client');
-      // Sort by most recent (last_message_at descending)
-      // Handle null last_message_at by putting them at the end
       const sortedData = [...data].sort((a, b) => {
-        // If both are null, maintain order
-        if (!a.last_message_at && !b.last_message_at) {
-          return 0;
-        }
-        // If a is null, put it after b
-        if (!a.last_message_at) {
-          return 1;
-        }
-        // If b is null, put it after a
-        if (!b.last_message_at) {
-          return -1;
-        }
-        // Both have dates, compare them
+        if (!a.last_message_at && !b.last_message_at) return 0;
+        if (!a.last_message_at) return 1;
+        if (!b.last_message_at) return -1;
         const dateA = new Date(a.last_message_at).getTime();
         const dateB = new Date(b.last_message_at).getTime();
-        // Check for invalid dates
-        if (isNaN(dateA) || isNaN(dateB)) {
-          return 0;
-        }
+        if (isNaN(dateA) || isNaN(dateB)) return 0;
         return dateB - dateA;
       });
       setConversations(sortedData);
     } catch (err) {
+      const isAuthError = err instanceof Error &&
+        (err.message.includes("Session") || err.message.includes("token") ||
+         err.message.includes("401") || err.message.includes("403") ||
+         err.message.includes("expired") || err.message.includes("log in"));
+
+      if (isAuthError) {
+        console.log("[Chat] Auth error during fetch, stopping polling");
+        return;
+      }
+
       console.error("[Chat] Error loading conversations:", err);
 
-      // Provide more specific error messages
       let errorMessage = t("chat.failedToLoad");
       if (err instanceof Error) {
-        // Check for specific error types
         if (err.message.includes("Network") || err.message.includes("connection")) {
           errorMessage = t("errors.connectionFailed") || "Connection failed. Please check your internet.";
         } else if (err.message.includes("timeout") || err.message.includes("Timeout")) {
           errorMessage = t("errors.requestTimeout") || "Request timed out. Please try again.";
-        } else if (err.message.includes("401") || err.message.includes("403") || err.message.includes("Session")) {
-          errorMessage = "Session expired. Please log in again.";
         } else {
-          // Use the error message if it's informative
           errorMessage = err.message || errorMessage;
         }
       }
@@ -75,21 +70,29 @@ export default function ConversationsListScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadConversations(true);
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return;
+    pollingRef.current = setInterval(() => loadConversations(false), POLLING_INTERVAL_MS);
   }, [loadConversations]);
 
   useEffect(() => {
-    const startPolling = () => {
-      if (pollingRef.current) return;
-      pollingRef.current = setInterval(() => loadConversations(false), POLLING_INTERVAL_MS);
-    };
-    const stopPolling = () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
+    if (isAuthenticated) {
+      loadConversations(true);
+    } else {
+      stopPolling();
+      setConversations([]);
+    }
+  }, [isAuthenticated, loadConversations, stopPolling]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     const sub = AppState.addEventListener("change", (state: AppStateStatus) => {
       if (state === "active") startPolling();
       else stopPolling();
@@ -99,13 +102,12 @@ export default function ConversationsListScreen() {
       sub.remove();
       stopPolling();
     };
-  }, [loadConversations]);
+  }, [isAuthenticated, startPolling, stopPolling]);
 
-  // Refetch when returning from chat so unread count and list stay in sync (MDB-160 / MDB-244)
   useFocusEffect(
     useCallback(() => {
-      loadConversations(false);
-    }, [loadConversations])
+      if (isAuthenticated) loadConversations(false);
+    }, [isAuthenticated, loadConversations])
   );
 
   const onRefresh = useCallback(() => {
