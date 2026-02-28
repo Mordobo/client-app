@@ -25,7 +25,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Address {
   id: string;
@@ -271,7 +271,7 @@ export default function MyAddressesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['bottom']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -288,7 +288,7 @@ export default function MyAddressesScreen() {
       ) : (
         <ScrollView 
           style={styles.content} 
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Address Cards */}
@@ -581,7 +581,7 @@ export default function MyAddressesScreen() {
         type={toastType}
         duration={toastType === 'error' ? 4000 : 3000}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

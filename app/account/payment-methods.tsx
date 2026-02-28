@@ -20,7 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface PaymentMethod {
@@ -195,7 +195,7 @@ export default function PaymentMethodsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['bottom']}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -212,7 +212,7 @@ export default function PaymentMethodsScreen() {
       ) : (
         <ScrollView 
           style={styles.content} 
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Security Badge */}
@@ -376,7 +376,7 @@ export default function PaymentMethodsScreen() {
         type={toastType}
         duration={toastType === 'error' ? 4000 : 3000}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
