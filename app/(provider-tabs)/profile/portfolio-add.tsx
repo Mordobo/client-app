@@ -426,7 +426,7 @@ export default function PortfolioAddScreen() {
       </KeyboardAvoidingView>
 
       {toast && (
-        <Toast message={toast.message} onDismiss={() => setToast(null)} />
+        <Toast message={toast.message} onHide={() => setToast(null)} />
       )}
     </View>
   );
