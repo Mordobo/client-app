@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getLocale, t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { Address, getAddresses } from "@/services/addresses";
-import { createOrder, ApiError as OrderApiError } from "@/services/orders";
 import { ApiError, fetchSupplierProfile, fetchSupplierServices, Supplier, SupplierService } from "@/services/suppliers";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -47,7 +46,6 @@ export default function BookingSummaryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(0);
-  const [creatingOrder, setCreatingOrder] = useState(false);
 
   useEffect(() => {
     if (supplierId && serviceId && scheduledAt && duration && addressId) {
@@ -156,135 +154,32 @@ export default function BookingSummaryScreen() {
 
   const pricing = calculatePricing();
 
-  const handleProceedToPayment = async () => {
+  const handleProceedToPayment = () => {
     if (!supplierId || !serviceId || !scheduledAt || !duration || !addressId || !address || !service) {
       Alert.alert(t("common.error"), t("booking.missingBookingData"));
       return;
     }
 
+    const addressStr = formatAddress(address);
+    let formattedScheduledAt = scheduledAt;
     try {
-      setCreatingOrder(true);
+      const date = new Date(scheduledAt);
+      if (!isNaN(date.getTime())) formattedScheduledAt = date.toISOString();
+    } catch { /* keep original */ }
 
-      // Format address string
-      const addressString = formatAddress(address);
-
-      // Ensure scheduled_at is in ISO format
-      let formattedScheduledAt = scheduledAt;
-      try {
-        // If it's not already ISO format, convert it
-        const date = new Date(scheduledAt);
-        if (!isNaN(date.getTime())) {
-          formattedScheduledAt = date.toISOString();
-        }
-      } catch (e) {
-        console.warn("[BookingSummary] Could not format scheduled_at:", e);
-      }
-
-      // Prepare order data
-      const orderData: {
-        service_id: string;
-        category_id?: string;
-        supplier_id?: string;
-        scheduled_at?: string;
-        address?: string;
-        notes?: string;
-      } = {
-        service_id: serviceId,
-        supplier_id: supplierId,
-        scheduled_at: formattedScheduledAt,
-        address: addressString,
-      };
-
-      // Add optional fields only if they have values
-      if (service.category_id) {
-        orderData.category_id = service.category_id;
-      }
-      if (additionalNotes.trim()) {
-        orderData.notes = additionalNotes.trim();
-      }
-
-      console.log("[BookingSummary] Creating order with data:", {
-        ...orderData,
-        // Don't log full address for privacy
-        address: addressString ? `${addressString.substring(0, 20)}...` : undefined,
-      });
-
-      // Create order first with all required fields
-      const order = await createOrder(orderData);
-
-      console.log("[BookingSummary] Order created successfully:", order.id);
-
-      // Navigate to payment screen with the created order ID
-      router.push({
-        pathname: "/booking/payment/[orderId]",
-        params: {
-          orderId: order.id,
-          totalAmount: pricing.total.toString(),
-        },
-      });
-    } catch (err: unknown) {
-      const apiErr = err as { status?: number; data?: unknown; message?: string };
-      const apiData = apiErr.data ?? (apiErr as { originalError?: unknown }).originalError;
-      const errStatus = typeof apiErr.status === "number" ? apiErr.status : 0;
-      const errorCode = apiData && typeof apiData === "object" ? (apiData as { code?: string }).code : undefined;
-      const existingOrderId = apiData && typeof apiData === "object" ? (apiData as { orderId?: string }).orderId : undefined;
-
-      // Handle duplicate active order (409)
-      if (errorCode === "active_order_exists" || errStatus === 409) {
-        Alert.alert(
-          t("booking.activeOrderTitle"),
-          t("booking.activeOrderExists"),
-          [
-            { text: t("common.cancel"), style: "cancel" },
-            ...(existingOrderId
-              ? [{
-                  text: t("booking.viewExistingOrder"),
-                  onPress: () => router.push(`/orders/${existingOrderId}`),
-                }]
-              : []),
-          ]
-        );
-        return;
-      }
-
-      console.error("[BookingSummary] Failed to create order:", err);
-
-      let errorMessage = t("booking.createBookingFailed");
-      const rawMessage = typeof apiErr.message === "string" ? apiErr.message : "";
-
-      if (err instanceof OrderApiError || errStatus > 0) {
-        const isServiceFkError =
-          /orders_service_id_fkey|supplier_services|foreign key.*service_id/i.test(rawMessage) ||
-          (typeof apiData === "object" && apiData !== null &&
-            /orders_service_id_fkey|supplier_services|foreign key/i.test(
-              String((apiData as { message?: string; detail?: string }).message ?? (apiData as { detail?: string }).detail ?? "")
-            ));
-
-        if (isServiceFkError) {
-          errorMessage = t("booking.createOrderServiceInvalid");
-        } else if (apiData && typeof apiData === "object") {
-          const errorData = apiData as {
-            issues?: Array<{ path: string[]; message: string }>;
-            message?: string;
-            code?: string;
-          };
-          if (errorData.issues?.length) {
-            const first = errorData.issues[0];
-            errorMessage = `${first.path.join(".")}: ${first.message}`;
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (rawMessage) {
-            errorMessage = rawMessage;
-          }
-        } else if (rawMessage) {
-          errorMessage = rawMessage;
-        }
-      }
-
-      Alert.alert(t("common.error"), errorMessage);
-    } finally {
-      setCreatingOrder(false);
-    }
+    router.push({
+      pathname: "/booking/payment/[orderId]",
+      params: {
+        orderId: "new",
+        totalAmount: pricing.total.toString(),
+        serviceId,
+        categoryId: service.category_id ?? "",
+        supplierId,
+        scheduledAt: formattedScheduledAt,
+        address: addressStr,
+        notes: additionalNotes.trim(),
+      },
+    });
   };
 
   if (loading) {
@@ -443,14 +338,9 @@ export default function BookingSummaryScreen() {
 
       {/* CTA Button - Fixed at bottom */}
       <View style={[styles.ctaContainer, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity style={[styles.ctaButton, creatingOrder && styles.ctaButtonDisabled]} onPress={handleProceedToPayment} disabled={creatingOrder}>
-          {creatingOrder ?
-            <ActivityIndicator size="small" color={colors.white} />
-          : <>
-              <Text style={styles.ctaButtonEmoji}>💳</Text>
-              <Text style={styles.ctaButtonText}>{t("booking.proceedToPayment")}</Text>
-            </>
-          }
+        <TouchableOpacity style={styles.ctaButton} onPress={handleProceedToPayment}>
+          <Text style={styles.ctaButtonEmoji}>💳</Text>
+          <Text style={styles.ctaButtonText}>{t("booking.proceedToPayment")}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -647,9 +537,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-  },
-  ctaButtonDisabled: {
-    opacity: 0.6,
   },
   ctaButtonEmoji: {
     fontSize: 20,

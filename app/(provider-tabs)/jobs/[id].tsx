@@ -142,6 +142,22 @@ export default function ProviderJobDetailScreen() {
           </View>
         </View>
 
+        {/* Client notes (additional instructions from client when booking) */}
+        {job.orderNotes ? (
+          <View style={[styles.card, styles.section]}>
+            <Text style={styles.sectionLabel}>{t("providerDashboard.clientNotesLabel")}</Text>
+            <Text style={styles.noteText}>{job.orderNotes}</Text>
+          </View>
+        ) : null}
+
+        {/* Quote note (from provider when creating the quote) */}
+        {job.quoteNote ? (
+          <View style={[styles.card, styles.section]}>
+            <Text style={styles.sectionLabel}>{t("providerDashboard.quoteNoteLabel")}</Text>
+            <Text style={styles.noteText}>{job.quoteNote}</Text>
+          </View>
+        ) : null}
+
         {/* Location card */}
         <View style={[styles.card, styles.section]}>
           <Text style={styles.sectionLabel}>{t("providerDashboard.locationLabel")}</Text>
@@ -315,6 +331,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "rgba(255,255,255,0.4)",
     marginTop: 2,
+  },
+  noteText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 20,
   },
   completeBtn: {
     flexDirection: "row",

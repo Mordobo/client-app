@@ -34,7 +34,53 @@ interface CreatePaymentData {
   payment_method_id?: string;
 }
 
-// POST /payments - Create payment
+export interface BookAndPayData {
+  service_id: string;
+  category_id?: string;
+  supplier_id: string;
+  scheduled_at?: string;
+  address?: string;
+  notes?: string;
+  amount: number;
+  provider: 'card' | 'apple_pay' | 'google_pay';
+  payment_method_id?: string;
+}
+
+interface BookAndPayResponse {
+  order: { id: string; status: string; [key: string]: unknown };
+  payment: Payment;
+}
+
+export const bookAndPay = async (data: BookAndPayData): Promise<BookAndPayResponse> => {
+  try {
+    const token = await getToken();
+
+    const response = await fetch(`${API_BASE}/payments/book`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as { message?: string; code?: string };
+      throw new ApiError(
+        errorData.message || 'Failed to complete booking',
+        response.status,
+        errorData
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
+// POST /payments - Create payment (for existing orders: quote flow)
 export const createPayment = async (data: CreatePaymentData): Promise<Payment> => {
   try {
     const token = await getToken();
@@ -49,10 +95,11 @@ export const createPayment = async (data: CreatePaymentData): Promise<Payment> =
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({})) as { message?: string; code?: string };
       throw new ApiError(
         errorData.message || 'Failed to create payment',
-        response.status
+        response.status,
+        errorData
       );
     }
 

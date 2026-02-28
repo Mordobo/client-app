@@ -1,5 +1,6 @@
 import {
   createPayment,
+  bookAndPay,
   getPaymentMethods,
   PaymentMethod,
   ApiError as PaymentApiError,
@@ -36,7 +37,27 @@ const colors = {
 
 export default function PaymentScreen() {
   const router = useRouter();
-  const { orderId, totalAmount } = useLocalSearchParams<{ orderId: string; totalAmount?: string }>();
+  const {
+    orderId,
+    totalAmount,
+    serviceId,
+    categoryId,
+    supplierId,
+    scheduledAt,
+    address,
+    notes,
+  } = useLocalSearchParams<{
+    orderId: string;
+    totalAmount?: string;
+    serviceId?: string;
+    categoryId?: string;
+    supplierId?: string;
+    scheduledAt?: string;
+    address?: string;
+    notes?: string;
+  }>();
+
+  const isNewBooking = orderId === 'new';
   const insets = useSafeAreaInsets();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
@@ -77,24 +98,12 @@ export default function PaymentScreen() {
       return;
     }
 
-    // Validate orderId is a valid UUID
-    if (!orderId || orderId === 'new') {
-      Alert.alert(
-        t('common.error'),
-        'Invalid order ID. Please go back and try again.'
-      );
-      return;
-    }
-
     try {
       setProcessing(true);
-      
-      const selectedMethod = paymentMethods.find((m) => m.id === selectedMethodId);
-      if (!selectedMethod) {
-        throw new Error('Selected payment method not found');
-      }
 
-      // Map payment method type to provider
+      const selectedMethod = paymentMethods.find((m) => m.id === selectedMethodId);
+      if (!selectedMethod) throw new Error('Selected payment method not found');
+
       const providerMap: Record<string, 'card' | 'apple_pay' | 'google_pay'> = {
         visa: 'card',
         mastercard: 'card',
@@ -103,20 +112,48 @@ export default function PaymentScreen() {
         apple_pay: 'apple_pay',
         google_pay: 'google_pay',
       };
-
       const provider = providerMap[selectedMethod.type] || 'card';
 
-      await createPayment({
-        order_id: orderId,
-        amount: total,
-        provider,
-        payment_method_id: selectedMethodId,
-      });
-
-      router.push(`/booking/success/${orderId}`);
+      if (isNewBooking) {
+        if (!serviceId || !supplierId) {
+          Alert.alert(t('common.error'), t('booking.missingBookingData'));
+          return;
+        }
+        const result = await bookAndPay({
+          service_id: serviceId,
+          category_id: categoryId || undefined,
+          supplier_id: supplierId,
+          scheduled_at: scheduledAt || undefined,
+          address: address || undefined,
+          notes: notes || undefined,
+          amount: total,
+          provider,
+          payment_method_id: selectedMethodId,
+        });
+        router.push(`/booking/success/${result.order.id}`);
+      } else {
+        if (!orderId) {
+          Alert.alert(t('common.error'), t('booking.missingBookingData'));
+          return;
+        }
+        await createPayment({
+          order_id: orderId,
+          amount: total,
+          provider,
+          payment_method_id: selectedMethodId,
+        });
+        router.push(`/booking/success/${orderId}`);
+      }
     } catch (err) {
       if (err instanceof PaymentApiError) {
-        Alert.alert(t('common.error'), err.message);
+        const data = err.originalError as { code?: string } | undefined;
+        const message =
+          data?.code === 'quote_not_approved'
+            ? t('payment.errorQuoteNotApproved')
+            : data?.code === 'already_paid_or_confirmed'
+              ? t('payment.errorAlreadyPaid')
+              : err.message;
+        Alert.alert(t('common.error'), message);
       } else {
         Alert.alert(t('common.error'), t('payment.paymentFailed'));
       }
