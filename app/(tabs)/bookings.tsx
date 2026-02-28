@@ -25,10 +25,11 @@ interface BookingCardProps {
   onPress: () => void;
   onMessagePress: () => void;
   onReviewQuote?: () => void;
+  onPayPress?: () => void;
   colorScheme: 'light' | 'dark' | null;
 }
 
-function BookingCard({ order, onPress, onMessagePress, onReviewQuote, colorScheme }: BookingCardProps) {
+function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress, colorScheme }: BookingCardProps) {
   // Force dark mode for this screen (Bookings screen is always dark)
   const isDark = true;
   const themeColors = Colors[isDark ? 'dark' : 'light'];
@@ -39,6 +40,8 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, colorSchem
         return { label: t('orders.status.confirmed'), color: '#10B981' };
       case 'pending':
         return { label: t('orders.status.pending'), color: '#F59E0B' };
+      case 'pending_payment':
+        return { label: t('orders.status.pending_payment'), color: '#F59E0B' };
       case 'quoted':
         return { label: t('orders.status.quoteReceived'), color: '#8B5CF6' };
       case 'in_progress':
@@ -193,6 +196,16 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, colorSchem
               {t('orders.reviewQuote')}
             </Text>
           </TouchableOpacity>
+        ) : order.status === 'pending_payment' && onPayPress ? (
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+            onPress={onPayPress}
+          >
+            <Ionicons name="card-outline" size={16} color="#fff" />
+            <Text style={[styles.actionButtonText, { color: '#fff' }]}>
+              {t('orders.completePayment')}
+            </Text>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={[styles.actionButton, styles.detailsButton, { backgroundColor: '#3B82F6' }]}
@@ -243,11 +256,15 @@ export default function BookingsScreen() {
     setRefreshing(false);
   }, []);
 
+  // "Active" = only paid reservations (pending = waiting provider accept, accepted, in_progress). Unpaid (quoted, pending_payment) go to "Pending payment".
+  const paidReservationStatuses = ['pending', 'accepted', 'in_progress'];
+  const unpaidStatuses = ['quoted', 'pending_payment'];
+
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       switch (activeTab) {
         case 'active':
-          return ['pending', 'quoted', 'accepted', 'in_progress'].includes(order.status);
+          return paidReservationStatuses.includes(order.status);
         case 'completed':
           return order.status === 'completed';
         case 'cancelled':
@@ -259,10 +276,11 @@ export default function BookingsScreen() {
   }, [orders, activeTab]);
 
   const tabCounts = useMemo(() => {
-    const active = orders.filter(o => ['pending', 'quoted', 'accepted', 'in_progress'].includes(o.status)).length;
+    const active = orders.filter(o => paidReservationStatuses.includes(o.status)).length;
     const completed = orders.filter(o => o.status === 'completed').length;
     const cancelled = orders.filter(o => o.status === 'cancelled').length;
-    return { active, completed, cancelled };
+    const pendingPaymentCount = orders.filter(o => unpaidStatuses.includes(o.status)).length;
+    return { active, completed, cancelled, pendingPaymentCount };
   }, [orders]);
 
   const handleTabPress = (tab: TabType) => {
@@ -283,11 +301,24 @@ export default function BookingsScreen() {
     router.push(`/booking/quote/${orderId}`);
   };
 
+  const handlePayPress = (order: Order) => {
+    const total = order.total_amount ?? 0;
+    router.push({
+      pathname: `/booking/payment/${order.id}`,
+      params: { totalAmount: String(total) },
+    });
+  };
+
   const tabs = [
     { id: 'active' as TabType, label: t('orders.active'), count: tabCounts.active },
     { id: 'completed' as TabType, label: t('orders.completed'), count: tabCounts.completed },
     { id: 'cancelled' as TabType, label: t('orders.cancelled'), count: tabCounts.cancelled },
   ];
+
+  const ordersPendingPayment = useMemo(
+    () => orders.filter(o => unpaidStatuses.includes(o.status)),
+    [orders],
+  );
 
   return (
     <View style={styles.container}>
@@ -337,23 +368,45 @@ export default function BookingsScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          {filteredOrders.length === 0 ? (
+          {ordersPendingPayment.length > 0 && (
+            <View style={styles.pendingPaymentSection}>
+              <Text style={styles.pendingPaymentTitle}>{t('orders.pendingPaymentSection')}</Text>
+              <Text style={styles.pendingPaymentSubtitle}>{t('orders.pendingPaymentSectionSubtitle')}</Text>
+              {ordersPendingPayment.map((order) => (
+                <BookingCard
+                  key={order.id}
+                  order={order}
+                  onPress={() => handleOrderPress(order.id)}
+                  onMessagePress={() => handleMessagePress(order)}
+                  onReviewQuote={order.status === 'quoted' ? () => handleReviewQuote(order.id) : undefined}
+                  onPayPress={order.status === 'pending_payment' ? () => handlePayPress(order) : undefined}
+                  colorScheme={colorScheme}
+                />
+              ))}
+            </View>
+          )}
+          {filteredOrders.length === 0 && ordersPendingPayment.length === 0 ? (
             <EmptyState
               icon="calendar-outline"
               title={t('orders.noBookings')}
               description={t('orders.noBookingsDesc')}
             />
-          ) : (
-            filteredOrders.map((order) => (
-              <BookingCard
-                key={order.id}
-                order={order}
-                onPress={() => handleOrderPress(order.id)}
-                onMessagePress={() => handleMessagePress(order)}
-                onReviewQuote={order.status === 'quoted' ? () => handleReviewQuote(order.id) : undefined}
-                colorScheme={colorScheme}
-              />
-            ))
+          ) : filteredOrders.length === 0 ? null : (
+            <>
+              {ordersPendingPayment.length > 0 && <View style={styles.sectionDivider} />}
+              <Text style={styles.reservationsSectionTitle}>{t('orders.reservationsSection')}</Text>
+              {filteredOrders.map((order) => (
+                <BookingCard
+                  key={order.id}
+                  order={order}
+                  onPress={() => handleOrderPress(order.id)}
+                  onMessagePress={() => handleMessagePress(order)}
+                  onReviewQuote={order.status === 'quoted' ? () => handleReviewQuote(order.id) : undefined}
+                  onPayPress={order.status === 'pending_payment' ? () => handlePayPress(order) : undefined}
+                  colorScheme={colorScheme}
+                />
+              ))}
+            </>
           )}
         </ScrollView>
       )}
@@ -422,6 +475,31 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
+  },
+  pendingPaymentSection: {
+    marginBottom: 16,
+  },
+  pendingPaymentTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#F59E0B',
+    marginBottom: 4,
+  },
+  pendingPaymentSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 12,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginVertical: 16,
+  },
+  reservationsSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 12,
   },
   bookingCard: {
     borderRadius: 16,

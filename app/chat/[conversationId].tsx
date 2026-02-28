@@ -46,7 +46,7 @@ const colors = {
   chipBg: "rgba(255,255,255,0.05)",
 };
 
-const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending", "quoted", "accepted", "in_progress"];
+const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending", "quoted", "pending_payment", "accepted", "in_progress"];
 
 function isImageContent(content: string): boolean {
   return content.startsWith("data:image/") || /^https?:\/\/.+(\.(jpg|jpeg|png|gif|webp)|image)/i.test(content);

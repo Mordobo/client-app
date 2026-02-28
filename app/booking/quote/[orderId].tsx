@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { fetchConversation, fetchConversations } from '@/services/conversations';
-import { ApiError, approveQuote, fetchOrderDetail, OrderDetailResponse, rejectQuote, withdrawQuote } from '@/services/orders';
+import { ApiError, fetchOrderDetail, OrderDetailResponse, rejectQuote, withdrawQuote } from '@/services/orders';
 import { cancelOrderByProvider } from '@/services/providerDashboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -46,7 +46,6 @@ export default function QuoteScreen() {
   const insets = useSafeAreaInsets();
   const [orderData, setOrderData] = useState<OrderDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [approving, setApproving] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -80,20 +79,13 @@ export default function QuoteScreen() {
     }
   };
 
-  const handleApprove = async () => {
-    try {
-      setApproving(true);
-      await approveQuote(orderId);
-      router.push(`/booking/payment/${orderId}`);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        alert(err.message);
-      } else {
-        alert('Failed to approve quote');
-      }
-    } finally {
-      setApproving(false);
-    }
+  // Go to payment without approving first; order is confirmed only after successful payment
+  const handleGoToPayment = () => {
+    const total = quote?.total ?? orderData?.order?.total_amount ?? 0;
+    router.push({
+      pathname: `/booking/payment/${orderId}`,
+      params: { totalAmount: String(total) },
+    });
   };
 
   /** Find a client conversation for this order from provider inbox. Exclude conversations where other_user_name matches the given name (self-chat). */
@@ -464,19 +456,15 @@ export default function QuoteScreen() {
           <>
             <TouchableOpacity
               style={styles.approveButton}
-              onPress={handleApprove}
-              disabled={approving || rejecting}
+              onPress={handleGoToPayment}
+              disabled={rejecting}
             >
-              {approving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.approveButtonText}>{t('quote.approveAndPay')}</Text>
-              )}
+              <Text style={styles.approveButtonText}>{t('quote.goToPayment')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.rejectButton}
               onPress={handleReject}
-              disabled={approving || rejecting}
+              disabled={rejecting}
             >
               {rejecting ? (
                 <ActivityIndicator size="small" color="#6B7280" />
@@ -485,6 +473,17 @@ export default function QuoteScreen() {
               )}
             </TouchableOpacity>
           </>
+        )}
+        {isClient && order.status === 'pending_payment' && (
+          <TouchableOpacity
+            style={styles.approveButton}
+            onPress={() => router.push({
+              pathname: `/booking/payment/${orderId}`,
+              params: { totalAmount: String(order.total_amount ?? quote?.total ?? 0) },
+            })}
+          >
+            <Text style={styles.approveButtonText}>{t('orders.completePayment')}</Text>
+          </TouchableOpacity>
         )}
         {isSupplier && (order.status === 'quoted' || order.status === 'pending') && (
           <>

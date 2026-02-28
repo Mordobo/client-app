@@ -61,12 +61,16 @@ export interface ProviderActiveJob {
   etaMinutes?: number;
 }
 
-/** Extended job for detail screen (optional description, address line 2, client rating). */
+/** Extended job for detail screen (optional description, address line 2, client rating, quote note). */
 export interface ProviderActiveJobDetail extends ProviderActiveJob {
   serviceDescription?: string;
   addressLine2?: string;
   clientRating?: number;
   reviewCount?: number;
+  /** Note from the quote (additional specs or comments from provider). */
+  quoteNote?: string;
+  /** Notes from the client when booking (additional instructions). */
+  orderNotes?: string;
 }
 
 export const getDashboardStats = async (): Promise<ProviderDashboardStats> => {

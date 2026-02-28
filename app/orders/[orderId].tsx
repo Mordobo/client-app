@@ -339,6 +339,29 @@ export default function OrderDetailScreen() {
             </View>
           )}
 
+          {orderDetail.quote?.notes ? (
+            <View style={styles.detailsSection}>
+              <Text style={styles.detailsTitle}>{t('orders.quoteNoteLabel')}</Text>
+              <Text style={styles.detailText}>{orderDetail.quote.notes}</Text>
+            </View>
+          ) : null}
+
+          {order.status === 'pending_payment' && (
+            <View style={styles.actionButtonsSection} pointerEvents="box-none">
+              <Pressable
+                style={({ pressed }) => [styles.completePaymentButton, pressed && { opacity: 0.9 }]}
+                onPress={() =>
+                  router.push({
+                    pathname: `/booking/payment/${orderId}`,
+                    params: { totalAmount: String(order.total_amount ?? orderDetail.quote?.total ?? 0) },
+                  })
+                }
+              >
+                <Text style={styles.completePaymentButtonText}>{t('orders.completePayment')}</Text>
+              </Pressable>
+            </View>
+          )}
+
           {canCancel && (
             <View style={styles.actionButtonsSection} pointerEvents="box-none">
               <Pressable
@@ -509,6 +532,13 @@ export default function OrderDetailScreen() {
             )}
           </View>
         )}
+
+        {orderDetail.quote?.notes ? (
+          <View style={styles.detailsSection}>
+            <Text style={styles.detailsTitle}>{t('orders.quoteNoteLabel')}</Text>
+            <Text style={styles.detailText}>{orderDetail.quote.notes}</Text>
+          </View>
+        ) : null}
 
         {/* Action Buttons */}
         <View style={styles.actionButtonsSection} pointerEvents="box-none">
@@ -781,6 +811,19 @@ const styles = StyleSheet.create({
   actionButtonsSection: {
     gap: 12,
     marginTop: 20,
+  },
+  completePaymentButton: {
+    backgroundColor: '#10B981',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  completePaymentButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   cancelButton: {
     padding: 16,
