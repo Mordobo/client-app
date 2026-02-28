@@ -6,6 +6,7 @@ import {
     getPortfolioProject,
     type PortfolioProject,
 } from "@/services/portfolio";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -43,6 +44,7 @@ export default function ProviderPortfolioScreen() {
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [detailProjectId, setDetailProjectId] = useState<string | null>(null);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["providerPortfolio"],
@@ -236,7 +238,10 @@ export default function ProviderPortfolioScreen() {
         ) : (
           /* Grid */
           <View style={styles.grid}>
-            {filteredProjects.map((project) => (
+            {filteredProjects.map((project) => {
+              const normalizedCover = getProfileImageUrl(project.coverImageUrl);
+              const showImage = normalizedCover && !failedImages.has(project.id);
+              return (
               <TouchableOpacity
                 key={project.id}
                 style={styles.gridItem}
@@ -244,11 +249,13 @@ export default function ProviderPortfolioScreen() {
                 activeOpacity={0.9}
               >
                 <View style={styles.gridImageWrap}>
-                  {project.coverImageUrl ? (
+                  {showImage ? (
                     <Image
-                      source={{ uri: project.coverImageUrl }}
+                      source={{ uri: normalizedCover }}
                       style={styles.gridImage}
                       contentFit="cover"
+                      cachePolicy="disk"
+                      onError={() => setFailedImages((prev) => new Set(prev).add(project.id))}
                     />
                   ) : (
                     <View style={styles.gridPlaceholder}>
@@ -267,7 +274,8 @@ export default function ProviderPortfolioScreen() {
                   </View>
                 </View>
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -336,14 +344,22 @@ export default function ProviderPortfolioScreen() {
                       <Text style={styles.detailPlaceholderEmoji}>📸</Text>
                     </View>
                   ) : (
-                    detailData.project.images.map((img) => (
-                      <Image
-                        key={img.id}
-                        source={{ uri: img.url }}
-                        style={styles.detailImage}
-                        contentFit="cover"
-                      />
-                    ))
+                    detailData.project.images.map((img) => {
+                      const normalizedUrl = getProfileImageUrl(img.url);
+                      return normalizedUrl ? (
+                        <Image
+                          key={img.id}
+                          source={{ uri: normalizedUrl }}
+                          style={styles.detailImage}
+                          contentFit="cover"
+                          cachePolicy="disk"
+                        />
+                      ) : (
+                        <View key={img.id} style={styles.detailPlaceholder}>
+                          <Text style={styles.detailPlaceholderEmoji}>📸</Text>
+                        </View>
+                      );
+                    })
                   )}
                 </View>
                 <Text style={styles.detailTitle}>{detailData.project.title}</Text>
@@ -388,7 +404,7 @@ export default function ProviderPortfolioScreen() {
       {toast && (
         <Toast
           message={toast.message}
-          onDismiss={() => setToast(null)}
+          onHide={() => setToast(null)}
         />
       )}
     </View>

@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -73,6 +73,7 @@ export default function ProviderProfileScreen() {
     staleTime: 60_000,
   });
   const providerAvatarUrl = getProfileImageUrl(providerProfile?.avatarUrl ?? null) ?? null;
+  const [avatarError, setAvatarError] = useState(false);
   const displayName = (providerProfile?.displayName ?? "").trim() || "—";
   const initials = getInitialsFromDisplayName(displayName);
   const categoryName = (providerProfile?.categoryName ?? "").trim() || null;
@@ -80,6 +81,7 @@ export default function ProviderProfileScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      setAvatarError(false);
       refetchProviderProfile();
     }, [refetchProviderProfile])
   );
@@ -187,8 +189,14 @@ export default function ProviderProfileScreen() {
           </View>
           <View style={styles.avatarRow}>
             <View style={styles.avatarWrapper}>
-              {providerAvatarUrl ? (
-                <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="contain" />
+              {providerAvatarUrl && !avatarError ? (
+                <Image
+                  source={{ uri: providerAvatarUrl }}
+                  style={styles.avatar}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                  onError={() => setAvatarError(true)}
+                />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
