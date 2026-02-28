@@ -2,7 +2,7 @@ import { t } from "@/i18n";
 import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, type ProviderActiveJobDetail } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -24,8 +24,6 @@ export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-
   const {
     data: jobs = [],
     isLoading,
@@ -70,17 +68,9 @@ export default function ProviderJobDetailScreen() {
   }, [job]);
 
   const handleMarkAsCompleted = useCallback(() => {
-    Alert.alert(t("providerDashboard.confirmCompleteTitle"), t("providerDashboard.confirmCompleteMessage"), [
-      { text: t("providerDashboard.cancel"), style: "cancel" },
-      {
-        text: t("providerDashboard.confirm"),
-        onPress: () => {
-          queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
-          goBack();
-        },
-      },
-    ]);
-  }, [goBack, queryClient]);
+    if (!job) return;
+    router.push({ pathname: "/(provider-tabs)/jobs/complete", params: { id: job.orderId } });
+  }, [job, router]);
 
   if (isLoading && jobs.length === 0) {
     return (

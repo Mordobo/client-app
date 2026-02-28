@@ -224,6 +224,78 @@ export const cancelOrderByProvider = async (
   );
 };
 
+// ========== COMPLETE JOB ==========
+
+export interface JobCompletionLineItem {
+  description: string;
+  amount: number;
+  isExtra?: boolean;
+}
+
+export interface JobCompletionData {
+  order: {
+    id: string;
+    status: string;
+    startedAt: string | null;
+    serviceName: string;
+    serviceDescription: string;
+    address: string;
+    workSummary: string;
+    workPhotos: string[];
+  };
+  client: {
+    id: string;
+    fullName: string;
+  };
+  lineItems: JobCompletionLineItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  commissionRate: number;
+  durationMinutes: number;
+}
+
+export interface CompleteJobPayload {
+  work_summary: string;
+  work_photos: string[];
+}
+
+export interface CompleteJobResponse {
+  order: {
+    id: string;
+    status: string;
+    completedAt: string;
+    workSummary: string;
+    workPhotos: string[];
+  };
+  lineItems: JobCompletionLineItem[];
+  subtotal: number;
+  total: number;
+}
+
+export const getJobCompletionData = async (orderId: string): Promise<JobCompletionData> => {
+  return request<JobCompletionData>(
+    `/api/providers/orders/${orderId}/completion-data`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.completeJob.errors.loadFailed"),
+  );
+};
+
+export const completeJob = async (orderId: string, data: CompleteJobPayload): Promise<CompleteJobResponse> => {
+  return request<CompleteJobResponse>(
+    `/api/providers/orders/${orderId}/complete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    t("providerDashboard.completeJob.errors.completeFailed"),
+  );
+};
+
 export const getProviderActiveJobs = async (): Promise<ProviderActiveJob[]> => {
   const res = await request<{ jobs: ProviderActiveJob[] }>(
     "/api/providers/dashboard/active-jobs",
