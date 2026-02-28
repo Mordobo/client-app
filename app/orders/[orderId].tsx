@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { getOrCreateConversation } from '@/services/conversations';
 import { fetchOrderDetail, OrderDetailResponse, updateOrderStatus } from '@/services/orders';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
@@ -125,9 +126,21 @@ export default function OrderDetailScreen() {
     });
   };
 
-  const handleChat = () => {
+  const handleChat = async () => {
     if (!orderId) return;
-    router.push(`/booking/chat/${orderId}`);
+    if (orderDetail?.conversation_id) {
+      router.push(`/chat/${orderDetail.conversation_id}`);
+      return;
+    }
+    const supplierId = orderDetail?.order?.supplier_id;
+    if (!supplierId) return;
+    try {
+      const { conversation } = await getOrCreateConversation(supplierId, orderId);
+      router.push(`/chat/${conversation.id}`);
+    } catch (err) {
+      console.error('[OrderDetail] Failed to open chat:', err);
+      Alert.alert(t('common.error'), t('errors.requestFailed'));
+    }
   };
 
   const handleCancel = async () => {

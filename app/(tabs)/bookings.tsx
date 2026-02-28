@@ -1,11 +1,13 @@
 import { EmptyState } from '@/components/EmptyState';
 import { t, getLocale } from '@/i18n';
+import { getOrCreateConversation } from '@/services/conversations';
 import { fetchOrders, Order, OrderStatus } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -291,9 +293,14 @@ export default function BookingsScreen() {
     router.push(`/orders/${orderId}`);
   };
 
-  const handleMessagePress = (order: Order) => {
-    if (order.supplier_id) {
-      router.push(`/booking/chat/${order.id}`);
+  const handleMessagePress = async (order: Order) => {
+    if (!order.supplier_id) return;
+    try {
+      const { conversation } = await getOrCreateConversation(order.supplier_id, order.id);
+      router.push(`/chat/${conversation.id}`);
+    } catch (err) {
+      console.error('[Bookings] Failed to open chat:', err);
+      Alert.alert(t('common.error'), t('errors.requestFailed'));
     }
   };
 

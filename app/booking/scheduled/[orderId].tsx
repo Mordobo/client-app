@@ -1,10 +1,12 @@
 import { t } from '@/i18n';
+import { getOrCreateConversation } from '@/services/conversations';
 import { ApiError, fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
@@ -163,7 +165,21 @@ export default function ScheduledBookingScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push(`/booking/chat/${orderId}`)}
+            onPress={async () => {
+              if (orderDetail?.conversation_id) {
+                router.push(`/chat/${orderDetail.conversation_id}`);
+                return;
+              }
+              const supplierId = order?.supplier_id;
+              if (!supplierId || !orderId) return;
+              try {
+                const { conversation } = await getOrCreateConversation(supplierId, orderId);
+                router.push(`/chat/${conversation.id}`);
+              } catch (err) {
+                console.error('[ScheduledBooking] Failed to open chat:', err);
+                Alert.alert(t('common.error'), t('errors.requestFailed'));
+              }
+            }}
           >
             <Ionicons name="chatbubble-outline" size={24} color="#3B82F6" />
             <Text style={styles.actionButtonText}>Chat with Provider</Text>
