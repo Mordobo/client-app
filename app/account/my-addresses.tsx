@@ -11,10 +11,11 @@ import {
 } from '@/services/addresses';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -117,6 +118,17 @@ export default function MyAddressesScreen() {
     country: 'DO', // Default to Dominican Republic
     is_default: false,
   });
+
+  const modalScrollRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   // Load addresses from API
   useEffect(() => {
@@ -350,14 +362,14 @@ export default function MyAddressesScreen() {
         animationType="slide"
         onRequestClose={() => setShowAddEditModal(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight }]}>
           <TouchableOpacity
             style={styles.modalBackdrop}
             activeOpacity={1}
             onPress={() => setShowAddEditModal(false)}
           />
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalKeyboardView}
           >
             <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
@@ -369,6 +381,7 @@ export default function MyAddressesScreen() {
                 </Text>
 
                 <ScrollView
+                  ref={modalScrollRef}
                   style={styles.modalScrollView}
                   contentContainerStyle={styles.modalScrollContent}
                   showsVerticalScrollIndicator={true}
@@ -466,6 +479,7 @@ export default function MyAddressesScreen() {
                         placeholderTextColor={colors.textSecondary}
                         value={formData.state}
                         onChangeText={(text) => setFormData((prev) => ({ ...prev, state: text }))}
+                        onFocus={() => setTimeout(() => modalScrollRef.current?.scrollToEnd({ animated: true }), 150)}
                       />
                     </View>
                     <View style={[styles.inputContainer, styles.inputHalf]}>
@@ -478,6 +492,7 @@ export default function MyAddressesScreen() {
                         onChangeText={(text) =>
                           setFormData((prev) => ({ ...prev, postal_code: text }))
                         }
+                        onFocus={() => setTimeout(() => modalScrollRef.current?.scrollToEnd({ animated: true }), 150)}
                       />
                     </View>
                   </View>
