@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
 import { type Notification, type NotificationCategory, deleteAllNotifications, deleteNotification, fetchNotifications, getNotificationCategory, markAllNotificationsAsRead, markNotificationAsRead } from "@/services/notifications";
+import { fetchOrderDetail } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -216,8 +217,15 @@ export default function ProviderNotificationsScreen() {
           router.push("/(provider-tabs)/requests");
           break;
         case "new_message":
-          if (meta.conversationId) router.push(`/chat/${meta.conversationId}`);
-          else if (meta.orderId) router.push(`/booking/chat/${meta.orderId}`);
+          if (meta.conversationId) {
+            router.push(`/chat/${meta.conversationId}`);
+          } else if (meta.orderId) {
+            fetchOrderDetail(meta.orderId)
+              .then((detail) => {
+                if (detail.conversation_id) router.push(`/chat/${detail.conversation_id}`);
+              })
+              .catch(() => {});
+          }
           break;
         case "payment_processed":
         case "payment_received":

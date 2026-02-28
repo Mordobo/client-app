@@ -1,11 +1,12 @@
 import { t } from "@/i18n";
+import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, type ProviderActiveJob, type ProviderActiveJobStatus } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_BG = "#12121A";
@@ -168,8 +169,18 @@ export default function ProviderJobsScreen() {
   }, []);
 
   const handleChat = React.useCallback(
-    (job: ProviderActiveJob) => {
-      router.push(`/booking/chat/${job.orderId}`);
+    async (job: ProviderActiveJob) => {
+      try {
+        const detail = await fetchOrderDetail(job.orderId);
+        if (detail.conversation_id) {
+          router.push(`/chat/${detail.conversation_id}`);
+        } else {
+          Alert.alert(t("common.error"), t("chat.conversationNotFound"));
+        }
+      } catch (err) {
+        console.error("[ProviderJobs] Failed to open chat:", err);
+        Alert.alert(t("common.error"), t("errors.requestFailed"));
+      }
     },
     [router],
   );
