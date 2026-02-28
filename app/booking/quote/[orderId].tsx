@@ -319,7 +319,8 @@ export default function QuoteScreen() {
   }
 
   const order = orderData.order;
-  const isClient = user?.id === order.client_id;
+  const isSupplier = user?.id === order.supplier_id;
+  const isClient = !isSupplier;
   const { supplier, client } = orderData;
   const serviceDate = quote.scheduled_at || order.scheduled_at;
   const clientAddr = orderData.clientAddress;
@@ -419,7 +420,7 @@ export default function QuoteScreen() {
         {/* Service Info */}
         <View style={styles.section}>
           <View style={styles.serviceHeader}>
-            <Ionicons name="broom" size={24} color="#3B82F6" />
+            <Ionicons name="brush-outline" size={24} color="#3B82F6" />
             <Text style={styles.serviceTitle}>{order.service_name || t('orders.service')}</Text>
           </View>
           {quote.description ? (
@@ -459,7 +460,7 @@ export default function QuoteScreen() {
 
       {/* Actions */}
       <View style={styles.actions}>
-        {isClient && (
+        {isClient && order.status === 'quoted' && (
           <>
             <TouchableOpacity
               style={styles.approveButton}
@@ -485,15 +486,17 @@ export default function QuoteScreen() {
             </TouchableOpacity>
           </>
         )}
-        {!isClient && order.status === 'quoted' && (
+        {isSupplier && (order.status === 'quoted' || order.status === 'pending') && (
           <>
-            <TouchableOpacity
-              style={styles.approveButton}
-              onPress={handleEditQuote}
-              disabled={withdrawing}
-            >
-              <Text style={styles.approveButtonText}>{t('quote.editQuote')}</Text>
-            </TouchableOpacity>
+            {order.status === 'quoted' && (
+              <TouchableOpacity
+                style={styles.approveButton}
+                onPress={handleEditQuote}
+                disabled={withdrawing}
+              >
+                <Text style={styles.approveButtonText}>{t('quote.editQuote')}</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.rejectButton}
               onPress={handleWithdrawQuote}
@@ -507,7 +510,7 @@ export default function QuoteScreen() {
             </TouchableOpacity>
           </>
         )}
-        {!isClient && (order.status === 'accepted' || order.status === 'in_progress') && (
+        {isSupplier && (order.status === 'accepted' || order.status === 'in_progress') && (
           <TouchableOpacity
             style={styles.rejectButton}
             onPress={handleCancelRequest}

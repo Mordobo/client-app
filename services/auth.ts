@@ -449,6 +449,10 @@ export const request = async <T>(
       throw new ApiError(message, response.status, responseData, false);
     }
 
+    if (response.status === 204 || response.status === 205) {
+      return {} as T;
+    }
+
     if (!responseData || typeof responseData !== 'object') {
       throw new ApiError(t('errors.unexpectedResponse'), response.status, responseData);
     }

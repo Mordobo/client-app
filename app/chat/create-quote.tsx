@@ -334,32 +334,46 @@ export default function CreateQuoteScreen() {
             },
           ]
         );
-      } catch (err) {
-        // #region agent log
-        const status = err instanceof ApiError ? err.status : null;
-        const code = err instanceof ApiError && err.data && typeof err.data === 'object' && (err.data as { code?: string }).code;
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b56fb'},body:JSON.stringify({sessionId:'9b56fb',location:'create-quote.tsx:catch',message:'create quote response',data:{responseStatus:status,responseCode:code,orderId:orderId??null,conversationId:conversationId??null},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-        // #endregion
-        const isQuoteAlreadyActive =
-          err instanceof ApiError &&
-          (err.status === 409 ||
-            (err.data && typeof err.data === "object" && (err.data as { code?: string }).code === "quote_already_active"));
-        const message = isQuoteAlreadyActive
-          ? t("chat.quoteAlreadyActive")
-          : err instanceof ApiError && err.message
-            ? err.message
-            : t("createQuote.sendFailed");
-        if (isQuoteAlreadyActive && orderId) {
+      } catch (err: unknown) {
+        const apiErr = err as { status?: number; data?: unknown; message?: string };
+        const apiData = apiErr.data;
+        const errStatus = typeof apiErr.status === "number" ? apiErr.status : 0;
+        const errorCode = apiData && typeof apiData === "object" ? (apiData as { code?: string }).code : undefined;
+        const existingOrderId = apiData && typeof apiData === "object" ? (apiData as { orderId?: string }).orderId : undefined;
+
+        const isQuoteAlreadyActive = errorCode === "quote_already_active" || (errStatus === 409 && errorCode !== "active_order_exists");
+        const isActiveOrderExists = errorCode === "active_order_exists";
+
+        if (isActiveOrderExists) {
           Alert.alert(
-            t("chat.activeQuote"),
-            message,
+            t("booking.activeOrderTitle"),
+            t("booking.activeOrderExists"),
+            [
+              { text: t("common.cancel"), style: "cancel" },
+              ...(existingOrderId
+                ? [{
+                    text: t("booking.viewExistingOrder"),
+                    onPress: () => router.push(`/orders/${existingOrderId}`),
+                  }]
+                : []),
+            ]
+          );
+        } else if (isQuoteAlreadyActive) {
+          Alert.alert(
+            t("createQuote.quoteExistsTitle"),
+            t("createQuote.quoteExistsMessage"),
             [
               { text: t("common.cancel") },
-              { text: t("chat.viewQuote"), onPress: () => router.replace(`/booking/quote/${orderId}`) },
+              ...(orderId
+                ? [{ text: t("chat.viewQuote"), onPress: () => router.replace(`/booking/quote/${orderId}`) }]
+                : []),
             ]
           );
         } else {
-          Alert.alert(isQuoteAlreadyActive ? t("chat.activeQuote") : t("common.error"), message);
+          const message = typeof apiErr.message === "string" && apiErr.message
+            ? apiErr.message
+            : t("createQuote.sendFailed");
+          Alert.alert(t("common.error"), message);
         }
       } finally {
         setSending(false);

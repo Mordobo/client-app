@@ -6,7 +6,6 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
-import Constants from "expo-constants";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useIsFocused } from "@react-navigation/native";
@@ -258,7 +257,7 @@ export default function ProfileScreen() {
         {/* Version from app.config */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>
-            {t("profile.version")} {Constants.expoConfig?.version ?? "2.0.6"}
+            {t("profile.version")} 2.0.8
           </Text>
         </View>
       </ScrollView>

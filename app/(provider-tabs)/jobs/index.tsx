@@ -13,13 +13,15 @@ const CARD_BG = "#1E1B2E";
 const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const FILTER_ACTIVE_GRADIENT = ["#6366F1", "#8B5CF6"];
 const FILTER_INACTIVE_BG = "rgba(255,255,255,0.05)";
+const STATUS_PENDING_BG = "rgba(245, 158, 11, 0.15)";
+const STATUS_PENDING_TEXT = "#FBBF24";
 const STATUS_IN_PROGRESS_BG = "rgba(139, 92, 246, 0.15)";
 const STATUS_IN_PROGRESS_TEXT = "#A78BFA";
 const STATUS_ON_WAY_BG = "rgba(59, 130, 246, 0.15)";
 const STATUS_ON_WAY_TEXT = "#60A5FA";
 const ETA_REFETCH_MS = 60 * 1000;
 
-type FilterType = "in_progress" | "scheduled";
+type FilterType = "pending" | "in_progress" | "scheduled";
 
 function formatCurrency(value: number): string {
   const str = value % 1 === 0 ? String(value) : value.toFixed(2);
@@ -31,12 +33,16 @@ function sortByPriority(jobs: ProviderActiveJob[]): ProviderActiveJob[] {
     in_progress: 0,
     on_way: 1,
     scheduled: 2,
+    pending: 3,
   };
   return [...jobs].sort((a, b) => order[a.status] - order[b.status]);
 }
 
 function getFilteredJobs(jobs: ProviderActiveJob[], filter: FilterType): ProviderActiveJob[] {
   const sorted = sortByPriority(jobs);
+  if (filter === "pending") {
+    return sorted.filter((j) => j.status === "pending");
+  }
   if (filter === "in_progress") {
     return sorted.filter((j) => j.status === "in_progress" || j.status === "on_way");
   }
@@ -44,13 +50,16 @@ function getFilteredJobs(jobs: ProviderActiveJob[], filter: FilterType): Provide
 }
 
 function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
-  const isInProgress = status === "in_progress";
-  const label = isInProgress ? t("providerDashboard.statusInProgress") : t("providerDashboard.statusOnTheWay");
-  const style = isInProgress ? { backgroundColor: STATUS_IN_PROGRESS_BG } : { backgroundColor: STATUS_ON_WAY_BG };
-  const textStyle = isInProgress ? { color: STATUS_IN_PROGRESS_TEXT } : { color: STATUS_ON_WAY_TEXT };
+  const config = {
+    pending: { label: t("providerDashboard.statusPending"), bg: STATUS_PENDING_BG, text: STATUS_PENDING_TEXT },
+    in_progress: { label: t("providerDashboard.statusInProgress"), bg: STATUS_IN_PROGRESS_BG, text: STATUS_IN_PROGRESS_TEXT },
+    on_way: { label: t("providerDashboard.statusOnTheWay"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
+    scheduled: { label: t("providerDashboard.filterScheduled"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
+  };
+  const c = config[status] ?? config.pending;
   return (
-    <View style={[styles.badge, style]}>
-      <Text style={[styles.badgeText, textStyle]}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: c.bg }]}>
+      <Text style={[styles.badgeText, { color: c.text }]}>{c.label}</Text>
     </View>
   );
 }
@@ -120,7 +129,7 @@ function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; o
 export default function ProviderJobsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [filter, setFilter] = useState<FilterType>("in_progress");
+  const [filter, setFilter] = useState<FilterType>("pending");
   const [refreshing, setRefreshing] = useState(false);
 
   const {
@@ -138,6 +147,7 @@ export default function ProviderJobsScreen() {
   const jobs = useMemo(() => rawJobs, [rawJobs]);
 
   const filteredJobs = useMemo(() => getFilteredJobs(jobs, filter), [jobs, filter]);
+  const pendingCount = useMemo(() => jobs.filter((j) => j.status === "pending").length, [jobs]);
   const inProgressCount = useMemo(() => jobs.filter((j) => j.status === "in_progress" || j.status === "on_way").length, [jobs]);
   const scheduledCount = useMemo(() => jobs.filter((j) => j.status === "scheduled").length, [jobs]);
 
@@ -178,34 +188,26 @@ export default function ProviderJobsScreen() {
       </View>
 
       <View style={styles.filters}>
-        {filter === "in_progress" ?
-          <TouchableOpacity onPress={() => setFilter("in_progress")} activeOpacity={0.8} style={styles.filterBtnWrapper}>
-            <LinearGradient colors={FILTER_ACTIVE_GRADIENT as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.filterBtn}>
-              <Text style={[styles.filterBtnText, styles.filterBtnTextActive]}>
-                {t("providerDashboard.filterInProgress")} ({inProgressCount})
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        : <TouchableOpacity style={styles.filterBtn} onPress={() => setFilter("in_progress")} activeOpacity={0.8}>
-            <Text style={styles.filterBtnText}>
-              {t("providerDashboard.filterInProgress")} ({inProgressCount})
-            </Text>
-          </TouchableOpacity>
-        }
-        {filter === "scheduled" ?
-          <TouchableOpacity onPress={() => setFilter("scheduled")} activeOpacity={0.8} style={styles.filterBtnWrapper}>
-            <LinearGradient colors={FILTER_ACTIVE_GRADIENT as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.filterBtn}>
-              <Text style={[styles.filterBtnText, styles.filterBtnTextActive]}>
-                {t("providerDashboard.filterScheduled")} ({scheduledCount})
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        : <TouchableOpacity style={styles.filterBtn} onPress={() => setFilter("scheduled")} activeOpacity={0.8}>
-            <Text style={styles.filterBtnText}>
-              {t("providerDashboard.filterScheduled")} ({scheduledCount})
-            </Text>
-          </TouchableOpacity>
-        }
+        {(["pending", "in_progress", "scheduled"] as FilterType[]).map((f) => {
+          const label =
+            f === "pending"
+              ? `${t("providerDashboard.filterPending")} (${pendingCount})`
+              : f === "in_progress"
+                ? `${t("providerDashboard.filterInProgress")} (${inProgressCount})`
+                : `${t("providerDashboard.filterScheduled")} (${scheduledCount})`;
+          const isActive = filter === f;
+          return isActive ? (
+            <TouchableOpacity key={f} onPress={() => setFilter(f)} activeOpacity={0.8} style={styles.filterBtnWrapper}>
+              <LinearGradient colors={FILTER_ACTIVE_GRADIENT as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.filterBtn}>
+                <Text style={[styles.filterBtnText, styles.filterBtnTextActive]}>{label}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity key={f} style={styles.filterBtn} onPress={() => setFilter(f)} activeOpacity={0.8}>
+              <Text style={styles.filterBtnText}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {isLoading ?

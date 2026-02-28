@@ -339,8 +339,20 @@ export default function ChatScreen() {
   };
 
   const hasActiveQuote = !!activeQuote && ["draft", "sent", "pending", "approved"].includes(activeQuote.status);
+  const hasActiveOrder = !!activeOrder && ["pending", "accepted", "in_progress"].includes(activeOrder.status);
 
   const handleCreateQuote = () => {
+    if (hasActiveOrder) {
+      Alert.alert(
+        t("booking.activeOrderTitle"),
+        t("booking.activeOrderExists"),
+        [
+          { text: t("common.cancel") },
+          { text: t("booking.viewExistingOrder"), onPress: () => router.push(`/orders/${activeOrder!.id}`) },
+        ]
+      );
+      return;
+    }
     if (hasActiveQuote) {
       Alert.alert(t("common.error"), t("chat.quoteAlreadyActive"));
       return;
@@ -357,13 +369,14 @@ export default function ChatScreen() {
     });
   };
 
+  const handleViewOrder = () => {
+    if (!activeOrder) return;
+    router.push(`/orders/${activeOrder.id}`);
+  };
+
   const handleViewQuote = () => {
     if (!activeQuote || !activeQuote.order_id) return;
-    if (isProvider) {
-      router.push(`/booking/quote/${activeQuote.order_id}`);
-    } else {
-      router.push(`/booking/quote/${activeQuote.order_id}`);
-    }
+    router.push(`/booking/quote/${activeQuote.order_id}`);
   };
 
   const handleQuickAction = (key: string) => {
@@ -568,12 +581,12 @@ export default function ChatScreen() {
           <Text style={styles.headerStatus}>{t("chat.online")}</Text>
         </View>
         <TouchableOpacity
-          onPress={hasActiveQuote ? handleViewQuote : handleCreateQuote}
-          style={[styles.quoteHeaderBtn, hasActiveQuote && styles.quoteHeaderBtnView]}
+          onPress={hasActiveOrder ? handleViewOrder : hasActiveQuote ? handleViewQuote : handleCreateQuote}
+          style={[styles.quoteHeaderBtn, (hasActiveOrder || hasActiveQuote) && styles.quoteHeaderBtnView]}
         >
-          <Ionicons name={hasActiveQuote ? "eye-outline" : "document-text-outline"} size={16} color={colors.textPrimary} />
+          <Ionicons name={hasActiveOrder ? "briefcase-outline" : hasActiveQuote ? "eye-outline" : "document-text-outline"} size={16} color={colors.textPrimary} />
           <Text style={styles.quoteHeaderBtnText}>
-            {hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
+            {hasActiveOrder ? t("chat.viewOrder") : hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerBtn}>
