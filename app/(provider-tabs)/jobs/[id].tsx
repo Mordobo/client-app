@@ -67,6 +67,11 @@ export default function ProviderJobDetailScreen() {
     Linking.openURL(url);
   }, [job]);
 
+  const handleStartJob = useCallback(() => {
+    if (!job) return;
+    router.push({ pathname: "/(provider-tabs)/jobs/in-progress", params: { id: job.orderId } });
+  }, [job, router]);
+
   const handleMarkAsCompleted = useCallback(() => {
     if (!job) return;
     router.push({ pathname: "/(provider-tabs)/jobs/complete", params: { id: job.orderId } });
@@ -180,7 +185,11 @@ export default function ProviderJobDetailScreen() {
           : null}
         </View>
 
-        {/* Mark as completed */}
+        {/* Action buttons: show "Work in progress" for all active jobs so provider can open timer/tasks */}
+        <TouchableOpacity style={styles.inProgressBtn} onPress={handleStartJob} activeOpacity={0.8}>
+          <Ionicons name="play-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.completeBtnText}>{t("providerDashboard.inProgress.title")}</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.completeBtn} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
           <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
           <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
@@ -346,6 +355,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.85)",
     lineHeight: 20,
+  },
+  inProgressBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#6366F1",
+    paddingVertical: 16,
+    borderRadius: 12,
   },
   completeBtn: {
     flexDirection: "row",

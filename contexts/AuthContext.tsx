@@ -123,17 +123,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const apiPhone = (apiUser as Record<string, unknown>).phone_number as string | undefined;
             const apiAvatar = (apiUser as Record<string, unknown>).profile_image as string | undefined;
             const apiGender = (apiUser as Record<string, unknown>).gender;
-            const apiDateOfBirth = (apiUser as Record<string, unknown>).date_of_birth as string | undefined;
-            
+            const apiDateOfBirth = (apiUser as Record<string, unknown>).date_of_birth as string | null | undefined;
+
             // Map gender: only accept 'male' or 'female', otherwise use existing or undefined
-            const gender = apiGender === 'male' || apiGender === 'female' 
-              ? apiGender 
+            const gender = apiGender === 'male' || apiGender === 'female'
+              ? apiGender
               : (parsedUser.gender || undefined);
-            
-            // Map dateOfBirth: use API value if present, otherwise keep existing
-            const dateOfBirth = apiDateOfBirth !== undefined && apiDateOfBirth.trim() !== ''
-              ? apiDateOfBirth.trim()
-              : (parsedUser.dateOfBirth || undefined);
+
+            // Map dateOfBirth: use API value if present (guard null/undefined before .trim())
+            const dateOfBirth =
+              apiDateOfBirth != null && typeof apiDateOfBirth === 'string' && apiDateOfBirth.trim() !== ''
+                ? apiDateOfBirth.trim()
+                : (parsedUser.dateOfBirth || undefined);
             
             const syncedUser: User = {
               ...parsedUser,

@@ -1,7 +1,7 @@
 import { t } from '@/i18n';
 import { ApiError as AuthApiError, request } from './auth';
 
-export type OrderStatus = 'pending' | 'quoted' | 'pending_payment' | 'accepted' | 'in_progress' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending' | 'quoted' | 'pending_payment' | 'accepted' | 'in_progress' | 'pending_review' | 'completed' | 'cancelled';
 
 export interface Order {
   id: string;

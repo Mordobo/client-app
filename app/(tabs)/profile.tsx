@@ -141,7 +141,7 @@ export default function ProfileScreen() {
     { icon: "❓", label: t("profile.helpCenter"), route: "/account/support" },
   ];
 
-  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "" : "";
 
   return (
     <View style={styles.container} collapsable={false}>

@@ -340,8 +340,8 @@ export default function ProviderEditProfileScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={insets.top + 56}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 44 : 0}
       >
         {/* Back header with Save */}
         <View style={styles.header}>
@@ -654,18 +654,25 @@ export default function ProviderEditProfileScreen() {
               <Controller
                 control={control}
                 name="yearsExperience"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[styles.input, errors.yearsExperience && styles.inputError]}
-                    onBlur={onBlur}
-                    onFocus={() => scrollToFocusedField(yearsExperienceFieldRef)}
-                    onChangeText={(v) => onChange(v === "" ? null : v)}
-                    value={value == null ? "" : String(value)}
-                    placeholder="10"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    keyboardType="number-pad"
-                  />
-                )}
+                render={({ field: { onChange, onBlur, value } }) => {
+                  const onlyDigits = (v: string) => v.replace(/\D/g, "");
+                  return (
+                    <TextInput
+                      style={[styles.input, errors.yearsExperience && styles.inputError]}
+                      onBlur={onBlur}
+                      onFocus={() => scrollToFocusedField(yearsExperienceFieldRef)}
+                      onChangeText={(v) => {
+                        const digits = onlyDigits(v);
+                        onChange(digits === "" ? null : digits);
+                      }}
+                      value={value == null ? "" : String(value)}
+                      placeholder="10"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      keyboardType="number-pad"
+                      maxLength={3}
+                    />
+                  );
+                }}
               />
               {errors.yearsExperience && (
                 <Text style={styles.errorText}>{errors.yearsExperience.message}</Text>

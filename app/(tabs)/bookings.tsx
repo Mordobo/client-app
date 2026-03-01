@@ -48,6 +48,8 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
         return { label: t('orders.status.quoteReceived'), color: '#8B5CF6' };
       case 'in_progress':
         return { label: t('orders.status.inProgress'), color: '#3B82F6' };
+      case 'pending_review':
+        return { label: t('orders.status.pending_review'), color: '#8B5CF6' };
       case 'completed':
         return { label: t('orders.status.completed'), color: '#10B981' };
       case 'cancelled':
@@ -259,7 +261,7 @@ export default function BookingsScreen() {
   }, []);
 
   // "Active" = only paid reservations (pending = waiting provider accept, accepted, in_progress). Unpaid (quoted, pending_payment) go to "Pending payment".
-  const paidReservationStatuses = ['pending', 'accepted', 'in_progress'];
+  const paidReservationStatuses = ['pending', 'accepted', 'in_progress', 'pending_review'];
   const unpaidStatuses = ['quoted', 'pending_payment'];
 
   const filteredOrders = useMemo(() => {
