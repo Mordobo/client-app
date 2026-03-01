@@ -15,10 +15,16 @@ const ModeContext = createContext<ModeContextType | undefined>(undefined);
 
 const MODE_STORAGE_KEY = '@mordobo_user_mode';
 
+const defaultModeContext: ModeContextType = {
+  mode: 'client',
+  setMode: async () => ({ needsOnboarding: false }),
+  isLoading: false,
+};
+
 export const useMode = () => {
   const context = useContext(ModeContext);
   if (context === undefined) {
-    throw new Error('useMode must be used within ModeProvider');
+    return defaultModeContext;
   }
   return context;
 };

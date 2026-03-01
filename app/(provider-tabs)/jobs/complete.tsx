@@ -1,10 +1,12 @@
 import { t } from "@/i18n";
+import { ApiError } from "@/services/auth";
 import {
   completeJob,
   getJobCompletionData,
   type JobCompletionData,
   type JobCompletionLineItem,
 } from "@/services/providerDashboard";
+import { clearSession, getSessionOrderId } from "@/utils/jobWorkSession";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import * as FileSystem from "expo-file-system/legacy";
@@ -12,7 +14,7 @@ import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -87,6 +89,8 @@ export default function CompleteJobScreen() {
   const [workSummary, setWorkSummary] = useState("");
   const [photos, setPhotos] = useState<{ uri: string; base64?: string }[]>([]);
 
+  const sessionMergedRef = useRef(false);
+
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -109,6 +113,33 @@ export default function CompleteJobScreen() {
     })();
     return () => { cancelled = true; };
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !data || sessionMergedRef.current) return;
+    const { photos: sessionPhotos, notes: sessionNotes } = getSessionOrderId(id);
+    sessionMergedRef.current = true;
+    if (sessionNotes.length) {
+      const noteBlock = sessionNotes.join("\n\n");
+      setWorkSummary((prev) => (prev ? `${noteBlock}\n\n${prev}` : noteBlock));
+    }
+    if (sessionPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const withBase64: { uri: string; base64?: string }[] = [];
+      for (const uri of sessionPhotos) {
+        if (cancelled) return;
+        try {
+          const base64 = await uriToBase64(uri);
+          if (cancelled) return;
+          withBase64.push({ uri, base64 });
+        } catch {
+          withBase64.push({ uri });
+        }
+      }
+      if (!cancelled) setPhotos((prev) => [...withBase64, ...prev].slice(0, 10));
+    })();
+    return () => { cancelled = true; };
+  }, [id, data]);
 
   const durationLabel = useMemo(() => {
     if (!data) return "";
@@ -213,15 +244,24 @@ export default function CompleteJobScreen() {
         work_photos: base64Photos,
       });
 
+      clearSession(id);
       queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
       queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
 
       Alert.alert(
         t("common.success"),
-        t("providerDashboard.completeJob.completionSuccess"),
-        [{ text: t("common.ok"), onPress: () => router.back() }],
+        t("providerDashboard.completeJob.pendingReviewSuccess"),
+        [{ text: t("common.ok"), onPress: () => router.replace({ pathname: "/(provider-tabs)/jobs/invoice", params: { id } }) }],
       );
     } catch (err) {
+      const apiData = err instanceof ApiError ? err.data : undefined;
+      const code = apiData && typeof apiData === "object" && "code" in apiData ? (apiData as { code: string }).code : undefined;
+      if (code === "invalid_status") {
+        queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
+        queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
+        router.push({ pathname: "/(provider-tabs)/jobs/invoice", params: { id } });
+        return;
+      }
       console.error("[CompleteJob] Submit error:", err);
       Alert.alert(t("common.error"), t("providerDashboard.completeJob.errors.completeFailed"));
     } finally {
@@ -246,6 +286,59 @@ export default function CompleteJobScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (data.order.status === "completed") {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
+        </View>
+        <View style={[styles.centered, styles.flexGrow]}>
+          <View style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
+            <Text style={styles.successTitle}>{t("providerDashboard.completeJob.alreadyCompleted")}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={() => router.push({ pathname: "/(provider-tabs)/jobs/invoice", params: { id: id! } })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitBtnText}>{t("providerDashboard.completeJob.viewInvoice")}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (data.order.status === "pending_review") {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
+        </View>
+        <View style={[styles.centered, styles.flexGrow]}>
+          <View style={styles.successCard}>
+            <Ionicons name="time" size={48} color={PURPLE_END} style={styles.successIcon} />
+            <Text style={styles.successTitle}>{t("providerDashboard.completeJob.waitingForClientReview")}</Text>
+            <Text style={styles.successSubtitle}>{t("providerDashboard.completeJob.waitingForClientReviewDesc")}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={() => router.push({ pathname: "/(provider-tabs)/jobs/invoice", params: { id: id! } })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitBtnText}>{t("providerDashboard.completeJob.viewInvoice")}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -336,7 +429,7 @@ export default function CompleteJobScreen() {
         />
       </ScrollView>
 
-      {/* Action Button */}
+      {/* Action Buttons */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
@@ -351,6 +444,11 @@ export default function CompleteJobScreen() {
               {t("providerDashboard.completeJob.generateInvoice")}
             </Text>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cashBtn} activeOpacity={0.7}>
+          <Text style={styles.cashBtnText}>
+            {t("providerDashboard.completeJob.requestCashPayment")}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -436,6 +534,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  flexGrow: {
+    flex: 1,
+  },
   errorText: {
     fontSize: 14,
     color: "rgba(255,255,255,0.6)",
@@ -488,6 +589,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 4,
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 16,
   },
   successDuration: {
     fontSize: 14,
@@ -653,6 +761,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 20,
     paddingTop: 12,
+    gap: 8,
   },
   submitBtn: {
     backgroundColor: PURPLE_START,
@@ -668,5 +777,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  cashBtn: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cashBtnText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.6)",
   },
 });

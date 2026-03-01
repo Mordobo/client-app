@@ -282,7 +282,15 @@ export const request = async <T>(
     } catch (fetchError) {
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
-      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
+      let errorMessage: string;
+      try {
+        errorMessage =
+          fetchError instanceof Error
+            ? (fetchError.message ?? 'Unknown error')
+            : String(fetchError ?? 'Unknown');
+      } catch {
+        errorMessage = 'Unknown error';
+      }
       const errorType = fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError;
 
       // Single log to avoid multiple in-app error overlays (was 6+ console.error per failure)
@@ -290,16 +298,12 @@ export const request = async <T>(
         fetchError instanceof TypeError
           ? ' Possible causes: (1) Backend not running or not accessible (2) Firewall (3) Wrong IP e.g. 10.0.2.2 for Android emulator (4) Backend not listening on 0.0.0.0'
           : '';
-      console.error(
-        '[API] Fetch failed:',
-        JSON.stringify({
-          url,
-          error: errorMessage,
-          isTimeout,
-          errorType,
-          platform: Platform.OS,
-        }) + causes
-      );
+      try {
+        const logPayload = { url, error: errorMessage, isTimeout, errorType, platform: Platform.OS };
+        console.error('[API] Fetch failed:', JSON.stringify(logPayload) + causes);
+      } catch {
+        console.error('[API] Fetch failed:', errorMessage, causes);
+      }
 
       // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
@@ -376,11 +380,6 @@ export const request = async <T>(
         }
 
         if (!retryResponse.ok) {
-          const message =
-            typeof retryData === 'object' && retryData && 'message' in retryData
-              ? String((retryData as { message: unknown }).message)
-              : t('errors.requestFailedStatus', { status: retryResponse.status });
-          // Check if retry also failed with auth error
           const retryMessage = typeof retryData === 'object' && retryData && 'message' in retryData
             ? String((retryData as { message: unknown }).message).toLowerCase()
             : '';
@@ -392,7 +391,11 @@ export const request = async <T>(
           const isRetryAuthError = retryResponse.status === 401 || 
             (retryResponse.status === 403 && 
              (retryCode === 'invalid_token' || isRetryTokenExpired));
-          
+          const message = isRetryAuthError
+            ? t('errors.tokenRefreshFailed')
+            : (typeof retryData === 'object' && retryData && 'message' in retryData
+                ? String((retryData as { message: unknown }).message ?? '')
+                : t('errors.requestFailedStatus', { status: retryResponse.status }));
           if (!isRetryAuthError) {
             console.error('[API] Retry error response body', retryData);
           }
@@ -408,9 +411,12 @@ export const request = async <T>(
         // Refresh failed (null). Session expired is only emitted inside attemptTokenRefresh
         // when the refresh token is 401/403. Do not emit here so we don't log out on network errors.
         console.log('[API] Token refresh failed (e.g. network or invalid refresh), not emitting session expired to avoid logout on transient errors');
+        const refreshFailedRaw = typeof responseData === 'object' && responseData && 'message' in responseData
+          ? (responseData as { message: unknown }).message
+          : undefined;
         const message =
-          typeof responseData === 'object' && responseData && 'message' in responseData
-            ? String((responseData as { message: unknown }).message)
+          refreshFailedRaw != null && refreshFailedRaw !== ''
+            ? String(refreshFailedRaw)
             : t('errors.tokenRefreshFailed');
         throw new ApiError(message, response.status, responseData, false);
       }
@@ -420,9 +426,12 @@ export const request = async <T>(
       // #region agent log
       if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response not ok',data:{path,status:response.status,code:(responseData as {code?:string})?.code},timestamp:Date.now(),hypothesisId:'H2',runId:'validate-email'})}).catch(()=>{});
       // #endregion
+      const rawMessage = typeof responseData === 'object' && responseData && 'message' in responseData
+        ? (responseData as { message: unknown }).message
+        : undefined;
       const message =
-        typeof responseData === 'object' && responseData && 'message' in responseData
-          ? String((responseData as { message: unknown }).message)
+        rawMessage != null && rawMessage !== ''
+          ? String(rawMessage)
           : t('errors.requestFailedStatus', { status: response.status });
       
       // Only log non-auth errors to reduce noise (auth errors are handled above)

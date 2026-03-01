@@ -221,6 +221,8 @@ export default function NotificationsScreen() {
           }
           break;
         case 'rate_service':
+        case 'job_pending_review':
+        case 'job_completed':
           if (metadata.orderId) {
             router.push(`/orders/rate/${metadata.orderId}`);
           }

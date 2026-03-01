@@ -306,7 +306,8 @@ export default function OrderDetailScreen() {
   // If not in progress, show a simple detail view
   if (!isInProgress) {
     const canCancel = order.status !== 'completed' && order.status !== 'cancelled';
-    
+    const isPendingReview = order.status === 'pending_review';
+
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -371,6 +372,17 @@ export default function OrderDetailScreen() {
                 }
               >
                 <Text style={styles.completePaymentButtonText}>{t('orders.completePayment')}</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {isPendingReview && (
+            <View style={styles.actionButtonsSection} pointerEvents="box-none">
+              <Pressable
+                style={({ pressed }) => [styles.completePaymentButton, pressed && { opacity: 0.9 }]}
+                onPress={() => router.push(`/orders/rate/${orderId}`)}
+              >
+                <Text style={styles.completePaymentButtonText}>{t('rating.title')}</Text>
               </Pressable>
             </View>
           )}

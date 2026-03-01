@@ -56,6 +56,7 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
     in_progress: { label: t("providerDashboard.statusInProgress"), bg: STATUS_IN_PROGRESS_BG, text: STATUS_IN_PROGRESS_TEXT },
     on_way: { label: t("providerDashboard.statusOnTheWay"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
     scheduled: { label: t("providerDashboard.filterScheduled"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
+    pending_review: { label: t("orders.status.pending_review"), bg: STATUS_IN_PROGRESS_BG, text: STATUS_IN_PROGRESS_TEXT },
   };
   const c = config[status] ?? config.pending;
   return (
@@ -67,8 +68,11 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
 
 function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void }) {
   const isScheduled = job.status === "scheduled";
+  const isPendingReview = job.status === "pending_review";
   const timeLabel =
-    isScheduled ?
+    isPendingReview
+      ? t("providerDashboard.completeJob.waitingForClientReview")
+      : isScheduled ?
       job.scheduledAt ?
         new Date(job.scheduledAt).toLocaleTimeString(undefined, {
           hour: "numeric",
