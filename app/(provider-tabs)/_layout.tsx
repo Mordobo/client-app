@@ -5,7 +5,7 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { useIsFocused } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs, useRouter } from "expo-router";
+import { Tabs, useRouter, useSegments } from "expo-router";
 import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,10 +15,15 @@ const PROVIDER_SCREEN_BG = "#12121A";
 export default function ProviderTabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const segments = useSegments();
   const { user } = useAuth();
   const { mode } = useMode();
   const isFocused = useIsFocused();
   const bottomPadding = Math.max(insets.bottom, 24);
+
+  // MDB-257: When Profile tab is pressed from a nested route (e.g. /profile/security), navigate to profile root.
+  const isNestedProfileRoute =
+    segments[0] === "(provider-tabs)" && segments[1] === "profile" && segments.length > 2;
 
   // Redirect when not authenticated (e.g. after logout) to avoid protected API calls without token.
   useEffect(() => {
@@ -131,6 +136,14 @@ export default function ProviderTabLayout() {
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? "person" : "person-outline"} size={20} color={color} />
             ),
+          }}
+          listeners={{
+            tabPress: (e) => {
+              if (isNestedProfileRoute) {
+                e.preventDefault();
+                router.replace("/(provider-tabs)/profile");
+              }
+            },
           }}
         />
       </Tabs>
