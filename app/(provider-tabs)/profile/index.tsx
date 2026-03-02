@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -41,6 +41,7 @@ export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode } = useMode();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const {
     data: stats,
@@ -83,6 +84,8 @@ export default function ProviderProfileScreen() {
     useCallback(() => {
       setAvatarError(false);
       refetchProviderProfile();
+      // Scroll to top when Profile tab is pressed (e.g. from nested route or another tab)
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     }, [refetchProviderProfile])
   );
 
@@ -175,7 +178,7 @@ export default function ProviderProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
+      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
         {/* Header with gradient and avatar */}
         <View style={styles.headerWrapper}>
           <LinearGradient colors={[...GRADIENT_COLORS]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader} />
