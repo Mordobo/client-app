@@ -1,34 +1,16 @@
-import { useAvailability } from "@/contexts/AvailabilityContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAvailability } from "@/contexts/AvailabilityContext";
 import { t } from "@/i18n";
+import { acceptOrder, getDashboardRequests, getDashboardSchedule, getDashboardStats, rejectOrder, type ProviderDashboardRequest, type ProviderDashboardScheduleItem, type ProviderDashboardStats } from "@/services/providerDashboard";
 import { getProviderProfile } from "@/services/providers";
 import { getProfileImageUrl } from "@/utils/profileImage";
-import {
-    acceptOrder,
-    getDashboardRequests,
-    getDashboardSchedule,
-    getDashboardStats,
-    rejectOrder,
-    type ProviderDashboardRequest,
-    type ProviderDashboardScheduleItem,
-    type ProviderDashboardStats,
-} from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    Animated,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { ActivityIndicator, Animated, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CARD_BG = "#1E1B2E";
@@ -54,27 +36,14 @@ function formatScheduleTime(iso: string | null): string {
 function GreenDotPulse() {
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    const anim = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.4, duration: 800, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ]),
-    );
+    const anim = Animated.loop(Animated.sequence([Animated.timing(opacity, { toValue: 0.4, duration: 800, useNativeDriver: true }), Animated.timing(opacity, { toValue: 1, duration: 800, useNativeDriver: true })]));
     anim.start();
     return () => anim.stop();
   }, [opacity]);
   return <Animated.View style={[styles.greenDot, { opacity }]} />;
 }
 
-function AvailabilityToggle({
-  value,
-  onValueChange,
-  disabled,
-}: {
-  value: boolean;
-  onValueChange: (v: boolean) => void;
-  disabled?: boolean;
-}) {
+function AvailabilityToggle({ value, onValueChange, disabled }: { value: boolean; onValueChange: (v: boolean) => void; disabled?: boolean }) {
   const translateX = useRef(new Animated.Value(value ? 20 : 0)).current;
   useEffect(() => {
     Animated.timing(translateX, { toValue: value ? 20 : 0, duration: 200, useNativeDriver: true }).start();
@@ -82,11 +51,7 @@ function AvailabilityToggle({
   return (
     <View style={styles.toggleRow}>
       <View style={[styles.toggleTrack, value ? styles.toggleTrackActive : styles.toggleTrackInactive]}>
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => !disabled && onValueChange(!value)}
-          style={styles.toggleTrackTouch}
-        >
+        <TouchableOpacity activeOpacity={1} onPress={() => !disabled && onValueChange(!value)} style={styles.toggleTrackTouch}>
           <Animated.View style={[styles.toggleThumb, value ? styles.toggleThumbActive : styles.toggleThumbInactive, { transform: [{ translateX }] }]} />
         </TouchableOpacity>
       </View>
@@ -123,11 +88,7 @@ export default function ProviderDashboardScreen() {
       return;
     }
     try {
-      const [statsRes, requestsRes, scheduleRes] = await Promise.all([
-        getDashboardStats(),
-        getDashboardRequests(),
-        getDashboardSchedule(),
-      ]);
+      const [statsRes, requestsRes, scheduleRes] = await Promise.all([getDashboardStats(), getDashboardRequests(), getDashboardSchedule()]);
       setStats(statsRes);
       setRequests(requestsRes.requests);
       setSchedule(scheduleRes.schedule);
@@ -186,101 +147,55 @@ export default function ProviderDashboardScreen() {
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom + 80 }]}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />
-        }
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />} showsVerticalScrollIndicator={false}>
         {/* Header: green gradient matching preview (linear-gradient 135deg #1B8B5E → #25A870) */}
-        <LinearGradient
-          colors={["#1B8B5E", "#25A870"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
+        <LinearGradient colors={["#1B8B5E", "#25A870"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.welcomeLabel}>{t("providerDashboard.welcome")}</Text>
               <Text style={styles.welcomeName}>{displayName || "—"}</Text>
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity
-                style={styles.bellIcon}
-                onPress={() => router.push("/(provider-tabs)/notifications")}
-                activeOpacity={0.8}
-                accessibilityLabel={t("providerDashboard.providerNotifications.title")}
-              >
+              <TouchableOpacity style={styles.bellIcon} onPress={() => router.push("/(provider-tabs)/notifications")} activeOpacity={0.8} accessibilityLabel={t("providerDashboard.providerNotifications.title")}>
                 <Ionicons name="notifications-outline" size={24} color="rgba(255,255,255,0.9)" />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.profileIcon}
-                onPress={() => router.push("/(provider-tabs)/profile")}
-                activeOpacity={0.8}
-                accessibilityLabel={t("providerDashboard.providerProfile.screenTitle")}
-              >
-                {providerAvatarUrl ? (
+              <TouchableOpacity style={styles.profileIcon} onPress={() => router.push("/(provider-tabs)/profile")} activeOpacity={0.8} accessibilityLabel={t("providerDashboard.providerProfile.screenTitle")}>
+                {providerAvatarUrl ?
                   <Image source={{ uri: providerAvatarUrl }} style={styles.profileAvatar} contentFit="contain" />
-                ) : (
-                  <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />
-                )}
+                : <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />}
               </TouchableOpacity>
             </View>
           </View>
           <View style={[styles.availabilityCard, !isAvailable && styles.availabilityCardOff]}>
             <View style={styles.availabilityLeft}>
               {isAvailable && <GreenDotPulse />}
-              <Text style={[styles.availabilityText, !isAvailable && styles.availabilityTextOff]}>
-                {t(isAvailable ? "providerDashboard.youAreAvailable" : "providerDashboard.youAreUnavailable")}
-              </Text>
+              <Text style={[styles.availabilityText, !isAvailable && styles.availabilityTextOff]}>{t(isAvailable ? "providerDashboard.youAreAvailable" : "providerDashboard.youAreUnavailable")}</Text>
             </View>
-            <AvailabilityToggle
-              value={isAvailable}
-              onValueChange={setAvailability}
-            />
+            <AvailabilityToggle value={isAvailable} onValueChange={setAvailability} />
           </View>
         </LinearGradient>
 
-        {loading ? (
+        {loading ?
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color="#25A870" />
           </View>
-        ) : (
-          <View style={styles.body}>
+        : <View style={styles.body}>
             {/* Stats grid */}
             <View style={styles.statsGrid}>
               <View style={[styles.statCard, styles.statCardFirst]}>
                 <Text style={styles.statLabel}>{t("providerDashboard.today")}</Text>
-                <Text style={[styles.statValue, { color: "#F59E0B" }]}>
-                  {stats ? formatCurrency(stats.todayEarnings) : "$0"}
-                </Text>
-                <Text style={styles.statSub}>
-                  {stats?.todayJobs === 1
-                    ? t("providerDashboard.job", { count: stats.todayJobs })
-                    : t("providerDashboard.jobs", { count: stats?.todayJobs ?? 0 })}
-                </Text>
+                <Text style={[styles.statValue, { color: "#F59E0B" }]}>{stats ? formatCurrency(stats.todayEarnings) : "$0"}</Text>
+                <Text style={styles.statSub}>{stats?.todayJobs === 1 ? t("providerDashboard.job", { count: stats.todayJobs }) : t("providerDashboard.jobs", { count: stats?.todayJobs ?? 0 })}</Text>
               </View>
               <View style={styles.statCard}>
                 <Text style={styles.statLabel}>{t("providerDashboard.thisWeek")}</Text>
-                <Text style={[styles.statValue, { color: "#22C55E" }]}>
-                  {stats ? formatCurrency(stats.weekEarnings) : "$0"}
-                </Text>
-                <Text style={styles.statSub}>
-                  {stats?.weekJobs === 1
-                    ? t("providerDashboard.job", { count: stats.weekJobs })
-                    : t("providerDashboard.jobs", { count: stats?.weekJobs ?? 0 })}
-                </Text>
+                <Text style={[styles.statValue, { color: "#22C55E" }]}>{stats ? formatCurrency(stats.weekEarnings) : "$0"}</Text>
+                <Text style={styles.statSub}>{stats?.weekJobs === 1 ? t("providerDashboard.job", { count: stats.weekJobs }) : t("providerDashboard.jobs", { count: stats?.weekJobs ?? 0 })}</Text>
               </View>
               <View style={[styles.statCard, styles.statCardLast]}>
                 <Text style={styles.statLabel}>{t("providerDashboard.rating")}</Text>
-                <Text style={[styles.statValue, { color: "#FFFFFF" }]}>
-                  {stats?.averageRating?.toFixed(1) ?? "0.0"}
-                </Text>
-                <Text style={styles.statSub}>
-                  ⭐ {t("providerDashboard.reviews", { count: stats?.reviewCount ?? 0 })}
-                </Text>
+                <Text style={[styles.statValue, { color: "#FFFFFF" }]}>{stats?.averageRating?.toFixed(1) ?? "0.0"}</Text>
+                <Text style={styles.statSub}>⭐ {t("providerDashboard.reviews", { count: stats?.reviewCount ?? 0 })}</Text>
               </View>
             </View>
 
@@ -290,88 +205,64 @@ export default function ProviderDashboardScreen() {
                 <Text style={styles.sectionTitle}>{t("providerDashboard.newRequests")}</Text>
                 {requests.length > 0 && (
                   <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {t("providerDashboard.newCount", { count: requests.length })}
-                    </Text>
+                    <Text style={styles.badgeText}>{t("providerDashboard.newCount", { count: requests.length })}</Text>
                   </View>
                 )}
               </View>
-              <TouchableOpacity
-                style={styles.seeAllLink}
-                onPress={() => router.push("/(provider-tabs)/requests")}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.seeAllLink} onPress={() => router.push("/(provider-tabs)/requests")} activeOpacity={0.7}>
                 <Text style={styles.seeAllLinkText}>{t("providerDashboard.requestsScreenTitle")}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#8B5CF6" />
               </TouchableOpacity>
             </View>
-            {requests.length === 0 ? (
+            {requests.length === 0 ?
               <View style={styles.card}>
                 <Text style={styles.emptyText}>{t("providerDashboard.emptyRequests")}</Text>
               </View>
-            ) : (
-              requests.slice(0, 3).map((req) => (
+            : requests.slice(0, 3).map((req) => (
                 <View key={req.id} style={styles.requestCard}>
                   <View style={styles.requestRow}>
                     <View style={styles.requestLeft}>
                       <Text style={styles.requestClient}>{req.clientName}</Text>
                       <Text style={styles.requestService}>{req.serviceName}</Text>
-                      <Text style={styles.requestMeta}>
-                        📍 {req.address ? req.address.slice(0, 30) + (req.address.length > 30 ? "…" : "") : "—"}
-                      </Text>
+                      <Text style={styles.requestMeta}>📍 {req.address ? req.address.slice(0, 30) + (req.address.length > 30 ? "…" : "") : "—"}</Text>
                     </View>
                     <View style={styles.requestRight}>
-                      <Text style={styles.requestPrice}>
-                        {req.quoteTotal != null ? formatCurrency(req.quoteTotal) : "—"}
-                      </Text>
-                      <Text style={styles.requestTime}>
-                        {req.scheduledAt ? formatScheduleTime(req.scheduledAt) : "—"}
-                      </Text>
+                      <Text style={styles.requestPrice}>{req.quoteTotal != null ? formatCurrency(req.quoteTotal) : "—"}</Text>
+                      <Text style={styles.requestTime}>{req.scheduledAt ? formatScheduleTime(req.scheduledAt) : "—"}</Text>
                     </View>
                   </View>
                   <View style={styles.requestActions}>
-                    <TouchableOpacity
-                      style={styles.rejectBtn}
-                      onPress={() => handleReject(req.id)}
-                      disabled={actionLoadingId === req.id}
-                    >
-                      {actionLoadingId === req.id ? (
+                    <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(req.id)} disabled={actionLoadingId === req.id}>
+                      {actionLoadingId === req.id ?
                         <ActivityIndicator size="small" color="#F87171" />
-                      ) : (
-                        <Text style={styles.rejectBtnText}>{t("providerDashboard.reject")}</Text>
-                      )}
+                      : <Text style={styles.rejectBtnText}>{t("providerDashboard.reject")}</Text>}
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.acceptBtn}
-                      onPress={() => handleAccept(req.id)}
-                      disabled={actionLoadingId === req.id}
-                    >
-                      {actionLoadingId === req.id ? (
+                    <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(req.id)} disabled={actionLoadingId === req.id}>
+                      {actionLoadingId === req.id ?
                         <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <Text style={styles.acceptBtnText}>{t("providerDashboard.accept")}</Text>
-                      )}
+                      : <Text style={styles.acceptBtnText}>{t("providerDashboard.accept")}</Text>}
                     </TouchableOpacity>
                   </View>
                 </View>
               ))
-            )}
+            }
 
             {/* Today's schedule */}
             <Text style={[styles.sectionTitle, styles.scheduleTitle]}>{t("providerDashboard.todaySchedule")}</Text>
-            {schedule.length === 0 ? (
+            {schedule.length === 0 ?
               <View style={styles.card}>
                 <Text style={styles.emptyText}>{t("providerDashboard.emptySchedule")}</Text>
               </View>
-            ) : (
-              schedule.map((item) => (
+            : schedule.map((item) => (
                 <View key={item.id} style={styles.scheduleCard}>
                   <View style={styles.scheduleTimeBlock}>
-                    <Text style={styles.scheduleTime}>
-                      {item.scheduledAt ? formatScheduleTime(item.scheduledAt).replace(/\s*(AM|PM)$/, "") : "—"}
-                    </Text>
+                    <Text style={styles.scheduleTime}>{item.scheduledAt ? formatScheduleTime(item.scheduledAt).replace(/\s*(AM|PM)$/, "") : "—"}</Text>
                     <Text style={styles.scheduleAmPm}>
-                      {item.scheduledAt ? (new Date(item.scheduledAt).getHours() < 12 ? "AM" : "PM") : ""}
+                      {item.scheduledAt ?
+                        new Date(item.scheduledAt).getHours() < 12 ?
+                          "AM"
+                        : "PM"
+                      : ""}
                     </Text>
                   </View>
                   <View style={styles.scheduleInfo}>
@@ -384,9 +275,9 @@ export default function ProviderDashboardScreen() {
                   </View>
                 </View>
               ))
-            )}
+            }
           </View>
-        )}
+        }
       </ScrollView>
     </View>
   );

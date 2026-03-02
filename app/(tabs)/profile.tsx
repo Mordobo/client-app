@@ -6,9 +6,9 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -173,7 +173,8 @@ export default function ProfileScreen() {
                 return (
                   <View style={[styles.badge, { backgroundColor: `${cfg.color}20` }]}>
                     <Text style={[styles.badgeText, { color: cfg.color }]}>
-                      {cfg.emoji ? `${cfg.emoji} ` : ""}{t(cfg.i18nKey)}
+                      {cfg.emoji ? `${cfg.emoji} ` : ""}
+                      {t(cfg.i18nKey)}
                     </Text>
                   </View>
                 );
@@ -256,9 +257,7 @@ export default function ProfileScreen() {
 
         {/* Version from app.config */}
         <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>
-            {t("profile.version")} 2.0.8
-          </Text>
+          <Text style={styles.versionText}>{t("profile.version")} 2.0.8</Text>
         </View>
       </ScrollView>
 

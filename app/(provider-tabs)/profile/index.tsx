@@ -2,10 +2,10 @@ import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
-import { getProviderProfile } from "@/services/providers";
 import { getDashboardStats } from "@/services/providerDashboard";
-import { getProfileImageUrl } from "@/utils/profileImage";
+import { getProviderProfile } from "@/services/providers";
 import { getProviderServices } from "@/services/providerServices";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
@@ -86,7 +86,7 @@ export default function ProviderProfileScreen() {
       refetchProviderProfile();
       // Scroll to top when Profile tab is pressed (e.g. from nested route or another tab)
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    }, [refetchProviderProfile])
+    }, [refetchProviderProfile]),
   );
 
   const onRefresh = useCallback(() => {
@@ -192,19 +192,12 @@ export default function ProviderProfileScreen() {
           </View>
           <View style={styles.avatarRow}>
             <View style={styles.avatarWrapper}>
-              {providerAvatarUrl && !avatarError ? (
-                <Image
-                  source={{ uri: providerAvatarUrl }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                  cachePolicy="disk"
-                  onError={() => setAvatarError(true)}
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
+              {providerAvatarUrl && !avatarError ?
+                <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="disk" onError={() => setAvatarError(true)} />
+              : <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 </View>
-              )}
+              }
               {isVerified && (
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark" size={14} color="#fff" />
@@ -238,9 +231,7 @@ export default function ProviderProfileScreen() {
                 </View>
               )}
             </View>
-            <Text style={styles.category}>
-              {categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}
-            </Text>
+            <Text style={styles.category}>{categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}</Text>
           </View>
 
           {/* Stats */}
@@ -264,9 +255,7 @@ export default function ProviderProfileScreen() {
           {/* Bio */}
           <View style={styles.bioCard}>
             <Text style={styles.bioLabel}>{t("providerDashboard.providerProfile.aboutMe")}</Text>
-            <Text style={styles.bioText}>
-              {bio || t("providerDashboard.providerProfile.bioPlaceholder")}
-            </Text>
+            <Text style={styles.bioText}>{bio || t("providerDashboard.providerProfile.bioPlaceholder")}</Text>
           </View>
 
           {/* Menu options */}
