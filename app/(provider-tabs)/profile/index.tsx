@@ -1,4 +1,5 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
+import { ProfileFooter } from "@/components/profile/ProfileFooter";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
@@ -274,6 +275,9 @@ export default function ProviderProfileScreen() {
             ))}
           </View>
         </View>
+
+        {/* App version label and logout button — same layout/behavior as Client profile */}
+        <ProfileFooter />
       </ScrollView>
     </View>
   );
@@ -288,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 100,
   },
   headerWrapper: {
     position: "relative",
