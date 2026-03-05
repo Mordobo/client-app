@@ -753,6 +753,7 @@ export default {
     chatHistory: "Chat History",
     invoices: "Invoices",
     helpCenter: "Help Center",
+    configuration: "Configuration",
     settings: "Settings",
     help: "Help",
     provider: "Provider",
