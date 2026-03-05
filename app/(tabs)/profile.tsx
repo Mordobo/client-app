@@ -71,10 +71,11 @@ export default function ProfileScreen() {
 
   const menuItems = [
     { icon: "👤", label: t("profile.editProfile"), route: "/account/edit" },
+    { icon: "⚙️", label: t("profile.configuration"), route: "/account/configuration" },
     { icon: "📍", label: t("profile.myAddresses"), route: "/account/my-addresses" },
     { icon: "💳", label: t("profile.paymentMethods"), route: "/account/payment-methods" },
     { icon: "❤️", label: t("profile.favorites"), route: "/account/favorites" },
-    { icon: "🔔", label: t("profile.notifications"), route: "/account/settings" },
+    { icon: "🔔", label: t("profile.notifications"), route: "/account/notification-preferences" },
     { icon: "❓", label: t("profile.helpCenter"), route: "/account/support" },
   ];
 
