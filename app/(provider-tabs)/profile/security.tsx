@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Modal,
@@ -142,8 +143,19 @@ export default function ProviderSecurityScreen() {
 
   const handleToggle2FA = useCallback(() => {
     const action = settings?.two_factor_enabled ? 'disable' : 'enable';
+    if (action === 'disable') {
+      Alert.alert(
+        t(`${I18N}.disable2FAConfirmTitle`),
+        t(`${I18N}.disable2FAConfirmMessage`),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.confirm'), onPress: () => { setTwoFAPasswordInput(''); setTwoFAPasswordModal({ action: 'disable' }); } },
+        ]
+      );
+      return;
+    }
     setTwoFAPasswordInput('');
-    setTwoFAPasswordModal({ action });
+    setTwoFAPasswordModal({ action: 'enable' });
   }, [settings?.two_factor_enabled]);
 
   const handle2FAPasswordConfirm = useCallback(async () => {
@@ -164,9 +176,12 @@ export default function ProviderSecurityScreen() {
       setTwoFAPasswordModal(null);
       setTwoFAPasswordInput('');
     } catch (error: unknown) {
-      const apiError = error as { status?: number };
+      const apiError = error as { status?: number; data?: { code?: string } };
+      const code = apiError?.data?.code;
       if (apiError?.status === 401) {
         showToast(t(`${I18N}.invalidPassword`), 'error');
+      } else if (code === 'password_not_set') {
+        showToast(t('errors.passwordNotSetFor2FA'), 'error');
       } else {
         showToast(t('errors.enable2FAFailed'), 'error');
       }

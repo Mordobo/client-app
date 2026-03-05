@@ -200,7 +200,7 @@ export const request = async <T>(
   retryOn401 = true
 ): Promise<T> => {
   // List of public endpoints that don't require authentication
-  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code'];
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
   
   // If logout was just called and this is not a public endpoint, throw error
@@ -573,6 +573,10 @@ export interface LoginResponse {
   accessToken?: string;
   token?: string; // Alias for accessToken (backward compatibility)
   refreshToken?: string;
+  /** When 2FA is enabled, login returns this instead of tokens until code is validated */
+  requires_2fa?: boolean;
+  twoFaToken?: string;
+  email?: string;
 }
 
 export const loginWithCredentials = async (
@@ -664,6 +668,9 @@ export interface VerifyCodeResponse extends AuthSuccessResponse {
   user: RegisterResponseUser;
   accessToken?: string;
   refreshToken?: string;
+  requires_2fa?: boolean;
+  twoFaToken?: string;
+  email?: string;
 }
 
 /** Mark client onboarding as completed so it is not shown again. Requires authenticated client. */
@@ -696,6 +703,31 @@ export const verifyCode = async (
       body: JSON.stringify(body),
     },
     t('errors.verificationFailed')
+  );
+};
+
+export interface Validate2FAPayload {
+  twoFaToken: string;
+  code: string;
+}
+
+/** Complete login when 2FA is enabled. Call after login or verify returned requires_2fa. */
+export const validate2FACode = async (
+  payload: Validate2FAPayload
+): Promise<LoginResponse> => {
+  return request<LoginResponse>(
+    '/auth/2fa/validate',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        twoFaToken: payload.twoFaToken,
+        code: payload.code.trim(),
+      }),
+    },
+    t('errors.verify2FAFailed')
   );
 };
 
