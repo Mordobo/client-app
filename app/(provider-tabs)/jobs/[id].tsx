@@ -242,7 +242,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flexGrow: 1,
     paddingBottom: 24,
     gap: 16,
   },
