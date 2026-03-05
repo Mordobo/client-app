@@ -113,6 +113,18 @@ export default function CreateQuoteScreen() {
           if (!cancelled && data.clientAddress) {
             setClientAddress(data.clientAddress);
           }
+          // If order already has an active quote, redirect to view it (avoids 409 on submit)
+          if (!cancelled && !isEditMode && data.quote && data.order?.quote_id) {
+            const status = data.quote.status;
+            if (status === "draft" || status === "sent" || status === "pending") {
+              if (conversationId) {
+                router.replace(`/chat/${conversationId}`);
+              } else {
+                router.replace(`/booking/quote/${orderId}`);
+              }
+              return;
+            }
+          }
         } else if (conversationId) {
           const addr = await fetchConversationClientAddress(conversationId);
           if (!cancelled && addr) {
@@ -126,7 +138,7 @@ export default function CreateQuoteScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [orderId, conversationId]);
+  }, [orderId, conversationId, isEditMode, router]);
 
   useEffect(() => {
     if (!isEditMode || !orderId) return;
@@ -309,9 +321,6 @@ export default function CreateQuoteScreen() {
           address: clientAddress ? formatAddress(clientAddress) : undefined,
         };
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9b56fb'},body:JSON.stringify({sessionId:'9b56fb',location:'create-quote.tsx:handleSend',message:'create quote attempt',data:{orderId:orderId??null,conversationId:conversationId??null,path:orderId?'POST /orders/:id/quote':'POST from-conversation/quote'},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
         if (isEditMode && orderId) {
           payload.status = isDraft ? "draft" : "sent";
           await updateQuote(orderId, payload);
@@ -321,19 +330,28 @@ export default function CreateQuoteScreen() {
           await createQuoteFromConversation(conversationId!, payload);
         }
 
-        Alert.alert(
-          t("common.success"),
-          isDraft ? t("createQuote.draftSaved") : t("createQuote.quoteSent"),
-          [
-            {
-              text: t("common.ok"),
-              onPress: () =>
-                isEditMode && orderId
-                  ? router.replace(`/booking/quote/${orderId}`)
-                  : router.back(),
-            },
-          ]
-        );
+        if (!isDraft && conversationId) {
+          router.replace(`/chat/${conversationId}`);
+        } else {
+          Alert.alert(
+            t("common.success"),
+            isDraft ? t("createQuote.draftSaved") : t("createQuote.quoteSent"),
+            [
+              {
+                text: t("common.ok"),
+                onPress: () => {
+                  if (isEditMode && orderId) {
+                    router.replace(`/booking/quote/${orderId}`);
+                  } else if (conversationId) {
+                    router.replace(`/chat/${conversationId}`);
+                  } else {
+                    router.back();
+                  }
+                },
+              },
+            ]
+          );
+        }
       } catch (err: unknown) {
         const apiErr = err as { status?: number; data?: unknown; message?: string };
         const apiData = apiErr.data;
@@ -359,15 +377,19 @@ export default function CreateQuoteScreen() {
             ]
           );
         } else if (isQuoteAlreadyActive) {
+          const buttons: Array<{ text: string; onPress?: () => void }> = [
+            { text: t("common.cancel") },
+            ...(orderId
+              ? [{ text: t("chat.viewQuote"), onPress: () => router.replace(`/booking/quote/${orderId}`) }]
+              : []),
+            ...(conversationId
+              ? [{ text: t("quote.chatBack"), onPress: () => router.replace(`/chat/${conversationId}`) }]
+              : []),
+          ];
           Alert.alert(
             t("createQuote.quoteExistsTitle"),
             t("createQuote.quoteExistsMessage"),
-            [
-              { text: t("common.cancel") },
-              ...(orderId
-                ? [{ text: t("chat.viewQuote"), onPress: () => router.replace(`/booking/quote/${orderId}`) }]
-                : []),
-            ]
+            buttons
           );
         } else {
           const message = typeof apiErr.message === "string" && apiErr.message

@@ -94,15 +94,19 @@ export default function ConversationsListScreen() {
   useEffect(() => {
     if (!isAuthenticated) return;
     const sub = AppState.addEventListener("change", (state: AppStateStatus) => {
-      if (state === "active") startPolling();
-      else stopPolling();
+      if (state === "active") {
+        loadConversations(false);
+        startPolling();
+      } else {
+        stopPolling();
+      }
     });
     startPolling();
     return () => {
       sub.remove();
       stopPolling();
     };
-  }, [isAuthenticated, startPolling, stopPolling]);
+  }, [isAuthenticated, loadConversations, startPolling, stopPolling]);
 
   useFocusEffect(
     useCallback(() => {
@@ -121,9 +125,7 @@ export default function ConversationsListScreen() {
         console.error("[Chat] Invalid conversation ID:", conversationId);
         return;
       }
-      router.push(`/chat/${conversationId}`).catch((error) => {
-        console.error("[Chat] Navigation error:", error);
-      });
+      router.push(`/chat/${conversationId}`);
     } catch (error) {
       console.error("[Chat] Error in handleConversationPress:", error);
     }
