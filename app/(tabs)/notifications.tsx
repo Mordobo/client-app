@@ -6,6 +6,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '@/services/notifications';
+import { fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -212,10 +213,16 @@ export default function NotificationsScreen() {
           if (metadata.conversationId) {
             router.push(`/chat/${metadata.conversationId}`);
           } else if (metadata.orderId) {
-            router.push(`/booking/chat/${metadata.orderId}`);
+            fetchOrderDetail(metadata.orderId)
+              .then((detail) => {
+                if (detail.conversation_id) router.push(`/chat/${detail.conversation_id}`);
+              })
+              .catch(() => {});
           }
           break;
         case 'rate_service':
+        case 'job_pending_review':
+        case 'job_completed':
           if (metadata.orderId) {
             router.push(`/orders/rate/${metadata.orderId}`);
           }

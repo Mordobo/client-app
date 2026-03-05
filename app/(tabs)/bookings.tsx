@@ -1,11 +1,13 @@
 import { EmptyState } from '@/components/EmptyState';
 import { t, getLocale } from '@/i18n';
+import { getOrCreateConversation } from '@/services/conversations';
 import { fetchOrders, Order, OrderStatus } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   RefreshControl,
   ScrollView,
@@ -46,6 +48,8 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
         return { label: t('orders.status.quoteReceived'), color: '#8B5CF6' };
       case 'in_progress':
         return { label: t('orders.status.inProgress'), color: '#3B82F6' };
+      case 'pending_review':
+        return { label: t('orders.status.pending_review'), color: '#8B5CF6' };
       case 'completed':
         return { label: t('orders.status.completed'), color: '#10B981' };
       case 'cancelled':
@@ -257,7 +261,7 @@ export default function BookingsScreen() {
   }, []);
 
   // "Active" = only paid reservations (pending = waiting provider accept, accepted, in_progress). Unpaid (quoted, pending_payment) go to "Pending payment".
-  const paidReservationStatuses = ['pending', 'accepted', 'in_progress'];
+  const paidReservationStatuses = ['pending', 'accepted', 'in_progress', 'pending_review'];
   const unpaidStatuses = ['quoted', 'pending_payment'];
 
   const filteredOrders = useMemo(() => {
@@ -291,9 +295,14 @@ export default function BookingsScreen() {
     router.push(`/orders/${orderId}`);
   };
 
-  const handleMessagePress = (order: Order) => {
-    if (order.supplier_id) {
-      router.push(`/booking/chat/${order.id}`);
+  const handleMessagePress = async (order: Order) => {
+    if (!order.supplier_id) return;
+    try {
+      const { conversation } = await getOrCreateConversation(order.supplier_id, order.id);
+      router.push(`/chat/${conversation.id}`);
+    } catch (err) {
+      console.error('[Bookings] Failed to open chat:', err);
+      Alert.alert(t('common.error'), t('errors.requestFailed'));
     }
   };
 

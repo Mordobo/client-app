@@ -121,6 +121,7 @@ Mordobo es una aplicación móvil multiplataforma (iOS, Android, Web) que permit
 - ✅ Hacer las modificaciones de código necesarias
 - ✅ Informar al usuario sobre los cambios realizados
 - ✅ El usuario decidirá si y cuándo hacer commit/push
+- ✅ Si se sugieren o redactan mensajes de commit o descripciones de PR: **siempre en inglés, detallados**, explicando qué se cambió y por qué (ver sección "Commit and Pull Request Descriptions")
 
 **Única excepción:**
 - Si el usuario EXPLÍCITAMENTE dice "haz commit" o "haz push", solo entonces ejecutar el comando solicitado
@@ -709,6 +710,26 @@ style(theme): update color palette
 - `perf`: Mejora de performance
 - `test`: Tests
 - `chore`: Tareas de mantenimiento
+
+### Commit and Pull Request Descriptions (English, Detailed)
+
+- **Language**: All commit messages and Pull Request titles/descriptions **must be written in English** (subject line and body).
+- **Detail**: Descriptions must be **detailed** and clearly explain:
+  - **What** was changed (files, components, behavior).
+  - **Why** it was changed when not obvious (bug fixed, UX improvement, requirement).
+  - **How** it was addressed briefly when useful (e.g. "filter non-numeric input in onChangeText", "reduced keyboardVerticalOffset to fix gap").
+- **PR description**: Use the PR description to summarize the change, link the ticket (e.g. MDB-195), and list main changes or testing notes. Avoid one-line or Spanish-only descriptions.
+
+**Example – good commit body (English, detailed):**
+```
+fix(profile): restrict years-of-experience to digits and fix keyboard gap
+
+- Years of experience: allow only numeric input via onChangeText filter and
+  set maxLength={3}; keeps number-pad and prevents pasted/invalid chars.
+- Keyboard: set KeyboardAvoidingView behavior to undefined on Android to
+  remove double offset and reduce keyboardVerticalOffset on iOS to avoid
+  large empty space between input and keyboard.
+```
 
 ⸻
 

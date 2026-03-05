@@ -1,11 +1,12 @@
 import { t } from "@/i18n";
+import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, type ProviderActiveJob, type ProviderActiveJobStatus } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SCREEN_BG = "#12121A";
@@ -55,6 +56,7 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
     in_progress: { label: t("providerDashboard.statusInProgress"), bg: STATUS_IN_PROGRESS_BG, text: STATUS_IN_PROGRESS_TEXT },
     on_way: { label: t("providerDashboard.statusOnTheWay"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
     scheduled: { label: t("providerDashboard.filterScheduled"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
+    pending_review: { label: t("orders.status.pending_review"), bg: STATUS_IN_PROGRESS_BG, text: STATUS_IN_PROGRESS_TEXT },
   };
   const c = config[status] ?? config.pending;
   return (
@@ -66,8 +68,11 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
 
 function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void }) {
   const isScheduled = job.status === "scheduled";
+  const isPendingReview = job.status === "pending_review";
   const timeLabel =
-    isScheduled ?
+    isPendingReview
+      ? t("providerDashboard.completeJob.waitingForClientReview")
+      : isScheduled ?
       job.scheduledAt ?
         new Date(job.scheduledAt).toLocaleTimeString(undefined, {
           hour: "numeric",
@@ -168,8 +173,18 @@ export default function ProviderJobsScreen() {
   }, []);
 
   const handleChat = React.useCallback(
-    (job: ProviderActiveJob) => {
-      router.push(`/booking/chat/${job.orderId}`);
+    async (job: ProviderActiveJob) => {
+      try {
+        const detail = await fetchOrderDetail(job.orderId);
+        if (detail.conversation_id) {
+          router.push(`/chat/${detail.conversation_id}`);
+        } else {
+          Alert.alert(t("common.error"), t("chat.conversationNotFound"));
+        }
+      } catch (err) {
+        console.error("[ProviderJobs] Failed to open chat:", err);
+        Alert.alert(t("common.error"), t("errors.requestFailed"));
+      }
     },
     [router],
   );

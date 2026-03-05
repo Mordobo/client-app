@@ -1,4 +1,5 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
+import { ProfileFooter } from "@/components/profile/ProfileFooter";
 import { Toast } from "@/components/Toast";
 import { CLIENT_TIERS } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,11 +7,11 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useIsFocused } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface UserStats {
@@ -20,7 +21,7 @@ interface UserStats {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { mode, setMode } = useMode();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -68,80 +69,17 @@ export default function ProfileScreen() {
     return () => clearTimeout(id);
   }, [mode, isFocused, router]);
 
-  const handleLogout = () => {
-    const performLogout = async () => {
-      try {
-        console.log("[Profile] ========== LOGOUT BUTTON PRESSED ==========");
-
-        // Perform logout (clears user state and storage)
-        await logout();
-
-        console.log("[Profile] Logout function completed, navigating...");
-
-        // Use a small delay to ensure state has updated
-        // Then navigate to auth root which will redirect to welcome
-        setTimeout(() => {
-          try {
-            console.log("[Profile] Attempting navigation to /(auth)...");
-
-            // Navigate to auth root - the index will redirect to welcome
-            router.replace("/(auth)");
-
-            console.log("[Profile] Navigation completed");
-          } catch (navError) {
-            console.error("[Profile] Navigation error:", navError);
-            // Try alternative navigation
-            try {
-              router.replace("/(auth)/welcome");
-            } catch (altNavError) {
-              console.error("[Profile] Alternative navigation also failed:", altNavError);
-            }
-          }
-        }, 100);
-      } catch (error) {
-        console.error("[Profile] Logout error:", error);
-        // Even if logout fails, try to navigate
-        try {
-          router.replace("/(auth)");
-        } catch (navError) {
-          console.error("[Profile] Navigation error after logout failure:", navError);
-          Alert.alert(t("common.error"), t("profile.logoutError"));
-        }
-      }
-    };
-
-    // Handle Alert differently on web vs mobile
-    if (Platform.OS === "web") {
-      const confirmed = window.confirm(`${t("profile.logout")}\n\n${t("profile.logoutConfirm")}`);
-      if (confirmed) {
-        performLogout();
-      } else {
-      }
-    } else {
-      Alert.alert(t("profile.logout"), t("profile.logoutConfirm"), [
-        {
-          text: t("common.cancel"),
-          style: "cancel",
-        },
-        {
-          text: t("profile.logout"),
-          style: "destructive",
-          onPress: performLogout,
-        },
-      ]);
-    }
-  };
-
   const menuItems = [
     { icon: "👤", label: t("profile.editProfile"), route: "/account/edit" },
+    { icon: "⚙️", label: t("profile.configuration"), route: "/account/configuration" },
     { icon: "📍", label: t("profile.myAddresses"), route: "/account/my-addresses" },
     { icon: "💳", label: t("profile.paymentMethods"), route: "/account/payment-methods" },
     { icon: "❤️", label: t("profile.favorites"), route: "/account/favorites" },
-    { icon: "🔔", label: t("profile.notifications"), route: "/account/settings" },
+    { icon: "🔔", label: t("profile.notifications"), route: "/account/notification-preferences" },
     { icon: "❓", label: t("profile.helpCenter"), route: "/account/support" },
   ];
 
-  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "" : "";
 
   return (
     <View style={styles.container} collapsable={false}>
@@ -173,7 +111,8 @@ export default function ProfileScreen() {
                 return (
                   <View style={[styles.badge, { backgroundColor: `${cfg.color}20` }]}>
                     <Text style={[styles.badgeText, { color: cfg.color }]}>
-                      {cfg.emoji ? `${cfg.emoji} ` : ""}{t(cfg.i18nKey)}
+                      {cfg.emoji ? `${cfg.emoji} ` : ""}
+                      {t(cfg.i18nKey)}
                     </Text>
                   </View>
                 );
@@ -240,26 +179,7 @@ export default function ProfileScreen() {
           ))}
         </View>
 
-        {/* Logout Button - Exact match: padding: '20px', backgroundColor: danger20, borderRadius: '12px' */}
-        <View style={styles.logoutContainer}>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={() => {
-              handleLogout();
-            }}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.logoutIcon}>🚪</Text>
-            <Text style={styles.logoutText}>{t("profile.logout")}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Version from app.config */}
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>
-            {t("profile.version")} 2.0.8
-          </Text>
-        </View>
+        <ProfileFooter />
       </ScrollView>
 
       {/* Toast for mode change notifications */}
@@ -405,37 +325,6 @@ const styles = StyleSheet.create({
   // Chevron: fontSize: '16px' from JSX
   menuChevron: {
     fontSize: 16,
-    color: "#9ca3af", // Hardcode secondary text
-  },
-  // Logout: padding: '20px' from JSX
-  logoutContainer: {
-    padding: 20,
-  },
-  // Logout Button: padding: '16px', borderRadius: '12px', display: 'flex', gap: '8px' from JSX
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-    backgroundColor: "#ef444420", // Hardcode danger20
-  },
-  logoutIcon: {
-    fontSize: 20,
-  },
-  // Logout Text: fontSize: '15px', fontWeight: '600' from JSX
-  logoutText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#ef4444", // Hardcode danger color
-  },
-  versionContainer: {
-    alignItems: "center",
-    paddingVertical: 16,
-  },
-  versionText: {
-    fontSize: 12,
     color: "#9ca3af", // Hardcode secondary text
   },
 });

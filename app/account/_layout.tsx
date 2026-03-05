@@ -9,8 +9,12 @@ export default function AccountLayout() {
       }}
     >
       <Stack.Screen name="edit" />
+      <Stack.Screen name="configuration" />
+      <Stack.Screen name="security" />
+      <Stack.Screen name="notification-preferences" />
+      <Stack.Screen name="language" />
+      <Stack.Screen name="theme" />
       <Stack.Screen name="payment-methods" />
-      <Stack.Screen name="settings" />
       <Stack.Screen name="my-addresses" />
       <Stack.Screen name="favorites" />
       <Stack.Screen name="support" />

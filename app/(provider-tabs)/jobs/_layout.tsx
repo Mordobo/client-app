@@ -11,6 +11,10 @@ export default function JobsLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="[id]" />
+      <Stack.Screen name="in-progress" />
+      <Stack.Screen name="complete" />
+      <Stack.Screen name="invoice" />
+      <Stack.Screen name="rate-client" />
     </Stack>
   );
 }

@@ -1,43 +1,20 @@
 import { Toast } from "@/components/Toast";
 import { t } from "@/i18n";
 import { fetchCategoriesTree, type CategoryTreeItem } from "@/services/categories";
-import {
-    getProviderProfile,
-    updateProviderProfile,
-    uploadProviderAvatar,
-    type UpdateProviderProfilePayload,
-} from "@/services/providers";
-import { getProfileImageUrl } from "@/utils/profileImage";
+import { getProviderProfile, updateProviderProfile, uploadProviderAvatar, type UpdateProviderProfilePayload } from "@/services/providers";
 import { normalizePhoneInput, validatePhone } from "@/utils/phoneValidation";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "expo-image";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-    Controller,
-    useFieldArray,
-    useForm,
-    type SubmitHandler,
-} from "react-hook-form";
-import {
-    ActivityIndicator,
-    Alert,
-    findNodeHandle,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { Controller, useFieldArray, useForm, type SubmitHandler } from "react-hook-form";
+import { ActivityIndicator, Alert, findNodeHandle, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 
@@ -139,10 +116,7 @@ export default function ProviderEditProfileScreen() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const parentCategoryOptions = useMemo(
-    () => (categoriesTree ? getParentCategoryOptions(categoriesTree) : []),
-    [categoriesTree],
-  );
+  const parentCategoryOptions = useMemo(() => (categoriesTree ? getParentCategoryOptions(categoriesTree) : []), [categoriesTree]);
 
   const {
     control,
@@ -163,26 +137,20 @@ export default function ProviderEditProfileScreen() {
     },
   });
 
-  const { fields: specialtyFields, append: appendSpecialty, remove: removeSpecialty } = useFieldArray({
+  const {
+    fields: specialtyFields,
+    append: appendSpecialty,
+    remove: removeSpecialty,
+  } = useFieldArray({
     control,
     name: "specialties",
   });
 
   const selectedCategoryId = watch("categoryId");
-  const selectedParentId = useMemo(
-    () => getSelectedParentId(categoriesTree ?? undefined, selectedCategoryId),
-    [categoriesTree, selectedCategoryId],
-  );
-  const subcategoryOptions = useMemo(
-    () => getSubcategoryOptions(categoriesTree ?? undefined, selectedParentId),
-    [categoriesTree, selectedParentId],
-  );
-  const selectedParentLabel = selectedParentId
-    ? parentCategoryOptions.find((o) => o.id === selectedParentId)?.name ?? ""
-    : "";
-  const selectedSubcategoryLabel = selectedCategoryId && subcategoryOptions.some((s) => s.id === selectedCategoryId)
-    ? subcategoryOptions.find((o) => o.id === selectedCategoryId)?.name ?? ""
-    : "";
+  const selectedParentId = useMemo(() => getSelectedParentId(categoriesTree ?? undefined, selectedCategoryId), [categoriesTree, selectedCategoryId]);
+  const subcategoryOptions = useMemo(() => getSubcategoryOptions(categoriesTree ?? undefined, selectedParentId), [categoriesTree, selectedParentId]);
+  const selectedParentLabel = selectedParentId ? (parentCategoryOptions.find((o) => o.id === selectedParentId)?.name ?? "") : "";
+  const selectedSubcategoryLabel = selectedCategoryId && subcategoryOptions.some((s) => s.id === selectedCategoryId) ? (subcategoryOptions.find((o) => o.id === selectedCategoryId)?.name ?? "") : "";
 
   const bioValue = watch("bio");
   const bioLength = typeof bioValue === "string" ? bioValue.length : 0;
@@ -220,19 +188,14 @@ export default function ProviderEditProfileScreen() {
 
   const handleBack = useCallback(() => {
     if (isDirty) {
-      Alert.alert(
-        t("providerDashboard.providerEditProfile.unsavedChanges"),
-        t("providerDashboard.providerEditProfile.unsavedChangesMessage"),
-        [
-          { text: t("providerDashboard.providerEditProfile.cancel"), style: "cancel" },
-          { text: t("common.discard"), style: "destructive", onPress: goToProfile },
-        ],
-      );
+      Alert.alert(t("providerDashboard.providerEditProfile.unsavedChanges"), t("providerDashboard.providerEditProfile.unsavedChangesMessage"), [
+        { text: t("providerDashboard.providerEditProfile.cancel"), style: "cancel" },
+        { text: t("common.discard"), style: "destructive", onPress: goToProfile },
+      ]);
     } else {
       goToProfile();
     }
   }, [isDirty, goToProfile]);
-
 
   const pickImage = useCallback(async () => {
     try {
@@ -248,11 +211,7 @@ export default function ProviderEditProfileScreen() {
       });
       if (result.canceled || !result.assets[0]) return;
       const uri = result.assets[0].uri;
-      const compressed = await ImageManipulator.manipulateAsync(
-        uri,
-        [{ resize: { width: 400 } }],
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
-      );
+      const compressed = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 400 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
       setUploadingAvatar(true);
       const base64 = await (async (): Promise<string> => {
         if (Platform.OS === "web" && compressed.uri.startsWith("blob:")) {
@@ -330,64 +289,38 @@ export default function ProviderEditProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <Toast
-        message={toastMessage}
-        visible={toastVisible}
-        onHide={() => setToastVisible(false)}
-        type="success"
-        duration={2000}
-      />
+      <Toast message={toastMessage} visible={toastVisible} onHide={() => setToastVisible(false)} type="success" duration={2000} />
 
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={insets.top + 56}
-      >
+      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 44 : 0}>
         {/* Back header with Save */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton} accessibilityLabel={t("common.back")}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t("providerDashboard.providerEditProfile.title")}</Text>
-          <TouchableOpacity
-            onPress={handleSubmit(onSubmit)}
-            disabled={!isDirty}
-            style={[styles.saveButtonHeader, !isDirty && styles.saveButtonHeaderDisabled]}
-          >
-            <Text style={[styles.saveButtonText, !isDirty && styles.saveButtonTextDisabled]}>
-              {t("providerDashboard.providerEditProfile.save")}
-            </Text>
+          <TouchableOpacity onPress={handleSubmit(onSubmit)} disabled={!isDirty} style={[styles.saveButtonHeader, !isDirty && styles.saveButtonHeaderDisabled]}>
+            <Text style={[styles.saveButtonText, !isDirty && styles.saveButtonTextDisabled]}>{t("providerDashboard.providerEditProfile.save")}</Text>
           </TouchableOpacity>
         </View>
 
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Avatar */}
           <View style={styles.avatarSection}>
             <TouchableOpacity onPress={pickImage} style={styles.avatarWrap} activeOpacity={0.8} disabled={uploadingAvatar}>
-              {avatarUri ? (
+              {avatarUri ?
                 <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="contain" />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarInitials}>
-                    {getInitials(watch("displayName") || "")}
-                  </Text>
+              : <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarInitials}>{getInitials(watch("displayName") || "")}</Text>
                 </View>
-              )}
-              {uploadingAvatar ? (
+              }
+              {uploadingAvatar ?
                 <View style={styles.cameraOverlay}>
                   <ActivityIndicator size="small" color="#fff" />
                 </View>
-              ) : (
-                <View style={styles.cameraOverlay}>
+              : <View style={styles.cameraOverlay}>
                   <Text style={styles.cameraEmoji}>📷</Text>
                 </View>
-              )}
+              }
             </TouchableOpacity>
           </View>
 
@@ -395,22 +328,8 @@ export default function ProviderEditProfileScreen() {
           <View style={styles.form}>
             <View style={styles.field}>
               <Text style={styles.label}>{t("providerDashboard.providerEditProfile.displayName")}</Text>
-              <Controller
-                control={control}
-                name="displayName"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[styles.input, errors.displayName && styles.inputError]}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                  />
-                )}
-              />
-              {errors.displayName && (
-                <Text style={styles.errorText}>{errors.displayName.message}</Text>
-              )}
+              <Controller control={control} name="displayName" render={({ field: { onChange, onBlur, value } }) => <TextInput style={[styles.input, errors.displayName && styles.inputError]} onBlur={onBlur} onChangeText={onChange} value={value} placeholderTextColor="rgba(255,255,255,0.3)" />} />
+              {errors.displayName && <Text style={styles.errorText}>{errors.displayName.message}</Text>}
             </View>
 
             <View style={styles.field}>
@@ -420,26 +339,12 @@ export default function ProviderEditProfileScreen() {
                 name="categoryId"
                 render={({ field: { onChange } }) => (
                   <>
-                    <TouchableOpacity
-                      style={styles.input}
-                      onPress={() => setCategoryModalVisible(true)}
-                    >
-                      <Text style={selectedParentLabel ? styles.inputText : styles.inputPlaceholder}>
-                        {selectedParentLabel || t("providerDashboard.providerEditProfile.selectCategory")}
-                      </Text>
+                    <TouchableOpacity style={styles.input} onPress={() => setCategoryModalVisible(true)}>
+                      <Text style={selectedParentLabel ? styles.inputText : styles.inputPlaceholder}>{selectedParentLabel || t("providerDashboard.providerEditProfile.selectCategory")}</Text>
                       <Ionicons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
                     </TouchableOpacity>
-                    <Modal
-                      visible={categoryModalVisible}
-                      transparent
-                      animationType="slide"
-                      onRequestClose={() => setCategoryModalVisible(false)}
-                    >
-                      <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setCategoryModalVisible(false)}
-                      >
+                    <Modal visible={categoryModalVisible} transparent animationType="slide" onRequestClose={() => setCategoryModalVisible(false)}>
+                      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setCategoryModalVisible(false)}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + 24 }]} onStartShouldSetResponder={() => true}>
                           <ScrollView>
                             {parentCategoryOptions.map((opt) => (
@@ -470,27 +375,12 @@ export default function ProviderEditProfileScreen() {
                 name="categoryId"
                 render={({ field: { onChange } }) => (
                   <>
-                    <TouchableOpacity
-                      style={[styles.input, !selectedParentId && styles.inputDisabled]}
-                      onPress={() => selectedParentId && setSubcategoryModalVisible(true)}
-                      disabled={!selectedParentId}
-                    >
-                      <Text style={selectedSubcategoryLabel ? styles.inputText : styles.inputPlaceholder}>
-                        {selectedSubcategoryLabel || t("providerDashboard.providerEditProfile.selectSubcategory")}
-                      </Text>
+                    <TouchableOpacity style={[styles.input, !selectedParentId && styles.inputDisabled]} onPress={() => selectedParentId && setSubcategoryModalVisible(true)} disabled={!selectedParentId}>
+                      <Text style={selectedSubcategoryLabel ? styles.inputText : styles.inputPlaceholder}>{selectedSubcategoryLabel || t("providerDashboard.providerEditProfile.selectSubcategory")}</Text>
                       <Ionicons name="chevron-down" size={18} color="rgba(255,255,255,0.5)" />
                     </TouchableOpacity>
-                    <Modal
-                      visible={subcategoryModalVisible}
-                      transparent
-                      animationType="slide"
-                      onRequestClose={() => setSubcategoryModalVisible(false)}
-                    >
-                      <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => setSubcategoryModalVisible(false)}
-                      >
+                    <Modal visible={subcategoryModalVisible} transparent animationType="slide" onRequestClose={() => setSubcategoryModalVisible(false)}>
+                      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSubcategoryModalVisible(false)}>
                         <View style={[styles.modalContent, { paddingBottom: insets.bottom + 24 }]} onStartShouldSetResponder={() => true}>
                           <ScrollView>
                             {subcategoryOptions.map((opt) => (
@@ -521,22 +411,13 @@ export default function ProviderEditProfileScreen() {
                 {specialtyFields.map((field, index) => (
                   <View key={field.id} style={styles.specialtyPill}>
                     <Text style={styles.specialtyPillText}>{watch(`specialties.${index}`)}</Text>
-                    <TouchableOpacity
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      onPress={() => removeSpecialty(index)}
-                      style={styles.specialtyPillRemove}
-                    >
+                    <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => removeSpecialty(index)} style={styles.specialtyPillRemove}>
                       <Text style={styles.specialtyPillRemoveText}>×</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity
-                  style={styles.specialtyAddButton}
-                  onPress={() => setSpecialtyModalVisible(true)}
-                >
-                  <Text style={styles.specialtyAddButtonText}>
-                    + {t("providerDashboard.providerEditProfile.addSpecialty")}
-                  </Text>
+                <TouchableOpacity style={styles.specialtyAddButton} onPress={() => setSpecialtyModalVisible(true)}>
+                  <Text style={styles.specialtyAddButtonText}>+ {t("providerDashboard.providerEditProfile.addSpecialty")}</Text>
                 </TouchableOpacity>
               </View>
               <Modal
@@ -556,22 +437,9 @@ export default function ProviderEditProfileScreen() {
                     setNewSpecialtyText("");
                   }}
                 >
-                  <TouchableOpacity
-                    style={styles.specialtyModalContent}
-                    activeOpacity={1}
-                    onPress={() => {}}
-                  >
-                    <Text style={styles.specialtyModalTitle}>
-                      {t("providerDashboard.providerEditProfile.addSpecialtyModalTitle")}
-                    </Text>
-                    <TextInput
-                      style={styles.specialtyModalInput}
-                      value={newSpecialtyText}
-                      onChangeText={setNewSpecialtyText}
-                      placeholder="ej. Emergencias"
-                      placeholderTextColor="rgba(255,255,255,0.3)"
-                      autoFocus
-                    />
+                  <TouchableOpacity style={styles.specialtyModalContent} activeOpacity={1} onPress={() => {}}>
+                    <Text style={styles.specialtyModalTitle}>{t("providerDashboard.providerEditProfile.addSpecialtyModalTitle")}</Text>
+                    <TextInput style={styles.specialtyModalInput} value={newSpecialtyText} onChangeText={setNewSpecialtyText} placeholder="ej. Emergencias" placeholderTextColor="rgba(255,255,255,0.3)" autoFocus />
                     <View style={styles.specialtyModalActions}>
                       <TouchableOpacity
                         style={styles.specialtyModalButton}
@@ -580,17 +448,10 @@ export default function ProviderEditProfileScreen() {
                           setNewSpecialtyText("");
                         }}
                       >
-                        <Text style={styles.specialtyModalButtonText}>
-                          {t("common.cancel")}
-                        </Text>
+                        <Text style={styles.specialtyModalButtonText}>{t("common.cancel")}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.specialtyModalButton, styles.specialtyModalButtonPrimary]}
-                        onPress={handleAddSpecialty}
-                      >
-                        <Text style={[styles.specialtyModalButtonText, styles.specialtyModalButtonTextPrimary]}>
-                          {t("common.save")}
-                        </Text>
+                      <TouchableOpacity style={[styles.specialtyModalButton, styles.specialtyModalButtonPrimary]} onPress={handleAddSpecialty}>
+                        <Text style={[styles.specialtyModalButtonText, styles.specialtyModalButtonTextPrimary]}>{t("common.save")}</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -600,22 +461,7 @@ export default function ProviderEditProfileScreen() {
 
             <View style={styles.field}>
               <Text style={styles.label}>{t("providerDashboard.providerEditProfile.bio")}</Text>
-              <Controller
-                control={control}
-                name="bio"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[styles.input, styles.textArea, errors.bio && styles.inputError]}
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    multiline
-                    numberOfLines={4}
-                    maxLength={BIO_MAX_LENGTH}
-                  />
-                )}
-              />
+              <Controller control={control} name="bio" render={({ field: { onChange, onBlur, value } }) => <TextInput style={[styles.input, styles.textArea, errors.bio && styles.inputError]} onBlur={onBlur} onChangeText={onChange} value={value} placeholderTextColor="rgba(255,255,255,0.3)" multiline numberOfLines={4} maxLength={BIO_MAX_LENGTH} />} />
               <Text style={styles.charCount}>
                 {t("providerDashboard.providerEditProfile.bioCharCount", {
                   current: bioLength,
@@ -631,22 +477,10 @@ export default function ProviderEditProfileScreen() {
                 control={control}
                 name="phoneNumber"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[styles.input, errors.phoneNumber && styles.inputError]}
-                    onBlur={onBlur}
-                    onFocus={() => scrollToFocusedField(contactPhoneFieldRef)}
-                    onChangeText={(text) => onChange(normalizePhoneInput(text))}
-                    value={value}
-                    placeholder="+52 55 1234 5678"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    keyboardType="phone-pad"
-                    maxLength={15}
-                  />
+                  <TextInput style={[styles.input, errors.phoneNumber && styles.inputError]} onBlur={onBlur} onFocus={() => scrollToFocusedField(contactPhoneFieldRef)} onChangeText={(text) => onChange(normalizePhoneInput(text))} value={value} placeholder="+52 55 1234 5678" placeholderTextColor="rgba(255,255,255,0.3)" keyboardType="phone-pad" maxLength={15} />
                 )}
               />
-              {errors.phoneNumber && (
-                <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>
-              )}
+              {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>}
             </View>
 
             <View ref={yearsExperienceFieldRef} style={styles.field}>
@@ -654,22 +488,27 @@ export default function ProviderEditProfileScreen() {
               <Controller
                 control={control}
                 name="yearsExperience"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    style={[styles.input, errors.yearsExperience && styles.inputError]}
-                    onBlur={onBlur}
-                    onFocus={() => scrollToFocusedField(yearsExperienceFieldRef)}
-                    onChangeText={(v) => onChange(v === "" ? null : v)}
-                    value={value == null ? "" : String(value)}
-                    placeholder="10"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    keyboardType="number-pad"
-                  />
-                )}
+                render={({ field: { onChange, onBlur, value } }) => {
+                  const onlyDigits = (v: string) => v.replace(/\D/g, "");
+                  return (
+                    <TextInput
+                      style={[styles.input, errors.yearsExperience && styles.inputError]}
+                      onBlur={onBlur}
+                      onFocus={() => scrollToFocusedField(yearsExperienceFieldRef)}
+                      onChangeText={(v) => {
+                        const digits = onlyDigits(v);
+                        onChange(digits === "" ? null : digits);
+                      }}
+                      value={value == null ? "" : String(value)}
+                      placeholder="10"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      keyboardType="number-pad"
+                      maxLength={3}
+                    />
+                  );
+                }}
               />
-              {errors.yearsExperience && (
-                <Text style={styles.errorText}>{errors.yearsExperience.message}</Text>
-              )}
+              {errors.yearsExperience && <Text style={styles.errorText}>{errors.yearsExperience.message}</Text>}
             </View>
           </View>
         </ScrollView>

@@ -1,17 +1,18 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
+import { ProfileFooter } from "@/components/profile/ProfileFooter";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
-import { getProviderProfile } from "@/services/providers";
 import { getDashboardStats } from "@/services/providerDashboard";
-import { getProfileImageUrl } from "@/utils/profileImage";
+import { getProviderProfile } from "@/services/providers";
 import { getProviderServices } from "@/services/providerServices";
+import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -41,6 +42,7 @@ export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { mode } = useMode();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const {
     data: stats,
@@ -83,7 +85,9 @@ export default function ProviderProfileScreen() {
     useCallback(() => {
       setAvatarError(false);
       refetchProviderProfile();
-    }, [refetchProviderProfile])
+      // Scroll to top when Profile tab is pressed (e.g. from nested route or another tab)
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }, [refetchProviderProfile]),
   );
 
   const onRefresh = useCallback(() => {
@@ -175,7 +179,7 @@ export default function ProviderProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
+      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
         {/* Header with gradient and avatar */}
         <View style={styles.headerWrapper}>
           <LinearGradient colors={[...GRADIENT_COLORS]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader} />
@@ -189,19 +193,12 @@ export default function ProviderProfileScreen() {
           </View>
           <View style={styles.avatarRow}>
             <View style={styles.avatarWrapper}>
-              {providerAvatarUrl && !avatarError ? (
-                <Image
-                  source={{ uri: providerAvatarUrl }}
-                  style={styles.avatar}
-                  contentFit="cover"
-                  cachePolicy="disk"
-                  onError={() => setAvatarError(true)}
-                />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
+              {providerAvatarUrl && !avatarError ?
+                <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="disk" onError={() => setAvatarError(true)} />
+              : <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
                 </View>
-              )}
+              }
               {isVerified && (
                 <View style={styles.verifiedBadge}>
                   <Ionicons name="checkmark" size={14} color="#fff" />
@@ -235,9 +232,7 @@ export default function ProviderProfileScreen() {
                 </View>
               )}
             </View>
-            <Text style={styles.category}>
-              {categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}
-            </Text>
+            <Text style={styles.category}>{categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}</Text>
           </View>
 
           {/* Stats */}
@@ -261,9 +256,7 @@ export default function ProviderProfileScreen() {
           {/* Bio */}
           <View style={styles.bioCard}>
             <Text style={styles.bioLabel}>{t("providerDashboard.providerProfile.aboutMe")}</Text>
-            <Text style={styles.bioText}>
-              {bio || t("providerDashboard.providerProfile.bioPlaceholder")}
-            </Text>
+            <Text style={styles.bioText}>{bio || t("providerDashboard.providerProfile.bioPlaceholder")}</Text>
           </View>
 
           {/* Menu options */}
@@ -282,6 +275,9 @@ export default function ProviderProfileScreen() {
             ))}
           </View>
         </View>
+
+        {/* App version label and logout button — same layout/behavior as Client profile */}
+        <ProfileFooter />
       </ScrollView>
     </View>
   );
@@ -296,7 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingBottom: 100,
   },
   headerWrapper: {
     position: "relative",

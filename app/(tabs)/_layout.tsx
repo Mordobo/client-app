@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { AppState, AppStateStatus, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { fetchUnreadCount } from '@/services/conversations';
 import { fetchUnreadNotificationCount } from '@/services/notifications';
+
+const CHAT_UNREAD_POLL_MS = 5000; // Check every 5s so new messages show quickly
 
 function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
   const [unreadCount, setUnreadCount] = useState(0);
@@ -24,7 +26,7 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
 
   useEffect(() => {
     loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000); // Check every 30s
+    const interval = setInterval(loadUnreadCount, CHAT_UNREAD_POLL_MS);
     return () => clearInterval(interval);
   }, [loadUnreadCount]);
 
@@ -33,13 +35,19 @@ function ChatTabIcon({ color, focused }: { color: string; focused: boolean }) {
     if (focused) loadUnreadCount();
   }, [focused, loadUnreadCount]);
 
+  // Refresh badge when app comes to foreground so new message indicator appears right away
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') loadUnreadCount();
+    });
+    return () => sub.remove();
+  }, [loadUnreadCount]);
+
   return (
     <View>
       <Ionicons name={focused ? 'chatbubbles' : 'chatbubbles-outline'} size={20} color={color} />
       {unreadCount > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-        </View>
+        <View style={styles.badgeDot} />
       )}
     </View>
   );
@@ -195,18 +203,6 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-  },
   badgeDot: {
     width: 8,
     height: 8,

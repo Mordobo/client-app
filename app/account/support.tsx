@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface FAQItem {
   icon: string;
@@ -117,8 +117,8 @@ export default function HelpCenterScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header - Exact match to JSX: padding: '50px 20px 20px', display: 'flex', alignItems: 'center', gap: '16px' */}
+    <SafeAreaView style={styles.container} edges={['bottom']}>
+      {/* Header */}
       <View
         style={[
           styles.header,
@@ -150,7 +150,7 @@ export default function HelpCenterScreen() {
         style={[styles.scrollView, { backgroundColor: '#1a1a2e' }]}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + 20, backgroundColor: '#1a1a2e' },
+          { paddingBottom: 20, backgroundColor: '#1a1a2e' },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -292,7 +292,7 @@ export default function HelpCenterScreen() {
           />
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 

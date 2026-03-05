@@ -43,7 +43,7 @@ export interface ProviderDashboardScheduleItem {
   status: string;
 }
 
-export type ProviderActiveJobStatus = "pending" | "in_progress" | "on_way" | "scheduled";
+export type ProviderActiveJobStatus = "pending" | "in_progress" | "on_way" | "scheduled" | "pending_review";
 
 export interface ProviderActiveJob {
   id: string;
@@ -221,6 +221,242 @@ export const cancelOrderByProvider = async (
       headers: { "Content-Type": "application/json" },
     },
     t("providerDashboard.errors.cancelFailed"),
+  );
+};
+
+// ========== COMPLETE JOB ==========
+
+export interface JobCompletionLineItem {
+  description: string;
+  amount: number;
+  isExtra?: boolean;
+}
+
+export interface JobCompletionData {
+  order: {
+    id: string;
+    status: string;
+    startedAt: string | null;
+    serviceName: string;
+    serviceDescription: string;
+    address: string;
+    workSummary: string;
+    workPhotos: string[];
+  };
+  client: {
+    id: string;
+    fullName: string;
+  };
+  lineItems: JobCompletionLineItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  commissionRate: number;
+  durationMinutes: number;
+}
+
+export interface CompleteJobPayload {
+  work_summary: string;
+  work_photos: string[];
+}
+
+export interface CompleteJobResponse {
+  order: {
+    id: string;
+    status: string;
+    completedAt: string;
+    workSummary: string;
+    workPhotos: string[];
+  };
+  lineItems: JobCompletionLineItem[];
+  subtotal: number;
+  total: number;
+}
+
+export const getJobCompletionData = async (orderId: string): Promise<JobCompletionData> => {
+  return request<JobCompletionData>(
+    `/api/providers/orders/${orderId}/completion-data`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.completeJob.errors.loadFailed"),
+  );
+};
+
+export const completeJob = async (orderId: string, data: CompleteJobPayload): Promise<CompleteJobResponse> => {
+  return request<CompleteJobResponse>(
+    `/api/providers/orders/${orderId}/complete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    },
+    t("providerDashboard.completeJob.errors.completeFailed"),
+  );
+};
+
+// ========== JOB IN-PROGRESS ==========
+
+export type JobTaskStatus = "completed" | "in_progress" | "pending";
+
+export interface JobTask {
+  id: string;
+  description: string;
+  status: JobTaskStatus;
+  sortOrder: number;
+}
+
+export interface JobInProgressData {
+  order: {
+    id: string;
+    status: string;
+    startedAt: string | null;
+    serviceName: string;
+    serviceDescription: string;
+    address: string;
+    estimatedDurationMinutes: number;
+  };
+  client: {
+    id: string;
+    fullName: string;
+    phone: string | null;
+  };
+  tasks: JobTask[];
+  agreedPrice: number;
+  conversationId: string | null;
+}
+
+export const getJobInProgressData = async (orderId: string): Promise<JobInProgressData> => {
+  return request<JobInProgressData>(
+    `/api/providers/orders/${orderId}/in-progress`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.inProgress.errors.loadFailed"),
+  );
+};
+
+export const updateJobTask = async (
+  orderId: string,
+  taskId: string,
+  status: JobTaskStatus,
+): Promise<{ task: JobTask }> => {
+  return request<{ task: JobTask }>(
+    `/api/providers/orders/${orderId}/tasks/${taskId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    },
+    t("providerDashboard.inProgress.errors.updateTaskFailed"),
+  );
+};
+
+export const startJob = async (orderId: string): Promise<{ order: { id: string; status: string; startedAt: string } }> => {
+  return request<{ order: { id: string; status: string; startedAt: string } }>(
+    `/api/providers/orders/${orderId}/start`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.inProgress.errors.startJobFailed"),
+  );
+};
+
+// ========== INVOICE ==========
+
+export interface InvoiceLineItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface InvoiceServiceDetails {
+  serviceName: string;
+  serviceDescription: string;
+  address: string;
+  scheduledAt: string | null;
+  completedAt: string | null;
+  workSummary: string;
+  orderNotes: string;
+}
+
+export interface InvoiceData {
+  invoiceNumber: string;
+  createdAt: string;
+  provider: {
+    name: string;
+    taxId: string | null;
+  };
+  client: {
+    name: string;
+    email: string | null;
+  };
+  /** Service and order details (address, dates, work summary, notes). Optional for backward compatibility. */
+  service?: InvoiceServiceDetails;
+  lineItems: InvoiceLineItem[];
+  subtotal: number;
+  discountPercent: number;
+  discountAmount: number;
+  total: number;
+  payment: {
+    status: "paid" | "pending" | "unpaid";
+    method: string | null;
+    cardLast4: string | null;
+    paidAt: string | null;
+  };
+  orderId: string;
+}
+
+export const getJobInvoice = async (orderId: string): Promise<InvoiceData> => {
+  return request<InvoiceData>(
+    `/api/providers/orders/${orderId}/invoice`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.invoice.errors.loadFailed"),
+  );
+};
+
+export const sendInvoiceEmail = async (orderId: string): Promise<{ sent: boolean }> => {
+  return request<{ sent: boolean }>(
+    `/api/providers/orders/${orderId}/invoice/email`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.invoice.errors.emailFailed"),
+  );
+};
+
+// ========== RATE CLIENT ==========
+
+export interface RateClientPayload {
+  rating: number;
+  tags: string[];
+  comment: string;
+  privateNote: string;
+}
+
+export interface RateClientResponse {
+  id: string;
+  rating: number;
+  tags: string[];
+  comment: string;
+}
+
+export const rateClient = async (orderId: string, payload: RateClientPayload): Promise<RateClientResponse> => {
+  return request<RateClientResponse>(
+    `/api/providers/orders/${orderId}/rate-client`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+    t("providerDashboard.rateClient.errors.sendFailed"),
   );
 };
 

@@ -113,6 +113,7 @@ export default function ChatScreen() {
     try {
       const { quote } = await fetchConversationActiveQuote(conversationId);
       setActiveQuote(quote);
+      if (!quote) setActiveOrder(null);
     } catch {
       setActiveQuote(null);
     }
@@ -199,7 +200,10 @@ export default function ChatScreen() {
 
     const startPolling = () => {
       if (pollingRef.current) return;
-      pollingRef.current = setInterval(() => loadMessages(false), POLLING_INTERVAL_MS);
+      pollingRef.current = setInterval(() => {
+        loadMessages(false);
+        refreshActiveQuote();
+      }, POLLING_INTERVAL_MS);
     };
     const stopPolling = () => {
       if (pollingRef.current) {
@@ -218,7 +222,7 @@ export default function ChatScreen() {
       sub.remove();
       stopPolling();
     };
-  }, [conversationId, loadConversation, loadMessages, router]);
+  }, [conversationId, loadConversation, loadMessages, refreshActiveQuote, router]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => {
@@ -278,9 +282,9 @@ export default function ChatScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadMessages(false);
+    await Promise.all([loadMessages(false), refreshActiveQuote()]);
     setRefreshing(false);
-  }, [loadMessages]);
+  }, [loadMessages, refreshActiveQuote]);
 
   const handleCall = () => {
     const phone = conversation?.supplier_phone_number;

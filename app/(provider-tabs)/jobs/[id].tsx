@@ -1,9 +1,10 @@
 import { t } from "@/i18n";
+import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, type ProviderActiveJobDetail } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,8 +24,6 @@ export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
-
   const {
     data: jobs = [],
     isLoading,
@@ -40,12 +39,27 @@ export default function ProviderJobDetailScreen() {
     return (jobs.find((j) => j.id === id) as ProviderActiveJobDetail | undefined) ?? null;
   }, [id, jobs]);
 
+  const [openingChat, setOpeningChat] = useState(false);
+
   const goBack = useCallback(() => router.back(), [router]);
 
-  const handleChat = useCallback(() => {
-    if (!job) return;
-    router.push(`/booking/chat/${job.orderId}`);
-  }, [job, router]);
+  const handleChat = useCallback(async () => {
+    if (!job || openingChat) return;
+    setOpeningChat(true);
+    try {
+      const detail = await fetchOrderDetail(job.orderId);
+      if (detail.conversation_id) {
+        router.push(`/chat/${detail.conversation_id}`);
+      } else {
+        Alert.alert(t("common.error"), t("chat.conversationNotFound"));
+      }
+    } catch (err) {
+      console.error("[ProviderJobDetail] Failed to open chat:", err);
+      Alert.alert(t("common.error"), t("errors.requestFailed"));
+    } finally {
+      setOpeningChat(false);
+    }
+  }, [job, openingChat, router]);
 
   const handleCall = useCallback(() => {
     if (!job?.clientPhone) return;
@@ -53,18 +67,15 @@ export default function ProviderJobDetailScreen() {
     Linking.openURL(url);
   }, [job]);
 
+  const handleStartJob = useCallback(() => {
+    if (!job) return;
+    router.push({ pathname: "/(provider-tabs)/jobs/in-progress", params: { id: job.orderId } });
+  }, [job, router]);
+
   const handleMarkAsCompleted = useCallback(() => {
-    Alert.alert(t("providerDashboard.confirmCompleteTitle"), t("providerDashboard.confirmCompleteMessage"), [
-      { text: t("providerDashboard.cancel"), style: "cancel" },
-      {
-        text: t("providerDashboard.confirm"),
-        onPress: () => {
-          queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
-          goBack();
-        },
-      },
-    ]);
-  }, [goBack, queryClient]);
+    if (!job) return;
+    router.push({ pathname: "/(provider-tabs)/jobs/complete", params: { id: job.orderId } });
+  }, [job, router]);
 
   if (isLoading && jobs.length === 0) {
     return (
@@ -119,8 +130,12 @@ export default function ProviderJobDetailScreen() {
               : <Text style={styles.clientMeta}>—</Text>}
             </View>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.iconBtn} onPress={handleChat} activeOpacity={0.7}>
-                <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
+              <TouchableOpacity style={styles.iconBtn} onPress={handleChat} activeOpacity={0.7} disabled={openingChat}>
+                {openingChat ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="chatbubble-outline" size={22} color="#FFFFFF" />
+                )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconBtn} onPress={handleCall} activeOpacity={0.7}>
                 <Ionicons name="call-outline" size={22} color="#FFFFFF" />
@@ -170,7 +185,11 @@ export default function ProviderJobDetailScreen() {
           : null}
         </View>
 
-        {/* Mark as completed */}
+        {/* Action buttons: show "Work in progress" for all active jobs so provider can open timer/tasks */}
+        <TouchableOpacity style={styles.inProgressBtn} onPress={handleStartJob} activeOpacity={0.8}>
+          <Ionicons name="play-circle" size={20} color="#FFFFFF" />
+          <Text style={styles.completeBtnText}>{t("providerDashboard.inProgress.title")}</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.completeBtn} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
           <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
           <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
@@ -336,6 +355,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255,255,255,0.85)",
     lineHeight: 20,
+  },
+  inProgressBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#6366F1",
+    paddingVertical: 16,
+    borderRadius: 12,
   },
   completeBtn: {
     flexDirection: "row",
