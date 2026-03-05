@@ -200,6 +200,15 @@ export default function VerifyScreen() {
         code: verificationCode,
       });
 
+      // If 2FA is enabled, redirect to 2FA code screen
+      if (apiResponse.requires_2fa && apiResponse.twoFaToken) {
+        await AsyncStorage.setItem('pending_2fa_token', apiResponse.twoFaToken);
+        router.replace({
+          pathname: '/(auth)/verify-2fa',
+          params: { email: apiResponse.email ?? email },
+        });
+        return;
+      }
 
       // Map API response to user data using helper function
       const userData = mapApiUserToUser(
@@ -214,7 +223,7 @@ export default function VerifyScreen() {
 
       // Clear temporary verification data
       await AsyncStorage.multiRemove([
-        'pending_verification_email', 
+        'pending_verification_email',
         'pending_verification_password',
       ]);
 

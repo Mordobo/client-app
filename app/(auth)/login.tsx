@@ -80,48 +80,33 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // Determine if identifier is email or phone
       const isEmail = currentIdentifier.includes('@');
-      
-      if (isEmail) {
-        // ALWAYS go through verification flow (regardless of user status)
-        // Call validateEmail to generate verification code
-        await validateEmail({
-          email: currentIdentifier,
-          password,
-        });
-        
-        // Store credentials for verification
-        const emailToStore = currentIdentifier.toLowerCase();
-        await AsyncStorage.setItem('pending_verification_email', emailToStore);
-        await AsyncStorage.setItem('pending_verification_password', password);
-        
-        // Navigate to verification screen
+      const loginPayload = isEmail
+        ? { email: currentIdentifier.trim().toLowerCase(), password }
+        : { phoneNumber: currentIdentifier, password };
+
+      const loginResponse = await loginWithCredentials(loginPayload);
+
+      // If 2FA is enabled, go directly to 2FA code screen (no email verification step)
+      if (loginResponse.requires_2fa && loginResponse.twoFaToken) {
+        await AsyncStorage.setItem('pending_2fa_token', loginResponse.twoFaToken);
         router.push({
-          pathname: '/verify',
-          params: { email: emailToStore }
+          pathname: '/(auth)/verify-2fa',
+          params: { email: loginResponse.email ?? (isEmail ? currentIdentifier : '') },
         });
         setErrorMessage(null);
         return;
-      } else {
-        // Phone login - use phone_number field
-        const loginResponse = await loginWithCredentials({
-          phoneNumber: currentIdentifier,
-          password,
-        });
-
-        // Map API response to user data using helper function
-        const userData = mapApiUserToUser(
-          loginResponse.user,
-          'email',
-          loginResponse.accessToken || loginResponse.token,
-          loginResponse.refreshToken
-        );
-
-        // Login with the user data
-        await login(userData);
-        setErrorMessage(null);
       }
+
+      // Success: login with tokens
+      const userData = mapApiUserToUser(
+        loginResponse.user,
+        'email',
+        loginResponse.accessToken || loginResponse.token,
+        loginResponse.refreshToken
+      );
+      await login(userData);
+      setErrorMessage(null);
     } catch (error) {
       console.error('Login error:', error);
       
@@ -155,7 +140,28 @@ export default function LoginScreen() {
           return;
         }
         
-        // Handle API errors
+        // Email not verified: go to email verification flow (send code, then verify screen)
+        if (errorCode === 'email_not_verified') {
+          try {
+            await validateEmail({
+              email: identifier.trim().toLowerCase(),
+              password,
+            });
+            const emailToStore = identifier.trim().toLowerCase();
+            await AsyncStorage.setItem('pending_verification_email', emailToStore);
+            await AsyncStorage.setItem('pending_verification_password', password);
+            router.push({
+              pathname: '/verify',
+              params: { email: emailToStore },
+            });
+            setErrorMessage(null);
+          } catch (validateErr) {
+            setErrorMessage(t('errors.loginFailed'));
+          }
+          return;
+        }
+
+        // Handle other API errors
         if (error.status === 401 || error.status === 404) {
           setErrorMessage(t('errors.loginFailed'));
         } else {
