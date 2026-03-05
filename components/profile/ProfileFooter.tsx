@@ -1,9 +1,11 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
-import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+/** Version label shown in profile footer for both Client and Provider. */
+const PROFILE_VERSION_LABEL = "3.0.0";
 
 /**
  * Shared footer for Client and Provider profile screens: app version label and logout button.
@@ -12,8 +14,6 @@ import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from "react
 export function ProfileFooter() {
   const router = useRouter();
   const { logout } = useAuth();
-
-  const appVersion = Constants.expoConfig?.version ?? "0.0.0";
 
   const handleLogout = () => {
     const performLogout = async () => {
@@ -57,7 +57,7 @@ export function ProfileFooter() {
         </TouchableOpacity>
       </View>
       <View style={styles.versionContainer}>
-        <Text style={styles.versionText}>{t("profile.version")} {appVersion}</Text>
+        <Text style={styles.versionText}>{t("profile.version")} {PROFILE_VERSION_LABEL}</Text>
       </View>
     </View>
   );

@@ -16,6 +16,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     Modal,
     ScrollView,
     StyleSheet,
@@ -310,7 +311,7 @@ export default function ProviderPortfolioScreen() {
         </View>
       </ScrollView>
 
-      {/* Detail modal */}
+      {/* Detail modal — fixed height so ScrollView can scroll and show all photos */}
       <Modal
         visible={!!detailProjectId}
         animationType="slide"
@@ -318,7 +319,15 @@ export default function ProviderPortfolioScreen() {
         onRequestClose={handleCloseDetail}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { paddingTop: insets.top + 8 }]}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                paddingTop: insets.top + 8,
+                height: Dimensions.get("window").height * 0.9,
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseDetail} style={styles.modalCloseBtn}>
                 <Ionicons name="close" size={24} color="#fff" />
@@ -641,7 +650,6 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: "90%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -674,6 +682,7 @@ const styles = StyleSheet.create({
   modalScrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 32,
+    flexGrow: 1,
   },
   detailGallery: {
     marginBottom: 16,
