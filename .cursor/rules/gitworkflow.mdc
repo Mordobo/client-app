@@ -33,5 +33,6 @@ Default assumption: DO NOT run git commands.
 ## Commit and PR message content
 
 When suggesting or writing commit messages or PR descriptions:
-- **Do not mention Cursor** (or any editor/tool) — e.g. do not add "via Cursor", "using Cursor", "submitted with Cursor", or similar.
-- Describe only what was changed and why; no attribution to the tool used.
+- **Never add any Cursor (or editor) attribution.** Forbidden examples: "Made with Cursor", "Made-with: Cursor", "via Cursor", "using Cursor", "submitted with Cursor", or any similar line.
+- PR descriptions and commit messages must contain only what was changed and why — no tool/editor mention.
+- If the UI pre-fills "Made with Cursor" (or similar) in the PR description, remove it before submitting.
