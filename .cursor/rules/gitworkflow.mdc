@@ -29,3 +29,9 @@ Execute git commands ONLY if user EXPLICITLY requests:
 - Or any other clear, direct request to run a specific git command
 
 Default assumption: DO NOT run git commands.
+
+## Commit and PR message content
+
+When suggesting or writing commit messages or PR descriptions:
+- **Do not mention Cursor** (or any editor/tool) — e.g. do not add "via Cursor", "using Cursor", "submitted with Cursor", or similar.
+- Describe only what was changed and why; no attribution to the tool used.
