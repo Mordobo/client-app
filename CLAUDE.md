@@ -719,7 +719,7 @@ style(theme): update color palette
   - **Why** it was changed when not obvious (bug fixed, UX improvement, requirement).
   - **How** it was addressed briefly when useful (e.g. "filter non-numeric input in onChangeText", "reduced keyboardVerticalOffset to fix gap").
 - **PR description**: Use the PR description to summarize the change, link the ticket (e.g. MDB-195), and list main changes or testing notes. Avoid one-line or Spanish-only descriptions.
-- **No tool/editor attribution**: Never add to commit or PR text: "Made with Cursor", "Made-with: Cursor", "via Cursor", or any editor attribution. If the PR form is pre-filled with that line, remove it before submitting. Describe only what was changed and why.
+- **No tool/editor attribution**: Never add text to commit messages or PR descriptions stating that changes were made, uploaded, or committed using Cursor (or any other editor/tool). Describe only what was changed and why.
 
 **Example – good commit body (English, detailed):**
 ```
