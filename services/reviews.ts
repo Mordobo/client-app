@@ -67,7 +67,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public statusCode: number = 0,
-    public originalError?: unknown
+    public originalError?: unknown,
+    public data?: { code?: string }
   ) {
     super(message);
     this.name = 'ApiError';
@@ -84,10 +85,11 @@ interface CreateReviewData {
 
 // POST /reviews - Create review
 export const createReview = async (data: CreateReviewData): Promise<Review> => {
+  const url = `${API_BASE}/reviews`;
   try {
     const token = await getToken();
-    
-    const response = await fetch(`${API_BASE}/reviews`, {
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,10 +100,9 @@ export const createReview = async (data: CreateReviewData): Promise<Review> => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to create review',
-        response.status
-      );
+      const message = errorData.message || 'Failed to create review';
+      console.warn('[Reviews] POST /reviews failed:', response.status, errorData.code ?? '', message);
+      throw new ApiError(message, response.status, undefined, { code: errorData.code });
     }
 
     const result: ReviewResponse = await response.json();

@@ -100,6 +100,8 @@ export interface OrderDetailResponse {
   clientAddress?: ClientAddress;
   /** Conversation id for this order (to open chat with client after withdraw/cancel) */
   conversation_id?: string | null;
+  /** When true, client already submitted a review for this order (rate screen shows "already reviewed" state) */
+  client_has_reviewed?: boolean;
 }
 
 // Re-export ApiError from auth service for backward compatibility

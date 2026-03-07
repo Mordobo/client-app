@@ -1,6 +1,7 @@
 export default {
   common: {
     ok: "OK",
+    goToHome: "Go to Home",
     cancel: "Cancel",
     confirm: "Confirm",
     error: "Error",
@@ -136,6 +137,7 @@ export default {
     loginGeneric: "Error while signing in",
     registerGeneric: "Error while creating the account",
     logoutGeneric: "Error while signing out",
+    requestFailed: "Request failed. Please try again.",
     requestFailedStatus: "Request failed with status {{status}}",
     unexpectedResponse: "Unexpected response from server.",
     googleLoginGeneric: "Unable to continue with Google. Please try again.",
@@ -727,13 +729,15 @@ export default {
   },
   rating: {
     title: "Rate Your Experience",
-    howWasService: "How was your service with {{name}}",
+    howWasService: "How was the service you received?",
     tapToRate: "Tap to rate",
     shareExperience: "Share more about your experience...",
     placeholder: "Tell us about your experience",
     uploadPhotos: "Upload Photos (optional)",
     submitReview: "Submit Review",
     skip: "Skip",
+    reviewSubmitted: "Thank you! Your review was sent.",
+    alreadyReviewed: "You already reviewed this service. Thank you!",
   },
   profile: {
     title: "Profile",
