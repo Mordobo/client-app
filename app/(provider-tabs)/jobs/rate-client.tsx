@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -55,6 +56,7 @@ export default function RateClientScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const bottomInset = insets.bottom || (Platform.OS === "android" ? 40 : 0);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -148,7 +150,7 @@ export default function RateClientScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
@@ -245,7 +247,7 @@ export default function RateClientScreen() {
       </ScrollView>
 
       {/* Actions */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(bottomInset, 16) }]}>
         <TouchableOpacity
           style={[styles.submitBtn, (submitting || !canRate) && styles.submitBtnDisabled]}
           onPress={handleSubmit}

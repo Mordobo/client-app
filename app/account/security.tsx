@@ -145,22 +145,20 @@ export default function ClientSecurityScreen() {
     }
   }, [passwordModal, passwordInput, showToast, logout]);
 
+  const openDisable2FAPasswordModal = useCallback(() => {
+    setTwoFAPasswordInput('');
+    setTwoFAPasswordModal({ action: 'disable' });
+  }, []);
+
   const handleToggle2FA = useCallback(() => {
     const action = settings?.two_factor_enabled ? 'disable' : 'enable';
     if (action === 'disable') {
-      Alert.alert(
-        t('providerDashboard.providerSettings.securityScreen.disable2FAConfirmTitle'),
-        t('providerDashboard.providerSettings.securityScreen.disable2FAConfirmMessage'),
-        [
-          { text: t('common.cancel'), style: 'cancel' },
-          { text: t('common.confirm'), onPress: () => { setTwoFAPasswordInput(''); setTwoFAPasswordModal({ action: 'disable' }); } },
-        ]
-      );
+      openDisable2FAPasswordModal();
       return;
     }
     setTwoFAPasswordInput('');
     setTwoFAPasswordModal({ action: 'enable' });
-  }, [settings?.two_factor_enabled]);
+  }, [settings?.two_factor_enabled, openDisable2FAPasswordModal]);
 
   const handle2FAPasswordConfirm = useCallback(async () => {
     if (!twoFAPasswordModal || !twoFAPasswordInput.trim()) return;
@@ -279,74 +277,84 @@ export default function ClientSecurityScreen() {
 
       <Modal visible={passwordModal?.visible === true} transparent animationType="fade" onRequestClose={() => setPasswordModal(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPasswordModal(null)}>
-            <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
-              <Text style={styles.modalTitle}>{getPasswordModalTitle()}</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder={getPasswordModalTitle()}
-                placeholderTextColor={TEXT_SECONDARY}
-                secureTextEntry
-                value={passwordInput}
-                onChangeText={setPasswordInput}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handlePasswordStep}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setPasswordModal(null); setPasswordInput(''); }}>
-                  <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalConfirmBtn, !passwordInput.trim() && styles.modalBtnDisabled]}
-                  onPress={handlePasswordStep}
-                  disabled={!passwordInput.trim() || !!updating}
-                >
-                  {updating === 'password' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t('common.confirm')}</Text>}
-                </TouchableOpacity>
-              </View>
+          <TouchableOpacity
+            style={[styles.modalOverlay, styles.modalOverlayTouchable]}
+            activeOpacity={1}
+            onPress={() => setPasswordModal(null)}
+          />
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{getPasswordModalTitle()}</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder={getPasswordModalTitle()}
+              placeholderTextColor={TEXT_SECONDARY}
+              secureTextEntry
+              value={passwordInput}
+              onChangeText={setPasswordInput}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handlePasswordStep}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setPasswordModal(null); setPasswordInput(''); }}>
+                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, !passwordInput.trim() && styles.modalBtnDisabled]}
+                onPress={handlePasswordStep}
+                disabled={!passwordInput.trim() || !!updating}
+              >
+                {updating === 'password' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t('common.confirm')}</Text>}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={twoFAPasswordModal !== null} transparent animationType="fade" onRequestClose={() => setTwoFAPasswordModal(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTwoFAPasswordModal(null)}>
-            <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
-              <Text style={styles.modalTitle}>{t(`${I18N}.enterPasswordToContinue`)}</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder={t(`${I18N}.currentPassword`)}
-                placeholderTextColor={TEXT_SECONDARY}
-                secureTextEntry
-                value={twoFAPasswordInput}
-                onChangeText={setTwoFAPasswordInput}
-                autoFocus
-                returnKeyType="done"
-                onSubmitEditing={handle2FAPasswordConfirm}
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setTwoFAPasswordModal(null); setTwoFAPasswordInput(''); }}>
-                  <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalConfirmBtn, !twoFAPasswordInput.trim() && styles.modalBtnDisabled]}
-                  onPress={handle2FAPasswordConfirm}
-                  disabled={!twoFAPasswordInput.trim() || !!updating}
-                >
-                  {updating === '2fa' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t('common.confirm')}</Text>}
-                </TouchableOpacity>
-              </View>
+          <TouchableOpacity
+            style={[styles.modalOverlay, styles.modalOverlayTouchable]}
+            activeOpacity={1}
+            onPress={() => setTwoFAPasswordModal(null)}
+          />
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>{t(`${I18N}.enterPasswordToContinue`)}</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder={t(`${I18N}.currentPassword`)}
+              placeholderTextColor={TEXT_SECONDARY}
+              secureTextEntry
+              value={twoFAPasswordInput}
+              onChangeText={setTwoFAPasswordInput}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handle2FAPasswordConfirm}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setTwoFAPasswordModal(null); setTwoFAPasswordInput(''); }}>
+                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, !twoFAPasswordInput.trim() && styles.modalBtnDisabled]}
+                onPress={handle2FAPasswordConfirm}
+                disabled={!twoFAPasswordInput.trim() || !!updating}
+              >
+                {updating === '2fa' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t('common.confirm')}</Text>}
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={twoFASetup !== null} transparent animationType="fade" onRequestClose={() => setTwoFASetup(null)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTwoFASetup(null)}>
-            <View style={[styles.modalBox, { maxWidth: 340 }]} onStartShouldSetResponder={() => true}>
+          <TouchableOpacity
+            style={[styles.modalOverlay, styles.modalOverlayTouchable]}
+            activeOpacity={1}
+            onPress={() => setTwoFASetup(null)}
+          />
+          <View style={[styles.modalBox, { maxWidth: 340 }]}>
               <Text style={styles.modalTitle}>{t(`${I18N}.scanQRCode`)}</Text>
               {twoFASetup?.qrCode && (
                 <View style={styles.qrContainer}>
@@ -389,8 +397,7 @@ export default function ClientSecurityScreen() {
                   {updating === '2fa-verify' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t(`${I18N}.verify`)}</Text>}
                 </TouchableOpacity>
               </View>
-            </View>
-          </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -447,6 +454,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   modalBox: {
     backgroundColor: CARD_BG,

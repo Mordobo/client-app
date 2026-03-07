@@ -8,13 +8,14 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BACKGROUND = "#12121A";
 const CARD_BG = "#1E1B2E";
@@ -81,18 +82,19 @@ export default function SwitchModeScreen() {
     else handleSwitchToProvider();
   }, [targetMode, handleSwitchToClient, handleSwitchToProvider]);
 
-  const handleCancel = useCallback(() => {
+  const handleBack = useCallback(() => {
     router.back();
   }, [router]);
 
   const isToProvider = targetMode === "provider";
+  const bottomInset = insets.bottom || (Platform.OS === "android" ? 40 : 0);
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]} edges={['bottom']}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={handleCancel}
+          onPress={handleBack}
           activeOpacity={0.8}
           accessibilityLabel={t("common.back")}
           accessibilityRole="button"
@@ -104,7 +106,7 @@ export default function SwitchModeScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(bottomInset, 24) }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Visual: two modes with swap arrow */}
@@ -220,17 +222,8 @@ export default function SwitchModeScreen() {
             )}
           </LinearGradient>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={handleCancel}
-          activeOpacity={0.8}
-          disabled={switching}
-        >
-          <Text style={styles.cancelButtonText}>{t("common.cancel")}</Text>
-        </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -373,14 +366,5 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
-  },
-  cancelButton: {
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 15,
-    fontWeight: "500",
   },
 });
