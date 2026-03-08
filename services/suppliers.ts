@@ -205,7 +205,13 @@ export const fetchSupplierProfile = async (
     }
 
     const data: SupplierProfileResponse = await response.json();
-    return data.supplier;
+    const raw = data.supplier as Record<string, unknown>;
+    // API may return profile_image_url (resolved) and/or profile_image (raw); ensure profile_image is set for UI
+    const profileImage =
+      (raw.profile_image_url as string | undefined) ??
+      (raw.profile_image as string | undefined) ??
+      (raw.profileImage as string | undefined);
+    return { ...raw, profile_image: profileImage } as Supplier;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
