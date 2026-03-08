@@ -688,6 +688,10 @@ export default {
     status: {
       confirmed: "Confirmed",
       pending: "Pending",
+      pendingForProvider: "Waiting for provider",
+      pendingForClient: "Quote received",
+      pending_for_provider: "Waiting for provider",
+      pending_for_client: "Quote received",
       pending_payment: "Pending payment",
       pending_review: "Pending review",
       accepted: "Accepted",

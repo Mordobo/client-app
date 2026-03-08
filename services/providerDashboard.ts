@@ -23,7 +23,7 @@ export interface ProviderDashboardRequest {
   quoteTotal: number | null;
   createdAt?: string | null;
   isUrgent?: boolean;
-  /** Order status: 'pending' = can accept/decline, 'accepted' = scheduled */
+  /** Order status: 'pending_for_provider' = can accept/decline, 'pending_for_client' = quote sent waiting for client, 'accepted' = scheduled */
   status?: string;
 }
 

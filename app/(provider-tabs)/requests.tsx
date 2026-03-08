@@ -71,7 +71,7 @@ function RequestCard({
   onDecline: (id: string) => void;
   loading: boolean;
 }) {
-  const canAcceptDecline = item.status === "pending";
+  const canAcceptDecline = item.status === "pending_for_provider";
   const showActions = canAcceptDecline && item.id;
   const borderColor = item.isUrgent ? CARD_BORDER_URGENT : CARD_BORDER;
   const distanceText = item.address ? `${item.address.slice(0, 25)}${item.address.length > 25 ? "…" : ""}` : "—";

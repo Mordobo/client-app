@@ -690,6 +690,10 @@ export default {
     status: {
       confirmed: "Confirmada",
       pending: "Pendiente",
+      pendingForProvider: "Esperando al proveedor",
+      pendingForClient: "Cotización recibida",
+      pending_for_provider: "Esperando al proveedor",
+      pending_for_client: "Cotización recibida",
       pending_payment: "Pago pendiente",
       pending_review: "Pendiente de revisión",
       accepted: "Aceptada",

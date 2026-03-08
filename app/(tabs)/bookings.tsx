@@ -40,12 +40,12 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
     switch (order.status) {
       case 'accepted':
         return { label: t('orders.status.confirmed'), color: '#10B981' };
-      case 'pending':
-        return { label: t('orders.status.pending'), color: '#F59E0B' };
+      case 'pending_for_provider':
+        return { label: t('orders.status.pendingForProvider'), color: '#F59E0B' };
+      case 'pending_for_client':
+        return { label: t('orders.status.pendingForClient'), color: '#8B5CF6' };
       case 'pending_payment':
         return { label: t('orders.status.pending_payment'), color: '#F59E0B' };
-      case 'quoted':
-        return { label: t('orders.status.quoteReceived'), color: '#8B5CF6' };
       case 'in_progress':
         return { label: t('orders.status.inProgress'), color: '#3B82F6' };
       case 'pending_review':
@@ -55,7 +55,7 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
       case 'cancelled':
         return { label: t('orders.status.cancelled'), color: '#EF4444' };
       default:
-        return { label: t('orders.status.pending'), color: '#F59E0B' };
+        return { label: t('orders.status.pendingForProvider'), color: '#F59E0B' };
     }
   };
 
@@ -129,7 +129,7 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
     <View style={[
       styles.bookingCard,
       { backgroundColor: isDark ? '#252542' : '#FFFFFF' },
-      order.status === 'accepted' && { borderColor: '#10B98140', borderWidth: 1 }
+      (order.status === 'accepted' || order.status === 'pending_for_provider') && { borderColor: '#10B98140', borderWidth: 1 }
     ]}>
       <View style={styles.bookingHeader}>
         <View style={[
@@ -190,7 +190,7 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
           </Text>
         </TouchableOpacity>
         
-        {order.status === 'quoted' && onReviewQuote ? (
+        {order.status === 'pending_for_client' && onReviewQuote ? (
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: '#8B5CF6' }]}
             onPress={onReviewQuote}
@@ -260,9 +260,9 @@ export default function BookingsScreen() {
     setRefreshing(false);
   }, []);
 
-  // "Active" = only paid reservations (pending = waiting provider accept, accepted, in_progress). Unpaid (quoted, pending_payment) go to "Pending payment".
-  const paidReservationStatuses = ['pending', 'accepted', 'in_progress', 'pending_review'];
-  const unpaidStatuses = ['quoted', 'pending_payment'];
+  // "Active" = reservations where provider accepted or job in progress. Unpaid (pending_for_client, pending_payment) go to "Pending payment".
+  const paidReservationStatuses = ['pending_for_provider', 'accepted', 'in_progress', 'pending_review'];
+  const unpaidStatuses = ['pending_for_client', 'pending_payment'];
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -387,7 +387,7 @@ export default function BookingsScreen() {
                   order={order}
                   onPress={() => handleOrderPress(order.id)}
                   onMessagePress={() => handleMessagePress(order)}
-                  onReviewQuote={order.status === 'quoted' ? () => handleReviewQuote(order.id) : undefined}
+                  onReviewQuote={order.status === 'pending_for_client' ? () => handleReviewQuote(order.id) : undefined}
                   onPayPress={order.status === 'pending_payment' ? () => handlePayPress(order) : undefined}
                   colorScheme={colorScheme}
                 />
@@ -410,7 +410,7 @@ export default function BookingsScreen() {
                   order={order}
                   onPress={() => handleOrderPress(order.id)}
                   onMessagePress={() => handleMessagePress(order)}
-                  onReviewQuote={order.status === 'quoted' ? () => handleReviewQuote(order.id) : undefined}
+                  onReviewQuote={order.status === 'pending_for_client' ? () => handleReviewQuote(order.id) : undefined}
                   onPayPress={order.status === 'pending_payment' ? () => handlePayPress(order) : undefined}
                   colorScheme={colorScheme}
                 />
