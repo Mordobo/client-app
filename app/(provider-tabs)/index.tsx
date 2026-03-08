@@ -299,7 +299,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 16,
+    flexGrow: 0,
   },
   header: {
     paddingHorizontal: 20,
@@ -419,12 +420,12 @@ const styles = StyleSheet.create({
   },
   body: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16,
   },
   statsGrid: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -455,7 +456,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   sectionTitleRow: {
     flexDirection: "row",
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   emptyText: {
     color: "rgba(255,255,255,0.55)",
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   requestRow: {
     flexDirection: "row",
@@ -574,7 +575,8 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   scheduleTitle: {
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 8,
   },
   scheduleCard: {
     flexDirection: "row",
@@ -584,7 +586,7 @@ const styles = StyleSheet.create({
     backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: CARD_BORDER,
-    marginBottom: 12,
+    marginBottom: 8,
     gap: 16,
   },
   scheduleTimeBlock: {
