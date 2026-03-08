@@ -236,25 +236,31 @@ export default function BookingSuccessScreen() {
             <View style={styles.detailsList}>
               {/* Date */}
               <View style={styles.detailRow}>
-                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} style={styles.detailIcon} />
                 <Text style={styles.detailLabel}>{t('booking.date')}</Text>
-                <Text style={styles.detailValue}>{formattedDate}</Text>
+                <View style={styles.detailValueWrap}>
+                  <Text style={styles.detailValue}>{formattedDate}</Text>
+                </View>
               </View>
 
               {/* Time */}
               <View style={styles.detailRow}>
-                <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="time-outline" size={18} color={colors.textSecondary} style={styles.detailIcon} />
                 <Text style={styles.detailLabel}>{t('booking.time')}</Text>
-                <Text style={styles.detailValue}>{formattedTime}</Text>
+                <View style={styles.detailValueWrap}>
+                  <Text style={styles.detailValue}>{formattedTime}</Text>
+                </View>
               </View>
 
               {/* Location */}
               <View style={styles.detailRow}>
-                <Ionicons name="location-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="location-outline" size={18} color={colors.textSecondary} style={styles.detailIcon} />
                 <Text style={styles.detailLabel}>{t('booking.place')}</Text>
-                <Text style={styles.detailValue}>
-                  {order.address || t('addresses.namePlaceholder')}
-                </Text>
+                <View style={styles.detailValueWrap}>
+                  <Text style={styles.detailValue}>
+                    {order.address || t('addresses.namePlaceholder')}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
@@ -404,17 +410,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   detailsList: {
-    gap: 8,
+    gap: 12,
   },
   detailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  detailIcon: {
+    marginTop: 2,
   },
   detailLabel: {
     fontSize: 14,
     color: colors.textSecondary,
+    minWidth: 56,
+  },
+  detailValueWrap: {
     flex: 1,
+    minWidth: 0,
   },
   detailValue: {
     fontSize: 14,
