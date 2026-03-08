@@ -46,7 +46,26 @@ const colors = {
   chipBg: "rgba(255,255,255,0.05)",
 };
 
-const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending", "quoted", "pending_payment", "accepted", "in_progress"];
+const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending_for_provider", "pending_for_client", "pending_payment", "accepted", "in_progress"];
+
+/** Use line_items sum as display total when present, so edited duration/amounts match quote detail (fixes total desync). */
+function getQuoteDisplayTotal(quote: Quote): number {
+  let items: { amount?: number }[] = [];
+  if (Array.isArray(quote.line_items)) items = quote.line_items;
+  else if (typeof quote.line_items === "string") {
+    try {
+      const parsed = JSON.parse(quote.line_items) as unknown;
+      items = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      items = [];
+    }
+  }
+  if (items.length > 0) {
+    const sum = items.reduce((s, i) => s + Number(i.amount ?? 0), 0);
+    return sum + Number(quote.tax ?? 0);
+  }
+  return Number(quote.total ?? 0);
+}
 
 function isImageContent(content: string): boolean {
   return content.startsWith("data:image/") || /^https?:\/\/.+(\.(jpg|jpeg|png|gif|webp)|image)/i.test(content);
@@ -343,7 +362,9 @@ export default function ChatScreen() {
   };
 
   const hasActiveQuote = !!activeQuote && ["draft", "sent", "pending", "approved"].includes(activeQuote.status);
-  const hasActiveOrder = !!activeOrder && ["pending", "accepted", "in_progress"].includes(activeOrder.status);
+  const hasActiveOrder = !!activeOrder && ["pending_for_provider", "pending", "accepted", "in_progress"].includes(activeOrder.status);
+  // When order is scheduled (accepted) or in progress, show only the job banner — hide the "Active Quote" banner to avoid duplicate cards
+  const showQuoteBanner = hasActiveQuote && !(activeOrder && ["accepted", "in_progress"].includes(activeOrder.status));
 
   const handleCreateQuote = () => {
     if (hasActiveOrder) {
@@ -444,7 +465,7 @@ export default function ChatScreen() {
     activeOrder ?
       activeOrder.status === "in_progress" ? t("chat.jobBannerInProgress")
       : activeOrder.status === "accepted" ? t("chat.jobBannerScheduled")
-      : activeOrder.status === "quoted" ? t("chat.quoteStatus_sent")
+      : activeOrder.status === "pending_for_client" ? t("chat.quoteStatus_sent")
       : t("chat.jobBannerPending")
     : "";
 
@@ -500,7 +521,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
         {/* Active quote banner - client view */}
-        {hasActiveQuote && (
+        {showQuoteBanner && (
           <TouchableOpacity style={clientStyles.quoteBanner} onPress={handleViewQuote} activeOpacity={0.7}>
             <View style={clientStyles.quoteBannerIcon}>
               <Ionicons name="document-text" size={20} color="#3b82f6" />
@@ -508,7 +529,7 @@ export default function ChatScreen() {
             <View style={clientStyles.quoteBannerContent}>
               <Text style={clientStyles.quoteBannerTitle}>{t("chat.activeQuote")}</Text>
               <Text style={clientStyles.quoteBannerSub}>
-                ${Number(activeQuote!.total ?? 0).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
+                ${getQuoteDisplayTotal(activeQuote!).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
@@ -598,8 +619,8 @@ export default function ChatScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Job banner - only when active order (not for 'quoted' orders — those show quote banner instead) */}
-      {activeOrder && activeOrder.status !== "quoted" && (
+      {/* Job banner - only when active order (not for pending_for_client — those show quote banner instead) */}
+      {activeOrder && activeOrder.status !== "pending_for_client" && (
         <View style={styles.jobBanner}>
           <View style={styles.jobBannerIcon}>
             <Text style={styles.jobBannerIconText}>🔧</Text>
@@ -628,7 +649,7 @@ export default function ChatScreen() {
       )}
 
       {/* Active quote banner */}
-      {hasActiveQuote && (
+      {showQuoteBanner && (
         <TouchableOpacity style={styles.quoteBanner} onPress={handleViewQuote} activeOpacity={0.7}>
           <View style={styles.quoteBannerIcon}>
             <Ionicons name="document-text" size={20} color="#8B5CF6" />
@@ -636,7 +657,7 @@ export default function ChatScreen() {
           <View style={styles.quoteBannerContent}>
             <Text style={styles.quoteBannerTitle}>{t("chat.activeQuote")}</Text>
             <Text style={styles.quoteBannerSub}>
-              ${Number(activeQuote!.total ?? 0).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
+              ${getQuoteDisplayTotal(activeQuote!).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />

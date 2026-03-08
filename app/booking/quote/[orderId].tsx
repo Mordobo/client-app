@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import { t } from '@/i18n';
 import { fetchConversation, fetchConversations } from '@/services/conversations';
 import { ApiError, fetchOrderDetail, OrderDetailResponse, rejectQuote, withdrawQuote } from '@/services/orders';
@@ -9,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
@@ -16,6 +18,28 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const clientColors = {
+  bg: '#1a1a2e',
+  bgCard: '#252542',
+  primary: '#3b82f6',
+  secondary: '#10b981',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#9ca3af',
+  border: '#374151',
+  iconMuted: '#9ca3af',
+};
+
+const providerColors = {
+  bg: '#12121A',
+  bgCard: '#1E1B2E',
+  border: 'rgba(61, 51, 112, 0.3)',
+  primary: '#8B5CF6',
+  secondary: '#22C55E',
+  textPrimary: '#FFFFFF',
+  textSecondary: 'rgba(255,255,255,0.7)',
+  iconMuted: 'rgba(255,255,255,0.5)',
+};
 
 function normalizeQuote(quote: OrderDetailResponse['quote']) {
   if (!quote) return null;
@@ -30,24 +54,36 @@ function normalizeQuote(quote: OrderDetailResponse['quote']) {
       lineItems = [];
     }
   }
+  const storedSubtotal = Number(quote.subtotal ?? 0);
+  const storedTax = Number(quote.tax ?? 0);
+  const storedTotal = Number(quote.total ?? 0);
+  const totalFromLineItems = lineItems.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
+  const taxFromStored = storedTax;
+  // Use line_items sum as source of truth for total when present, so edited duration/amounts are reflected (fixes quote total desync)
+  const displaySubtotal = lineItems.length > 0 ? totalFromLineItems : storedSubtotal;
+  const displayTotal = lineItems.length > 0 ? totalFromLineItems + taxFromStored : storedTotal;
   return {
     ...quote,
     line_items: lineItems,
-    subtotal: Number(quote.subtotal ?? 0),
-    tax: Number(quote.tax ?? 0),
-    total: Number(quote.total ?? 0),
+    subtotal: displaySubtotal,
+    tax: taxFromStored,
+    total: displayTotal,
   };
 }
 
 export default function QuoteScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { mode } = useMode();
+  const params = useLocalSearchParams<{ orderId: string | string[] }>();
+  const orderId = typeof params.orderId === 'string' ? params.orderId : Array.isArray(params.orderId) ? params.orderId[0] : undefined;
   const insets = useSafeAreaInsets();
   const [orderData, setOrderData] = useState<OrderDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [rejecting, setRejecting] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,13 +92,12 @@ export default function QuoteScreen() {
     [orderData?.quote]
   );
 
-  useEffect(() => {
-    if (orderId) {
-      loadData();
+  const loadData = useCallback(async () => {
+    if (!orderId) {
+      setLoading(false);
+      setError(t('quote.notFound'));
+      return;
     }
-  }, [orderId]);
-
-  const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -72,12 +107,21 @@ export default function QuoteScreen() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Failed to load quote');
+        setError(t('errors.requestFailed'));
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (orderId) {
+      loadData();
+    } else {
+      setLoading(false);
+      setError(t('quote.notFound'));
+    }
+  }, [orderId, loadData]);
 
   // Go to payment without approving first; order is confirmed only after successful payment
   const handleGoToPayment = () => {
@@ -216,63 +260,58 @@ export default function QuoteScreen() {
     );
   };
 
-  const handleWithdrawQuote = () => {
-    Alert.alert(
-      t('quote.withdrawQuote'),
-      t('quote.withdrawConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('quote.withdrawQuote'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setWithdrawing(true);
-              await withdrawQuote(orderId);
-              await redirectToClientChat();
-            } catch (err) {
-              if (err instanceof ApiError) {
-                Alert.alert(t('common.error'), err.message);
-              } else {
-                Alert.alert(t('common.error'), t('quote.withdrawFailed'));
-              }
-            } finally {
-              setWithdrawing(false);
-            }
-          },
-        },
-      ]
-    );
-  };
+  const runWithdrawQuote = useCallback(async () => {
+    setShowWithdrawConfirm(false);
+    if (!orderId) {
+      Alert.alert(t('common.error'), t('quote.notFound'));
+      return;
+    }
+    try {
+      setWithdrawing(true);
+      await withdrawQuote(orderId);
+      await redirectToClientChat();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        Alert.alert(t('common.error'), err.message);
+      } else {
+        Alert.alert(t('common.error'), t('quote.withdrawFailed'));
+      }
+    } finally {
+      setWithdrawing(false);
+    }
+  }, [orderId, redirectToClientChat]);
 
-  const handleCancelRequest = () => {
-    Alert.alert(
-      t('quote.cancelRequest'),
-      t('quote.cancelRequestConfirm'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('quote.cancelRequest'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setCancelling(true);
-              await cancelOrderByProvider(orderId);
-              await redirectToClientChat();
-            } catch (err) {
-              if (err instanceof ApiError) {
-                Alert.alert(t('common.error'), err.message);
-              } else {
-                Alert.alert(t('common.error'), t('quote.cancelRequestFailed'));
-              }
-            } finally {
-              setCancelling(false);
-            }
-          },
-        },
-      ]
-    );
-  };
+  const handleWithdrawQuotePress = useCallback(() => {
+    setShowWithdrawConfirm(true);
+  }, []);
+
+  const runCancelRequest = useCallback(async () => {
+    setShowCancelConfirm(false);
+    if (!orderId) {
+      Alert.alert(t('common.error'), t('quote.notFound'));
+      return;
+    }
+    try {
+      setCancelling(true);
+      await cancelOrderByProvider(orderId);
+      await redirectToClientChat();
+    } catch (err) {
+      if (err instanceof ApiError) {
+        Alert.alert(t('common.error'), err.message);
+        if (err.status === 404) {
+          loadData();
+        }
+      } else {
+        Alert.alert(t('common.error'), t('quote.cancelRequestFailed'));
+      }
+    } finally {
+      setCancelling(false);
+    }
+  }, [orderId, redirectToClientChat, loadData]);
+
+  const handleCancelRequestPress = useCallback(() => {
+    setShowCancelConfirm(true);
+  }, []);
 
   const handleEditQuote = () => {
     router.push({
@@ -287,11 +326,16 @@ export default function QuoteScreen() {
     });
   };
 
+  const loadingTheme = mode === 'client' ? clientStyles : mode === 'provider' ? providerStyles : null;
+
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+      <View style={[styles.container, loadingTheme?.container]}>
+        <View style={[styles.centerContainer, loadingTheme?.centerContainer]}>
+          <ActivityIndicator
+            size="large"
+            color={mode === 'client' ? clientColors.secondary : mode === 'provider' ? providerColors.secondary : '#10B981'}
+          />
         </View>
       </View>
     );
@@ -299,11 +343,11 @@ export default function QuoteScreen() {
 
   if (error || !orderData?.quote || !quote) {
     return (
-      <View style={styles.container}>
-        <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error || 'Quote not found'}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryText}>Retry</Text>
+      <View style={[styles.container, loadingTheme?.container]}>
+        <View style={[styles.centerContainer, loadingTheme?.centerContainer]}>
+          <Text style={[styles.errorText, loadingTheme?.errorText]}>{error || 'Quote not found'}</Text>
+          <TouchableOpacity style={[styles.retryButton, loadingTheme?.retryButton]} onPress={loadData}>
+            <Text style={[styles.retryText, loadingTheme?.retryText]}>Retry</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -313,6 +357,7 @@ export default function QuoteScreen() {
   const order = orderData.order;
   const isSupplier = user?.id === order.supplier_id;
   const isClient = !isSupplier;
+  const theme = isClient ? clientStyles : isSupplier ? providerStyles : null;
   const { supplier, client } = orderData;
   const serviceDate = quote.scheduled_at || order.scheduled_at;
   const clientAddr = orderData.clientAddress;
@@ -329,58 +374,128 @@ export default function QuoteScreen() {
       ? `${quote.estimated_time} ${quote.estimated_time_unit === 'days' ? t('createQuote.days') : t('createQuote.hours')}`
       : null;
 
+  const iconColor = isClient ? clientColors.iconMuted : isSupplier ? providerColors.iconMuted : '#6B7280';
+  const serviceIconColor = isClient ? clientColors.primary : isSupplier ? providerColors.primary : '#3B82F6';
+  const headerTextColor = isClient ? clientColors.textPrimary : isSupplier ? providerColors.textPrimary : '#1F2937';
+
+  const confirmModalBg = isClient ? clientColors.bgCard : isSupplier ? providerColors.bgCard : '#FFFFFF';
+  const confirmModalText = isClient ? clientColors.textPrimary : isSupplier ? providerColors.textPrimary : '#1F2937';
+  const confirmModalMuted = isClient ? clientColors.textSecondary : isSupplier ? providerColors.textSecondary : '#6B7280';
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+    <View style={[styles.container, theme?.container]}>
+      <Modal
+        visible={showWithdrawConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWithdrawConfirm(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.withdrawModalOverlay}
+          onPress={() => setShowWithdrawConfirm(false)}
+        >
+          <View style={[styles.withdrawModalCard, { backgroundColor: confirmModalBg }]} onStartShouldSetResponder={() => true}>
+            <Text style={[styles.withdrawModalTitle, { color: confirmModalText }]}>{t('quote.withdrawQuote')}</Text>
+            <Text style={[styles.withdrawModalMessage, { color: confirmModalMuted }]}>{t('quote.withdrawConfirm')}</Text>
+            <View style={styles.withdrawModalActions}>
+              <TouchableOpacity
+                style={[styles.withdrawModalButton, styles.withdrawModalButtonCancel]}
+                onPress={() => setShowWithdrawConfirm(false)}
+              >
+                <Text style={[styles.withdrawModalButtonCancelText, { color: confirmModalMuted }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.withdrawModalButton, styles.withdrawModalButtonConfirm]}
+                onPress={() => runWithdrawQuote()}
+              >
+                <Text style={styles.withdrawModalButtonConfirmText}>{t('quote.withdrawQuote')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+      </Modal>
+      <Modal
+        visible={showCancelConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCancelConfirm(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.withdrawModalOverlay}
+          onPress={() => setShowCancelConfirm(false)}
+        >
+          <View style={[styles.withdrawModalCard, { backgroundColor: confirmModalBg }]} onStartShouldSetResponder={() => true}>
+            <Text style={[styles.withdrawModalTitle, { color: confirmModalText }]}>{t('quote.cancelRequest')}</Text>
+            <Text style={[styles.withdrawModalMessage, { color: confirmModalMuted }]}>{t('quote.cancelRequestConfirm')}</Text>
+            <View style={styles.withdrawModalActions}>
+              <TouchableOpacity
+                style={[styles.withdrawModalButton, styles.withdrawModalButtonCancel]}
+                onPress={() => setShowCancelConfirm(false)}
+              >
+                <Text style={[styles.withdrawModalButtonCancelText, { color: confirmModalMuted }]}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.withdrawModalButton, styles.withdrawModalButtonConfirm]}
+                onPress={() => runCancelRequest()}
+              >
+                <Text style={styles.withdrawModalButtonConfirmText}>{t('quote.cancelRequest')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+      {/* Header */}
+      <View style={[styles.header, theme?.header, { paddingTop: insets.top + 16 }]}>
+        <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, theme?.backButton]}>
+          <Ionicons name="arrow-back" size={24} color={headerTextColor} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, theme?.headerTitle]}>
           {isClient ? t('quote.title') : t('chat.viewQuote')}
         </Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView 
-        style={styles.content} 
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        style={[styles.content, theme?.content]} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Order number & parties */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('quote.orderNumber')} {order.id.slice(0, 8).toUpperCase()}</Text>
+        <View style={[styles.section, theme?.section]}>
+          <Text style={[styles.sectionTitle, theme?.sectionTitle]}>{t('quote.orderNumber')} {order.id.slice(0, 8).toUpperCase()}</Text>
           {clientDisplayName ? (
-            <View style={styles.infoRow}>
-              <Ionicons name="person-outline" size={20} color="#6B7280" />
-              <Text style={styles.infoLabel}>{t('quote.clientName')}</Text>
-              <Text style={styles.infoValue}>{clientDisplayName}</Text>
+            <View style={[styles.infoRow, theme?.infoRow]}>
+              <Ionicons name="person-outline" size={20} color={iconColor} />
+              <Text style={[styles.infoLabel, theme?.infoLabel]}>{t('quote.clientName')}</Text>
+              <Text style={[styles.infoValue, theme?.infoValue]}>{clientDisplayName}</Text>
             </View>
           ) : null}
           {providerDisplayName ? (
-            <View style={styles.infoRow}>
-              <Ionicons name="briefcase-outline" size={20} color="#6B7280" />
-              <Text style={styles.infoLabel}>{t('quote.providerName')}</Text>
-              <Text style={styles.infoValue}>{providerDisplayName}</Text>
+            <View style={[styles.infoRow, theme?.infoRow]}>
+              <Ionicons name="briefcase-outline" size={20} color={iconColor} />
+              <Text style={[styles.infoLabel, theme?.infoLabel]}>{t('quote.providerName')}</Text>
+              <Text style={[styles.infoValue, theme?.infoValue]}>{providerDisplayName}</Text>
             </View>
           ) : null}
         </View>
 
         {/* Service address */}
         {(address || serviceDate || durationText) ? (
-          <View style={styles.section}>
+          <View style={[styles.section, theme?.section]}>
             {address ? (
-              <View style={styles.infoRow}>
-                <Ionicons name="location-outline" size={20} color="#6B7280" />
-                <Text style={styles.infoLabel}>{t('quote.serviceAddress')}</Text>
-                <Text style={styles.infoValue}>{address}</Text>
+              <View style={[styles.infoRow, theme?.infoRow]}>
+                <Ionicons name="location-outline" size={20} color={iconColor} />
+                <Text style={[styles.infoLabel, theme?.infoLabel]}>{t('quote.serviceAddress')}</Text>
+                <Text style={[styles.infoValue, theme?.infoValue]}>{address}</Text>
               </View>
             ) : null}
             {serviceDate ? (
-              <View style={styles.infoRow}>
-                <Ionicons name="calendar-outline" size={20} color="#6B7280" />
-                <Text style={styles.infoLabel}>{t('quote.dateTime')}</Text>
-                <Text style={styles.infoValue}>
+              <View style={[styles.infoRow, theme?.infoRow]}>
+                <Ionicons name="calendar-outline" size={20} color={iconColor} />
+                <Text style={[styles.infoLabel, theme?.infoLabel]}>{t('quote.dateTime')}</Text>
+                <Text style={[styles.infoValue, theme?.infoValue]}>
                   {new Date(serviceDate).toLocaleDateString(undefined, {
                     month: 'long',
                     day: 'numeric',
@@ -392,10 +507,10 @@ export default function QuoteScreen() {
               </View>
             ) : null}
             {durationText ? (
-              <View style={styles.infoRow}>
-                <Ionicons name="time-outline" size={20} color="#6B7280" />
-                <Text style={styles.infoLabel}>{t('quote.estimatedDuration')}</Text>
-                <Text style={styles.infoValue}>{durationText}</Text>
+              <View style={[styles.infoRow, theme?.infoRow]}>
+                <Ionicons name="time-outline" size={20} color={iconColor} />
+                <Text style={[styles.infoLabel, theme?.infoLabel]}>{t('quote.estimatedDuration')}</Text>
+                <Text style={[styles.infoValue, theme?.infoValue]}>{durationText}</Text>
               </View>
             ) : null}
           </View>
@@ -403,127 +518,127 @@ export default function QuoteScreen() {
 
         {/* Notes */}
         {displayNotes ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('quote.notes')}</Text>
-            <Text style={styles.description}>{displayNotes}</Text>
+          <View style={[styles.section, theme?.section]}>
+            <Text style={[styles.sectionTitle, theme?.sectionTitle]}>{t('quote.notes')}</Text>
+            <Text style={[styles.description, theme?.description]}>{displayNotes}</Text>
           </View>
         ) : null}
 
         {/* Service Info */}
-        <View style={styles.section}>
-          <View style={styles.serviceHeader}>
-            <Ionicons name="brush-outline" size={24} color="#3B82F6" />
-            <Text style={styles.serviceTitle}>{order.service_name || t('orders.service')}</Text>
+        <View style={[styles.section, theme?.section]}>
+          <View style={[styles.serviceHeader, theme?.serviceHeader]}>
+            <Ionicons name="brush-outline" size={24} color={serviceIconColor} />
+            <Text style={[styles.serviceTitle, theme?.serviceTitle]}>{order.service_name || t('orders.service')}</Text>
           </View>
           {quote.description ? (
-            <Text style={styles.description}>{quote.description}</Text>
+            <Text style={[styles.description, theme?.description]}>{quote.description}</Text>
           ) : null}
         </View>
 
         {/* Line Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('quote.lineItems')}</Text>
+        <View style={[styles.section, theme?.section]}>
+          <Text style={[styles.sectionTitle, theme?.sectionTitle]}>{t('quote.lineItems')}</Text>
           {quote.line_items.map((item, index) => (
-            <View key={index} style={styles.lineItem}>
-              <Text style={styles.lineItemName}>{item.description}</Text>
-              <Text style={styles.lineItemPrice}>${Number(item.amount ?? 0).toFixed(2)}</Text>
+            <View key={index} style={[styles.lineItem, theme?.lineItem]}>
+              <Text style={[styles.lineItemName, theme?.lineItemName]}>{item.description}</Text>
+              <Text style={[styles.lineItemPrice, theme?.lineItemPrice]}>${Number(item.amount ?? 0).toFixed(2)}</Text>
             </View>
           ))}
         </View>
 
         {/* Total */}
-        <View style={styles.totalSection}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t('quote.subtotal')}</Text>
-            <Text style={styles.totalValue}>${quote.subtotal.toFixed(2)}</Text>
+        <View style={[styles.totalSection, theme?.totalSection]}>
+          <View style={[styles.totalRow, theme?.totalRow]}>
+            <Text style={[styles.totalLabel, theme?.totalLabel]}>{t('quote.subtotal')}</Text>
+            <Text style={[styles.totalValue, theme?.totalValue]}>${quote.subtotal.toFixed(2)}</Text>
           </View>
           {quote.tax > 0 && (
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{t('quote.tax')}</Text>
-              <Text style={styles.totalValue}>${quote.tax.toFixed(2)}</Text>
+            <View style={[styles.totalRow, theme?.totalRow]}>
+              <Text style={[styles.totalLabel, theme?.totalLabel]}>{t('quote.tax')}</Text>
+              <Text style={[styles.totalValue, theme?.totalValue]}>${quote.tax.toFixed(2)}</Text>
             </View>
           )}
-          <View style={[styles.totalRow, styles.grandTotalRow]}>
-            <Text style={styles.grandTotalLabel}>{t('quote.total')}</Text>
-            <Text style={styles.grandTotalValue}>${quote.total.toFixed(2)}</Text>
+          <View style={[styles.totalRow, styles.grandTotalRow, theme?.totalRow, theme?.grandTotalRow]}>
+            <Text style={[styles.grandTotalLabel, theme?.grandTotalLabel]}>{t('quote.total')}</Text>
+            <Text style={[styles.grandTotalValue, theme?.grandTotalValue]}>${quote.total.toFixed(2)}</Text>
           </View>
         </View>
       </ScrollView>
 
       {/* Actions */}
-      <View style={styles.actions}>
-        {isClient && order.status === 'quoted' && (
+      <View style={[styles.actions, theme?.actions]}>
+        {isClient && order.status === 'pending_for_client' && (
           <>
             <TouchableOpacity
-              style={styles.approveButton}
+              style={[styles.approveButton, theme?.approveButton]}
               onPress={handleGoToPayment}
               disabled={rejecting}
             >
-              <Text style={styles.approveButtonText}>{t('quote.goToPayment')}</Text>
+              <Text style={[styles.approveButtonText, theme?.approveButtonText]}>{t('quote.goToPayment')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.rejectButton}
+              style={[styles.rejectButton, theme?.rejectButton]}
               onPress={handleReject}
               disabled={rejecting}
             >
               {rejecting ? (
-                <ActivityIndicator size="small" color="#6B7280" />
+                <ActivityIndicator size="small" color={isClient ? clientColors.textSecondary : isSupplier ? providerColors.textSecondary : '#6B7280'} />
               ) : (
-                <Text style={styles.rejectButtonText}>{t('quote.reject')}</Text>
+                <Text style={[styles.rejectButtonText, theme?.rejectButtonText]}>{t('quote.reject')}</Text>
               )}
             </TouchableOpacity>
           </>
         )}
         {isClient && order.status === 'pending_payment' && (
           <TouchableOpacity
-            style={styles.approveButton}
+            style={[styles.approveButton, theme?.approveButton]}
             onPress={() => router.push({
               pathname: `/booking/payment/${orderId}`,
-              params: { totalAmount: String(order.total_amount ?? quote?.total ?? 0) },
+              params: { totalAmount: String(quote?.total ?? order.total_amount ?? 0) },
             })}
           >
-            <Text style={styles.approveButtonText}>{t('orders.completePayment')}</Text>
+            <Text style={[styles.approveButtonText, theme?.approveButtonText]}>{t('orders.completePayment')}</Text>
           </TouchableOpacity>
         )}
-        {isSupplier && (order.status === 'quoted' || order.status === 'pending') && (
+        {isSupplier && (order.status === 'pending_for_client' || order.status === 'pending_for_provider') && (
           <>
-            {order.status === 'quoted' && (
+            {order.status === 'pending_for_client' && (
               <TouchableOpacity
-                style={styles.approveButton}
+                style={[styles.approveButton, theme?.approveButton]}
                 onPress={handleEditQuote}
                 disabled={withdrawing}
               >
-                <Text style={styles.approveButtonText}>{t('quote.editQuote')}</Text>
+                <Text style={[styles.approveButtonText, theme?.approveButtonText]}>{t('quote.editQuote')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={styles.rejectButton}
-              onPress={handleWithdrawQuote}
+              style={[styles.rejectButton, theme?.rejectButton]}
+              onPress={handleWithdrawQuotePress}
               disabled={withdrawing}
             >
               {withdrawing ? (
-                <ActivityIndicator size="small" color="#6B7280" />
+                <ActivityIndicator size="small" color={isClient ? clientColors.textSecondary : isSupplier ? providerColors.textSecondary : '#6B7280'} />
               ) : (
-                <Text style={styles.rejectButtonText}>{t('quote.withdrawQuote')}</Text>
+                <Text style={[styles.rejectButtonText, theme?.rejectButtonText]}>{t('quote.withdrawQuote')}</Text>
               )}
             </TouchableOpacity>
           </>
         )}
         {isSupplier && (order.status === 'accepted' || order.status === 'in_progress') && (
           <TouchableOpacity
-            style={styles.rejectButton}
-            onPress={handleCancelRequest}
+            style={[styles.rejectButton, theme?.rejectButton]}
+            onPress={handleCancelRequestPress}
             disabled={cancelling}
           >
             {cancelling ? (
-              <ActivityIndicator size="small" color="#6B7280" />
+              <ActivityIndicator size="small" color={isClient ? clientColors.textSecondary : isSupplier ? providerColors.textSecondary : '#6B7280'} />
             ) : (
-              <Text style={styles.rejectButtonText}>{t('quote.cancelRequest')}</Text>
+              <Text style={[styles.rejectButtonText, theme?.rejectButtonText]}>{t('quote.cancelRequest')}</Text>
             )}
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.chatBackButton} onPress={handleChatBack}>
-          <Text style={styles.chatBackText}>{t('quote.chatBack')}</Text>
+        <TouchableOpacity style={[styles.chatBackButton, theme?.chatBackButton]} onPress={handleChatBack}>
+          <Text style={[styles.chatBackText, theme?.chatBackText]}>{t('quote.chatBack')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -731,9 +846,234 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  withdrawModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  withdrawModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 12,
+    padding: 24,
+  },
+  withdrawModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  withdrawModalMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  withdrawModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  withdrawModalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  withdrawModalButtonCancel: {
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  withdrawModalButtonCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  withdrawModalButtonConfirm: {
+    backgroundColor: '#DC2626',
+  },
+  withdrawModalButtonConfirmText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
 });
 
+const clientStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: clientColors.bg },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: clientColors.bgCard,
+    borderBottomWidth: 1,
+    borderBottomColor: clientColors.border,
+  },
+  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: clientColors.textPrimary },
+  content: { flex: 1 },
+  section: { backgroundColor: clientColors.bgCard, padding: 20, marginBottom: 8 },
+  serviceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  serviceTitle: { fontSize: 18, fontWeight: '600', color: clientColors.textPrimary, marginLeft: 12 },
+  description: { fontSize: 14, color: clientColors.textSecondary, lineHeight: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: clientColors.textPrimary, marginBottom: 12 },
+  lineItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: clientColors.border,
+  },
+  lineItemName: { fontSize: 14, color: clientColors.textSecondary },
+  lineItemPrice: { fontSize: 14, fontWeight: '600', color: clientColors.textPrimary },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  infoLabel: { fontSize: 12, color: clientColors.textSecondary, marginLeft: 8, minWidth: 100 },
+  infoValue: { flex: 1, fontSize: 14, color: clientColors.textPrimary, marginLeft: 8 },
+  dateTimeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  dateTimeText: { fontSize: 14, color: clientColors.textSecondary, marginLeft: 8 },
+  totalSection: { backgroundColor: clientColors.bgCard, padding: 20, marginBottom: 8 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+  totalLabel: { fontSize: 14, color: clientColors.textSecondary },
+  totalValue: { fontSize: 14, color: clientColors.textPrimary },
+  grandTotalRow: {
+    borderTopWidth: 2,
+    borderTopColor: clientColors.border,
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  grandTotalLabel: { fontSize: 18, fontWeight: '600', color: clientColors.textPrimary },
+  grandTotalValue: { fontSize: 18, fontWeight: '600', color: clientColors.secondary },
+  actions: {
+    padding: 20,
+    backgroundColor: clientColors.bgCard,
+    borderTopWidth: 1,
+    borderTopColor: clientColors.border,
+  },
+  approveButton: {
+    backgroundColor: clientColors.primary,
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  approveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  rejectButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: clientColors.border,
+  },
+  rejectButtonText: { color: clientColors.textSecondary, fontSize: 16, fontWeight: '600' },
+  chatBackButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: clientColors.border,
+  },
+  chatBackText: { color: clientColors.textSecondary, fontSize: 16, fontWeight: '600' },
+  errorText: { fontSize: 16, color: '#F87171', textAlign: 'center', marginBottom: 16 },
+  retryButton: {
+    backgroundColor: clientColors.secondary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+});
 
-
-
+const providerStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: providerColors.bg },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: providerColors.bgCard,
+    borderBottomWidth: 1,
+    borderBottomColor: providerColors.border,
+  },
+  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: providerColors.textPrimary },
+  content: { flex: 1 },
+  section: { backgroundColor: providerColors.bgCard, padding: 20, marginBottom: 8 },
+  serviceHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  serviceTitle: { fontSize: 18, fontWeight: '600', color: providerColors.textPrimary, marginLeft: 12 },
+  description: { fontSize: 14, color: providerColors.textSecondary, lineHeight: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: providerColors.textPrimary, marginBottom: 12 },
+  lineItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: providerColors.border,
+  },
+  lineItemName: { fontSize: 14, color: providerColors.textSecondary },
+  lineItemPrice: { fontSize: 14, fontWeight: '600', color: providerColors.textPrimary },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  infoLabel: { fontSize: 12, color: providerColors.textSecondary, marginLeft: 8, minWidth: 100 },
+  infoValue: { flex: 1, fontSize: 14, color: providerColors.textPrimary, marginLeft: 8 },
+  dateTimeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  dateTimeText: { fontSize: 14, color: providerColors.textSecondary, marginLeft: 8 },
+  totalSection: { backgroundColor: providerColors.bgCard, padding: 20, marginBottom: 8 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
+  totalLabel: { fontSize: 14, color: providerColors.textSecondary },
+  totalValue: { fontSize: 14, color: providerColors.textPrimary },
+  grandTotalRow: {
+    borderTopWidth: 2,
+    borderTopColor: providerColors.border,
+    marginTop: 8,
+    paddingTop: 12,
+  },
+  grandTotalLabel: { fontSize: 18, fontWeight: '600', color: providerColors.textPrimary },
+  grandTotalValue: { fontSize: 18, fontWeight: '600', color: providerColors.secondary },
+  actions: {
+    padding: 20,
+    backgroundColor: providerColors.bgCard,
+    borderTopWidth: 1,
+    borderTopColor: providerColors.border,
+  },
+  approveButton: {
+    backgroundColor: providerColors.primary,
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  approveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  rejectButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: providerColors.border,
+  },
+  rejectButtonText: { color: providerColors.textSecondary, fontSize: 16, fontWeight: '600' },
+  chatBackButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: providerColors.border,
+  },
+  chatBackText: { color: providerColors.textSecondary, fontSize: 16, fontWeight: '600' },
+  errorText: { fontSize: 16, color: '#F87171', textAlign: 'center', marginBottom: 16 },
+  retryButton: {
+    backgroundColor: providerColors.secondary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+});
 

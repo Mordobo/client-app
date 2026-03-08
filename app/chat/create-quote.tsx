@@ -113,15 +113,11 @@ export default function CreateQuoteScreen() {
           if (!cancelled && data.clientAddress) {
             setClientAddress(data.clientAddress);
           }
-          // If order already has an active quote, redirect to view it (avoids 409 on submit)
+          // If order already has an active quote, go to quote view (so user can see/edit it instead of bouncing back to chat)
           if (!cancelled && !isEditMode && data.quote && data.order?.quote_id) {
             const status = data.quote.status;
             if (status === "draft" || status === "sent" || status === "pending") {
-              if (conversationId) {
-                router.replace(`/chat/${conversationId}`);
-              } else {
-                router.replace(`/booking/quote/${orderId}`);
-              }
+              router.replace(`/booking/quote/${orderId}`);
               return;
             }
           }

@@ -1,7 +1,7 @@
 import { t } from '@/i18n';
 import { ApiError as AuthApiError, request } from './auth';
 
-export type OrderStatus = 'pending' | 'quoted' | 'pending_payment' | 'accepted' | 'in_progress' | 'pending_review' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending_for_provider' | 'pending_for_client' | 'pending_payment' | 'accepted' | 'in_progress' | 'pending_review' | 'completed' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -329,6 +329,7 @@ export const withdrawQuote = async (orderId: string): Promise<Quote> => {
       `/orders/${orderId}/quote/withdraw`,
       {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
       },
       t('errors.requestFailed')
     );

@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useAvailability } from "@/contexts/AvailabilityContext";
 import { t } from "@/i18n";
+import { ApiError } from "@/services/auth";
 import { acceptOrder, getDashboardRequests, getDashboardSchedule, getDashboardStats, rejectOrder, type ProviderDashboardRequest, type ProviderDashboardScheduleItem, type ProviderDashboardStats } from "@/services/providerDashboard";
 import { getProviderProfile } from "@/services/providers";
 import { getProfileImageUrl } from "@/utils/profileImage";
@@ -10,7 +11,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Animated, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CARD_BG = "#1E1B2E";
@@ -130,6 +131,9 @@ export default function ProviderDashboardScreen() {
     try {
       await acceptOrder(id);
       setRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.acceptFailed");
+      Alert.alert(t("common.error"), message);
     } finally {
       setActionLoadingId(null);
     }
@@ -140,6 +144,9 @@ export default function ProviderDashboardScreen() {
     try {
       await rejectOrder(id);
       setRequests((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.rejectFailed");
+      Alert.alert(t("common.error"), message);
     } finally {
       setActionLoadingId(null);
     }
