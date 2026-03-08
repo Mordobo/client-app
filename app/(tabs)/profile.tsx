@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
+import { getClientReceivedReviews } from "@/services/reviews";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
@@ -39,15 +40,17 @@ export default function ProfileScreen() {
 
   const loadStats = useCallback(async () => {
     try {
-      const ordersData = await fetchOrders();
+      const [ordersData, reviewsData] = await Promise.all([
+        fetchOrders(),
+        getClientReceivedReviews().catch(() => ({ count: 0, reviews: [] })),
+      ]);
 
       setStats({
         services: Array.isArray(ordersData) ? ordersData.length : 0,
-        reviews: 0, // TODO: Get from reviews endpoint when available
+        reviews: reviewsData.count ?? 0,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
-      // Keep default values on error
       setStats({ services: 0, reviews: 0 });
     } finally {
       setLoadingStats(false);
