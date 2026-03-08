@@ -43,10 +43,23 @@ const STATUS_COLORS: Record<string, string> = {
 
 type FilterType = 'all' | 'unread' | 'active' | 'archived';
 
-/** Derive a display status from conversation (API may later send order_status). */
-function getConversationStatus(conversation: Conversation): string {
-  if (conversation.order_id) return 'in_progress';
-  return 'inquiry';
+/** Display status key for badge; null = no active order, do not show tag. */
+function getConversationStatus(conversation: Conversation): string | null {
+  const status = conversation.active_order_status;
+  if (!status) return null;
+  switch (status) {
+    case 'in_progress':
+    case 'pending_review':
+      return 'in_progress';
+    case 'accepted':
+      return 'scheduled';
+    case 'pending_for_provider':
+    case 'pending_for_client':
+    case 'pending_payment':
+      return 'quote';
+    default:
+      return 'inquiry';
+  }
 }
 
 function formatTime(dateString: string | null): string {
@@ -179,7 +192,7 @@ export default function ProviderInboxScreen() {
   const filteredConversations = useMemo(() => {
     let list = conversations;
     if (filter === 'unread') list = list.filter((c) => c.unread_count > 0);
-    if (filter === 'active') list = list.filter((c) => !!c.order_id);
+    if (filter === 'active') list = list.filter((c) => !!c.active_order_status);
     if (filter === 'archived') list = []; // No API support yet
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -196,7 +209,7 @@ export default function ProviderInboxScreen() {
     () => ({
       all: conversations.length,
       unread: conversations.filter((c) => c.unread_count > 0).length,
-      active: conversations.filter((c) => !!c.order_id).length,
+      active: conversations.filter((c) => !!c.active_order_status).length,
       archived: 0,
     }),
     [conversations]
@@ -269,8 +282,8 @@ export default function ProviderInboxScreen() {
     ({ item, index }: { item: Conversation; index: number }) => {
       const unread = item.unread_count > 0;
       const statusKey = getConversationStatus(item);
-      const statusColor = STATUS_COLORS[statusKey] ?? STATUS_COLORS.inquiry;
-      const statusLabel = getStatusLabel(statusKey);
+      const statusColor = statusKey ? (STATUS_COLORS[statusKey] ?? STATUS_COLORS.inquiry) : '';
+      const statusLabel = statusKey ? getStatusLabel(statusKey) : '';
       const isOnline = false; // TODO: from backend when available
 
       return (
@@ -313,9 +326,11 @@ export default function ProviderInboxScreen() {
                   {item.last_message || t('chat.noMessages')}
                 </Text>
                 <View style={styles.badges}>
-                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                    <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-                  </View>
+                  {statusKey ? (
+                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                      <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
+                    </View>
+                  ) : null}
                   {unread && (
                     <View style={styles.unreadBadge}>
                       <Text style={styles.unreadText}>
