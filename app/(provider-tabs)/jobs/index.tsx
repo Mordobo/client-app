@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingTop: 24,
+    paddingVertical: 10,
+    paddingTop: 16,
   },
   title: {
     fontSize: 20,
@@ -259,15 +259,15 @@ const styles = StyleSheet.create({
   filters: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   filterBtnWrapper: {
     borderRadius: 999,
     overflow: "hidden",
   },
   filterBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: FILTER_INACTIVE_BG,
   },
@@ -280,8 +280,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   listContent: {
-    paddingBottom: 24,
-    gap: 12,
+    paddingBottom: 16,
+    gap: 8,
   },
   centered: {
     flex: 1,
@@ -301,23 +301,23 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardBody: {
-    padding: 16,
+    padding: 12,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   cardHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(61, 51, 112, 0.5)",
     alignItems: "center",
     justifyContent: "center",
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   address: {
     flex: 1,
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   footerBtnBorder: {
     borderLeftWidth: 1,
