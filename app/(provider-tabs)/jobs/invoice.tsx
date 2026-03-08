@@ -109,8 +109,10 @@ export default function InvoiceScreen() {
     );
   }
 
+  const footerBottom = Math.max(insets.bottom, 12);
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
@@ -119,7 +121,11 @@ export default function InvoiceScreen() {
         <Text style={styles.headerTitle}>{t("providerDashboard.invoice.title")}</Text>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Invoice Card */}
         <View style={styles.invoiceCard}>
           {/* Invoice Header */}
@@ -293,7 +299,7 @@ export default function InvoiceScreen() {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
         <TouchableOpacity style={styles.continueBtn} onPress={handleContinueToRate} activeOpacity={0.8}>
           <Text style={styles.continueBtnText}>{t("providerDashboard.invoice.continueToRate")}</Text>
         </TouchableOpacity>
@@ -342,7 +348,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
 
   // Invoice Card

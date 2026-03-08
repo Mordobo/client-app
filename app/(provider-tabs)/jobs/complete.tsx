@@ -292,7 +292,7 @@ export default function CompleteJobScreen() {
 
   if (data.order.status === "completed") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
@@ -318,7 +318,7 @@ export default function CompleteJobScreen() {
 
   if (data.order.status === "pending_review") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
@@ -345,7 +345,7 @@ export default function CompleteJobScreen() {
 
   if (data.order.status !== "in_progress") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
@@ -370,8 +370,10 @@ export default function CompleteJobScreen() {
     );
   }
 
+  const footerBottom = Math.max(insets.bottom, 12);
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
@@ -382,7 +384,7 @@ export default function CompleteJobScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -457,7 +459,7 @@ export default function CompleteJobScreen() {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
           onPress={handleSubmit}
@@ -595,7 +597,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
 
   // Success card
