@@ -3,8 +3,8 @@ import { useMode } from "@/contexts/ModeContext";
 import { t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useRealtimeConversationMessages } from "@/hooks/useRealtimeConversationMessages";
-import { ConversationDetail, fetchConversation, fetchConversationActiveQuote, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
-import { fetchOrderDetail, Order, OrderStatus, Quote } from "@/services/orders";
+import { ConversationDetail, fetchConversation, fetchConversationActiveOrder, fetchConversationActiveQuote, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
+import { Order, OrderStatus, Quote } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
@@ -46,7 +46,7 @@ const colors = {
   chipBg: "rgba(255,255,255,0.05)",
 };
 
-const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending_for_provider", "pending_for_client", "pending_payment", "accepted", "in_progress"];
+const ACTIVE_ORDER_STATUSES: OrderStatus[] = ["pending_for_provider", "pending_for_client", "pending_payment", "accepted", "in_progress", "pending_review"];
 
 /** Use line_items sum as display total when present, so edited duration/amounts match quote detail (fixes total desync). */
 function getQuoteDisplayTotal(quote: Quote): number {
@@ -131,10 +131,19 @@ export default function ChatScreen() {
     if (!conversationId || conversationId === "demo") return;
     try {
       const { quote } = await fetchConversationActiveQuote(conversationId);
-      setActiveQuote(quote);
-      if (!quote) setActiveOrder(null);
+      setActiveQuote(quote ?? null);
     } catch {
       setActiveQuote(null);
+    }
+  }, [conversationId]);
+
+  const refreshActiveOrder = useCallback(async () => {
+    if (!conversationId || conversationId === "demo") return;
+    try {
+      const order = await fetchConversationActiveOrder(conversationId);
+      setActiveOrder(order);
+    } catch {
+      setActiveOrder(null);
     }
   }, [conversationId]);
 
@@ -143,8 +152,9 @@ export default function ChatScreen() {
       if (conversationId && conversationId !== "demo") {
         loadMessages(false);
         refreshActiveQuote();
+        refreshActiveOrder();
       }
-    }, [conversationId, loadMessages, refreshActiveQuote])
+    }, [conversationId, loadMessages, refreshActiveQuote, refreshActiveOrder])
   );
 
   const loadConversation = useCallback(async () => {
@@ -180,23 +190,17 @@ export default function ChatScreen() {
         }
       }
       setConversation(conv);
-      if (conv.order_id) {
-        try {
-          const detail = await fetchOrderDetail(conv.order_id);
-          const order = detail.order;
-          if (ACTIVE_ORDER_STATUSES.includes(order.status)) {
-            setActiveOrder(order);
-          }
-        } catch {
-          setActiveOrder(null);
-        }
-      } else {
+      // Use active-order endpoint so we show the current active order for this client+provider even if conv.order_id is stale
+      try {
+        const order = await fetchConversationActiveOrder(conversationId);
+        setActiveOrder(order ?? null);
+      } catch {
         setActiveOrder(null);
       }
       // Load active quote for this conversation
       try {
         const { quote } = await fetchConversationActiveQuote(conversationId);
-        setActiveQuote(quote);
+        setActiveQuote(quote ?? null);
       } catch {
         setActiveQuote(null);
       }
@@ -212,8 +216,14 @@ export default function ChatScreen() {
     }
     const initChat = async () => {
       setLoading(true);
-      await Promise.all([loadConversation(), loadMessages()]);
-      setLoading(false);
+      setError(null);
+      try {
+        await Promise.all([loadConversation(), loadMessages()]);
+      } catch {
+        setError(t("chat.failedToLoad"));
+      } finally {
+        setLoading(false);
+      }
     };
     initChat();
 
@@ -222,6 +232,7 @@ export default function ChatScreen() {
       pollingRef.current = setInterval(() => {
         loadMessages(false);
         refreshActiveQuote();
+        refreshActiveOrder();
       }, POLLING_INTERVAL_MS);
     };
     const stopPolling = () => {
@@ -241,7 +252,7 @@ export default function ChatScreen() {
       sub.remove();
       stopPolling();
     };
-  }, [conversationId, loadConversation, loadMessages, refreshActiveQuote, router]);
+  }, [conversationId, loadConversation, loadMessages, refreshActiveQuote, refreshActiveOrder, router]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => {
@@ -362,9 +373,9 @@ export default function ChatScreen() {
   };
 
   const hasActiveQuote = !!activeQuote && ["draft", "sent", "pending", "approved"].includes(activeQuote.status);
-  const hasActiveOrder = !!activeOrder && ["pending_for_provider", "pending", "accepted", "in_progress"].includes(activeOrder.status);
-  // When order is scheduled (accepted) or in progress, show only the job banner — hide the "Active Quote" banner to avoid duplicate cards
-  const showQuoteBanner = hasActiveQuote && !(activeOrder && ["accepted", "in_progress"].includes(activeOrder.status));
+  const hasActiveOrder = !!activeOrder && ACTIVE_ORDER_STATUSES.includes(activeOrder.status);
+  // Show quote banner only when order is pending_for_client (quote waiting for client approval)
+  const showQuoteBanner = hasActiveQuote && activeOrder?.status === "pending_for_client";
 
   const handleCreateQuote = () => {
     if (hasActiveOrder) {
@@ -465,8 +476,10 @@ export default function ChatScreen() {
     activeOrder ?
       activeOrder.status === "in_progress" ? t("chat.jobBannerInProgress")
       : activeOrder.status === "accepted" ? t("chat.jobBannerScheduled")
-      : activeOrder.status === "pending_for_client" ? t("chat.quoteStatus_sent")
-      : t("chat.jobBannerPending")
+      : activeOrder.status === "pending_payment" ? t("chat.jobBannerPendingPayment")
+      : activeOrder.status === "pending_review" ? t("chat.jobBannerPendingReview")
+      : activeOrder.status === "pending_for_provider" ? t("chat.jobBannerPending")
+      : ""
     : "";
 
   const renderClientMessage = ({ item, index }: { item: Message; index: number }, list: Message[]) => {
@@ -606,12 +619,12 @@ export default function ChatScreen() {
           <Text style={styles.headerStatus}>{t("chat.online")}</Text>
         </View>
         <TouchableOpacity
-          onPress={hasActiveOrder ? handleViewOrder : hasActiveQuote ? handleViewQuote : handleCreateQuote}
+          onPress={showQuoteBanner ? handleViewQuote : hasActiveOrder ? handleViewOrder : hasActiveQuote ? handleViewQuote : handleCreateQuote}
           style={[styles.quoteHeaderBtn, (hasActiveOrder || hasActiveQuote) && styles.quoteHeaderBtnView]}
         >
-          <Ionicons name={hasActiveOrder ? "briefcase-outline" : hasActiveQuote ? "eye-outline" : "document-text-outline"} size={16} color={colors.textPrimary} />
+          <Ionicons name={showQuoteBanner ? "eye-outline" : hasActiveOrder ? "briefcase-outline" : hasActiveQuote ? "eye-outline" : "document-text-outline"} size={16} color={colors.textPrimary} />
           <Text style={styles.quoteHeaderBtnText}>
-            {hasActiveOrder ? t("chat.viewOrder") : hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
+            {showQuoteBanner ? t("chat.viewQuote") : hasActiveOrder ? t("chat.viewOrder") : hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.headerBtn}>
@@ -693,7 +706,12 @@ export default function ChatScreen() {
 
           {/* Quick actions - JSX style */}
           <View style={styles.quickActions}>
-            {[t("chat.quickLocation"), t("chat.quickPhoto"), t("chat.quickQuote"), t("chat.quickSchedule")].map((label) => (
+            {[
+              t("chat.quickLocation"),
+              t("chat.quickPhoto"),
+              ...(hasActiveOrder || hasActiveQuote ? [] : [t("chat.quickQuote")]),
+              t("chat.quickSchedule"),
+            ].map((label) => (
               <TouchableOpacity key={label} style={styles.quickActionChip} onPress={() => handleQuickAction(label)} activeOpacity={0.7}>
                 <Text style={styles.quickActionChipText}>{label}</Text>
               </TouchableOpacity>

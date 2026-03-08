@@ -343,6 +343,33 @@ export default function CompleteJobScreen() {
     );
   }
 
+  if (data.order.status !== "in_progress") {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
+        </View>
+        <View style={[styles.centered, styles.flexGrow]}>
+          <View style={styles.successCard}>
+            <Ionicons name="play-circle" size={48} color={PURPLE_END} style={styles.successIcon} />
+            <Text style={styles.successTitle}>{t("providerDashboard.completeJob.startJobFirst")}</Text>
+            <Text style={styles.successSubtitle}>{t("providerDashboard.completeJob.startJobFirstDesc")}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={goBack}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitBtnText}>{t("common.back")}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header */}

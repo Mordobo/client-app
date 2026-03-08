@@ -1,8 +1,8 @@
 import { t } from "@/i18n";
 import { fetchOrderDetail } from "@/services/orders";
-import { getProviderActiveJobs, type ProviderActiveJobDetail } from "@/services/providerDashboard";
+import { getProviderActiveJobs, startJob, type ProviderActiveJobDetail } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -24,6 +24,7 @@ export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const {
     data: jobs = [],
     isLoading,
@@ -40,6 +41,7 @@ export default function ProviderJobDetailScreen() {
   }, [id, jobs]);
 
   const [openingChat, setOpeningChat] = useState(false);
+  const [startingJob, setStartingJob] = useState(false);
 
   const goBack = useCallback(() => router.back(), [router]);
 
@@ -67,10 +69,25 @@ export default function ProviderJobDetailScreen() {
     Linking.openURL(url);
   }, [job]);
 
-  const handleStartJob = useCallback(() => {
-    if (!job) return;
-    router.push({ pathname: "/(provider-tabs)/jobs/in-progress", params: { id: job.orderId } });
-  }, [job, router]);
+  const handleStartJob = useCallback(async () => {
+    if (!job || startingJob) return;
+    const orderId = job.orderId;
+    if (job.status !== "in_progress") {
+      setStartingJob(true);
+      try {
+        await startJob(orderId);
+        await queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
+        router.push({ pathname: "/(provider-tabs)/jobs/in-progress", params: { id: orderId } });
+      } catch (err) {
+        console.error("[ProviderJobDetail] Start job failed:", err);
+        Alert.alert(t("common.error"), t("providerDashboard.inProgress.errors.startJobFailed"));
+      } finally {
+        setStartingJob(false);
+      }
+    } else {
+      router.push({ pathname: "/(provider-tabs)/jobs/in-progress", params: { id: orderId } });
+    }
+  }, [job, startingJob, queryClient, router]);
 
   const handleMarkAsCompleted = useCallback(() => {
     if (!job) return;
@@ -185,15 +202,29 @@ export default function ProviderJobDetailScreen() {
           : null}
         </View>
 
-        {/* Action buttons: show "Work in progress" for all active jobs so provider can open timer/tasks */}
-        <TouchableOpacity style={styles.inProgressBtn} onPress={handleStartJob} activeOpacity={0.8}>
-          <Ionicons name="play-circle" size={20} color="#FFFFFF" />
-          <Text style={styles.completeBtnText}>{t("providerDashboard.inProgress.title")}</Text>
+        {/* Work in progress: for scheduled (accepted) jobs, call start API then navigate; for in_progress, open timer/tasks */}
+        <TouchableOpacity
+          style={[styles.inProgressBtn, startingJob && styles.inProgressBtnDisabled]}
+          onPress={handleStartJob}
+          activeOpacity={0.8}
+          disabled={startingJob}
+        >
+          {startingJob ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Ionicons name="play-circle" size={20} color="#FFFFFF" />
+          )}
+          <Text style={styles.completeBtnText}>
+            {startingJob ? t("providerDashboard.inProgress.starting") : t("providerDashboard.inProgress.title")}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.completeBtn} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
-          <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-          <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
-        </TouchableOpacity>
+        {/* Mark as completed: only when job is already in_progress (started) */}
+        {job.status === "in_progress" && (
+          <TouchableOpacity style={styles.completeBtn} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
+            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+            <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -363,6 +394,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#6366F1",
     paddingVertical: 16,
     borderRadius: 12,
+  },
+  inProgressBtnDisabled: {
+    opacity: 0.7,
   },
   completeBtn: {
     flexDirection: "row",
