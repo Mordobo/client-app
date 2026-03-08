@@ -798,6 +798,9 @@ export default {
     reviews: "Reseñas",
     guest: "Invitado",
     version: "Versión",
+    errors: {
+      reviewsFetchFailed: "Error al cargar reseñas",
+    },
   },
   favorites: {
     loadError: "Error al cargar favoritos",

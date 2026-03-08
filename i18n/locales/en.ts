@@ -796,6 +796,9 @@ export default {
     reviews: "Reviews",
     guest: "Guest",
     version: "Version",
+    errors: {
+      reviewsFetchFailed: "Failed to load reviews",
+    },
   },
   favorites: {
     loadError: "Failed to load favorites",
