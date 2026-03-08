@@ -436,7 +436,11 @@ export default function ChatScreen() {
         <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
           {!isMine && (
             <View style={styles.avatarSmall}>
-              <Text style={styles.avatarSmallEmoji}>👩</Text>
+              <ProviderAvatar
+                profileImage={user?.id === conversation?.client_id ? conversation?.supplier_image : conversation?.client_image ?? null}
+                size={28}
+                rounded
+              />
             </View>
           )}
           <View style={[styles.bubbleWrapper, isMine && styles.bubbleWrapperMine]}>
