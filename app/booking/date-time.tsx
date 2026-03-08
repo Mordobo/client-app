@@ -121,7 +121,7 @@ export default function BookingDateTimeScreen() {
         return;
       }
 
-      console.log('[BookingDateTime] Selected service:', selectedService.category_name);
+      console.log('[BookingDateTime] Selected service:', selectedService.name || selectedService.category_name);
     } catch (err) {
       console.error('[BookingDateTime] Error loading data:', err);
       if (err instanceof ApiError) {
@@ -178,7 +178,7 @@ export default function BookingDateTimeScreen() {
   const providerCardInfo: BookingDateTimePickerProviderCard | undefined = supplier && service
     ? {
         name: supplier.business_name?.trim() || supplier.full_name,
-        serviceInfo: `${service.category_name || 'Service'} • $${service.price || 0}${t('supplier.perHour')}`,
+        serviceInfo: `${service.name?.trim() || service.category_name || 'Service'} • $${service.price || 0}${t('supplier.perHour')}`,
         profileImage: supplier.profile_image,
       }
     : undefined;
