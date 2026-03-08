@@ -251,7 +251,7 @@ export default function BookingSummaryScreen() {
             {/* Service */}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t("booking.service")}</Text>
-              <Text style={styles.detailValue}>{service.category_name || service.description || "Service"}</Text>
+              <Text style={styles.detailValue}>{service.name?.trim() || service.category_name || service.description || "Service"}</Text>
             </View>
 
             {/* Date */}
@@ -294,7 +294,7 @@ export default function BookingSummaryScreen() {
             {/* Service Cost */}
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>
-                {service.category_name || "Service"} ({duration} {t("booking.hours")} x ${service.price || 60}/hr)
+                {service.name?.trim() || service.category_name || "Service"} ({duration} {t("booking.hours")} x ${service.price || 60}/hr)
               </Text>
               <Text style={styles.priceValue}>${pricing.serviceCost.toFixed(2)}</Text>
             </View>

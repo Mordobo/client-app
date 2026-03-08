@@ -159,8 +159,14 @@ export default function ProviderDetailScreen() {
     setAboutExpanded(!aboutExpanded);
   };
 
-  // Format service duration - extract from description or use defaults
+  // Format service duration - use API value, then description, then defaults
   const getServiceDuration = (service: SupplierService): string => {
+    if (service.duration_minutes != null && service.duration_minutes > 0) {
+      const mins = service.duration_minutes;
+      if (mins < 60) return `${mins} min`;
+      const hrs = mins / 60;
+      return hrs % 1 === 0 ? `${hrs} hr` : `${(mins / 60).toFixed(1)} hr`;
+    }
     // Try to extract duration from description (e.g., "2-3 hours", "1-2 hrs")
     if (service.description) {
       const durationMatch = service.description.match(/(\d+)[-\s](\d+)\s*(hr|hour|h)/i);
@@ -362,7 +368,7 @@ export default function ProviderDetailScreen() {
                   >
                     <View style={styles.serviceInfo}>
                       <Text style={styles.serviceName}>
-                        {service.category_name || 'Service'}
+                        {service.name?.trim() || service.category_name || 'Service'}
                       </Text>
                       <View style={styles.serviceDurationRow}>
                         <Ionicons name="time-outline" size={14} color={colors.textSecondary} />

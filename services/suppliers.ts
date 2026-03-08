@@ -30,11 +30,15 @@ export interface Supplier {
 export interface SupplierService {
   id: string;
   supplier_id: string;
+  /** Provider-defined specific name (e.g. "Electricidad cocina"). Shown to clients. */
+  name?: string;
   category_id: string;
   category_name?: string;
   category_key?: string;
   price?: number;
   description?: string;
+  /** Duration in minutes. Used for display (e.g. "45 min", "1-3 hrs"). */
+  duration_minutes?: number | null;
   active: boolean;
 }
 
