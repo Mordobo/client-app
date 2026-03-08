@@ -627,9 +627,6 @@ export default function ChatScreen() {
             {showQuoteBanner ? t("chat.viewQuote") : hasActiveOrder ? t("chat.viewOrder") : hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.headerBtn}>
-          <Ionicons name="ellipsis-vertical" size={20} color={colors.textPrimary} />
-        </TouchableOpacity>
       </View>
 
       {/* Job banner - only when active order (not for pending_for_client — those show quote banner instead) */}
