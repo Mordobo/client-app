@@ -1,11 +1,14 @@
 import { request, ApiError } from './auth';
 import { t } from '@/i18n';
+import type { OrderStatus } from './orders';
 
 export interface Conversation {
   id: string;
   client_id: string;
   supplier_id: string;
   order_id: string | null;
+  /** Real active order status for this client-supplier pair; null when no active order. */
+  active_order_status: OrderStatus | null;
   last_message_at: string | null;
   created_at: string;
   other_user_name: string;
@@ -66,6 +69,7 @@ export const fetchConversations = async (role?: ConversationRole): Promise<Conve
       last_message: conv.last_message || null,
       other_user_image: conv.other_user_image || null,
       unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
+      active_order_status: conv.active_order_status ?? null,
     }));
   } catch (error) {
     if (error instanceof ApiError) throw error;
