@@ -138,6 +138,23 @@ export const fetchConversationClientAddress = async (
   }
 };
 
+// GET /conversations/:id/active-order - Get the current active order for this conversation (client-supplier pair).
+export const fetchConversationActiveOrder = async (
+  conversationId: string
+): Promise<import('@/services/orders').Order | null> => {
+  try {
+    const data = await request<{ order: import('@/services/orders').Order | null }>(
+      `/conversations/${conversationId}/active-order`,
+      { method: 'GET' },
+      'Failed to fetch active order'
+    );
+    return data.order ?? null;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
 // GET /conversations/:id/active-quote - Get active quote for conversation (if any)
 export const fetchConversationActiveQuote = async (
   conversationId: string
