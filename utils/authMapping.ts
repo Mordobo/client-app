@@ -18,6 +18,16 @@ export interface GoogleProfile {
   photo?: string | null;
 }
 
+/** Same shape as GoogleProfile so mapAuthResponseToUser works for Apple */
+export interface AppleProfile {
+  id: string;
+  email: string;
+  name?: string | null;
+  givenName?: string | null;
+  familyName?: string | null;
+  photo?: string | null;
+}
+
 const stringOrUndefined = (value: unknown): string | undefined => {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -51,7 +61,7 @@ const extractNameParts = (fullName?: string | null) => {
 
 const resolveName = (
   apiUser: RegisterResponseUser,
-  googleUser: GoogleProfile
+  socialUser: GoogleProfile | AppleProfile
 ): { firstName: string; lastName: string } => {
   const apiFirst = stringOrUndefined((apiUser as Record<string, unknown>).first_name);
   const apiLast = stringOrUndefined((apiUser as Record<string, unknown>).last_name);
@@ -59,14 +69,13 @@ const resolveName = (
     stringOrUndefined(apiUser.full_name)
   );
 
-  const googleFirst = stringOrUndefined(googleUser?.givenName ?? undefined);
-  const googleLast = stringOrUndefined(googleUser?.familyName ?? undefined);
-
-  const googleName = stringOrUndefined(googleUser?.name);
+  const socialFirst = stringOrUndefined(socialUser?.givenName ?? undefined);
+  const socialLast = stringOrUndefined(socialUser?.familyName ?? undefined);
+  const socialName = stringOrUndefined(socialUser?.name);
 
   return {
-    firstName: apiFirst ?? splitFirst ?? googleFirst ?? googleName ?? '',
-    lastName: apiLast ?? splitLast ?? googleLast ?? '',
+    firstName: apiFirst ?? splitFirst ?? socialFirst ?? socialName ?? '',
+    lastName: apiLast ?? splitLast ?? socialLast ?? '',
   };
 };
 
@@ -126,11 +135,11 @@ export const mapApiUserToUser = (
 
 export const mapAuthResponseToUser = (
   response: AuthSuccessResponse,
-  googleUser: GoogleProfile,
+  socialUser: GoogleProfile | AppleProfile,
   provider: User['provider']
 ): User => {
   const apiUser = response.user;
-  const { firstName, lastName } = resolveName(apiUser, googleUser);
+  const { firstName, lastName } = resolveName(apiUser, socialUser);
   
   const raw = apiUser as Record<string, unknown>;
   const loginCount = raw.login_count as number | undefined;
@@ -143,8 +152,8 @@ export const mapAuthResponseToUser = (
   const completedOrdersCount = typeof raw.completed_orders_count === 'number' ? raw.completed_orders_count : undefined;
 
   return {
-    id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(googleUser?.id) ?? '',
-    email: stringOrUndefined(apiUser.email) ?? stringOrUndefined(googleUser?.email) ?? '',
+    id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(socialUser?.id) ?? '',
+    email: stringOrUndefined(apiUser.email) ?? stringOrUndefined(socialUser?.email) ?? '',
     firstName,
     lastName,
     phone:
@@ -153,12 +162,12 @@ export const mapAuthResponseToUser = (
     avatar:
       stringOrUndefined(raw.profile_image) ??
       stringOrUndefined(raw.avatar) ??
-      stringOrUndefined(googleUser?.photo),
+      stringOrUndefined(socialUser?.photo),
     country: stringOrUndefined(raw.country),
     gender,
     dateOfBirth,
     provider,
-    authToken: stringOrUndefined(response.token),
+    authToken: stringOrUndefined(response.token) ?? stringOrUndefined((response as { accessToken?: string }).accessToken),
     refreshToken: stringOrUndefined(response.refreshToken),
     tier,
     completedOrdersCount,
