@@ -67,6 +67,7 @@ export default {
       ],
       // expo-build-properties removido temporalmente para evitar errores de Kotlin compiler
       // Google Sign-In ahora usa expo-auth-session (compatible con Expo Go)
+      "expo-apple-authentication",
     ],
     experiments: {
       typedRoutes: true,

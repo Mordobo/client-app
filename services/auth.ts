@@ -200,7 +200,7 @@ export const request = async <T>(
   retryOn401 = true
 ): Promise<T> => {
   // List of public endpoints that don't require authentication
-  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate'];
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/apple', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
   
   // If logout was just called and this is not a public endpoint, throw error
@@ -620,6 +620,29 @@ export const loginWithGoogle = async (
       body: JSON.stringify(payload),
     },
     t('errors.googleLoginGeneric')
+  );
+};
+
+export interface AppleLoginPayload {
+  identityToken: string;
+  authorizationCode?: string;
+  email?: string;
+  fullName?: string;
+}
+
+export const loginWithApple = async (
+  payload: AppleLoginPayload
+): Promise<AuthSuccessResponse> => {
+  return request<AuthSuccessResponse>(
+    '/auth/apple',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+    t('errors.appleLoginGeneric')
   );
 };
 

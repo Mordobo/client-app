@@ -142,6 +142,8 @@ export default {
     unexpectedResponse: "Respuesta inesperada del servidor.",
     googleLoginGeneric: "No se pudo continuar con Google. Por favor intenta de nuevo.",
     googleMissingIdToken: "No pudimos verificar tu cuenta de Google. Intenta de nuevo.",
+    appleLoginGeneric: "No se pudo continuar con Apple. Por favor intenta de nuevo.",
+    appleUnavailable: "Inicio de sesión con Apple no está disponible en este dispositivo.",
     googlePlayServices: "Se requieren los servicios de Google Play para usar Google Sign-In.",
     googleUnavailable: "Google Sign-In no está disponible en esta versión. Instala un cliente dev con el módulo nativo.",
     invalidVerificationCode: "Código de verificación inválido. Por favor intenta de nuevo.",

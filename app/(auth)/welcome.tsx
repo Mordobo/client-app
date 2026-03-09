@@ -1,17 +1,17 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
+import { ApiError as AuthApiError } from '@/services/auth';
 // Note: We no longer use markWelcomeScreenAsSeen - login_count is managed by backend
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import { type GoogleProfile } from '@/utils/authMapping';
 import {
   consumePendingGoogleWebResult,
-  getGoogleStatusCodes,
-  isGoogleWebAvailable,
+  isGoogleConfigured,
   signInWithGoogleWeb,
   signInWithGoogleMobile,
   WEB_RESULT_STORAGE_KEY,
 } from '@/utils/googleSignIn';
-import { Ionicons } from '@expo/vector-icons';
+import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -26,13 +26,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MordoboLogo from '@/components/MordoboLogo';
-import { ApiError } from '@/services/auth';
 
 export default function WelcomeScreen() {
   const { login, isAuthenticated } = useAuth();
   const [googleLoading, setGoogleLoading] = useState(false);
-  const webGoogleSupported = isGoogleWebAvailable();
-  const isGoogleSupported = webGoogleSupported;
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  const isGoogleSupported = isGoogleConfigured();
+
+  useEffect(() => {
+    isAppleSignInAvailable().then(setAppleAvailable);
+  }, []);
 
   // Redirect to home if already authenticated
   useEffect(() => {
@@ -53,7 +57,7 @@ export default function WelcomeScreen() {
 
 
   const handleGoogleError = useCallback((error: unknown) => {
-    if (error instanceof ApiError) {
+    if (error instanceof AuthApiError) {
       const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
       Alert.alert(t('common.error'), message);
       return;
@@ -168,7 +172,7 @@ export default function WelcomeScreen() {
   }, [finalizeGoogleLogin, handleGoogleError]);
 
   const handleGoogleLogin = async () => {
-    console.log('[WelcomeScreen][GoogleLogin] Platform:', Platform.OS, 'isGoogleWebAvailable:', webGoogleSupported);
+    console.log('[WelcomeScreen][GoogleLogin] Platform:', Platform.OS, 'isGoogleSupported:', isGoogleSupported);
     
     setGoogleLoading(true);
     try {
@@ -206,7 +210,7 @@ export default function WelcomeScreen() {
         return;
       }
 
-      if (error instanceof ApiError) {
+      if (error instanceof AuthApiError) {
         const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
         Alert.alert(t('common.error'), message);
         return;
@@ -225,7 +229,26 @@ export default function WelcomeScreen() {
   };
 
   const handleAppleLogin = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonApple'));
+    if (!appleAvailable) {
+      Alert.alert(t('common.ok'), t('auth.soonApple'));
+      return;
+    }
+    setAppleLoading(true);
+    try {
+      const creds = await signInWithApple();
+      if (!creds) return;
+      const userData = await loginOrRegisterWithApple(creds);
+      await login(userData);
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      if (error instanceof AuthApiError) {
+        Alert.alert(t('common.error'), error.message || t('errors.appleLoginGeneric'));
+      } else {
+        Alert.alert(t('common.error'), t('errors.appleLoginGeneric'));
+      }
+    } finally {
+      setAppleLoading(false);
+    }
   };
 
   return (
@@ -278,15 +301,22 @@ export default function WelcomeScreen() {
           {/* Social Auth Buttons */}
           <View style={styles.socialContainer}>
             <TouchableOpacity
-              style={styles.socialButton}
+              style={[styles.socialButton, appleLoading && styles.socialButtonDisabled]}
               onPress={handleAppleLogin}
+              disabled={appleLoading}
             >
-              <Text style={styles.socialButtonEmoji}>🍎</Text>
-              <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
+              {appleLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.socialButtonEmoji}>🍎</Text>
+                  <Text style={styles.socialButtonText}>{t('auth.apple')}</Text>
+                </>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.socialButton}
+              style={[styles.socialButton, (googleLoading || !isGoogleSupported) && styles.socialButtonDisabled]}
               onPress={handleGoogleLogin}
               disabled={googleLoading || !isGoogleSupported}
             >
@@ -425,5 +455,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400',
     color: '#FFFFFF',
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
 });
