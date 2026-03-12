@@ -252,13 +252,13 @@ export const request = async <T>(
     console.log('[API] ========================================');
     
     // Endpoints that send email can take 25s+ (Brevo SMTP); use longer timeout so emulator/host round-trip doesn't hit limit
-    // QA on Render can cold-start in 50–60s; use longer timeout when targeting Render
+    // QA on Render free tier cold-starts in 50–90s; use 90s when targeting Render
     const isRender = url.includes('onrender.com');
     const timeoutMs =
       path.includes('validate-email') || path.includes('resend-code')
         ? 70000
         : isRender
-          ? 65000
+          ? 90000
           : 45000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -307,8 +307,11 @@ export const request = async <T>(
 
       // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
+        const renderHint = url.includes('onrender.com')
+          ? '\n\n' + t('errors.requestTimeoutRenderHint')
+          : '';
         throw new ApiError(
-          t('errors.requestTimeout') + getPhysicalDeviceHint(),
+          t('errors.requestTimeout') + renderHint + getPhysicalDeviceHint(),
           0,
           { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
         );
