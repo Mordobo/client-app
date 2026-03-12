@@ -160,6 +160,7 @@ export default {
     phoneNumberTooShort: "Phone number must be at least 6 characters long",
     connectionFailed: "Cannot connect to server. Please check your internet connection and ensure the backend is running.",
     requestTimeout: "The server took too long to respond. Please check your connection and try again. If the problem persists, ensure the backend server is running.",
+    requestTimeoutRenderHint: "If using Render (QA), the server may sleep after inactivity and take up to 1–2 minutes to wake up. Wait and try again.",
     getSettingsFailed: "Failed to load settings. Please try again.",
     updateSettingsFailed: "Failed to update settings. Please try again.",
     changePasswordFailed: "Failed to change password. Please try again.",
