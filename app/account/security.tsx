@@ -348,13 +348,13 @@ export default function ClientSecurityScreen() {
       </Modal>
 
       <Modal visible={twoFASetup !== null} transparent animationType="fade" onRequestClose={() => setTwoFASetup(null)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={[styles.modalOverlay, { paddingBottom: insets.bottom }]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TouchableOpacity
             style={[styles.modalOverlay, styles.modalOverlayTouchable]}
             activeOpacity={1}
             onPress={() => setTwoFASetup(null)}
           />
-          <View style={[styles.modalBox, { maxWidth: 340 }]}>
+          <View style={[styles.modalBox, { maxWidth: 340, paddingBottom: 24 + insets.bottom }]}>
               <Text style={styles.modalTitle}>{t(`${I18N}.scanQRCode`)}</Text>
               {twoFASetup?.qrCode && (
                 <View style={styles.qrContainer}>

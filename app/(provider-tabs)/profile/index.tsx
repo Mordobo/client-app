@@ -179,7 +179,7 @@ export default function ProviderProfileScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
+      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
         {/* Header with gradient and avatar */}
         <View style={styles.headerWrapper}>
           <LinearGradient colors={[...GRADIENT_COLORS]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader} />

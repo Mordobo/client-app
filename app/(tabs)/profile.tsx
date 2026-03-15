@@ -85,17 +85,10 @@ export default function ProfileScreen() {
   const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "" : "";
 
   return (
-    <View style={styles.container} collapsable={false}>
+    <View style={[styles.container, { paddingTop: insets.top }]} collapsable={false}>
       <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         {/* Header - Exact match to JSX: padding: '50px 20px 30px', backgroundColor: colors.bgCard */}
-        <View
-          style={[
-            styles.header,
-            {
-              paddingTop: insets.top + 20,
-            },
-          ]}
-        >
+        <View style={styles.header}>
           <View style={styles.profileHeader}>
             {/* Avatar - Exact match: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' */}
             <View style={styles.avatarContainer}>
@@ -202,8 +195,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100, // Space for bottom nav
   },
-  // Header: padding: '50px 20px 30px' from JSX
+  // Header: padding: '50px 20px 30px' from JSX (top padding from container safe area)
   header: {
+    paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 30,
     backgroundColor: "#252542", // Hardcode dark header

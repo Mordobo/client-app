@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -162,24 +161,24 @@ export default function BookingSuccessScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.secondary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error || !orderData) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.centerContainer}>
           <Text style={styles.errorText}>{error || t('errors.requestFailed')}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadOrderData}>
             <Text style={styles.retryButtonText}>{t('chat.retry')}</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -189,9 +188,9 @@ export default function BookingSuccessScreen() {
   const formattedTime = formatTime(order.scheduled_at);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 24, paddingBottom: 24 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Success Icon with Animation */}
@@ -293,7 +292,7 @@ export default function BookingSuccessScreen() {
           </View>
         </Animated.View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -307,8 +306,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 40,
   },
   centerContainer: {
     flex: 1,

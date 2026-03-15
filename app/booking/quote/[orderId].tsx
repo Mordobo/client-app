@@ -566,7 +566,7 @@ export default function QuoteScreen() {
       </ScrollView>
 
       {/* Actions */}
-      <View style={[styles.actions, theme?.actions]}>
+      <View style={[styles.actions, theme?.actions, { paddingBottom: 20 + insets.bottom }]}>
         {isClient && order.status === 'pending_for_client' && (
           <>
             <TouchableOpacity
