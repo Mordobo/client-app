@@ -153,7 +153,7 @@ export default function ProviderDashboardScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 80 }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 80 }]}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />} showsVerticalScrollIndicator={false}>
         {/* Header: green gradient matching preview (linear-gradient 135deg #1B8B5E → #25A870) */}
         <LinearGradient colors={["#1B8B5E", "#25A870"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>

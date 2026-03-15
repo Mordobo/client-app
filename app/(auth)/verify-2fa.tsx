@@ -90,7 +90,7 @@ export default function Verify2FAScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 24, paddingBottom: insets.bottom }]}>
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
       </TouchableOpacity>
