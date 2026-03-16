@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { fetchUnreadCount } from '@/services/conversations';
 import { fetchUnreadNotificationCount } from '@/services/notifications';
 
@@ -84,6 +85,7 @@ function NotificationsTabIcon({ color, focused }: { color: string; focused: bool
 export default function TabLayout() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { isAuthenticated } = useAuth();
   const { mode, isLoading } = useMode();
 
@@ -99,27 +101,25 @@ export default function TabLayout() {
     }
   }, [isLoading, mode, router]);
 
-  // Hardcode dark colors like Home screen to ensure consistency in APK
   // Calculate bottom padding respecting safe area
   const bottomPadding = Math.max(insets.bottom, 24);
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3b82f6', // Hardcode primary color
-        tabBarInactiveTintColor: '#9ca3af', // Hardcode secondary text color
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.tabBarInactive,
         headerShown: false,
         tabBarButton: HapticTab,
-        // Hardcode dark theme colors in StyleSheet to match Home screen pattern
         tabBarStyle: {
-          backgroundColor: '#252542', // Hardcode dark background
+          backgroundColor: colors.tabBarBg,
           borderTopWidth: 1,
-          borderTopColor: '#374151', // Hardcode dark border
+          borderTopColor: colors.tabBarBorder,
           paddingVertical: 12,
           paddingBottom: bottomPadding,
-          height: 60 + bottomPadding, // Base height + safe area bottom padding
-          elevation: 8, // Android shadow
-          shadowColor: '#000', // iOS shadow
+          height: 60 + bottomPadding,
+          elevation: 8,
+          shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,

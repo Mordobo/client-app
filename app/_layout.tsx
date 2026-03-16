@@ -46,11 +46,11 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="(provider-tabs)"
-          options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+          options={{ headerShown: false, contentStyle: { backgroundColor: colorScheme === "dark" ? "#12121A" : "#F9FAFB" } }}
         />
         <Stack.Screen
           name="switch-mode"
-          options={{ headerShown: false, contentStyle: { backgroundColor: "#12121A" } }}
+          options={{ headerShown: false, contentStyle: { backgroundColor: colorScheme === "dark" ? "#12121A" : "#F9FAFB" } }}
         />
         <Stack.Screen name="chat" options={{ headerShown: false }} />
         <Stack.Screen name="account" options={{ headerShown: false }} />

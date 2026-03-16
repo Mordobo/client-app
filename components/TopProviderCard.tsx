@@ -1,4 +1,5 @@
 import { useFavorite } from '@/hooks/useFavorite';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -25,32 +26,31 @@ export function TopProviderCard({
   hourlyRate,
   onPress,
 }: TopProviderCardProps) {
-  // Favorite functionality
+  const colors = useThemeColors();
   const { isFavorite, isLoading: isFavoriteLoading, toggleFavorite } = useFavorite(id);
   
-  // Convert rating to number to handle cases where API returns string or null/undefined
   const ratingValue = typeof rating === 'number' ? rating : (typeof rating === 'string' ? parseFloat(rating) : 0);
   const safeRating = isNaN(ratingValue) ? 0 : ratingValue;
 
   const handleFavoritePress = (e: any) => {
-    e.stopPropagation(); // Prevent card press when clicking favorite button
+    e.stopPropagation();
     toggleFavorite();
   };
 
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity style={[styles.container, { backgroundColor: colors.card }]} onPress={onPress}>
       <ProviderAvatar
         profileImage={profileImage}
         size={70}
         rounded={false}
-        style={styles.image}
+        style={[styles.image, { backgroundColor: colors.surfaceSecondary }]}
       />
       <View style={styles.info}>
         <View style={styles.headerRow}>
           <View style={styles.nameSection}>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+            <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{name}</Text>
             {serviceCategory && (
-              <Text style={styles.category}>{serviceCategory}</Text>
+              <Text style={[styles.category, { color: colors.primary }]}>{serviceCategory}</Text>
             )}
           </View>
           <TouchableOpacity 
@@ -61,18 +61,18 @@ export function TopProviderCard({
             <Ionicons 
               name={isFavorite ? "heart" : "heart-outline"} 
               size={18} 
-              color={isFavorite ? "#EF4444" : "#9CA3AF"} 
+              color={isFavorite ? "#EF4444" : colors.textTertiary} 
             />
           </TouchableOpacity>
         </View>
         <View style={styles.footerRow}>
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={14} color="#F59E0B" />
-            <Text style={styles.rating}>{safeRating.toFixed(1)}</Text>
-            <Text style={styles.reviewCount}>({reviewCount})</Text>
+            <Text style={[styles.rating, { color: '#F59E0B' }]}>{safeRating.toFixed(1)}</Text>
+            <Text style={[styles.reviewCount, { color: colors.textSecondary }]}>({reviewCount})</Text>
           </View>
           {hourlyRate && (
-            <Text style={styles.price}>${hourlyRate}/hr</Text>
+            <Text style={[styles.price, { color: colors.primary }]}>${hourlyRate}/hr</Text>
           )}
         </View>
       </View>

@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import {
@@ -28,9 +29,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const GREEN = "#22C55E";
 const PURPLE_START = "#6366F1";
 const PURPLE_END = "#8B5CF6";
@@ -81,6 +79,7 @@ export default function CompleteJobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
@@ -273,7 +272,7 @@ export default function CompleteJobScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={PURPLE_END} />
       </View>
     );
@@ -281,7 +280,7 @@ export default function CompleteJobScreen() {
 
   if (!data) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <Text style={styles.errorText}>{t("providerDashboard.completeJob.errors.loadFailed")}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
@@ -292,7 +291,7 @@ export default function CompleteJobScreen() {
 
   if (data.order.status === "completed") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
@@ -318,7 +317,7 @@ export default function CompleteJobScreen() {
 
   if (data.order.status === "pending_review") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
@@ -345,7 +344,7 @@ export default function CompleteJobScreen() {
 
   if (data.order.status !== "in_progress") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
             <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
@@ -373,7 +372,7 @@ export default function CompleteJobScreen() {
   const footerBottom = Math.max(insets.bottom, 12);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
@@ -436,9 +435,9 @@ export default function CompleteJobScreen() {
           {t("providerDashboard.completeJob.workSummary")}
         </Text>
         <TextInput
-          style={styles.textArea}
+          style={[styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]}
           placeholder={t("providerDashboard.completeJob.workSummaryPlaceholder")}
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor={colors.textTertiary}
           value={workSummary}
           onChangeText={setWorkSummary}
           multiline
@@ -497,8 +496,9 @@ const BreakdownCard = React.memo(function BreakdownCard({
   total,
   discount,
 }: BreakdownCardProps) {
+  const colors = useThemeColors();
   return (
-    <View style={styles.breakdownCard}>
+    <View style={[styles.breakdownCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View style={styles.breakdownItems}>
         {lineItems.map((item, idx) => (
           <View key={`item-${idx}`} style={styles.breakdownRow}>
@@ -557,7 +557,6 @@ const BreakdownCard = React.memo(function BreakdownCard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   centered: {
     justifyContent: "center",
@@ -688,12 +687,9 @@ const styles = StyleSheet.create({
 
   // Text area
   textArea: {
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: "rgba(61, 51, 112, 0.2)",
     borderRadius: 12,
     padding: 12,
-    color: "#FFFFFF",
     fontSize: 14,
     minHeight: 90,
     marginBottom: 20,
@@ -701,9 +697,7 @@ const styles = StyleSheet.create({
 
   // Breakdown card
   breakdownCard: {
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,

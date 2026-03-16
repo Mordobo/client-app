@@ -1,4 +1,5 @@
 import { Toast } from "@/components/Toast";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
     createPortfolioProject,
@@ -33,9 +34,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const INPUT_BORDER = "rgba(61, 51, 112, 0.5)";
 const MAX_IMAGES = 10;
 
 const schema = z.object({
@@ -70,6 +68,7 @@ async function uriToBase64(uri: string): Promise<string> {
 export default function PortfolioAddScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ id?: string }>();
   const projectId = params.id;
@@ -241,14 +240,14 @@ export default function PortfolioAddScreen() {
 
   if (isEdit && projectLoading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -272,7 +271,7 @@ export default function PortfolioAddScreen() {
         keyboardVerticalOffset={insets.top + 60}
       >
         <ScrollView
-          style={styles.scroll}
+          style={[styles.scroll, { backgroundColor: colors.background }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -286,7 +285,7 @@ export default function PortfolioAddScreen() {
                   {t("providerDashboard.portfolio.titleLabel")}
                 </Text>
                 <TextInput
-                  style={[styles.input, errors.title && styles.inputError]}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.title && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -310,7 +309,7 @@ export default function PortfolioAddScreen() {
                   {t("providerDashboard.portfolio.descriptionLabel")}
                 </Text>
                 <TextInput
-                  style={[styles.input, styles.textArea, errors.description && styles.inputError]}
+                  style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.description && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -332,7 +331,7 @@ export default function PortfolioAddScreen() {
                   {t("providerDashboard.portfolio.categoryLabel")}
                 </Text>
                 <TextInput
-                  style={[styles.input, errors.categoryTag && styles.inputError]}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.categoryTag && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -375,7 +374,7 @@ export default function PortfolioAddScreen() {
             <View style={styles.thumbRow}>
               {selectedUris.map((uri, index) => (
                 <View key={`${uri}-${index}`} style={styles.thumbWrap}>
-                  <Image source={{ uri }} style={styles.thumb} contentFit="cover" />
+                  <Image source={{ uri }} style={[styles.thumb, { backgroundColor: colors.card }]} contentFit="cover" />
                   <TouchableOpacity
                     style={styles.thumbRemove}
                     onPress={() => removeSelectedUri(index)}
@@ -386,7 +385,7 @@ export default function PortfolioAddScreen() {
               ))}
               {canAddMore && (
                 <TouchableOpacity
-                  style={styles.thumbAdd}
+                  style={[styles.thumbAdd, { borderColor: colors.cardBorder }]}
                   onPress={pickImages}
                   activeOpacity={0.8}
                 >
@@ -435,7 +434,6 @@ export default function PortfolioAddScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   centered: {
     justifyContent: "center",
@@ -485,9 +483,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: INPUT_BORDER,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -529,7 +525,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 8,
-    backgroundColor: CARD_BG,
   },
   thumbRemove: {
     position: "absolute",
@@ -542,7 +537,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
-    borderColor: INPUT_BORDER,
     alignItems: "center",
     justifyContent: "center",
   },

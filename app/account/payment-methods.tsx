@@ -1,6 +1,6 @@
 import { Toast } from '@/components/Toast';
 import { AddCardModal } from '@/components/payment/AddCardModal';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
   deletePaymentMethod,
@@ -31,23 +31,6 @@ interface PaymentMethod {
   email?: string;
   isDefault: boolean;
 }
-
-// Theme colors from preview (dark mode)
-const darkColors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  textPrimary: '#ffffff',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-};
-
 
 // Card Icon Component with gradients
 const CardIcon: React.FC<{ type: 'visa' | 'mastercard' | 'paypal' }> = ({ type }) => {
@@ -93,11 +76,8 @@ const CardIcon: React.FC<{ type: 'visa' | 'mastercard' | 'paypal' }> = ({ type }
 
 export default function PaymentMethodsScreen() {
   const router = useRouter();
-  const { colorScheme } = useTheme();
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const isDark = colorScheme === 'dark';
-  // Use dark colors for now to match preview exactly
-  const colors = darkColors;
 
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -195,23 +175,23 @@ export default function PaymentMethodsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backArrow}>←</Text>
+          <Text style={[styles.backArrow, { color: colors.textPrimary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{t('paymentMethods.title')}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('paymentMethods.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
       {loadingMethods ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <ScrollView 
-          style={styles.content} 
+          style={[styles.content, { backgroundColor: colors.background }]} 
           contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
@@ -238,20 +218,21 @@ export default function PaymentMethodsScreen() {
                 onPress={() => setSelectedCardId(selectedCardId === method.id ? null : method.id)}
                 style={[
                   styles.cardItem,
-                  selectedCardId === method.id && styles.cardItemSelected,
+                  { backgroundColor: colors.card },
+                  selectedCardId === method.id && [styles.cardItemSelected, { borderColor: colors.primary }],
                 ]}
                 activeOpacity={0.7}
               >
                 <CardIcon type={method.type} />
                 <View style={styles.cardInfo}>
                   <View style={styles.cardHeader}>
-                    <Text style={styles.cardNumber}>
+                    <Text style={[styles.cardNumber, { color: colors.textPrimary }]}>
                       {method.last4 ? `•••• •••• •••• ${method.last4}` : method.email}
                     </Text>
                   </View>
                   <View style={styles.cardDetails}>
                     {method.expiry && (
-                      <Text style={styles.cardExpiry}>
+                      <Text style={[styles.cardExpiry, { color: colors.textSecondary }]}>
                         {t('paymentMethods.expires')} {method.expiry}
                       </Text>
                     )}
@@ -265,6 +246,7 @@ export default function PaymentMethodsScreen() {
                 <Text
                   style={[
                     styles.chevron,
+                    { color: colors.textSecondary },
                     selectedCardId === method.id && styles.chevronRotated,
                   ]}
                 >
@@ -299,15 +281,15 @@ export default function PaymentMethodsScreen() {
           {/* Add New Card Button */}
           <TouchableOpacity
             onPress={() => setShowAddCard(true)}
-            style={styles.addCardButton}
+            style={[styles.addCardButton, { borderColor: colors.border }]}
             activeOpacity={0.7}
           >
-            <View style={styles.addCardIcon}>
-              <Text style={styles.addCardIconText}>+</Text>
+            <View style={[styles.addCardIcon, { backgroundColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.addCardIconText, { color: colors.primary }]}>+</Text>
             </View>
             <View style={styles.addCardInfo}>
-              <Text style={styles.addCardTitle}>{t('paymentMethods.addNewCard')}</Text>
-              <Text style={styles.addCardSubtitle}>{t('paymentMethods.creditOrDebit')}</Text>
+              <Text style={[styles.addCardTitle, { color: colors.primary }]}>{t('paymentMethods.addNewCard')}</Text>
+              <Text style={[styles.addCardSubtitle, { color: colors.textSecondary }]}>{t('paymentMethods.creditOrDebit')}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -317,8 +299,8 @@ export default function PaymentMethodsScreen() {
           <Text style={styles.acceptedTitle}>{t('paymentMethods.accepted')}</Text>
           <View style={styles.acceptedCards}>
             {['Visa', 'Mastercard', 'PayPal', 'Amex'].map((brand) => (
-              <View key={brand} style={styles.acceptedCard}>
-                <Text style={styles.acceptedCardText}>{brand}</Text>
+              <View key={brand} style={[styles.acceptedCard, { backgroundColor: colors.card }]}>
+                <Text style={[styles.acceptedCardText, { color: colors.textSecondary }]}>{brand}</Text>
               </View>
             ))}
           </View>
@@ -342,19 +324,19 @@ export default function PaymentMethodsScreen() {
         onRequestClose={() => setShowDeleteConfirm(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.deleteModalContent}>
+          <View style={[styles.deleteModalContent, { backgroundColor: colors.card }]}>
             <View style={styles.deleteIconContainer}>
               <Text style={styles.deleteIcon}>🗑️</Text>
             </View>
-            <Text style={styles.deleteModalTitle}>{t('paymentMethods.deleteCard')}</Text>
-            <Text style={styles.deleteModalText}>{t('paymentMethods.deleteConfirm')}</Text>
+            <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>{t('paymentMethods.deleteCard')}</Text>
+            <Text style={[styles.deleteModalText, { color: colors.textSecondary }]}>{t('paymentMethods.deleteConfirm')}</Text>
             <View style={styles.deleteModalButtons}>
               <TouchableOpacity
                 onPress={() => setShowDeleteConfirm(null)}
-                style={styles.modalButtonCancel}
+                style={[styles.modalButtonCancel, { backgroundColor: colors.surfaceSecondary }]}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
+                <Text style={[styles.modalButtonTextCancel, { color: colors.textPrimary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}

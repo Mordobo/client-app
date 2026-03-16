@@ -1,4 +1,5 @@
 import { Toast } from "@/components/Toast";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
     getProviderScheduleConfig,
@@ -26,9 +27,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const isWeb = Platform.OS === "web";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const PURPLE_GRADIENT = ["#6366F1", "#8B5CF6"] as const;
 
 const DAY_KEYS = ["dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat", "daySun"] as const;
@@ -69,6 +67,7 @@ function formatDateForDisplay(date: Date): string {
 export default function ProviderAvailabilityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const [timePicker, setTimePicker] = useState<{
@@ -201,8 +200,8 @@ export default function ProviderAvailabilityScreen() {
 
   if (isError) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack} accessibilityLabel={t("common.back")}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
@@ -230,8 +229,8 @@ export default function ProviderAvailabilityScreen() {
 
   if (isLoading || !data) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.header}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
@@ -245,9 +244,9 @@ export default function ProviderAvailabilityScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Back header with Save */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack} accessibilityLabel={t("common.back")}>
           <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
@@ -267,7 +266,7 @@ export default function ProviderAvailabilityScreen() {
       </View>
 
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
@@ -306,7 +305,7 @@ export default function ProviderAvailabilityScreen() {
 
         {/* Schedule per day (first active day as template for simplicity; full UI would expand per day) */}
         <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.schedule")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
             const slots = scheduleConfig[String(dayIndex)] ?? [];
             if (slots.length === 0) return null;
@@ -357,7 +356,7 @@ export default function ProviderAvailabilityScreen() {
 
         {/* Buffer & Max jobs */}
         <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.bufferTime")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.bufferRow}>
             <Text style={styles.bufferLabel}>
               {t("providerDashboard.availabilityConfig.bufferMinutes", { minutes: bufferMinutes })}
@@ -381,7 +380,7 @@ export default function ProviderAvailabilityScreen() {
         </View>
 
         <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.maxJobsPerDay")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.bufferRow}>
             <Text style={styles.bufferLabel}>{maxJobsPerDay}</Text>
             <View style={styles.stepperRow}>
@@ -404,7 +403,7 @@ export default function ProviderAvailabilityScreen() {
 
         {/* Blocked dates */}
         <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.specialDays")}</Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {blockedDates.map((bd, idx) => (
             <View key={idx} style={styles.blockedRow}>
               <View style={styles.blockedInfo}>
@@ -463,7 +462,7 @@ export default function ProviderAvailabilityScreen() {
             }}
           />
           {Platform.OS === "ios" && (
-            <View style={styles.iosTimeActions}>
+            <View style={[styles.iosTimeActions, { backgroundColor: colors.card }]}>
               <TouchableOpacity style={styles.iosTimeButton} onPress={() => setTimePicker(null)}>
                 <Text style={styles.iosTimeButtonText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
@@ -478,12 +477,12 @@ export default function ProviderAvailabilityScreen() {
       {/* Blocked date modal - Start date & End date */}
       <Modal visible={blockedDateModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.modalTitle}>{t("providerDashboard.availabilityConfig.addBlockedDates")}</Text>
 
             <Text style={styles.modalLabel}>{t("providerDashboard.availabilityConfig.startDateLabel")}</Text>
             {isWeb ? (
-              <View style={styles.modalDateField}>
+              <View style={[styles.modalDateField, { borderColor: colors.cardBorder }]}>
                 {React.createElement("input", {
                   type: "date",
                   value: blockedStart.toISOString().slice(0, 10),
@@ -494,12 +493,12 @@ export default function ProviderAvailabilityScreen() {
                     setBlockedStart(d);
                     if (blockedEnd < d) setBlockedEnd(new Date(d));
                   },
-                  style: styles.webDateInput as React.CSSProperties,
+                  style: { ...(styles.webDateInput as object), borderColor: colors.cardBorder } as React.CSSProperties,
                 })}
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.modalDateField}
+                style={[styles.modalDateField, { borderColor: colors.cardBorder }]}
                 onPress={() => setBlockedDatePickerField("start")}
                 activeOpacity={0.7}
               >
@@ -529,7 +528,7 @@ export default function ProviderAvailabilityScreen() {
 
             <Text style={[styles.modalLabel, styles.modalLabelSpaced]}>{t("providerDashboard.availabilityConfig.endDateLabel")}</Text>
             {isWeb ? (
-              <View style={styles.modalDateField}>
+              <View style={[styles.modalDateField, { borderColor: colors.cardBorder }]}>
                 {React.createElement("input", {
                   type: "date",
                   value: blockedEnd.toISOString().slice(0, 10),
@@ -538,12 +537,12 @@ export default function ProviderAvailabilityScreen() {
                     const val = e.target.value;
                     if (val) setBlockedEnd(new Date(val));
                   },
-                  style: styles.webDateInput as React.CSSProperties,
+                  style: { ...(styles.webDateInput as object), borderColor: colors.cardBorder } as React.CSSProperties,
                 })}
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.modalDateField}
+                style={[styles.modalDateField, { borderColor: colors.cardBorder }]}
                 onPress={() => setBlockedDatePickerField("end")}
                 activeOpacity={0.7}
               >
@@ -625,7 +624,6 @@ export default function ProviderAvailabilityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
@@ -739,9 +737,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   dayScheduleBlock: {
     marginBottom: 16,
@@ -874,7 +870,6 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: CARD_BG,
   },
   iosTimeButton: {
     paddingHorizontal: 16,
@@ -903,11 +898,9 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: CARD_BG,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   modalTitle: {
     fontSize: 18,
@@ -933,7 +926,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   modalDateFieldText: {
     fontSize: 15,
@@ -958,7 +950,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     color: "#fff",
     fontSize: 15,
     outlineStyle: "none",

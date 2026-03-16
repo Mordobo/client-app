@@ -1,5 +1,5 @@
 import { EmptyState } from '@/components/EmptyState';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
   ApiError,
@@ -25,29 +25,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Theme colors from JSX design (dark mode)
-const darkColors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  textPrimary: '#ffffff',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-};
-
 export default function FavoritesScreen() {
   const router = useRouter();
-  const { colorScheme } = useTheme();
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const isDark = colorScheme === 'dark';
-  // Use dark colors to match JSX design exactly
-  const colors = darkColors;
 
   const [favorites, setFavorites] = useState<FavoriteSupplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -168,7 +149,7 @@ export default function FavoritesScreen() {
 
   if (loading && favorites.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -186,7 +167,7 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header - Exact match to JSX: padding: '50px 20px 20px', display: 'flex', gap: '16px' */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <TouchableOpacity
@@ -238,7 +219,7 @@ export default function FavoritesScreen() {
               key={provider.id}
               style={[
                 styles.providerCard,
-                { backgroundColor: colors.bgCard },
+                { backgroundColor: colors.card },
                 removingId === provider.id && styles.removingCard,
               ]}
             >
@@ -260,11 +241,11 @@ export default function FavoritesScreen() {
                 {/* Info in the middle */}
                 <View style={styles.providerInfo}>
                   <Text style={styles.providerName}>{provider.business_name?.trim() || provider.full_name}</Text>
-                  <Text style={[styles.providerService, { color: colors.secondary }]}>
+                  <Text style={[styles.providerService, { color: colors.primary }]}>
                     {getServiceName(provider)}
                   </Text>
                   <View style={styles.ratingContainer}>
-                    <Text style={[styles.rating, { color: colors.accent }]}>
+                    <Text style={[styles.rating, { color: colors.tabBarActive }]}>
                       ⭐ {formatRating(provider.rating)} ({provider.total_reviews || 0})
                     </Text>
                     <Text style={[styles.jobsCount, { color: colors.textSecondary }]}>

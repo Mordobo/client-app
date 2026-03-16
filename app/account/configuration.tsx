@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,17 +10,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Client design tokens (aligned with profile, support, edit)
-const BACKGROUND = "#1a1a2e";
-const HEADER_BG = "#252542";
-const CARD_BG = "#252542";
-const CARD_BORDER = "#374151";
-const SECTION_HEADER_COLOR = "#9ca3af";
-const PRIMARY = "#3b82f6";
-const PRIMARY_20 = "#3b82f620";
-const TEXT_PRIMARY = "#FFFFFF";
-const TEXT_SECONDARY = "#9ca3af";
+import type { ThemeColors } from "@/utils/themeStyles";
 
 type SettingsRow = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -32,14 +23,16 @@ function SettingsSection({
   sectionTitleKey,
   rows,
   onRowPress,
+  colors,
 }: {
   sectionTitleKey: string;
   rows: SettingsRow[];
   onRowPress?: (route: string) => void;
+  colors: ThemeColors;
 }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{t(sectionTitleKey)}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{t(sectionTitleKey)}</Text>
       <View style={styles.sectionRows}>
         {rows.map((row, idx) => {
           const Wrapper = row.route ? TouchableOpacity : View;
@@ -47,16 +40,16 @@ function SettingsSection({
             ? { onPress: () => onRowPress?.(row.route!), activeOpacity: 0.8 }
             : {};
           return (
-            <Wrapper key={idx} style={styles.row} {...wrapperProps}>
+            <Wrapper key={idx} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} {...wrapperProps}>
               <View style={styles.iconBox}>
-                <Ionicons name={row.icon} size={20} color={PRIMARY} />
+                <Ionicons name={row.icon} size={20} color={colors.primary} />
               </View>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{t(row.labelKey)}</Text>
-                <Text style={styles.rowDesc}>{t(row.descKey)}</Text>
+                <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t(row.labelKey)}</Text>
+                <Text style={[styles.rowDesc, { color: colors.textTertiary }]}>{t(row.descKey)}</Text>
               </View>
               {row.route ? (
-                <Ionicons name="chevron-forward" size={20} color={TEXT_SECONDARY} />
+                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
               ) : null}
             </Wrapper>
           );
@@ -69,6 +62,7 @@ function SettingsSection({
 export default function ClientConfigurationScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   // Account: Edit Profile + Security only (Documents excluded for client)
   const accountRows: SettingsRow[] = [
@@ -129,13 +123,14 @@ export default function ClientConfigurationScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View
         style={[
           styles.header,
           {
             paddingTop: insets.top + 16,
             paddingBottom: 20,
+            backgroundColor: colors.surface,
           },
         ]}
       >
@@ -146,13 +141,13 @@ export default function ClientConfigurationScreen() {
           accessibilityLabel={t("providerDashboard.providerSettings.back")}
           accessibilityRole="button"
         >
-          <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t("providerDashboard.providerSettings.title")}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.providerSettings.title")}</Text>
         <View style={styles.headerPlaceholder} />
       </View>
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
@@ -160,16 +155,19 @@ export default function ClientConfigurationScreen() {
           sectionTitleKey="providerDashboard.providerSettings.sectionAccount"
           rows={accountRows}
           onRowPress={(route) => router.push(route as any)}
+          colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionPreferences"
           rows={preferencesRows}
           onRowPress={(route) => router.push(route as any)}
+          colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionSupport"
           rows={supportRows}
           onRowPress={(route) => router.push(route as any)}
+          colors={colors}
         />
       </ScrollView>
     </View>
@@ -179,14 +177,12 @@ export default function ClientConfigurationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
     paddingHorizontal: 20,
-    backgroundColor: HEADER_BG,
   },
   backButton: {
     padding: 4,
@@ -196,14 +192,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     textAlign: "center",
-    color: TEXT_PRIMARY,
   },
   headerPlaceholder: {
     width: 32,
   },
   scroll: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -215,7 +209,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: SECTION_HEADER_COLOR,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -228,15 +221,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   iconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: PRIMARY_20,
+    backgroundColor: "rgba(139, 92, 246, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
@@ -247,11 +238,9 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: TEXT_PRIMARY,
   },
   rowDesc: {
     fontSize: 12,
     marginTop: 2,
-    color: TEXT_SECONDARY,
   },
 });

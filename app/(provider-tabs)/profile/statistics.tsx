@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,11 +13,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const I18N = 'providerDashboard.providerSettings.statisticsScreen';
-const BACKGROUND = '#12121A';
-const CARD_BG = '#1E1B2E';
-const CARD_BORDER = 'rgba(61, 51, 112, 0.2)';
-const SECTION_HEADER_COLOR = 'rgba(255,255,255,0.4)';
-const ACCENT = '#8B5CF6';
 
 type Period = 'week' | 'month' | 'year';
 
@@ -30,6 +26,7 @@ interface StatCard {
 export default function ProviderStatisticsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [period, setPeriod] = useState<Period>('month');
 
   const periodOptions: { key: Period; label: string }[] = [
@@ -52,26 +49,26 @@ export default function ProviderStatisticsScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t(`${I18N}.title`)}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
       </View>
 
       {/* Period Selector */}
-      <View style={styles.periodContainer}>
+      <View style={[styles.periodContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
         {periodOptions.map((opt) => {
           const isActive = opt.key === period;
           return (
             <TouchableOpacity
               key={opt.key}
-              style={[styles.periodButton, isActive && styles.periodButtonActive]}
+              style={[styles.periodButton, isActive && { backgroundColor: colors.primary }]}
               activeOpacity={0.8}
               onPress={() => setPeriod(opt.key)}
             >
-              <Text style={[styles.periodText, isActive && styles.periodTextActive]}>
+              <Text style={[styles.periodText, { color: isActive ? colors.textOnDark : colors.textTertiary }]}>
                 {opt.label}
               </Text>
             </TouchableOpacity>
@@ -81,39 +78,39 @@ export default function ProviderStatisticsScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Overview Section */}
-        <Text style={styles.sectionTitle}>{t(`${I18N}.sectionOverview`)}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{t(`${I18N}.sectionOverview`)}</Text>
         <View style={styles.cardsGrid}>
           {overviewCards.map((card, idx) => (
-            <View key={idx} style={styles.statCard}>
+            <View key={idx} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={[styles.statIconBox, { backgroundColor: `${card.color}20` }]}>
                 <Ionicons name={card.icon} size={22} color={card.color} />
               </View>
-              <Text style={styles.statValue}>{card.value}</Text>
-              <Text style={styles.statLabel}>{t(card.labelKey)}</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{card.value}</Text>
+              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t(card.labelKey)}</Text>
             </View>
           ))}
         </View>
 
         {/* Performance Section */}
-        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>{t(`${I18N}.sectionPerformance`)}</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 28, color: colors.textTertiary }]}>{t(`${I18N}.sectionPerformance`)}</Text>
         <View style={styles.performanceList}>
           {performanceCards.map((card, idx) => (
-            <View key={idx} style={styles.performanceCard}>
+            <View key={idx} style={[styles.performanceCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={[styles.perfIconBox, { backgroundColor: `${card.color}20` }]}>
                 <Ionicons name={card.icon} size={20} color={card.color} />
               </View>
               <View style={styles.perfText}>
-                <Text style={styles.perfLabel}>{t(card.labelKey)}</Text>
+                <Text style={[styles.perfLabel, { color: colors.textSecondary }]}>{t(card.labelKey)}</Text>
               </View>
-              <Text style={styles.perfValue}>{card.value}</Text>
+              <Text style={[styles.perfValue, { color: colors.textPrimary }]}>{card.value}</Text>
             </View>
           ))}
         </View>
 
         {/* Empty-state hint */}
         <View style={styles.hintContainer}>
-          <Ionicons name="information-circle-outline" size={18} color="rgba(255,255,255,0.3)" />
-          <Text style={styles.hintText}>{t(`${I18N}.noDataDesc`)}</Text>
+          <Ionicons name="information-circle-outline" size={18} color={colors.textTertiary} />
+          <Text style={[styles.hintText, { color: colors.textTertiary }]}>{t(`${I18N}.noDataDesc`)}</Text>
         </View>
       </ScrollView>
     </View>
@@ -121,7 +118,7 @@ export default function ProviderStatisticsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 20, paddingVertical: 16, paddingBottom: 12,
@@ -131,26 +128,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  title: { fontSize: 20, fontWeight: '700' },
   periodContainer: {
     flexDirection: 'row', marginHorizontal: 20, marginBottom: 20,
-    backgroundColor: CARD_BG, borderRadius: 12, padding: 4,
-    borderWidth: 1, borderColor: CARD_BORDER,
+    borderRadius: 12, padding: 4,
+    borderWidth: 1,
   },
   periodButton: {
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
   },
-  periodButtonActive: {
-    backgroundColor: ACCENT,
-  },
   periodText: {
-    color: 'rgba(255,255,255,0.5)', fontSize: 14, fontWeight: '600',
+    fontSize: 14, fontWeight: '600',
   },
-  periodTextActive: { color: '#fff' },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   sectionTitle: {
-    fontSize: 12, color: SECTION_HEADER_COLOR,
+    fontSize: 12,
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12,
   },
   cardsGrid: {
@@ -158,8 +151,8 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%', flexGrow: 1, flexBasis: '45%',
-    backgroundColor: CARD_BG, borderRadius: 14,
-    borderWidth: 1, borderColor: CARD_BORDER,
+    borderRadius: 14,
+    borderWidth: 1,
     padding: 16, alignItems: 'center',
   },
   statIconBox: {
@@ -175,8 +168,8 @@ const styles = StyleSheet.create({
   performanceList: { gap: 10 },
   performanceCard: {
     flexDirection: 'row', alignItems: 'center', padding: 14,
-    borderRadius: 12, backgroundColor: CARD_BG,
-    borderWidth: 1, borderColor: CARD_BORDER,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   perfIconBox: {
     width: 40, height: 40, borderRadius: 12,

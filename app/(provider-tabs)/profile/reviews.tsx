@@ -1,4 +1,5 @@
 import { StarRating } from "@/components/StarRating";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import {
@@ -25,9 +26,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const QUERY_KEY = ["providerReviews"] as const;
 const COMMENT_TRUNCATE = 120;
 
@@ -70,6 +68,7 @@ const SORTS: { key: ProviderReviewsSort; labelKey: string }[] = [
 export default function ProviderReviewsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<ProviderReviewsFilter>("all");
   const [sort, setSort] = useState<ProviderReviewsSort>("recent");
@@ -182,25 +181,25 @@ export default function ProviderReviewsScreen() {
   }, [stats?.distribution]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.8}>
-            <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="arrow-back" size={22} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>{t("providerDashboard.providerReviews.title")}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.providerReviews.title")}</Text>
         </View>
       </View>
 
       {isSessionExpired ? (
         <View style={styles.centered}>
-          <Text style={styles.redirectingText}>{t("common.redirecting")}</Text>
-          <ActivityIndicator size="large" color="#8B5CF6" style={{ marginTop: 12 }} />
+          <Text style={[styles.redirectingText, { color: colors.textSecondary }]}>{t("common.redirecting")}</Text>
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 12 }} />
         </View>
       ) : isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlashList
@@ -211,21 +210,21 @@ export default function ProviderReviewsScreen() {
             <>
               {/* Summary card */}
               {stats && (
-                <View style={styles.summaryCard}>
+                <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.ratingBig}>{stats.averageRating.toFixed(1)}</Text>
+                    <Text style={[styles.ratingBig, { color: colors.textPrimary }]}>{stats.averageRating.toFixed(1)}</Text>
                     <View style={styles.summaryRight}>
                       <View style={styles.starsRow}>
                         <StarRating rating={Math.round(stats.averageRating)} size={18} />
                       </View>
-                      <Text style={styles.totalReviews}>
+                      <Text style={[styles.totalReviews, { color: colors.textTertiary }]}>
                         {t("providerDashboard.providerReviews.totalReviews", { count: stats.totalCount })}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.responseRateLabel}>
+                  <Text style={[styles.responseRateLabel, { color: colors.textTertiary }]}>
                     {t("providerDashboard.providerReviews.responseRate")}{" "}
-                    <Text style={styles.responseRateValue}>
+                    <Text style={[styles.responseRateValue, { color: colors.primary }]}>
                       {t("providerDashboard.providerReviews.responseRateValue", { percent: stats.responseRate })}
                     </Text>
                   </Text>
@@ -234,17 +233,17 @@ export default function ProviderReviewsScreen() {
 
               {/* Distribution */}
               {stats && stats.totalCount > 0 && (
-                <View style={styles.distributionCard}>
+                <View style={[styles.distributionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
                   {([5, 4, 3, 2, 1] as const).map((star) => {
                     const count = stats.distribution[star];
                     const widthPercent = maxDistribution > 0 ? (count / maxDistribution) * 100 : 0;
                     return (
                       <View key={star} style={styles.distributionRow}>
-                        <Text style={styles.distributionLabel}>{star} ★</Text>
+                        <Text style={[styles.distributionLabel, { color: colors.textSecondary }]}>{star} ★</Text>
                         <View style={styles.barBg}>
-                          <View style={[styles.barFill, { width: `${widthPercent}%` }]} />
+                          <View style={[styles.barFill, { width: `${widthPercent}%`, backgroundColor: colors.primary }]} />
                         </View>
-                        <Text style={styles.distributionCount}>{count}</Text>
+                        <Text style={[styles.distributionCount, { color: colors.textTertiary }]}>{count}</Text>
                       </View>
                     );
                   })}
@@ -256,11 +255,11 @@ export default function ProviderReviewsScreen() {
                 {FILTERS.map((f) => (
                   <TouchableOpacity
                     key={f.key}
-                    style={[styles.filterPill, filter === f.key && styles.filterPillActive]}
+                    style={[styles.filterPill, { backgroundColor: filter === f.key ? colors.primary : colors.card }]}
                     onPress={() => setFilter(f.key)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.filterPillText, filter === f.key && styles.filterPillTextActive]}>
+                    <Text style={[styles.filterPillText, { color: filter === f.key ? colors.textOnDark : colors.textTertiary }]}>
                       {t(f.labelKey)}
                     </Text>
                   </TouchableOpacity>
@@ -272,11 +271,11 @@ export default function ProviderReviewsScreen() {
                 {SORTS.map((s) => (
                   <TouchableOpacity
                     key={s.key}
-                    style={[styles.sortPill, sort === s.key && styles.sortPillActive]}
+                    style={[styles.sortPill, sort === s.key && { backgroundColor: `${colors.primary}4D`, borderWidth: 1, borderColor: colors.primary }]}
                     onPress={() => setSort(s.key)}
                     activeOpacity={0.8}
                   >
-                    <Text style={[styles.sortPillText, sort === s.key && styles.sortPillTextActive]}>
+                    <Text style={[styles.sortPillText, { color: sort === s.key ? colors.primary : colors.textTertiary }]}>
                       {t(s.labelKey)}
                     </Text>
                   </TouchableOpacity>
@@ -285,39 +284,39 @@ export default function ProviderReviewsScreen() {
 
               {allReviews.length === 0 && (
                 <View style={styles.emptyWrap}>
-                  <Text style={styles.emptyTitle}>{t("providerDashboard.providerReviews.emptyTitle")}</Text>
-                  <Text style={styles.emptySubtitle}>{t("providerDashboard.providerReviews.emptySubtitle")}</Text>
+                  <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerReviews.emptyTitle")}</Text>
+                  <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>{t("providerDashboard.providerReviews.emptySubtitle")}</Text>
                 </View>
               )}
             </>
           }
           ListHeaderComponentStyle={styles.listHeaderStyle}
           renderItem={({ item }: { item: ProviderReview }) => (
-            <View style={styles.reviewCard}>
+            <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={styles.reviewHeader}>
                 {item.client_avatar ? (
                   <Image source={{ uri: item.client_avatar }} style={styles.avatar} contentFit="cover" />
                 ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitials}>{getInitials(item.client_name)}</Text>
+                  <View style={[styles.avatarPlaceholder, { backgroundColor: `${colors.primary}40` }]}>
+                    <Text style={[styles.avatarInitials, { color: colors.primary }]}>{getInitials(item.client_name)}</Text>
                   </View>
                 )}
                 <View style={styles.reviewMeta}>
-                  <Text style={styles.clientName} numberOfLines={1}>
+                  <Text style={[styles.clientName, { color: colors.textPrimary }]} numberOfLines={1}>
                     {item.client_name || "—"}
                   </Text>
-                  <Text style={styles.reviewDate}>{formatDate(item.created_at)}</Text>
+                  <Text style={[styles.reviewDate, { color: colors.textTertiary }]}>{formatDate(item.created_at)}</Text>
                   <StarRating rating={item.rating} size={14} />
                 </View>
               </View>
               {item.comment ? (
                 <View style={styles.commentWrap}>
-                  <Text style={styles.commentText} numberOfLines={expandedCommentId === item.id ? undefined : 3}>
+                  <Text style={[styles.commentText, { color: colors.textSecondary }]} numberOfLines={expandedCommentId === item.id ? undefined : 3}>
                     {item.comment}
                   </Text>
                   {item.comment.length > COMMENT_TRUNCATE && (
                     <TouchableOpacity onPress={() => toggleCommentExpand(item.id)} style={styles.readMoreBtn}>
-                      <Text style={styles.readMoreText}>
+                      <Text style={[styles.readMoreText, { color: colors.primary }]}>
                         {expandedCommentId === item.id
                           ? t("providerDashboard.providerReviews.readLess")
                           : t("providerDashboard.providerReviews.readMore")}
@@ -327,25 +326,25 @@ export default function ProviderReviewsScreen() {
                 </View>
               ) : null}
               {item.provider_response ? (
-                <View style={styles.responseWrap}>
-                  <Text style={styles.responseLabel}>{t("providerDashboard.providerReviews.reply")}:</Text>
-                  <Text style={styles.responseText}>{item.provider_response}</Text>
+                <View style={[styles.responseWrap, { borderTopColor: colors.cardBorder }]}>
+                  <Text style={[styles.responseLabel, { color: colors.textTertiary }]}>{t("providerDashboard.providerReviews.reply")}:</Text>
+                  <Text style={[styles.responseText, { color: colors.textSecondary }]}>{item.provider_response}</Text>
                 </View>
               ) : replyingId !== item.id ? (
                 <TouchableOpacity
-                  style={styles.replyBtn}
+                  style={[styles.replyBtn, { backgroundColor: `${colors.primary}26` }]}
                   onPress={() => handleReplyPress(item)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="chatbubble-outline" size={16} color="#A78BFA" />
-                  <Text style={styles.replyBtnText}>{t("providerDashboard.providerReviews.reply")}</Text>
+                  <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.replyBtnText, { color: colors.primary }]}>{t("providerDashboard.providerReviews.reply")}</Text>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.replyInputWrap}>
                   <TextInput
-                    style={styles.replyInput}
+                    style={[styles.replyInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
                     placeholder={t("providerDashboard.providerReviews.replyPlaceholder")}
-                    placeholderTextColor="rgba(255,255,255,0.35)"
+                    placeholderTextColor={colors.textTertiary}
                     value={replyText}
                     onChangeText={setReplyText}
                     multiline
@@ -353,10 +352,10 @@ export default function ProviderReviewsScreen() {
                   />
                   <View style={styles.replyActions}>
                     <TouchableOpacity style={styles.replyCancelBtn} onPress={handleCancelReply} activeOpacity={0.8}>
-                      <Text style={styles.replyCancelText}>{t("providerDashboard.providerReviews.cancel")}</Text>
+                      <Text style={[styles.replyCancelText, { color: colors.textSecondary }]}>{t("providerDashboard.providerReviews.cancel")}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.replySendBtn, !replyText.trim() && styles.replySendBtnDisabled]}
+                      style={[styles.replySendBtn, { backgroundColor: colors.primary }, !replyText.trim() && styles.replySendBtnDisabled]}
                       onPress={handleSendReply}
                       disabled={!replyText.trim() || respondMutation.isPending}
                       activeOpacity={0.8}
@@ -377,7 +376,7 @@ export default function ProviderReviewsScreen() {
           ListFooterComponent={
             isLoadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#8B5CF6" />
+                <ActivityIndicator size="small" color={colors.primary} />
               </View>
             ) : null
           }
@@ -386,7 +385,7 @@ export default function ProviderReviewsScreen() {
             <RefreshControl
               refreshing={isRefetching && !isLoading}
               onRefresh={onRefresh}
-              tintColor="#8B5CF6"
+              tintColor={colors.primary}
             />
           }
         />
@@ -396,7 +395,7 @@ export default function ProviderReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,34 +413,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  title: { fontSize: 18, fontWeight: "700" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
-  redirectingText: { fontSize: 14, color: "rgba(255,255,255,0.7)" },
+  redirectingText: { fontSize: 14 },
   summaryCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 12,
   },
   summaryRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  ratingBig: { fontSize: 32, fontWeight: "700", color: "#fff", marginRight: 16 },
+  ratingBig: { fontSize: 32, fontWeight: "700", marginRight: 16 },
   summaryRight: { flex: 1 },
   starsRow: { marginBottom: 4 },
-  totalReviews: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
-  responseRateLabel: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
-  responseRateValue: { fontSize: 12, fontWeight: "600", color: "#A78BFA" },
+  totalReviews: { fontSize: 12 },
+  responseRateLabel: { fontSize: 12 },
+  responseRateValue: { fontSize: 12, fontWeight: "600" },
   distributionCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 12,
   },
   distributionRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  distributionLabel: { width: 28, fontSize: 12, color: "rgba(255,255,255,0.7)" },
+  distributionLabel: { width: 28, fontSize: 12 },
   barBg: {
     flex: 1,
     height: 8,
@@ -453,40 +448,31 @@ const styles = StyleSheet.create({
   barFill: {
     height: "100%",
     borderRadius: 4,
-    backgroundColor: "rgba(139, 92, 246, 0.8)",
   },
-  distributionCount: { width: 24, fontSize: 12, color: "rgba(255,255,255,0.5)", textAlign: "right" },
+  distributionCount: { width: 24, fontSize: 12, textAlign: "right" },
   filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   filterPill: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  filterPillActive: { backgroundColor: "#8B5CF6" },
-  filterPillText: { fontSize: 12, fontWeight: "500", color: "rgba(255,255,255,0.6)" },
-  filterPillTextActive: { color: "#fff" },
+  filterPillText: { fontSize: 12, fontWeight: "500" },
   sortRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
   sortPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  sortPillActive: { backgroundColor: "rgba(139, 92, 246, 0.3)", borderWidth: 1, borderColor: "rgba(139, 92, 246, 0.5)" },
-  sortPillText: { fontSize: 11, fontWeight: "500", color: "rgba(255,255,255,0.5)" },
-  sortPillTextActive: { color: "#A78BFA" },
+  sortPillText: { fontSize: 11, fontWeight: "500" },
   listHeaderStyle: { paddingHorizontal: 20, paddingTop: 4 },
   listContent: { paddingHorizontal: 20 },
   emptyWrap: { paddingVertical: 32, alignItems: "center" },
-  emptyTitle: { fontSize: 18, fontWeight: "600", color: "#fff", marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: "rgba(255,255,255,0.5)", textAlign: "center" },
+  emptyTitle: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, textAlign: "center" },
   reviewCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 12,
   },
   reviewHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
@@ -495,25 +481,23 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(139, 92, 246, 0.25)",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarInitials: { fontSize: 14, fontWeight: "600", color: "#A78BFA" },
+  avatarInitials: { fontSize: 14, fontWeight: "600" },
   reviewMeta: { flex: 1, marginLeft: 12 },
-  clientName: { fontSize: 14, fontWeight: "600", color: "#fff", marginBottom: 2 },
-  reviewDate: { fontSize: 11, color: "rgba(255,255,255,0.45)", marginBottom: 4 },
+  clientName: { fontSize: 14, fontWeight: "600", marginBottom: 2 },
+  reviewDate: { fontSize: 11, marginBottom: 4 },
   commentWrap: { marginBottom: 10 },
-  commentText: { fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 20 },
+  commentText: { fontSize: 13, lineHeight: 20 },
   readMoreBtn: { marginTop: 4 },
-  readMoreText: { fontSize: 12, color: "#A78BFA", fontWeight: "500" },
+  readMoreText: { fontSize: 12, fontWeight: "500" },
   responseWrap: {
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
   },
-  responseLabel: { fontSize: 11, color: "rgba(255,255,255,0.5)", marginBottom: 4 },
-  responseText: { fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 20 },
+  responseLabel: { fontSize: 11, marginBottom: 4 },
+  responseText: { fontSize: 13, lineHeight: 20 },
   replyBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -522,19 +506,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: "rgba(139, 92, 246, 0.15)",
   },
-  replyBtnText: { fontSize: 13, fontWeight: "500", color: "#A78BFA" },
+  replyBtnText: { fontSize: 13, fontWeight: "500" },
   replyInputWrap: { marginTop: 8 },
   replyInput: {
-    backgroundColor: "rgba(255,255,255,0.06)",
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
-    color: "#fff",
     minHeight: 80,
     textAlignVertical: "top",
   },
@@ -545,7 +525,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: "#8B5CF6",
   },
   replySendBtnDisabled: { opacity: 0.5 },
   replySendText: { fontSize: 14, fontWeight: "600", color: "#fff" },

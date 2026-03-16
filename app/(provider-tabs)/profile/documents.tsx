@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,33 +13,29 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const I18N = 'providerDashboard.providerSettings.documentsScreen';
-const BACKGROUND = '#12121A';
-const CARD_BG = '#1E1B2E';
-const CARD_BORDER = 'rgba(61, 51, 112, 0.2)';
-const SECTION_HEADER_COLOR = 'rgba(255,255,255,0.4)';
-const ACCENT = '#8B5CF6';
 
 export default function ProviderDocumentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t(`${I18N}.title`)}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Empty state */}
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="document-text-outline" size={48} color={ACCENT} />
+            <Ionicons name="document-text-outline" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.emptyTitle}>{t(`${I18N}.noDocuments`)}</Text>
-          <Text style={styles.emptyDesc}>{t(`${I18N}.noDocumentsDesc`)}</Text>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{t(`${I18N}.noDocuments`)}</Text>
+          <Text style={[styles.emptyDesc, { color: colors.textTertiary }]}>{t(`${I18N}.noDocumentsDesc`)}</Text>
         </View>
       </ScrollView>
     </View>
@@ -46,7 +43,7 @@ export default function ProviderDocumentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -60,7 +57,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.05)',
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  title: { fontSize: 20, fontWeight: '700' },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40, flexGrow: 1 },
   emptyContainer: {
@@ -72,10 +69,10 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
   emptyTitle: {
-    color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center',
+    fontSize: 18, fontWeight: '600', marginBottom: 8, textAlign: 'center',
   },
   emptyDesc: {
-    color: 'rgba(255,255,255,0.4)', fontSize: 14, textAlign: 'center',
+    fontSize: 14, textAlign: 'center',
     paddingHorizontal: 40, lineHeight: 20,
   },
 });

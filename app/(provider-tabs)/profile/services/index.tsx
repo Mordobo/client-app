@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
     deleteProviderService,
@@ -23,9 +24,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const QUERY_KEY = ["providerServices"] as const;
 
 function formatPrice(price: number): string {
@@ -43,6 +41,7 @@ function formatDuration(minutes: number | null): string {
 export default function ProviderServicesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
@@ -148,7 +147,7 @@ export default function ProviderServicesScreen() {
       <View
         style={[
           styles.card,
-          { opacity: item.isActive ? 1 : 0.6 },
+          { opacity: item.isActive ? 1 : 0.6, backgroundColor: colors.card, borderColor: colors.cardBorder },
         ]}
       >
         <View style={styles.cardTop}>
@@ -200,11 +199,11 @@ export default function ProviderServicesScreen() {
         </View>
       </View>
     ),
-    [handleEdit, handleToggleStatus, handleDelete, updateStatusMutation.isPending]
+    [handleEdit, handleToggleStatus, handleDelete, updateStatusMutation.isPending, colors]
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
@@ -227,7 +226,7 @@ export default function ProviderServicesScreen() {
       </View>
 
       <View style={styles.searchRow}>
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
@@ -285,7 +284,7 @@ export default function ProviderServicesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
@@ -293,12 +292,12 @@ const styles = StyleSheet.create({
   addBtn: { paddingVertical: 8, paddingHorizontal: 12 },
   addBtnText: { fontSize: 14, fontWeight: "500", color: "#A78BFA" },
   searchRow: { paddingHorizontal: 20, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 12 },
-  searchWrap: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: CARD_BG, borderWidth: 1, borderColor: CARD_BORDER, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  searchWrap: { flex: 1, flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 14, color: "#fff", paddingVertical: 0 },
   countText: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
   listContent: { paddingHorizontal: 20, paddingTop: 4 },
-  card: { padding: 16, borderRadius: 12, backgroundColor: CARD_BG, borderWidth: 1, borderColor: CARD_BORDER, marginBottom: 12 },
+  card: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   cardLeft: { flex: 1, marginRight: 12 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },

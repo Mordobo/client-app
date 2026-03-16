@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Platform, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { Collapsible } from '@/components/ui/collapsible';
 import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
@@ -12,15 +13,16 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabTwoScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 20 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <ThemedView style={styles.header}>
+      <ThemedView style={[styles.header, { backgroundColor: colors.card }]}>
         <IconSymbol
           size={310}
           color="#808080"
@@ -120,7 +122,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#252542', // Hardcode dark header
   },
   headerImage: {
     color: '#808080',

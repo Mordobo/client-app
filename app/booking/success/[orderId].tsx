@@ -1,8 +1,9 @@
 import { ProviderAvatar } from '@/components/ProviderAvatar';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { ApiError, fetchOrderDetail, OrderDetailResponse } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -14,18 +15,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
-
-// Colors matching the JSX design
-const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-  white: '#ffffff',
-};
 
 // Format date to match design: "Mié, 15 Enero"
 const formatDate = (dateString?: string): string => {
@@ -88,6 +77,200 @@ export default function BookingSuccessScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const insets = useSafeAreaInsets();
+  const themeColors = useThemeColors();
+  const colors = useMemo(
+    () => ({
+      bg: themeColors.background,
+      bgCard: themeColors.card,
+      bgInput: themeColors.surfaceSecondary,
+      primary: themeColors.primary,
+      secondary: '#10b981',
+      textSecondary: themeColors.textSecondary,
+      border: themeColors.border,
+      white: '#ffffff',
+    }),
+    [themeColors]
+  );
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: colors.bg },
+        scrollContent: {
+          flexGrow: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+        },
+        centerContainer: {
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        contentContainer: { width: '100%', alignItems: 'center' },
+        iconContainer: { marginBottom: 32, alignItems: 'center' },
+        pendingBadge: {
+          marginTop: 12,
+          fontSize: 13,
+          fontWeight: '600',
+          color: '#f59e0b',
+          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+          paddingHorizontal: 14,
+          paddingVertical: 6,
+          borderRadius: 999,
+          overflow: 'hidden',
+        },
+        iconOuterCircle: {
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: `${colors.secondary}20`,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        iconInnerCircle: {
+          width: 80,
+          height: 80,
+          borderRadius: 40,
+          backgroundColor: colors.secondary,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        title: {
+          fontSize: 28,
+          fontWeight: '700',
+          color: colors.white,
+          textAlign: 'center',
+          marginBottom: 12,
+        },
+        subtitle: {
+          fontSize: 16,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          marginBottom: 32,
+          lineHeight: 24,
+        },
+        detailsCard: {
+          width: '100%',
+          maxWidth: 400,
+          backgroundColor: colors.bgCard,
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 32,
+        },
+        providerInfo: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+          marginBottom: 16,
+        },
+        providerAvatar: {
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: colors.bgInput,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+        },
+        avatarImage: { width: '100%', height: '100%' },
+        providerText: { flex: 1 },
+        providerName: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: colors.white,
+          marginBottom: 2,
+        },
+        serviceName: { fontSize: 14, color: colors.secondary },
+        detailsDivider: {
+          height: 1,
+          backgroundColor: colors.border,
+          marginBottom: 16,
+        },
+        detailsList: { gap: 12 },
+        detailRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 10,
+        },
+        detailIcon: { marginTop: 2 },
+        detailLabel: {
+          fontSize: 14,
+          color: colors.textSecondary,
+          minWidth: 56,
+        },
+        detailValueWrap: { flex: 1, minWidth: 0 },
+        detailValue: {
+          fontSize: 14,
+          color: colors.white,
+          fontWeight: '500',
+        },
+        codeLabel: {
+          fontSize: 13,
+          color: colors.textSecondary,
+          textAlign: 'center',
+          marginBottom: 32,
+        },
+        codeValue: { color: colors.primary, fontWeight: '600' },
+        actions: {
+          width: '100%',
+          maxWidth: 400,
+          alignSelf: 'center',
+          alignItems: 'stretch',
+          gap: 12,
+          paddingHorizontal: 0,
+        },
+        primaryButton: {
+          width: '100%',
+          paddingVertical: 18,
+          paddingHorizontal: 16,
+          backgroundColor: colors.primary,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        primaryButtonText: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: '700',
+          textAlign: 'center',
+        },
+        secondaryButton: {
+          width: '100%',
+          paddingVertical: 18,
+          paddingHorizontal: 16,
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        secondaryButtonText: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: '500',
+          textAlign: 'center',
+        },
+        errorText: {
+          color: colors.textSecondary,
+          fontSize: 16,
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        retryButton: {
+          paddingVertical: 12,
+          paddingHorizontal: 24,
+          backgroundColor: colors.primary,
+          borderRadius: 8,
+        },
+        retryButtonText: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [colors]
+  );
   const [orderData, setOrderData] = useState<OrderDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -295,207 +478,3 @@ export default function BookingSuccessScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  centerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  contentContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  iconContainer: {
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  pendingBadge: {
-    marginTop: 12,
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#f59e0b',
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  iconOuterCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: `${colors.secondary}20`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconInnerCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.secondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.white,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  detailsCard: {
-    width: '100%',
-    maxWidth: 400,
-    backgroundColor: colors.bgCard,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 32,
-  },
-  providerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 16,
-  },
-  providerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.bgInput,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  providerText: {
-    flex: 1,
-  },
-  providerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 2,
-  },
-  serviceName: {
-    fontSize: 14,
-    color: colors.secondary,
-  },
-  detailsDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginBottom: 16,
-  },
-  detailsList: {
-    gap: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  detailIcon: {
-    marginTop: 2,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    minWidth: 56,
-  },
-  detailValueWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: colors.white,
-    fontWeight: '500',
-  },
-  codeLabel: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  codeValue: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  actions: {
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
-    alignItems: 'stretch',
-    gap: 12,
-    paddingHorizontal: 0,
-  },
-  primaryButton: {
-    width: '100%',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  secondaryButton: {
-    width: '100%',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  errorText: {
-    color: colors.textSecondary,
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

@@ -1,10 +1,11 @@
 import { Toast } from '@/components/Toast';
 import { useTheme, type ThemePreference } from '@/contexts/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { getSettings, updateSettings } from '@/services/settings';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -15,13 +16,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const I18N = 'providerDashboard.providerSettings.themeScreen';
-const BACKGROUND = '#1a1a2e';
-const HEADER_BG = '#252542';
-const CARD_BG = '#252542';
-const CARD_BORDER = '#374151';
-const ACCENT = '#3b82f6';
-const TEXT_PRIMARY = '#FFFFFF';
-const TEXT_SECONDARY = '#9ca3af';
 
 interface ThemeOption {
   value: ThemePreference;
@@ -39,7 +33,10 @@ const THEMES: ThemeOption[] = [
 export default function ClientThemeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { theme: currentTheme, setTheme: setThemeContext } = useTheme();
+  const currentThemeRef = useRef(currentTheme);
+  currentThemeRef.current = currentTheme;
 
   const [selectedTheme, setSelectedTheme] = useState<ThemePreference>(currentTheme);
   const [loading, setLoading] = useState(true);
@@ -52,11 +49,11 @@ export default function ClientThemeScreen() {
       const response = await getSettings();
       setSelectedTheme(response.settings.theme);
     } catch {
-      setSelectedTheme(currentTheme);
+      setSelectedTheme(currentThemeRef.current);
     } finally {
       setLoading(false);
     }
-  }, [currentTheme]);
+  }, []);
 
   useEffect(() => {
     loadTheme();
@@ -82,21 +79,21 @@ export default function ClientThemeScreen() {
   }, [selectedTheme, setThemeContext]);
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: colors.surface }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t(`${I18N}.title`)}</Text>
-        {updating ? <ActivityIndicator size="small" color={ACCENT} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
+        {updating ? <ActivityIndicator size="small" color={colors.primary} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
       </View>
 
-      <Text style={styles.subtitle}>{t(`${I18N}.subtitle`)}</Text>
+      <Text style={[styles.subtitle, { color: colors.textTertiary }]}>{t(`${I18N}.subtitle`)}</Text>
 
       <View style={styles.optionsList}>
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={ACCENT} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           THEMES.map((option) => {
@@ -104,23 +101,23 @@ export default function ClientThemeScreen() {
             return (
               <TouchableOpacity
                 key={option.value}
-                style={[styles.optionCard, isSelected && styles.optionCardSelected]}
+                style={[styles.optionCard, isSelected && styles.optionCardSelected, { backgroundColor: isSelected ? 'rgba(139, 92, 246, 0.08)' : colors.card, borderColor: isSelected ? colors.primary : colors.cardBorder }]}
                 activeOpacity={0.8}
                 onPress={() => handleSelect(option.value)}
                 disabled={updating}
               >
                 <View style={[styles.iconBox, isSelected && styles.iconBoxSelected]}>
-                  <Ionicons name={option.icon} size={22} color={isSelected ? ACCENT : TEXT_SECONDARY} />
+                  <Ionicons name={option.icon} size={22} color={isSelected ? colors.primary : colors.textTertiary} />
                 </View>
                 <View style={styles.optionText}>
-                  <Text style={styles.optionLabel}>{t(option.labelKey)}</Text>
-                  <Text style={styles.optionDesc}>{t(option.descKey)}</Text>
+                  <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{t(option.labelKey)}</Text>
+                  <Text style={[styles.optionDesc, { color: colors.textTertiary }]}>{t(option.descKey)}</Text>
                   {isSelected && (
-                    <Text style={styles.currentBadge}>{t(`${I18N}.current`)}</Text>
+                    <Text style={[styles.currentBadge, { color: colors.primary }]}>{t(`${I18N}.current`)}</Text>
                   )}
                 </View>
                 {isSelected && (
-                  <Ionicons name="checkmark-circle" size={24} color={ACCENT} />
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
                 )}
               </TouchableOpacity>
             );
@@ -139,40 +136,38 @@ export default function ClientThemeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    paddingHorizontal: 20, backgroundColor: HEADER_BG,
+    paddingHorizontal: 20,
   },
   backButton: { padding: 4 },
-  title: { flex: 1, fontSize: 20, fontWeight: '600', textAlign: 'center', color: TEXT_PRIMARY },
+  title: { flex: 1, fontSize: 20, fontWeight: '600', textAlign: 'center' },
   headerPlaceholder: { width: 32 },
   subtitle: {
-    color: TEXT_SECONDARY, fontSize: 14,
+    fontSize: 14,
     paddingHorizontal: 20, marginBottom: 20,
   },
   optionsList: { paddingHorizontal: 20, gap: 10 },
   centered: { paddingVertical: 40, alignItems: 'center' },
   optionCard: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
-    borderRadius: 12, backgroundColor: CARD_BG,
-    borderWidth: 1, borderColor: CARD_BORDER,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  optionCardSelected: {
-    borderColor: ACCENT, backgroundColor: '#3b82f620',
-  },
+  optionCardSelected: {},
   iconBox: {
     width: 44, height: 44, borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center', justifyContent: 'center', marginRight: 14,
   },
   iconBoxSelected: {
-    backgroundColor: '#3b82f620',
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
   },
   optionText: { flex: 1 },
-  optionLabel: { color: TEXT_PRIMARY, fontSize: 16, fontWeight: '500' },
-  optionDesc: { color: TEXT_SECONDARY, fontSize: 13, marginTop: 2 },
+  optionLabel: { fontSize: 16, fontWeight: '500' },
+  optionDesc: { fontSize: 13, marginTop: 2 },
   currentBadge: {
-    color: ACCENT, fontSize: 12, fontWeight: '600', marginTop: 4,
+    fontSize: 12, fontWeight: '600', marginTop: 4,
   },
 });

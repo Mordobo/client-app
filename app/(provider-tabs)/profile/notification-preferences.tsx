@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
   loadProviderNotificationPreferences,
@@ -21,12 +22,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Toast } from '@/components/Toast';
-
-const BACKGROUND = '#12121A';
-const CARD_BG = '#1E1B2E';
-const CARD_BORDER = 'rgba(61, 51, 112, 0.2)';
-const SECTION_HEADER_COLOR = 'rgba(255,255,255,0.4)';
-const TOGGLE_ACTIVE = '#22C55E';
 
 function parseHHMM(hhmm: string): Date {
   const [h, m] = hhmm.split(':').map(Number);
@@ -53,6 +48,7 @@ type PrefsKey = keyof ProviderNotificationPreferences;
 export default function ProviderNotificationPreferencesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null);
   const [prefs, setPrefs] = useState<ProviderNotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,7 +113,7 @@ export default function ProviderNotificationPreferencesScreen() {
 
   if (loading || !prefs) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -126,19 +122,19 @@ export default function ProviderNotificationPreferencesScreen() {
             accessibilityLabel={t('providerDashboard.providerNotificationPreferences.back')}
             accessibilityRole="button"
           >
-            <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>{t('providerDashboard.providerNotificationPreferences.title')}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('providerDashboard.providerNotificationPreferences.title')}</Text>
         </View>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={TOGGLE_ACTIVE} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -147,12 +143,12 @@ export default function ProviderNotificationPreferencesScreen() {
           accessibilityLabel={t('providerDashboard.providerNotificationPreferences.back')}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('providerDashboard.providerNotificationPreferences.title')}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('providerDashboard.providerNotificationPreferences.title')}</Text>
         {saving && (
           <View style={styles.savingBadge}>
-            <ActivityIndicator size="small" color={TOGGLE_ACTIVE} />
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
         )}
       </View>
@@ -163,10 +159,10 @@ export default function ProviderNotificationPreferencesScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Push Notifications */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerNotificationPreferences.sectionPush')}
         </Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {[
             {
               key: 'pushNewRequests' as const,
@@ -201,17 +197,17 @@ export default function ProviderNotificationPreferencesScreen() {
           ].map((item, idx) => (
             <View
               key={item.key}
-              style={[styles.toggleRow, idx < 5 && styles.toggleRowBorder]}
+              style={[styles.toggleRow, idx < 5 && styles.toggleRowBorder, { borderBottomColor: colors.cardBorder }]}
             >
               <View style={styles.toggleLabelWrap}>
-                <Text style={styles.toggleLabel}>{t(item.labelKey)}</Text>
-                <Text style={styles.toggleDesc}>{t(item.descKey)}</Text>
+                <Text style={[styles.toggleLabel, { color: colors.textPrimary }]}>{t(item.labelKey)}</Text>
+                <Text style={[styles.toggleDesc, { color: colors.textTertiary }]}>{t(item.descKey)}</Text>
               </View>
               <Switch
                 value={prefs[item.key]}
                 onValueChange={(v) => setBool(item.key, v)}
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34, 197, 94, 0.4)' }}
-                thumbColor={prefs[item.key] ? '#4ADE80' : 'rgba(255,255,255,0.4)'}
+                trackColor={{ false: colors.cardBorder, true: 'rgba(34, 197, 94, 0.4)' }}
+                thumbColor={prefs[item.key] ? '#4ADE80' : colors.textTertiary}
                 accessibilityLabel={t(item.labelKey)}
               />
             </View>
@@ -219,10 +215,10 @@ export default function ProviderNotificationPreferencesScreen() {
         </View>
 
         {/* Sound and Vibration */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerNotificationPreferences.sectionSoundVibration')}
         </Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {[
             { key: 'sound' as const, labelKey: 'providerDashboard.providerNotificationPreferences.sound' },
             { key: 'vibration' as const, labelKey: 'providerDashboard.providerNotificationPreferences.vibration' },
@@ -233,14 +229,14 @@ export default function ProviderNotificationPreferencesScreen() {
           ].map((item, idx) => (
             <View
               key={item.key}
-              style={[styles.toggleRow, styles.toggleRowSimple, idx < 2 && styles.toggleRowBorder]}
+              style={[styles.toggleRow, styles.toggleRowSimple, idx < 2 && styles.toggleRowBorder, { borderBottomColor: colors.cardBorder }]}
             >
-              <Text style={styles.toggleLabel}>{t(item.labelKey)}</Text>
+              <Text style={[styles.toggleLabel, { color: colors.textPrimary }]}>{t(item.labelKey)}</Text>
               <Switch
                 value={prefs[item.key]}
                 onValueChange={(v) => setBool(item.key, v)}
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34, 197, 94, 0.4)' }}
-                thumbColor={prefs[item.key] ? '#4ADE80' : 'rgba(255,255,255,0.4)'}
+                trackColor={{ false: colors.cardBorder, true: 'rgba(34, 197, 94, 0.4)' }}
+                thumbColor={prefs[item.key] ? '#4ADE80' : colors.textTertiary}
                 accessibilityLabel={t(item.labelKey)}
               />
             </View>
@@ -248,63 +244,63 @@ export default function ProviderNotificationPreferencesScreen() {
         </View>
 
         {/* Quiet Hours */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerNotificationPreferences.sectionQuietHours')}
         </Text>
-        <View style={styles.card}>
-          <View style={[styles.toggleRow, styles.toggleRowSimple, styles.toggleRowBorder]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={[styles.toggleRow, styles.toggleRowSimple, styles.toggleRowBorder, { borderBottomColor: colors.cardBorder }]}>
             <View>
-              <Text style={styles.toggleLabel}>
+              <Text style={[styles.toggleLabel, { color: colors.textPrimary }]}>
                 {t('providerDashboard.providerNotificationPreferences.doNotDisturb')}
               </Text>
-              <Text style={styles.toggleDesc}>
+              <Text style={[styles.toggleDesc, { color: colors.textTertiary }]}>
                 {t('providerDashboard.providerNotificationPreferences.doNotDisturbDesc')}
               </Text>
             </View>
             <Switch
               value={prefs.doNotDisturb}
               onValueChange={(v) => setBool('doNotDisturb', v)}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34, 197, 94, 0.4)' }}
-              thumbColor={prefs.doNotDisturb ? '#4ADE80' : 'rgba(255,255,255,0.4)'}
+              trackColor={{ false: colors.cardBorder, true: 'rgba(34, 197, 94, 0.4)' }}
+              thumbColor={prefs.doNotDisturb ? '#4ADE80' : colors.textTertiary}
               accessibilityLabel={t('providerDashboard.providerNotificationPreferences.doNotDisturb')}
             />
           </View>
           <View style={styles.quietHoursRow}>
             <TouchableOpacity
-              style={styles.timeSlot}
+              style={[styles.timeSlot, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}
               onPress={() => {
                 setTimePickerTemp(parseHHMM(prefs.quietHoursFrom));
                 setTimePicker('from');
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.timeSlotLabel}>
+              <Text style={[styles.timeSlotLabel, { color: colors.textTertiary }]}>
                 {t('providerDashboard.providerNotificationPreferences.quietHoursFrom')}
               </Text>
-              <Text style={styles.timeSlotValue}>{formatToDisplay(prefs.quietHoursFrom)}</Text>
+              <Text style={[styles.timeSlotValue, { color: colors.textPrimary }]}>{formatToDisplay(prefs.quietHoursFrom)}</Text>
             </TouchableOpacity>
-            <Text style={styles.timeArrow}>→</Text>
+            <Text style={[styles.timeArrow, { color: colors.textTertiary }]}>→</Text>
             <TouchableOpacity
-              style={styles.timeSlot}
+              style={[styles.timeSlot, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}
               onPress={() => {
                 setTimePickerTemp(parseHHMM(prefs.quietHoursTo));
                 setTimePicker('to');
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.timeSlotLabel}>
+              <Text style={[styles.timeSlotLabel, { color: colors.textTertiary }]}>
                 {t('providerDashboard.providerNotificationPreferences.quietHoursTo')}
               </Text>
-              <Text style={styles.timeSlotValue}>{formatToDisplay(prefs.quietHoursTo)}</Text>
+              <Text style={[styles.timeSlotValue, { color: colors.textPrimary }]}>{formatToDisplay(prefs.quietHoursTo)}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Email */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerNotificationPreferences.sectionEmail')}
         </Text>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {[
             {
               key: 'emailWeeklySummary' as const,
@@ -321,14 +317,14 @@ export default function ProviderNotificationPreferencesScreen() {
           ].map((item, idx) => (
             <View
               key={item.key}
-              style={[styles.toggleRow, styles.toggleRowSimple, idx < 2 && styles.toggleRowBorder]}
+              style={[styles.toggleRow, styles.toggleRowSimple, idx < 2 && styles.toggleRowBorder, { borderBottomColor: colors.cardBorder }]}
             >
-              <Text style={styles.toggleLabel}>{t(item.labelKey)}</Text>
+              <Text style={[styles.toggleLabel, { color: colors.textPrimary }]}>{t(item.labelKey)}</Text>
               <Switch
                 value={prefs[item.key]}
                 onValueChange={(v) => setBool(item.key, v)}
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34, 197, 94, 0.4)' }}
-                thumbColor={prefs[item.key] ? '#4ADE80' : 'rgba(255,255,255,0.4)'}
+                trackColor={{ false: colors.cardBorder, true: 'rgba(34, 197, 94, 0.4)' }}
+                thumbColor={prefs[item.key] ? '#4ADE80' : colors.textTertiary}
                 accessibilityLabel={t(item.labelKey)}
               />
             </View>
@@ -339,10 +335,10 @@ export default function ProviderNotificationPreferencesScreen() {
       {timePicker && (
         <>
           {Platform.OS === 'ios' ? (
-            <View style={styles.timePickerModal}>
-              <View style={styles.timePickerActions}>
+            <View style={[styles.timePickerModal, { backgroundColor: colors.card }]}>
+              <View style={[styles.timePickerActions, { borderBottomColor: colors.cardBorder }]}>
                 <TouchableOpacity onPress={() => setTimePicker(null)}>
-                  <Text style={styles.timePickerCancel}>{t('providerDashboard.providerEditProfile.cancel')}</Text>
+                  <Text style={[styles.timePickerCancel, { color: colors.textSecondary }]}>{t('providerDashboard.providerEditProfile.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
@@ -352,7 +348,7 @@ export default function ProviderNotificationPreferencesScreen() {
                     );
                   }}
                 >
-                  <Text style={styles.timePickerDone}>OK</Text>
+                  <Text style={[styles.timePickerDone, { color: colors.primary }]}>OK</Text>
                 </TouchableOpacity>
               </View>
               <DateTimePicker
@@ -403,7 +399,6 @@ export default function ProviderNotificationPreferencesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: 'row',
@@ -425,7 +420,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
   },
   savingBadge: {
     marginLeft: 8,
@@ -444,7 +438,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    color: SECTION_HEADER_COLOR,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
@@ -452,9 +445,7 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 20,
   },
   toggleRow: {
@@ -465,7 +456,6 @@ const styles = StyleSheet.create({
   },
   toggleRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   toggleRowSimple: {
     paddingVertical: 4,
@@ -475,12 +465,10 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   toggleLabel: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '500',
   },
   toggleDesc: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
     marginTop: 2,
   },
@@ -498,20 +486,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
   },
   timeSlotLabel: {
-    color: 'rgba(255,255,255,0.4)',
     fontSize: 12,
     marginBottom: 4,
   },
   timeSlotValue: {
-    color: '#fff',
     fontSize: 14,
     fontWeight: '500',
   },
   timeArrow: {
-    color: 'rgba(255,255,255,0.2)',
     marginTop: 20,
   },
   timePickerModal: {
@@ -519,7 +504,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: CARD_BG,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingBottom: 24,
@@ -530,14 +514,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   timePickerCancel: {
-    color: 'rgba(255,255,255,0.6)',
     fontSize: 16,
   },
   timePickerDone: {
-    color: TOGGLE_ACTIVE,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -2,6 +2,7 @@ import { HapticTab } from "@/components/haptic-tab";
 import { AvailabilityProvider } from "@/contexts/AvailabilityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { useIsFocused } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,12 +11,11 @@ import React, { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const PROVIDER_SCREEN_BG = "#12121A";
-
 export default function ProviderTabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const segments = useSegments();
+  const colors = useThemeColors();
   const { user } = useAuth();
   const { mode } = useMode();
   const isFocused = useIsFocused();
@@ -40,18 +40,18 @@ export default function ProviderTabLayout() {
   }, [mode, isFocused, router]);
 
   return (
-    <View style={styles.screenBg} collapsable={false}>
+    <View style={[styles.screenBg, { backgroundColor: colors.screenBackground }]} collapsable={false}>
       <AvailabilityProvider enabled>
         <Tabs
         screenOptions={{
           headerShown: false,
           tabBarButton: HapticTab,
-          tabBarActiveTintColor: "#FB923C",
-          tabBarInactiveTintColor: "rgba(255,255,255,0.4)",
+          tabBarActiveTintColor: colors.tabBarActive,
+          tabBarInactiveTintColor: colors.tabBarInactive,
           tabBarStyle: {
-            backgroundColor: "rgba(30, 27, 46, 0.95)",
+            backgroundColor: colors.tabBarBg,
             borderTopWidth: 1,
-            borderTopColor: "rgba(61, 51, 112, 0.5)",
+            borderTopColor: colors.tabBarBorder,
             paddingVertical: 12,
             paddingBottom: bottomPadding,
             height: 60 + bottomPadding,
@@ -155,6 +155,5 @@ export default function ProviderTabLayout() {
 const styles = StyleSheet.create({
   screenBg: {
     flex: 1,
-    backgroundColor: PROVIDER_SCREEN_BG,
   },
 });

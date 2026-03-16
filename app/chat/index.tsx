@@ -1,4 +1,5 @@
 import { ProviderAvatar } from '@/components/ProviderAvatar';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { Conversation, fetchConversations } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function ConversationsListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -131,15 +133,14 @@ export default function ConversationsListScreen() {
   };
 
   const renderConversation = ({ item, index }: { item: Conversation; index: number }) => {
-    // For now, we'll show online status randomly or based on last activity
-    // In a real app, this would come from the backend
-    const isOnline = false; // TODO: Get from backend when available
+    const isOnline = false;
     const isLastItem = index === conversations.length - 1;
     
     return (
       <TouchableOpacity
         style={[
           styles.conversationItem, 
+          { backgroundColor: colors.background, borderBottomColor: colors.cardBorder },
           isLastItem && styles.conversationItemLast
         ]}
         onPress={() => handleConversationPress(item.id)}
@@ -153,16 +154,16 @@ export default function ConversationsListScreen() {
             style={styles.avatar}
           />
           {isOnline && (
-            <View style={styles.onlineIndicator} />
+            <View style={[styles.onlineIndicator, { borderColor: colors.background }]} />
           )}
         </View>
 
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <Text style={[styles.userName, item.unread_count > 0 && styles.userNameBold]}>
+            <Text style={[styles.userName, { color: colors.textPrimary }, item.unread_count > 0 && styles.userNameBold]}>
               {item.other_user_name}
             </Text>
-            <Text style={[styles.timeText, item.unread_count > 0 && styles.timeTextUnread]}>
+            <Text style={[styles.timeText, { color: item.unread_count > 0 ? colors.primary : colors.textTertiary }]}>
               {formatTime(item.last_message_at)}
             </Text>
           </View>
@@ -170,6 +171,7 @@ export default function ConversationsListScreen() {
             <Text
               style={[
                 styles.lastMessage,
+                { color: item.unread_count > 0 ? colors.textPrimary : colors.textTertiary },
                 item.unread_count > 0 && styles.lastMessageUnread,
               ]}
               numberOfLines={1}
@@ -179,6 +181,7 @@ export default function ConversationsListScreen() {
             {item.unread_count > 0 && (
               <View style={[
                 styles.unreadBadge, 
+                { backgroundColor: colors.primary },
                 item.unread_count < 10 && styles.unreadBadgeCircular
               ]}>
                 <Text style={styles.unreadText}>
@@ -196,51 +199,49 @@ export default function ConversationsListScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <Text style={styles.headerTitle}>{t('chat.messages')}</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.card }]}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('chat.messages')}</Text>
         </View>
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { 
-        paddingTop: insets.top + 20, 
-      }]}>
-        <Text style={styles.headerTitle}>{t('chat.messages')}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.card }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('chat.messages')}</Text>
       </View>
 
       {error ? (
-        <View style={styles.centerContainer}>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadConversations}>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={loadConversations}>
             <Text style={styles.retryText}>{t('chat.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : conversations.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <Ionicons name="chatbubbles-outline" size={64} color="#9ca3af" />
-          <Text style={styles.emptyTitle}>{t('chat.noMessages')}</Text>
-          <Text style={styles.emptySubtitle}>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="chatbubbles-outline" size={64} color={colors.textTertiary} />
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{t('chat.noMessages')}</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>
             {t('chat.noMessagesDesc')}
           </Text>
         </View>
       ) : (
-        <View style={{ flex: 1, backgroundColor: '#1a1a2e' }}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
           <FlashList
             data={conversations}
             keyExtractor={(item) => item.id}
             renderItem={renderConversation}
             estimatedItemSize={estimatedItemSize}
-            style={{ flex: 1, backgroundColor: '#1a1a2e' }}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 20 + insets.bottom, backgroundColor: '#1a1a2e' }}
+            style={{ flex: 1, backgroundColor: colors.background }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 20 + insets.bottom, backgroundColor: colors.background }}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#3b82f6']} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />
             }
           />
         </View>

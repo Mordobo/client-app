@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, startJob, type ProviderActiveJobDetail } from "@/services/providerDashboard";
@@ -8,9 +9,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
-const SCREEN_BG = "#12121A";
 const GREEN_PRICE = "#22C55E";
 const GREEN_BUTTON = "#22C55E";
 const YELLOW_STAR = "#EAB308";
@@ -24,6 +22,7 @@ export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const {
     data: jobs = [],
@@ -96,18 +95,18 @@ export default function ProviderJobDetailScreen() {
 
   if (isLoading && jobs.length === 0) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (isError || !job) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{t("providerDashboard.errors.activeJobsFailed")}</Text>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t("providerDashboard.errors.activeJobsFailed")}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Text style={styles.backBtnLabel}>←</Text>
+          <Text style={[styles.backBtnLabel, { color: colors.textSecondary }]}>←</Text>
         </TouchableOpacity>
       </View>
     );
@@ -122,29 +121,29 @@ export default function ProviderJobDetailScreen() {
     : null;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t("providerDashboard.jobDetailTitle")}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.jobDetailTitle")}</Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Client card */}
-        <View style={[styles.card, styles.section]}>
+        <View style={[styles.card, styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.clientRow}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={28} color="rgba(255,255,255,0.6)" />
+            <View style={[styles.avatar, { backgroundColor: colors.background }]}>
+              <Ionicons name="person" size={28} color={colors.textSecondary} />
             </View>
             <View style={styles.clientInfo}>
-              <Text style={styles.clientName}>{job.clientName}</Text>
+              <Text style={[styles.clientName, { color: colors.textPrimary }]}>{job.clientName}</Text>
               {ratingLabel ?
                 <View style={styles.ratingRow}>
                   <Ionicons name="star" size={14} color={YELLOW_STAR} />
-                  <Text style={styles.clientMeta}>{ratingLabel}</Text>
+                  <Text style={[styles.clientMeta, { color: colors.textTertiary }]}>{ratingLabel}</Text>
                 </View>
-              : <Text style={styles.clientMeta}>—</Text>}
+              : <Text style={[styles.clientMeta, { color: colors.textTertiary }]}>—</Text>}
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity style={styles.iconBtn} onPress={handleChat} activeOpacity={0.7} disabled={openingChat}>
@@ -162,49 +161,49 @@ export default function ProviderJobDetailScreen() {
         </View>
 
         {/* Service card */}
-        <View style={[styles.card, styles.section]}>
-          <Text style={styles.sectionLabel}>{t("providerDashboard.serviceLabel")}</Text>
-          <Text style={styles.sectionTitle}>{job.serviceName}</Text>
+        <View style={[styles.card, styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.serviceLabel")}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{job.serviceName}</Text>
           {job.serviceDescription ?
-            <Text style={styles.sectionSub}>{job.serviceDescription}</Text>
+            <Text style={[styles.sectionSub, { color: colors.textSecondary }]}>{job.serviceDescription}</Text>
           : null}
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>{t("providerDashboard.agreedPriceLabel")}</Text>
-            <Text style={styles.price}>{formatCurrency(job.agreedPrice)}</Text>
+            <Text style={[styles.priceLabel, { color: colors.textTertiary }]}>{t("providerDashboard.agreedPriceLabel")}</Text>
+            <Text style={[styles.price, { color: GREEN_PRICE }]}>{formatCurrency(job.agreedPrice)}</Text>
           </View>
         </View>
 
         {/* Client notes (additional instructions from client when booking) */}
         {job.orderNotes ? (
-          <View style={[styles.card, styles.section]}>
-            <Text style={styles.sectionLabel}>{t("providerDashboard.clientNotesLabel")}</Text>
-            <Text style={styles.noteText}>{job.orderNotes}</Text>
+          <View style={[styles.card, styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.clientNotesLabel")}</Text>
+            <Text style={[styles.noteText, { color: colors.textSecondary }]}>{job.orderNotes}</Text>
           </View>
         ) : null}
 
         {/* Quote note (from provider when creating the quote) */}
         {job.quoteNote ? (
-          <View style={[styles.card, styles.section]}>
-            <Text style={styles.sectionLabel}>{t("providerDashboard.quoteNoteLabel")}</Text>
-            <Text style={styles.noteText}>{job.quoteNote}</Text>
+          <View style={[styles.card, styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.quoteNoteLabel")}</Text>
+            <Text style={[styles.noteText, { color: colors.textSecondary }]}>{job.quoteNote}</Text>
           </View>
         ) : null}
 
         {/* Location card */}
-        <View style={[styles.card, styles.section]}>
-          <Text style={styles.sectionLabel}>{t("providerDashboard.locationLabel")}</Text>
-          <View style={styles.mapPlaceholder}>
-            <Ionicons name="map-outline" size={48} color="rgba(255,255,255,0.3)" />
+        <View style={[styles.card, styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.locationLabel")}</Text>
+          <View style={[styles.mapPlaceholder, { backgroundColor: colors.background }]}>
+            <Ionicons name="map-outline" size={48} color={colors.textTertiary} />
           </View>
-          <Text style={styles.address}>{job.address}</Text>
+          <Text style={[styles.address, { color: colors.textPrimary }]}>{job.address}</Text>
           {job.addressLine2 ?
-            <Text style={styles.addressSub}>{job.addressLine2}</Text>
+            <Text style={[styles.addressSub, { color: colors.textTertiary }]}>{job.addressLine2}</Text>
           : null}
         </View>
 
         {/* Work in progress: for scheduled (accepted) jobs, call start API then navigate; for in_progress, open timer/tasks */}
         <TouchableOpacity
-          style={[styles.inProgressBtn, startingJob && styles.inProgressBtnDisabled]}
+          style={[styles.inProgressBtn, { backgroundColor: colors.primary }, startingJob && styles.inProgressBtnDisabled]}
           onPress={handleStartJob}
           activeOpacity={0.8}
           disabled={startingJob}
@@ -220,7 +219,7 @@ export default function ProviderJobDetailScreen() {
         </TouchableOpacity>
         {/* Mark as completed: only when job is already in_progress (started) */}
         {job.status === "in_progress" && (
-          <TouchableOpacity style={styles.completeBtn} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.completeBtn, { backgroundColor: GREEN_BUTTON }]} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
             <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
             <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
           </TouchableOpacity>
@@ -233,7 +232,6 @@ export default function ProviderJobDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
     paddingHorizontal: 20,
   },
   centered: {
@@ -242,7 +240,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
     marginBottom: 16,
   },
   header: {
@@ -262,12 +259,10 @@ const styles = StyleSheet.create({
   },
   backBtnLabel: {
     fontSize: 18,
-    color: "rgba(255,255,255,0.6)",
   },
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   scroll: {
     flex: 1,
@@ -277,10 +272,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: CARD_BG,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   section: {
     padding: 16,

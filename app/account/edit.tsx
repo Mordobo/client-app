@@ -2,6 +2,7 @@ import { COUNTRIES, type Country } from "@/components/CountryPicker";
 import { PhoneInput } from "@/components/PhoneInput";
 import { Toast } from "@/components/Toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { updateProfile } from "@/services/profile";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const { user, updateUser } = useAuth();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(user?.avatar || null);
   const [toastVisible, setToastVisible] = useState(false);
@@ -388,39 +390,39 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={["bottom"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
         <Toast message={toastMessage} visible={toastVisible} onHide={() => setToastVisible(false)} type="success" duration={3000} />
 
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.background }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("profile.editProfileTitle")}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("profile.editProfileTitle")}</Text>
           <TouchableOpacity onPress={handleSave} disabled={loading} style={styles.saveButtonHeader}>
             {loading ?
-              <ActivityIndicator size="small" color="#3b82f6" />
-            : <Text style={styles.saveButtonText}>{t("profile.save")}</Text>}
+              <ActivityIndicator size="small" color={colors.primary} />
+            : <Text style={[styles.saveButtonText, { color: colors.primary }]}>{t("profile.save")}</Text>}
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={[styles.contentContainer, { paddingBottom: 40 }]} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
+        <ScrollView style={[styles.content, { backgroundColor: colors.background }]} contentContainerStyle={[styles.contentContainer, { paddingBottom: 40 }]} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
           {/* Profile Picture */}
-          <View style={styles.avatarSection}>
+          <View style={[styles.avatarSection, { backgroundColor: colors.background }]}>
             <TouchableOpacity onPress={handleImagePicker} style={styles.avatarContainer} activeOpacity={0.8}>
               {imageUri ?
                 <Image source={{ uri: imageUri }} style={styles.avatarImage} contentFit="cover" />
-              : <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color="#9ca3af" />
+              : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.card }]}>
+                  <Ionicons name="person" size={40} color={colors.textSecondary} />
                 </View>
               }
-              <View style={styles.cameraIconContainer}>
+              <View style={[styles.cameraIconContainer, { backgroundColor: colors.primary, borderColor: colors.background }]}>
                 <Ionicons name="camera" size={16} color="#FFFFFF" />
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleImagePicker}>
-              <Text style={styles.changePhotoText}>{t("profile.changePhoto")}</Text>
+              <Text style={[styles.changePhotoText, { color: colors.primary }]}>{t("profile.changePhoto")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -428,31 +430,31 @@ export default function EditProfileScreen() {
           <View style={styles.formSection}>
             {/* First Name */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t("profile.firstName")}</Text>
-              <TextInput style={styles.input} value={formData.firstName} onChangeText={(text) => setFormData({ ...formData, firstName: text })} placeholder={t("profile.firstName")} placeholderTextColor="#9ca3af" />
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("profile.firstName")}</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]} value={formData.firstName} onChangeText={(text) => setFormData({ ...formData, firstName: text })} placeholder={t("profile.firstName")} placeholderTextColor={colors.textTertiary} />
             </View>
 
             {/* Last Name */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t("profile.lastName")}</Text>
-              <TextInput style={styles.input} value={formData.lastName} onChangeText={(text) => setFormData({ ...formData, lastName: text })} placeholder={t("profile.lastName")} placeholderTextColor="#9ca3af" />
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("profile.lastName")}</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]} value={formData.lastName} onChangeText={(text) => setFormData({ ...formData, lastName: text })} placeholder={t("profile.lastName")} placeholderTextColor={colors.textTertiary} />
             </View>
 
             {/* Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t("profile.emailAddress")}</Text>
-              <TextInput style={styles.input} value={formData.email} onChangeText={(text) => setFormData({ ...formData, email: text })} placeholder={t("profile.emailAddress")} placeholderTextColor="#9ca3af" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("profile.emailAddress")}</Text>
+              <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]} value={formData.email} onChangeText={(text) => setFormData({ ...formData, email: text })} placeholder={t("profile.emailAddress")} placeholderTextColor={colors.textTertiary} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
             </View>
 
             {/* Phone */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t("profile.phone")}</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("profile.phone")}</Text>
               <PhoneInput selectedCountry={formData.country} phoneExtension={formData.phoneExtension} phoneNumber={formData.phoneNumber} onExtensionChange={(extension) => setFormData({ ...formData, phoneExtension: extension })} onPhoneNumberChange={(number) => setFormData({ ...formData, phoneNumber: number })} />
             </View>
 
             {/* Date of Birth */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t("profile.dateOfBirth")}</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("profile.dateOfBirth")}</Text>
               {
                 Platform.OS === "web" ?
                   // Web: Use native HTML date input wrapped in a div
@@ -481,10 +483,10 @@ export default function EditProfileScreen() {
                       style: {
                         width: "100%",
                         padding: "16px",
-                        backgroundColor: "#252542",
-                        border: "1px solid #374151",
+                        backgroundColor: colors.card,
+                        border: `1px solid ${colors.cardBorder}`,
                         borderRadius: "12px",
-                        color: "#FFFFFF",
+                        color: colors.textPrimary,
                         fontSize: "15px",
                         minHeight: "48px",
                         fontFamily: "inherit",
@@ -495,17 +497,17 @@ export default function EditProfileScreen() {
                   )
                   // Mobile: Use DateTimePicker
                 : <>
-                    <TouchableOpacity style={styles.dateInput} onPress={() => setShowDatePicker(true)}>
-                      <Text style={[styles.dateInputText, !formData.dateOfBirth && styles.dateInputPlaceholder]}>{formData.dateOfBirth ? formatDateForDisplay(formData.dateOfBirth) : t("profile.dateOfBirth")}</Text>
-                      <Ionicons name="calendar-outline" size={20} color="#9ca3af" />
+                    <TouchableOpacity style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onPress={() => setShowDatePicker(true)}>
+                      <Text style={[styles.dateInputText, { color: colors.textPrimary }, !formData.dateOfBirth && [styles.dateInputPlaceholder, { color: colors.textTertiary }]]}>{formData.dateOfBirth ? formatDateForDisplay(formData.dateOfBirth) : t("profile.dateOfBirth")}</Text>
+                      <Ionicons name="calendar-outline" size={20} color={colors.textTertiary} />
                     </TouchableOpacity>
                     {showDatePicker && <DateTimePicker value={formData.dateOfBirth || new Date()} mode="date" display={Platform.OS === "ios" ? "spinner" : "default"} onChange={handleDateChange} maximumDate={new Date()} locale={Platform.OS === "ios" ? "es-ES" : undefined} />}
                     {Platform.OS === "ios" && showDatePicker && (
                       <View style={styles.iosDatePickerActions}>
-                        <TouchableOpacity style={styles.iosDatePickerButton} onPress={() => setShowDatePicker(false)}>
-                          <Text style={styles.iosDatePickerButtonText}>{t("common.cancel")}</Text>
+                        <TouchableOpacity style={[styles.iosDatePickerButton, { backgroundColor: colors.card }]} onPress={() => setShowDatePicker(false)}>
+                          <Text style={[styles.iosDatePickerButtonText, { color: colors.textPrimary }]}>{t("common.cancel")}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.iosDatePickerButton, styles.iosDatePickerButtonPrimary]} onPress={() => setShowDatePicker(false)}>
+                        <TouchableOpacity style={[styles.iosDatePickerButton, styles.iosDatePickerButtonPrimary, { backgroundColor: colors.primary }]} onPress={() => setShowDatePicker(false)}>
                           <Text style={[styles.iosDatePickerButtonText, styles.iosDatePickerButtonTextPrimary]}>{t("common.ok")}</Text>
                         </TouchableOpacity>
                       </View>
@@ -517,13 +519,13 @@ export default function EditProfileScreen() {
 
             {/* Gender */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t("profile.gender")}</Text>
+              <Text style={[styles.label, { color: colors.textPrimary }]}>{t("profile.gender")}</Text>
               <View style={styles.genderContainer}>
-                <TouchableOpacity style={[styles.genderPill, formData.gender === "male" && styles.genderPillSelected]} onPress={() => setFormData({ ...formData, gender: "male" })}>
-                  <Text style={[styles.genderPillText, formData.gender === "male" && styles.genderPillTextSelected]}>{t("profile.male")}</Text>
+                <TouchableOpacity style={[styles.genderPill, { backgroundColor: colors.card, borderColor: colors.cardBorder }, formData.gender === "male" && [styles.genderPillSelected, { backgroundColor: `${colors.primary}33`, borderColor: colors.primary }]]} onPress={() => setFormData({ ...formData, gender: "male" })}>
+                  <Text style={[styles.genderPillText, { color: colors.textPrimary }, formData.gender === "male" && [styles.genderPillTextSelected, { color: colors.primary }]]}>{t("profile.male")}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.genderPill, formData.gender === "female" && styles.genderPillSelected]} onPress={() => setFormData({ ...formData, gender: "female" })}>
-                  <Text style={[styles.genderPillText, formData.gender === "female" && styles.genderPillTextSelected]}>{t("profile.female")}</Text>
+                <TouchableOpacity style={[styles.genderPill, { backgroundColor: colors.card, borderColor: colors.cardBorder }, formData.gender === "female" && [styles.genderPillSelected, { backgroundColor: `${colors.primary}33`, borderColor: colors.primary }]]} onPress={() => setFormData({ ...formData, gender: "female" })}>
+                  <Text style={[styles.genderPillText, { color: colors.textPrimary }, formData.gender === "female" && [styles.genderPillTextSelected, { color: colors.primary }]]}>{t("profile.female")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
