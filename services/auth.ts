@@ -421,7 +421,9 @@ export const request = async <T>(
           refreshFailedRaw != null && refreshFailedRaw !== ''
             ? String(refreshFailedRaw)
             : t('errors.tokenRefreshFailed');
-        throw new ApiError(message, response.status, responseData, false);
+        const msgLower = message.toLowerCase();
+        const isTokenInvalidOrExpired = (msgLower.includes('invalid') && (msgLower.includes('expired') || msgLower.includes('token'))) || msgLower.includes('token');
+        throw new ApiError(message, response.status, responseData, isTokenInvalidOrExpired);
       }
     }
 
