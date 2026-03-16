@@ -197,7 +197,7 @@ export default function ProviderJobsScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 80, backgroundColor: colors.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.jobsScreenTitle")}</Text>
       </View>
@@ -233,7 +233,7 @@ export default function ProviderJobsScreen() {
         <View style={styles.centered}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyActiveJobs")}</Text>
         </View>
-      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} colors={colors} />} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />} />}
+      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} colors={colors} />} style={styles.list} contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={true} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />} />}
     </View>
   );
 }
@@ -274,8 +274,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   filterBtnTextActive: {},
+  list: {
+    flex: 1,
+  },
   listContent: {
-    paddingBottom: 16,
+    paddingBottom: 100,
     gap: 8,
   },
   centered: {
