@@ -1,11 +1,14 @@
+import { fetchFaqs, flattenFaqsToItems, type FaqListItem } from '@/services/faqs';
 import { t } from '@/i18n';
+import { getLocale } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,61 +18,26 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface FAQItem {
-  icon: string;
-  question: string;
-  answer: string;
-}
-
 export default function HelpCenterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedFaqs, setExpandedFaqs] = useState<Set<number>>(new Set());
+  const [expandedFaqs, setExpandedFaqs] = useState<Set<string>>(new Set());
 
-  // FAQ items from translations
-  const faqItems: FAQItem[] = useMemo(
-    () => [
-      {
-        icon: '📅',
-        question: t('helpCenter.faqs.howToBook.question'),
-        answer: t('helpCenter.faqs.howToBook.answer'),
-      },
-      {
-        icon: '💳',
-        question: t('helpCenter.faqs.howPaymentWorks.question'),
-        answer: t('helpCenter.faqs.howPaymentWorks.answer'),
-      },
-      {
-        icon: '❌',
-        question: t('helpCenter.faqs.canCancel.question'),
-        answer: t('helpCenter.faqs.canCancel.answer'),
-      },
-      {
-        icon: '⭐',
-        question: t('helpCenter.faqs.howToRate.question'),
-        answer: t('helpCenter.faqs.howToRate.answer'),
-      },
-      {
-        icon: '🔒',
-        question: t('helpCenter.faqs.dataSecure.question'),
-        answer: t('helpCenter.faqs.dataSecure.answer'),
-      },
-      {
-        icon: '💰',
-        question: t('helpCenter.faqs.howRefundsWork.question'),
-        answer: t('helpCenter.faqs.howRefundsWork.answer'),
-      },
-    ],
-    []
-  );
+  const locale = getLocale();
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['faqs', locale],
+    queryFn: () => fetchFaqs(locale),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // Filter FAQs based on search query
+  const faqItems: FaqListItem[] = useMemo(() => {
+    if (!data?.categories?.length) return [];
+    return flattenFaqsToItems(data.categories);
+  }, [data?.categories]);
+
   const filteredFaqs = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return faqItems;
-    }
-
+    if (!searchQuery.trim()) return faqItems;
     const query = searchQuery.toLowerCase();
     return faqItems.filter(
       (item) =>
@@ -78,14 +46,13 @@ export default function HelpCenterScreen() {
     );
   }, [searchQuery, faqItems]);
 
-  const toggleFaq = (index: number) => {
-    const newExpanded = new Set(expandedFaqs);
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index);
-    } else {
-      newExpanded.add(index);
-    }
-    setExpandedFaqs(newExpanded);
+  const toggleFaq = (id: string) => {
+    setExpandedFaqs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const handleLiveChat = () => {
@@ -150,7 +117,7 @@ export default function HelpCenterScreen() {
         style={[styles.scrollView, { backgroundColor: '#1a1a2e' }]}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 20, backgroundColor: '#1a1a2e' },
+          { paddingBottom: 20 + insets.bottom, backgroundColor: '#1a1a2e' },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -168,29 +135,37 @@ export default function HelpCenterScreen() {
           </View>
         </View>
 
-        {/* FAQs Section - Exact match to JSX */}
+        {/* FAQs Section - from API (CRM/Backoffice) */}
         <Text style={styles.sectionTitle}>
           {t('helpCenter.frequentlyAskedQuestions')}
         </Text>
 
-        {filteredFaqs.length > 0 ? (
-          filteredFaqs.map((faq, index) => {
-            const originalIndex = faqItems.indexOf(faq);
-            const isExpanded = expandedFaqs.has(originalIndex);
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
+          </View>
+        ) : isError ? (
+          <View style={styles.noResultsContainer}>
+            <Text style={styles.noResultsText}>
+              {error instanceof Error ? error.message : t('helpCenter.noResults')}
+            </Text>
+            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()} activeOpacity={0.7}>
+              <Text style={styles.retryButtonText}>{t('chat.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : filteredFaqs.length > 0 ? (
+          filteredFaqs.map((faq) => {
+            const isExpanded = expandedFaqs.has(faq.id);
             return (
-              <View
-                key={index}
-                style={styles.faqItem}
-              >
+              <View key={faq.id} style={styles.faqItem}>
                 <TouchableOpacity
                   style={styles.faqHeader}
-                  onPress={() => toggleFaq(originalIndex)}
+                  onPress={() => toggleFaq(faq.id)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.faqIcon}>{faq.icon}</Text>
-                  <Text style={styles.faqQuestion}>
-                    {faq.question}
-                  </Text>
+                  <Text style={styles.faqQuestion}>{faq.question}</Text>
                   <Ionicons
                     name={isExpanded ? 'chevron-up' : 'chevron-forward'}
                     size={20}
@@ -199,9 +174,7 @@ export default function HelpCenterScreen() {
                 </TouchableOpacity>
                 {isExpanded && (
                   <View style={styles.faqAnswerContainer}>
-                    <Text style={styles.faqAnswer}>
-                      {faq.answer}
-                    </Text>
+                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
                   </View>
                 )}
               </View>
@@ -398,6 +371,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: '#9ca3af', // Hardcode secondary text
   },
+  loadingContainer: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
   noResultsContainer: {
     paddingVertical: 24,
     alignItems: 'center',
@@ -405,6 +387,18 @@ const styles = StyleSheet.create({
   noResultsText: {
     fontSize: 14,
     color: '#9ca3af', // Hardcode secondary text
+  },
+  retryButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    backgroundColor: '#3b82f6',
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   contactItem: {
     flexDirection: 'row',

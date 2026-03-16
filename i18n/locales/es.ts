@@ -12,6 +12,7 @@ export default {
     back: "Volver",
     discard: "Descartar",
     redirecting: "Redirigiendo...",
+    loading: "Cargando...",
   },
   auth: {
     firstName: "Nombre",
@@ -34,8 +35,7 @@ export default {
     searchCountry: "Buscar país...",
     loginTitle: "Iniciar sesión",
     welcome: "Bienvenido",
-    welcomeSubtitle: "Ingresa tus credenciales para continuar",
-    signIn: "Iniciar sesión",
+    loginSubtitle: "Ingresa tus credenciales para continuar",
     signUp: "Registrarse",
     forgotPassword: "¿Olvidaste tu contraseña?",
     forgotPasswordTitle: "¿Olvidaste tu contraseña?",
