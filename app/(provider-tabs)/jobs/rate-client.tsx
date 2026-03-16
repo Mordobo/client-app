@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import {
@@ -20,8 +21,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
 const CARD_BORDER_LIGHT = "rgba(61, 51, 112, 0.2)";
 const PURPLE_GRADIENT_START = "#6366F1";
 const PURPLE_GRADIENT_END = "#8B5CF6";
@@ -54,6 +53,7 @@ export default function RateClientScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const footerBottom = Math.max(insets.bottom, 12);
 
@@ -142,20 +142,20 @@ export default function RateClientScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={PURPLE_GRADIENT_END} />
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("providerDashboard.rateClient.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.rateClient.title")}</Text>
       </View>
 
       <ScrollView
@@ -166,11 +166,11 @@ export default function RateClientScreen() {
       >
         {/* Client Avatar & Info */}
         <View style={styles.clientSection}>
-          <View style={styles.clientAvatarLarge}>
-            <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
+          <View style={[styles.clientAvatarLarge, { backgroundColor: colors.card }]}>
+            <Ionicons name="person" size={40} color={colors.textSecondary} />
           </View>
-          <Text style={styles.clientNameLarge}>{clientData?.fullName ?? "—"}</Text>
-          <Text style={styles.clientServiceLabel}>{clientData?.serviceName ?? ""}</Text>
+          <Text style={[styles.clientNameLarge, { color: colors.textPrimary }]}>{clientData?.fullName ?? "—"}</Text>
+          <Text style={[styles.clientServiceLabel, { color: colors.textTertiary }]}>{clientData?.serviceName ?? ""}</Text>
         </View>
 
         {!canRate && orderStatus != null && (
@@ -203,22 +203,22 @@ export default function RateClientScreen() {
             return (
               <TouchableOpacity
                 key={tagKey}
-                style={[styles.tagChip, selected && styles.tagChipSelected]}
+                style={[styles.tagChip, { backgroundColor: selected ? colors.primary : colors.background }, selected && styles.tagChipSelected]}
                 onPress={() => toggleTag(tagKey)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{label}</Text>
+                <Text style={[styles.tagText, { color: selected ? colors.textOnDark : colors.textTertiary }, selected && styles.tagTextSelected]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Comment */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.rateClient.comment")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.rateClient.comment")}</Text>
         <TextInput
-          style={styles.textArea}
+          style={[styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]}
           placeholder={t("providerDashboard.rateClient.commentPlaceholder")}
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor={colors.textTertiary}
           value={comment}
           onChangeText={setComment}
           multiline
@@ -248,7 +248,7 @@ export default function RateClientScreen() {
       {/* Actions */}
       <View style={[styles.footer, { paddingBottom: footerBottom }]}>
         <TouchableOpacity
-          style={[styles.submitBtn, (submitting || !canRate) && styles.submitBtnDisabled]}
+          style={[styles.submitBtn, { backgroundColor: colors.primary }, (submitting || !canRate) && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           activeOpacity={0.8}
           disabled={submitting || !canRate}
@@ -270,7 +270,6 @@ export default function RateClientScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   centered: {
     justifyContent: "center",
@@ -413,12 +412,9 @@ const styles = StyleSheet.create({
 
   // Text Area
   textArea: {
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER_LIGHT,
     borderRadius: 12,
     padding: 12,
-    color: "#FFFFFF",
     fontSize: 14,
     minHeight: 80,
     marginBottom: 16,

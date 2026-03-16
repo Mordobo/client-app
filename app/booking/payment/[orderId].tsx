@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   createPayment,
   bookAndPay,
@@ -7,7 +8,7 @@ import {
 } from '@/services/payments';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,22 +22,129 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
 import { AddCardModal } from '@/components/payment/AddCardModal';
 
-// Theme colors matching the JSX design
-const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-  white: '#ffffff',
-};
-
 export default function PaymentScreen() {
   const router = useRouter();
+  const themeColors = useThemeColors();
+  const colors = useMemo(
+    () => ({
+      bg: themeColors.background,
+      bgCard: themeColors.card,
+      bgInput: themeColors.surfaceSecondary,
+      primary: themeColors.primary,
+      secondary: '#10b981',
+      accent: '#f59e0b',
+      danger: '#ef4444',
+      textSecondary: themeColors.textSecondary,
+      border: themeColors.border,
+      white: '#ffffff',
+    }),
+    [themeColors]
+  );
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: colors.bg },
+        centerContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingVertical: 16,
+        },
+        backButton: {
+          width: 40,
+          height: 40,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        headerTitle: { fontSize: 20, fontWeight: '600', color: colors.white },
+        content: { flex: 1 },
+        totalContainer: { alignItems: 'center', paddingVertical: 20 },
+        totalLabel: { fontSize: 14, color: colors.textSecondary, marginBottom: 8 },
+        totalAmount: { fontSize: 42, fontWeight: '700', color: colors.white },
+        section: { paddingHorizontal: 20, marginBottom: 20 },
+        sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.white, marginBottom: 16 },
+        emptyState: { padding: 20, alignItems: 'center' },
+        emptyStateText: { color: colors.textSecondary, fontSize: 14 },
+        paymentMethodCard: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.bgCard,
+          borderRadius: 14,
+          padding: 16,
+          marginBottom: 12,
+          borderWidth: 2,
+          borderColor: 'transparent',
+        },
+        paymentMethodCardSelected: {
+          backgroundColor: `${colors.primary}20`,
+          borderColor: colors.primary,
+        },
+        cardIconContainer: {
+          width: 48,
+          height: 48,
+          backgroundColor: colors.bgInput,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 14,
+        },
+        cardIcon: { fontSize: 24 },
+        paymentMethodInfo: { flex: 1 },
+        paymentMethodLabel: {
+          fontSize: 15,
+          fontWeight: '600',
+          color: colors.white,
+          marginBottom: 4,
+        },
+        paymentMethodSubtitle: { fontSize: 13, color: colors.textSecondary },
+        checkmarkContainer: { marginLeft: 12 },
+        addCardButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: colors.bgCard,
+          borderRadius: 14,
+          padding: 16,
+          borderWidth: 1,
+          borderStyle: 'dashed',
+          borderColor: colors.border,
+        },
+        addCardText: {
+          fontSize: 15,
+          fontWeight: '500',
+          color: colors.primary,
+          marginLeft: 14,
+        },
+        securityContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: 20,
+          paddingVertical: 20,
+          gap: 10,
+        },
+        securityText: { fontSize: 12, color: colors.textSecondary },
+        footer: { paddingHorizontal: 20, paddingTop: 20, backgroundColor: colors.bg },
+        confirmButton: {
+          backgroundColor: colors.secondary,
+          borderRadius: 14,
+          paddingVertical: 18,
+          alignItems: 'center',
+        },
+        confirmButtonDisabled: { opacity: 0.5 },
+        confirmButtonText: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: '700',
+        },
+      }),
+    [colors]
+  );
   const {
     orderId,
     totalAmount,
@@ -334,157 +442,3 @@ export default function PaymentScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  content: {
-    flex: 1,
-  },
-  totalContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  totalAmount: {
-    fontSize: 42,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 16,
-  },
-  emptyState: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  paymentMethodCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bgCard,
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  paymentMethodCardSelected: {
-    backgroundColor: `${colors.primary}20`,
-    borderColor: colors.primary,
-  },
-  cardIconContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: colors.bgInput,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-  cardIcon: {
-    fontSize: 24,
-  },
-  paymentMethodInfo: {
-    flex: 1,
-  },
-  paymentMethodLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 4,
-  },
-  paymentMethodSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  checkmarkContainer: {
-    marginLeft: 12,
-  },
-  addCardButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bgCard,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.border,
-  },
-  addCardText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.primary,
-    marginLeft: 14,
-  },
-  securityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    gap: 10,
-  },
-  securityText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    backgroundColor: colors.bg,
-  },
-  confirmButton: {
-    backgroundColor: colors.secondary,
-    borderRadius: 14,
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  confirmButtonDisabled: {
-    opacity: 0.5,
-  },
-  confirmButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-});

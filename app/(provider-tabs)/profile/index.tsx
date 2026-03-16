@@ -1,6 +1,7 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { ProfileFooter } from "@/components/profile/ProfileFooter";
 import { useMode } from "@/contexts/ModeContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
 import { getDashboardStats } from "@/services/providerDashboard";
@@ -16,9 +17,6 @@ import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const GRADIENT_COLORS = ["#6366F1", "#8B5CF6", "#EC4899"] as const;
 
 /** Get initials from a display name string (e.g. "Business Name" → "BN", "Angelo Rivas" → "AR"). */
@@ -41,6 +39,7 @@ function getInitialsFromDisplayName(displayName: string): string {
 export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { mode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -178,8 +177,8 @@ export default function ProviderProfileScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor="#8B5CF6" />}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor={colors.primary} />}>
         {/* Header with gradient and avatar */}
         <View style={styles.headerWrapper}>
           <LinearGradient colors={[...GRADIENT_COLORS]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader} />
@@ -192,15 +191,15 @@ export default function ProviderProfileScreen() {
             </TouchableOpacity>
           </View>
           <View style={styles.avatarRow}>
-            <View style={styles.avatarWrapper}>
+            <View style={[styles.avatarWrapper, { backgroundColor: colors.card, borderColor: colors.background }]}>
               {providerAvatarUrl && !avatarError ?
                 <Image source={{ uri: providerAvatarUrl }} style={styles.avatar} contentFit="cover" cachePolicy="disk" onError={() => setAvatarError(true)} />
-              : <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarInitials}>{initials}</Text>
+              : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.card }]}>
+                  <Text style={[styles.avatarInitials, { color: colors.textOnDark }]}>{initials}</Text>
                 </View>
               }
               {isVerified && (
-                <View style={styles.verifiedBadge}>
+                <View style={[styles.verifiedBadge, { borderColor: colors.background }]}>
                   <Ionicons name="checkmark" size={14} color="#fff" />
                 </View>
               )}
@@ -225,26 +224,26 @@ export default function ProviderProfileScreen() {
           {/* Name and category */}
           <View style={styles.nameRow}>
             <View style={styles.nameAndBadge}>
-              <Text style={styles.displayName}>{displayName}</Text>
+              <Text style={[styles.displayName, { color: colors.textPrimary }]}>{displayName}</Text>
               {isVerified && (
                 <View style={styles.verifiedPill}>
                   <Text style={styles.verifiedPillText}>{t("providerDashboard.providerProfile.verified")}</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.category}>{categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}</Text>
+            <Text style={[styles.category, { color: colors.textSecondary }]}>{categoryName || t("providerDashboard.providerProfile.categoryPlaceholder")}</Text>
           </View>
 
           {/* Stats */}
           {statsLoading ?
             <View style={styles.statsRow}>
-              <ActivityIndicator size="small" color="#8B5CF6" />
+              <ActivityIndicator size="small" color={colors.primary} />
             </View>
           : <View style={styles.statsRow}>
               {statValues.map((stat, idx) => (
-                <View key={idx} style={styles.statCard}>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>
+                <View key={idx} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                  <Text style={[styles.statValue, { color: colors.textPrimary }]}>{stat.value}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textTertiary }]}>
                     {t(stat.labelKey)}
                     {idx === 2 ? " ⭐" : ""}
                   </Text>
@@ -254,23 +253,23 @@ export default function ProviderProfileScreen() {
           }
 
           {/* Bio */}
-          <View style={styles.bioCard}>
-            <Text style={styles.bioLabel}>{t("providerDashboard.providerProfile.aboutMe")}</Text>
-            <Text style={styles.bioText}>{bio || t("providerDashboard.providerProfile.bioPlaceholder")}</Text>
+          <View style={[styles.bioCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.bioLabel, { color: colors.textTertiary }]}>{t("providerDashboard.providerProfile.aboutMe")}</Text>
+            <Text style={[styles.bioText, { color: colors.textOnDark }]}>{bio || t("providerDashboard.providerProfile.bioPlaceholder")}</Text>
           </View>
 
           {/* Menu options */}
           <View style={styles.menuList}>
             {menuItems.map((item, idx) => (
-              <TouchableOpacity key={idx} style={styles.menuItem} onPress={() => (item.href ? router.push(item.href as never) : undefined)} activeOpacity={0.7} disabled={!item.href}>
+              <TouchableOpacity key={idx} style={[styles.menuItem, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onPress={() => (item.href ? router.push(item.href as never) : undefined)} activeOpacity={0.7} disabled={!item.href}>
                 <View style={styles.menuIconBox}>
-                  <Ionicons name={item.icon} size={20} color="#8B5CF6" />
+                  <Ionicons name={item.icon} size={20} color={colors.primary} />
                 </View>
                 <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuLabel}>{t(item.labelKey)}</Text>
-                  <Text style={styles.menuDesc}>{t(item.descKey, item.descParams)}</Text>
+                  <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{t(item.labelKey)}</Text>
+                  <Text style={[styles.menuDesc, { color: colors.textTertiary }]}>{t(item.descKey, item.descParams)}</Text>
                 </View>
-                {item.href && <Text style={styles.menuArrow}>→</Text>}
+                {item.href && <Text style={[styles.menuArrow, { color: colors.textTertiary }]}>→</Text>}
               </TouchableOpacity>
             ))}
           </View>
@@ -286,7 +285,6 @@ export default function ProviderProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   scroll: {
     flex: 1,
@@ -345,9 +343,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 16,
-    backgroundColor: CARD_BG,
     borderWidth: 4,
-    borderColor: BACKGROUND,
     overflow: "hidden",
   },
   avatar: {
@@ -359,10 +355,8 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: CARD_BG,
   },
   avatarInitials: {
-    color: "rgba(255,255,255,0.8)",
     fontSize: 32,
     fontWeight: "600",
   },
@@ -375,7 +369,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#22C55E",
     borderWidth: 3,
-    borderColor: BACKGROUND,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -393,7 +386,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   displayName: {
-    color: "#fff",
     fontSize: 20,
     fontWeight: "700",
   },
@@ -409,7 +401,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   category: {
-    color: "#A78BFA",
     fontSize: 14,
   },
   statsRow: {
@@ -421,38 +412,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     alignItems: "center",
   },
   statValue: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "700",
   },
   statLabel: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     marginTop: 2,
   },
   bioCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 20,
   },
   bioLabel: {
-    color: "rgba(255,255,255,0.5)",
     fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 8,
   },
   bioText: {
-    color: "rgba(255,255,255,0.8)",
     fontSize: 14,
     lineHeight: 22,
   },
@@ -464,9 +447,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   menuIconBox: {
     width: 40,
@@ -481,17 +462,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuLabel: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "500",
   },
   menuDesc: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     marginTop: 2,
   },
   menuArrow: {
-    color: "rgba(255,255,255,0.3)",
     fontSize: 14,
   },
   modeSwitchWrap: {

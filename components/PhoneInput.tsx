@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -60,6 +61,7 @@ export function PhoneInput({
   placeholder,
   disabled = false,
 }: PhoneInputProps) {
+  const colors = useThemeColors();
   const [extensionModalVisible, setExtensionModalVisible] = useState(false);
   const [extensionSearchQuery, setExtensionSearchQuery] = useState('');
 
@@ -115,8 +117,9 @@ export function PhoneInput({
         <TouchableOpacity
           style={[
             styles.extensionButton,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder },
             error && styles.extensionButtonError,
-            isExtensionDisabled && styles.extensionButtonDisabled,
+            isExtensionDisabled && [styles.extensionButtonDisabled, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }],
           ]}
           onPress={() => !isExtensionDisabled && setExtensionModalVisible(true)}
           disabled={isExtensionDisabled}
@@ -125,7 +128,8 @@ export function PhoneInput({
           <Text
             style={[
               styles.extensionText,
-              isExtensionDisabled && styles.extensionTextDisabled,
+              { color: colors.textPrimary },
+              isExtensionDisabled && [styles.extensionTextDisabled, { color: colors.textTertiary }],
             ]}
           >
             {phoneExtension || t('auth.selectExtension')}
@@ -133,7 +137,7 @@ export function PhoneInput({
           <Ionicons
             name="chevron-down"
             size={16}
-            color={isExtensionDisabled ? '#9CA3AF' : '#9CA3AF'}
+            color={colors.textTertiary}
           />
         </TouchableOpacity>
 
@@ -141,13 +145,14 @@ export function PhoneInput({
         <TextInput
           style={[
             styles.phoneInput,
+            { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary },
             error && styles.phoneInputError,
-            disabled && styles.phoneInputDisabled,
+            disabled && [styles.phoneInputDisabled, { backgroundColor: colors.surfaceSecondary, color: colors.textTertiary }],
           ]}
           value={phoneNumber}
           onChangeText={handlePhoneNumberChange}
           placeholder={placeholder || t('auth.phoneNumberPlaceholder')}
-          placeholderTextColor="rgba(156, 163, 175, 0.5)"
+          placeholderTextColor={colors.textTertiary}
           keyboardType="phone-pad"
           editable={!disabled}
         />
@@ -170,10 +175,10 @@ export function PhoneInput({
           style={styles.modalKeyboardView}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               {/* Header */}
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{t('auth.selectExtension')}</Text>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('auth.selectExtension')}</Text>
                 <TouchableOpacity
                   onPress={() => {
                     setExtensionModalVisible(false);
@@ -181,17 +186,17 @@ export function PhoneInput({
                   }}
                   style={styles.closeButton}
                 >
-                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                  <Ionicons name="close" size={24} color={colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
               {/* Search Bar */}
-              <View style={styles.searchContainer}>
-                <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+              <View style={[styles.searchContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+                <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
                 <TextInput
-                  style={styles.searchInput}
+                  style={[styles.searchInput, { color: colors.textPrimary }]}
                   placeholder={t('auth.searchExtension')}
-                  placeholderTextColor="rgba(156, 163, 175, 0.5)"
+                  placeholderTextColor={colors.textTertiary}
                   value={extensionSearchQuery}
                   onChangeText={setExtensionSearchQuery}
                   autoCapitalize="none"
@@ -202,7 +207,7 @@ export function PhoneInput({
                     onPress={() => setExtensionSearchQuery('')}
                     style={styles.clearButton}
                   >
-                    <Ionicons name="close-circle" size={20} color="#9CA3AF" />
+                    <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -217,7 +222,7 @@ export function PhoneInput({
                     <TouchableOpacity
                       style={[
                         styles.extensionItem,
-                        phoneExtension === ext && styles.extensionItemSelected,
+                        phoneExtension === ext && [styles.extensionItemSelected, { backgroundColor: `${colors.primary}33` }],
                       ]}
                       onPress={() => handleSelectExtension(ext)}
                       activeOpacity={0.7}
@@ -225,16 +230,17 @@ export function PhoneInput({
                       <Text
                         style={[
                           styles.extensionItemText,
-                          phoneExtension === ext && styles.extensionItemTextSelected,
+                          { color: colors.textPrimary },
+                          phoneExtension === ext && [styles.extensionItemTextSelected, { color: colors.primary }],
                         ]}
                       >
                         {ext}
                       </Text>
-                      <Text style={styles.extensionItemCountry}>
+                      <Text style={[styles.extensionItemCountry, { color: colors.textSecondary }]}>
                         {country ? country.name : '\u2014'}
                       </Text>
                       {phoneExtension === ext && (
-                        <Ionicons name="checkmark" size={20} color="#3B82F6" />
+                        <Ionicons name="checkmark" size={20} color={colors.primary} />
                       )}
                     </TouchableOpacity>
                   );

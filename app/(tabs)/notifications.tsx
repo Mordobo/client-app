@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t, getLocale } from '@/i18n';
 import {
   Notification,
@@ -24,9 +25,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 interface NotificationItemProps {
   notification: Notification;
   onPress: () => void;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-function NotificationItem({ notification, onPress }: NotificationItemProps) {
+function NotificationItem({ notification, onPress, colors }: NotificationItemProps) {
   const getNotificationConfig = (type: NotificationType) => {
     switch (type) {
       case 'booking_confirmed':
@@ -103,7 +105,7 @@ function NotificationItem({ notification, onPress }: NotificationItemProps) {
     <TouchableOpacity
       style={[
         styles.notificationItem,
-        !notification.read && styles.notificationItemUnread,
+        !notification.read && [styles.notificationItemUnread, { backgroundColor: colors.card }],
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -117,18 +119,18 @@ function NotificationItem({ notification, onPress }: NotificationItemProps) {
         <Text style={styles.iconText}>{config.icon}</Text>
       </View>
       <View style={styles.notificationContent}>
-        <Text style={styles.notificationTitle}>
+        <Text style={[styles.notificationTitle, { color: colors.textPrimary }]}>
           {notification.title}
         </Text>
-        <Text style={styles.notificationMessage}>
+        <Text style={[styles.notificationMessage, { color: colors.textSecondary }]}>
           {notification.message}
         </Text>
-        <Text style={styles.notificationTime}>
+        <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>
           {formatTime(notification.created_at)}
         </Text>
       </View>
       {!notification.read && (
-        <View style={styles.unreadDot} />
+        <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
       )}
     </TouchableOpacity>
   );
@@ -142,6 +144,7 @@ interface NotificationGroup {
 export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -310,9 +313,9 @@ export default function NotificationsScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.card, borderBottomColor: colors.cardBorder }]}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -321,15 +324,15 @@ export default function NotificationsScreen() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color="#FFFFFF"
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           {t('notifications.title')}
         </Text>
         {hasUnread ? (
           <TouchableOpacity onPress={handleMarkAllAsRead}>
-            <Text style={styles.markAllText}>{t('notifications.markAll')}</Text>
+            <Text style={[styles.markAllText, { color: colors.primary }]}>{t('notifications.markAll')}</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.headerPlaceholder} />
@@ -339,30 +342,30 @@ export default function NotificationsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : notifications.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="notifications-outline" size={64} color="#6B7280" />
-          <Text style={styles.emptyText}>
+          <Ionicons name="notifications-outline" size={64} color={colors.textTertiary} />
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             {t('notifications.empty')}
           </Text>
         </View>
       ) : (
         <ScrollView
-          style={styles.scrollView}
+          style={[styles.scrollView, { backgroundColor: colors.background }]}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#3B82F6"
+              tintColor={colors.primary}
             />
           }
         >
           {groupedNotifications.map((group, groupIndex) => (
             <View key={groupIndex} style={styles.group}>
-              <Text style={styles.sectionHeader}>
+              <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>
                 {group.label}
               </Text>
               {group.notifications.map((notification) => (
@@ -370,6 +373,7 @@ export default function NotificationsScreen() {
                   key={notification.id}
                   notification={notification}
                   onPress={() => handleNotificationPress(notification)}
+                  colors={colors}
                 />
               ))}
             </View>

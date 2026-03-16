@@ -1,5 +1,6 @@
 import { Toast } from '@/components/Toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
   changePassword,
@@ -32,16 +33,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const I18N = 'providerDashboard.providerSettings.securityScreen';
-const BACKGROUND = '#1a1a2e';
-const HEADER_BG = '#252542';
-const CARD_BG = '#252542';
-const CARD_BORDER = '#374151';
-const SECTION_HEADER_COLOR = '#9ca3af';
-const ACCENT = '#3b82f6';
-const PRIMARY_20 = '#3b82f620';
-const TOGGLE_ACTIVE = '#22C55E';
-const TEXT_PRIMARY = '#FFFFFF';
-const TEXT_SECONDARY = '#9ca3af';
 
 type PasswordStep = 'current' | 'new' | 'confirm';
 
@@ -55,6 +46,7 @@ interface PasswordModalState {
 export default function ClientSecurityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { logout } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -219,57 +211,57 @@ export default function ClientSecurityScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: colors.card }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>{t(`${I18N}.title`)}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
           <View style={styles.headerPlaceholder} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={ACCENT} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t(`${I18N}.title`)}</Text>
-        {updating ? <ActivityIndicator size="small" color={ACCENT} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
+        {updating ? <ActivityIndicator size="small" color={colors.primary} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>{t(`${I18N}.sectionPassword`)}</Text>
-        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={handleChangePassword}>
-          <View style={styles.iconBox}>
-            <Ionicons name="key-outline" size={20} color={ACCENT} />
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{t(`${I18N}.sectionPassword`)}</Text>
+        <TouchableOpacity style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} activeOpacity={0.8} onPress={handleChangePassword}>
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+            <Ionicons name="key-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>{t(`${I18N}.changePassword`)}</Text>
-            <Text style={styles.rowDesc}>{t(`${I18N}.changePasswordDesc`)}</Text>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t(`${I18N}.changePassword`)}</Text>
+            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t(`${I18N}.changePasswordDesc`)}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={TEXT_SECONDARY} />
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
 
-        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>{t(`${I18N}.section2FA`)}</Text>
-        <View style={styles.card}>
-          <View style={styles.iconBox}>
-            <Ionicons name="shield-checkmark-outline" size={20} color={ACCENT} />
+        <Text style={[styles.sectionTitle, { marginTop: 28, color: colors.textTertiary }]}>{t(`${I18N}.section2FA`)}</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.rowText}>
-            <Text style={styles.rowLabel}>{t(`${I18N}.twoFactorAuth`)}</Text>
-            <Text style={styles.rowDesc}>{t(`${I18N}.twoFactorDesc`)}</Text>
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t(`${I18N}.twoFactorAuth`)}</Text>
+            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t(`${I18N}.twoFactorDesc`)}</Text>
           </View>
           <Switch
             value={settings?.two_factor_enabled ?? false}
             onValueChange={handleToggle2FA}
-            trackColor={{ false: 'rgba(255,255,255,0.1)', true: TOGGLE_ACTIVE }}
+            trackColor={{ false: colors.cardBorder, true: '#22C55E' }}
             thumbColor="#fff"
           />
         </View>
@@ -282,12 +274,12 @@ export default function ClientSecurityScreen() {
             activeOpacity={1}
             onPress={() => setPasswordModal(null)}
           />
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{getPasswordModalTitle()}</Text>
+          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{getPasswordModalTitle()}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
               placeholder={getPasswordModalTitle()}
-              placeholderTextColor={TEXT_SECONDARY}
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={passwordInput}
               onChangeText={setPasswordInput}
@@ -296,11 +288,11 @@ export default function ClientSecurityScreen() {
               onSubmitEditing={handlePasswordStep}
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setPasswordModal(null); setPasswordInput(''); }}>
-                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.background }]} onPress={() => { setPasswordModal(null); setPasswordInput(''); }}>
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalConfirmBtn, !passwordInput.trim() && styles.modalBtnDisabled]}
+                style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, !passwordInput.trim() && styles.modalBtnDisabled]}
                 onPress={handlePasswordStep}
                 disabled={!passwordInput.trim() || !!updating}
               >
@@ -318,12 +310,12 @@ export default function ClientSecurityScreen() {
             activeOpacity={1}
             onPress={() => setTwoFAPasswordModal(null)}
           />
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{t(`${I18N}.enterPasswordToContinue`)}</Text>
+          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.enterPasswordToContinue`)}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
               placeholder={t(`${I18N}.currentPassword`)}
-              placeholderTextColor={TEXT_SECONDARY}
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               value={twoFAPasswordInput}
               onChangeText={setTwoFAPasswordInput}
@@ -332,11 +324,11 @@ export default function ClientSecurityScreen() {
               onSubmitEditing={handle2FAPasswordConfirm}
             />
             <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setTwoFAPasswordModal(null); setTwoFAPasswordInput(''); }}>
-                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.background }]} onPress={() => { setTwoFAPasswordModal(null); setTwoFAPasswordInput(''); }}>
+                <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalConfirmBtn, !twoFAPasswordInput.trim() && styles.modalBtnDisabled]}
+                style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, !twoFAPasswordInput.trim() && styles.modalBtnDisabled]}
                 onPress={handle2FAPasswordConfirm}
                 disabled={!twoFAPasswordInput.trim() || !!updating}
               >
@@ -354,18 +346,18 @@ export default function ClientSecurityScreen() {
             activeOpacity={1}
             onPress={() => setTwoFASetup(null)}
           />
-          <View style={[styles.modalBox, { maxWidth: 340, paddingBottom: 24 + insets.bottom }]}>
-              <Text style={styles.modalTitle}>{t(`${I18N}.scanQRCode`)}</Text>
+          <View style={[styles.modalBox, { maxWidth: 340, paddingBottom: 24 + insets.bottom, backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.scanQRCode`)}</Text>
               {twoFASetup?.qrCode && (
                 <View style={styles.qrContainer}>
                   <Image source={{ uri: twoFASetup.qrCode }} style={styles.qrImage} resizeMode="contain" />
                 </View>
               )}
-              <Text style={[styles.modalSubtitle, { marginTop: 12 }]}>{t(`${I18N}.enter2FACode`)}</Text>
+              <Text style={[styles.modalSubtitle, { marginTop: 12, color: colors.textSecondary }]}>{t(`${I18N}.enter2FACode`)}</Text>
               <TextInput
-                style={styles.modalInput}
+                style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
                 placeholder="000000"
-                placeholderTextColor={TEXT_SECONDARY}
+                placeholderTextColor={colors.textSecondary}
                 value={twoFACode}
                 onChangeText={setTwoFACode}
                 keyboardType="number-pad"
@@ -375,22 +367,22 @@ export default function ClientSecurityScreen() {
                 onSubmitEditing={handleVerify2FA}
               />
               {twoFASetup?.backupCodes && twoFASetup.backupCodes.length > 0 && (
-                <View style={styles.backupBox}>
-                  <Text style={styles.backupTitle}>{t(`${I18N}.backupCodes`)}</Text>
-                  <Text style={styles.backupHint}>{t(`${I18N}.saveBackupCodes`)}</Text>
+                <View style={[styles.backupBox, { backgroundColor: colors.background }]}>
+                  <Text style={[styles.backupTitle, { color: colors.textPrimary }]}>{t(`${I18N}.backupCodes`)}</Text>
+                  <Text style={[styles.backupHint, { color: colors.textSecondary }]}>{t(`${I18N}.saveBackupCodes`)}</Text>
                   <View style={styles.backupCodesGrid}>
                     {twoFASetup.backupCodes.map((code, i) => (
-                      <Text key={i} style={styles.backupCode}>{code}</Text>
+                      <Text key={i} style={[styles.backupCode, { color: colors.primary, backgroundColor: `${colors.primary}20` }]}>{code}</Text>
                     ))}
                   </View>
                 </View>
               )}
               <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalCancelBtn} onPress={() => { setTwoFASetup(null); setTwoFACode(''); }}>
-                  <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+                <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.background }]} onPress={() => { setTwoFASetup(null); setTwoFACode(''); }}>
+                  <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalConfirmBtn, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
+                  style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
                   onPress={handleVerify2FA}
                   disabled={twoFACode.trim().length !== 6 || !!updating}
                 >
@@ -407,23 +399,21 @@ export default function ClientSecurityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     paddingHorizontal: 20,
-    backgroundColor: HEADER_BG,
   },
   backButton: { padding: 4 },
-  title: { flex: 1, fontSize: 20, fontWeight: '600', textAlign: 'center', color: TEXT_PRIMARY },
+  title: { flex: 1, fontSize: 20, fontWeight: '600', textAlign: 'center' },
   headerPlaceholder: { width: 32 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20 },
   sectionTitle: {
     fontSize: 12,
-    color: SECTION_HEADER_COLOR,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -433,22 +423,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   iconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: PRIMARY_20,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
   rowText: { flex: 1 },
-  rowLabel: { color: TEXT_PRIMARY, fontSize: 15, fontWeight: '600' },
-  rowDesc: { color: TEXT_SECONDARY, fontSize: 12, marginTop: 2 },
+  rowLabel: { fontSize: 15, fontWeight: '600' },
+  rowDesc: { fontSize: 12, marginTop: 2 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -463,24 +450,19 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   modalBox: {
-    backgroundColor: CARD_BG,
     borderRadius: 16,
     padding: 24,
     width: '85%',
     maxWidth: 360,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
-  modalTitle: { color: TEXT_PRIMARY, fontSize: 18, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
-  modalSubtitle: { color: TEXT_SECONDARY, fontSize: 13, textAlign: 'center', marginBottom: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
+  modalSubtitle: { fontSize: 13, textAlign: 'center', marginBottom: 12 },
   modalInput: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: TEXT_PRIMARY,
     borderWidth: 1,
-    borderColor: '#374151',
     marginBottom: 16,
   },
   modalButtons: { flexDirection: 'row', gap: 12 },
@@ -488,11 +470,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
   },
-  modalCancelText: { color: TEXT_SECONDARY, fontSize: 15, fontWeight: '600' },
-  modalConfirmBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: ACCENT, alignItems: 'center' },
+  modalCancelText: { fontSize: 15, fontWeight: '600' },
+  modalConfirmBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   modalConfirmText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   modalBtnDisabled: { opacity: 0.4 },
   qrContainer: {
@@ -505,19 +486,16 @@ const styles = StyleSheet.create({
   },
   qrImage: { width: 180, height: 180 },
   backupBox: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
-  backupTitle: { color: TEXT_PRIMARY, fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  backupHint: { color: TEXT_SECONDARY, fontSize: 12, marginBottom: 12 },
+  backupTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  backupHint: { fontSize: 12, marginBottom: 12 },
   backupCodesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   backupCode: {
-    color: ACCENT,
     fontSize: 13,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: PRIMARY_20,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,

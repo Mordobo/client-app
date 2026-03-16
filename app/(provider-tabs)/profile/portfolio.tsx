@@ -1,4 +1,5 @@
 import { Toast } from "@/components/Toast";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
     deletePortfolioProject,
@@ -26,9 +27,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const PURPLE_GRADIENT = ["#6366F1", "#8B5CF6"] as const;
 
 type FilterKey = "all" | "installations" | "repairs" | "beforeAfter";
@@ -41,6 +39,7 @@ function formatStat(value: number): string {
 export default function ProviderPortfolioScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<{ message: string } | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -141,7 +140,7 @@ export default function ProviderPortfolioScreen() {
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Back header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -159,14 +158,14 @@ export default function ProviderPortfolioScreen() {
       </View>
 
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Stats */}
         <View style={styles.statsRow}>
           {statRows.map((row, idx) => (
-            <View key={idx} style={styles.statCard}>
+            <View key={idx} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <Text style={styles.statValue}>{row.value}</Text>
               <Text style={styles.statLabel}>{t(row.labelKey)}</Text>
             </View>
@@ -218,7 +217,7 @@ export default function ProviderPortfolioScreen() {
           </View>
         ) : filteredProjects.length === 0 ? (
           /* Empty state */
-          <View style={styles.uploadCard}>
+          <View style={[styles.uploadCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.uploadEmoji}>📷</Text>
             <Text style={styles.uploadTitle}>
               {t("providerDashboard.portfolio.uploadTitle")}
@@ -249,7 +248,7 @@ export default function ProviderPortfolioScreen() {
                 onPress={() => handleOpenDetail(project.id)}
                 activeOpacity={0.9}
               >
-                <View style={styles.gridImageWrap}>
+                <View style={[styles.gridImageWrap, { backgroundColor: colors.card }]}>
                   {showImage ? (
                     <Image
                       source={{ uri: normalizedCover }}
@@ -282,7 +281,7 @@ export default function ProviderPortfolioScreen() {
 
         {/* Upload prompt (when there are projects) */}
         {!isLoading && projects.length > 0 && (
-          <View style={[styles.uploadCard, styles.uploadCardDashed]}>
+          <View style={[styles.uploadCard, styles.uploadCardDashed, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.uploadEmoji}>📷</Text>
             <Text style={styles.uploadTitle}>
               {t("providerDashboard.portfolio.uploadTitle")}
@@ -325,6 +324,7 @@ export default function ProviderPortfolioScreen() {
               {
                 paddingTop: insets.top + 8,
                 height: Dimensions.get("window").height * 0.9,
+                backgroundColor: colors.background,
               },
             ]}
           >
@@ -349,7 +349,7 @@ export default function ProviderPortfolioScreen() {
               >
                 <View style={styles.detailGallery}>
                   {detailData.project.images.length === 0 ? (
-                    <View style={styles.detailPlaceholder}>
+                    <View style={[styles.detailPlaceholder, { backgroundColor: colors.card }]}>
                       <Text style={styles.detailPlaceholderEmoji}>📸</Text>
                     </View>
                   ) : (
@@ -359,12 +359,12 @@ export default function ProviderPortfolioScreen() {
                         <Image
                           key={img.id}
                           source={{ uri: normalizedUrl }}
-                          style={styles.detailImage}
+                          style={[styles.detailImage, { backgroundColor: colors.card }]}
                           contentFit="cover"
                           cachePolicy="disk"
                         />
                       ) : (
-                        <View key={img.id} style={styles.detailPlaceholder}>
+                        <View key={img.id} style={[styles.detailPlaceholder, { backgroundColor: colors.card }]}>
                           <Text style={styles.detailPlaceholderEmoji}>📸</Text>
                         </View>
                       );
@@ -423,7 +423,6 @@ export default function ProviderPortfolioScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
@@ -468,9 +467,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     alignItems: "center",
   },
   statValue: {
@@ -535,7 +532,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: CARD_BG,
   },
   gridImage: {
     width: "100%",
@@ -585,9 +581,7 @@ const styles = StyleSheet.create({
   uploadCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     alignItems: "center",
     marginBottom: 16,
   },
@@ -647,7 +641,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: BACKGROUND,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
@@ -692,13 +685,11 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: CARD_BG,
   },
   detailPlaceholder: {
     width: "100%",
     height: 160,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1,4 +1,5 @@
 import { useMode } from "@/contexts/ModeContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { checkProviderStatus } from "@/services/providers";
 import { CommonActions } from "@react-navigation/native";
@@ -17,9 +18,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const GRADIENT_START = "#6366F1";
 const GRADIENT_END = "#8B5CF6";
 const AMBER_BG = "rgba(245, 158, 11, 0.15)";
@@ -33,6 +31,7 @@ export default function SwitchModeScreen() {
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { setMode } = useMode();
   const [switching, setSwitching] = useState(false);
 
@@ -90,7 +89,7 @@ export default function SwitchModeScreen() {
   const bottomInset = insets.bottom || (Platform.OS === "android" ? 40 : 0);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -99,9 +98,9 @@ export default function SwitchModeScreen() {
           accessibilityLabel={t("common.back")}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.8)" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("mode.switchMode")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("mode.switchMode")}</Text>
       </View>
 
       <ScrollView
@@ -144,52 +143,52 @@ export default function SwitchModeScreen() {
           </View>
         </View>
 
-        <Text style={styles.currentModeText}>
+        <Text style={[styles.currentModeText, { color: colors.textTertiary }]}>
           {isToProvider
             ? t("mode.currentModeIndicatorClient")
             : t("mode.currentModeIndicator")}
         </Text>
 
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
           {isToProvider
             ? t("mode.switchToProviderQuestion")
             : t("mode.switchToClientQuestion")}
         </Text>
-        <Text style={styles.description}>
+        <Text style={[styles.description, { color: colors.textSecondary }]}>
           {isToProvider
             ? t("mode.switchDescriptionProvider")
             : t("mode.switchDescription")}
         </Text>
 
         <View style={styles.grid}>
-          <View style={styles.gridColumn}>
-            <Text style={styles.gridColumnTitle}>{t("mode.asProvider")}</Text>
+          <View style={[styles.gridColumn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.gridColumnTitle, { color: colors.textPrimary }]}>{t("mode.asProvider")}</Text>
             <View style={styles.gridItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#8B5CF6" />
-              <Text style={styles.gridItemText}>{t("mode.providerOfferServices")}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              <Text style={[styles.gridItemText, { color: colors.textOnDark }]}>{t("mode.providerOfferServices")}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#8B5CF6" />
-              <Text style={styles.gridItemText}>{t("mode.providerReceivePayments")}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              <Text style={[styles.gridItemText, { color: colors.textOnDark }]}>{t("mode.providerReceivePayments")}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#8B5CF6" />
-              <Text style={styles.gridItemText}>{t("mode.providerManageSchedule")}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              <Text style={[styles.gridItemText, { color: colors.textOnDark }]}>{t("mode.providerManageSchedule")}</Text>
             </View>
           </View>
-          <View style={styles.gridColumn}>
-            <Text style={styles.gridColumnTitle}>{t("mode.asClient")}</Text>
+          <View style={[styles.gridColumn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.gridColumnTitle, { color: colors.textPrimary }]}>{t("mode.asClient")}</Text>
             <View style={styles.gridItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#8B5CF6" />
-              <Text style={styles.gridItemText}>{t("mode.clientHireServices")}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              <Text style={[styles.gridItemText, { color: colors.textOnDark }]}>{t("mode.clientHireServices")}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#8B5CF6" />
-              <Text style={styles.gridItemText}>{t("mode.clientMakePayments")}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              <Text style={[styles.gridItemText, { color: colors.textOnDark }]}>{t("mode.clientMakePayments")}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Ionicons name="checkmark-circle" size={18} color="#8B5CF6" />
-              <Text style={styles.gridItemText}>{t("mode.clientLeaveReviews")}</Text>
+              <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              <Text style={[styles.gridItemText, { color: colors.textOnDark }]}>{t("mode.clientLeaveReviews")}</Text>
             </View>
           </View>
         </View>
@@ -230,7 +229,6 @@ export default function SwitchModeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
@@ -251,7 +249,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#fff",
   },
   scroll: {
     flex: 1,
@@ -312,12 +309,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   gridColumnTitle: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "600",
     marginBottom: 12,
@@ -330,7 +324,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   gridItemText: {
-    color: "rgba(255,255,255,0.85)",
     fontSize: 13,
     flex: 1,
   },

@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
     acceptOrder,
@@ -8,6 +9,7 @@ import {
     type ProviderDashboardRequest,
     type ProviderRequestStatusFilter,
 } from "@/services/providerDashboard";
+import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,9 +27,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const CARD_BORDER_URGENT = "rgba(251, 146, 60, 0.3)";
 const TAB_ACTIVE_GRADIENT = { start: "#6366F1", end: "#8B5CF6" };
 const TAB_INACTIVE_BG = "rgba(255,255,255,0.05)";
@@ -65,26 +64,28 @@ function RequestCard({
   onAccept,
   onDecline,
   loading,
+  colors,
 }: {
   item: ProviderDashboardRequest;
   onAccept: (id: string) => void;
   onDecline: (id: string) => void;
   loading: boolean;
+  colors: ThemeColors;
 }) {
   const canAcceptDecline = item.status === "pending_for_provider";
   const showActions = canAcceptDecline && item.id;
-  const borderColor = item.isUrgent ? CARD_BORDER_URGENT : CARD_BORDER;
+  const borderColor = item.isUrgent ? CARD_BORDER_URGENT : colors.cardBorder;
   const distanceText = item.address ? `${item.address.slice(0, 25)}${item.address.length > 25 ? "…" : ""}` : "—";
 
   return (
-    <View style={[styles.card, { borderColor }]}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor }]}>
       <View style={styles.cardRow}>
         <View style={styles.avatar}>
-          <Ionicons name="person" size={22} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="person" size={22} color={colors.textTertiary} />
         </View>
         <View style={styles.cardMain}>
           <View style={styles.cardTitleRow}>
-            <Text style={styles.clientName} numberOfLines={1}>
+            <Text style={[styles.clientName, { color: colors.textPrimary }]} numberOfLines={1}>
               {item.clientName || "—"}
             </Text>
             {item.isUrgent && (
@@ -95,8 +96,8 @@ function RequestCard({
           </View>
           <Text style={styles.serviceName}>{item.serviceName || "—"}</Text>
           <View style={styles.metaRow}>
-            <Text style={styles.metaText}>📍 {distanceText}</Text>
-            <Text style={styles.metaText}>{formatTimeAgo(item.createdAt)}</Text>
+            <Text style={[styles.metaText, { color: colors.textTertiary }]}>📍 {distanceText}</Text>
+            <Text style={[styles.metaText, { color: colors.textTertiary }]}>{formatTimeAgo(item.createdAt)}</Text>
           </View>
         </View>
         <Text style={styles.price}>{item.quoteTotal != null ? formatCurrency(item.quoteTotal) : "—"}</Text>
@@ -134,6 +135,7 @@ function RequestCard({
 export default function ProviderRequestsScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const isAuthenticated = !!user;
   const [activeTab, setActiveTab] = useState<TabKey>("new");
   const [requests, setRequests] = useState<ProviderDashboardRequest[]>([]);
@@ -256,15 +258,16 @@ export default function ProviderRequestsScreen() {
         onAccept={handleAccept}
         onDecline={handleDeclinePress}
         loading={actionId === item.id}
+        colors={colors}
       />
     ),
-    [handleAccept, handleDeclinePress, actionId],
+    [handleAccept, handleDeclinePress, actionId, colors],
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("providerDashboard.requestsScreenTitle")}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.requestsScreenTitle")}</Text>
         <View style={styles.tabs}>
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key;
@@ -287,7 +290,7 @@ export default function ProviderRequestsScreen() {
                     style={[StyleSheet.absoluteFill, styles.tabGradient]}
                   />
                 ) : null}
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive, { color: isActive ? colors.textPrimary : colors.textTertiary }]}>
                   {label}
                 </Text>
               </TouchableOpacity>
@@ -298,7 +301,7 @@ export default function ProviderRequestsScreen() {
 
       {loading && requests.length === 0 ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlashList
@@ -308,11 +311,11 @@ export default function ProviderRequestsScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={listContentContainerStyle}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#8B5CF6" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>{t("providerDashboard.emptyRequests")}</Text>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyRequests")}</Text>
             </View>
           }
         />
@@ -329,9 +332,9 @@ export default function ProviderRequestsScreen() {
           activeOpacity={1}
           onPress={handleDeclineCancel}
         >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t("providerDashboard.confirmDeclineTitle")}</Text>
-            <Text style={styles.modalMessage}>{t("providerDashboard.confirmDeclineMessage")}</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.confirmDeclineTitle")}</Text>
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>{t("providerDashboard.confirmDeclineMessage")}</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalCancelBtn} onPress={handleDeclineCancel}>
                 <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
@@ -350,7 +353,6 @@ export default function ProviderRequestsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   header: {
     paddingHorizontal: 20,
@@ -360,7 +362,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     marginBottom: 16,
   },
   tabs: {
@@ -383,11 +384,8 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.5)",
   },
-  tabLabelActive: {
-    color: "#FFFFFF",
-  },
+  tabLabelActive: {},
   loadingWrap: {
     flex: 1,
     justifyContent: "center",
@@ -400,7 +398,6 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
     marginBottom: 12,
   },
@@ -431,7 +428,6 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#FFFFFF",
     flex: 1,
   },
   urgentBadge: {
@@ -458,7 +454,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
   },
   price: {
     fontSize: 18,
@@ -503,7 +498,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.55)",
     textAlign: "center",
   },
   modalOverlay: {
@@ -516,21 +510,17 @@ const styles = StyleSheet.create({
   modalContent: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: CARD_BG,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     padding: 24,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF",
     marginBottom: 8,
   },
   modalMessage: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
     marginBottom: 24,
   },
   modalActions: {

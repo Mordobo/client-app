@@ -1,5 +1,5 @@
 import { Toast } from '@/components/Toast';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
   createAddress,
@@ -35,22 +35,6 @@ interface Address {
   fullAddress: string;
   isDefault: boolean;
 }
-
-// Theme colors from preview (dark mode)
-const darkColors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  textPrimary: '#ffffff',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-};
 
 // Get icon emoji by address type
 const getAddressIcon = (type: 'home' | 'office' | 'other'): string => {
@@ -90,11 +74,8 @@ const mapApiToUi = (apiAddress: ApiAddress): Address => {
 
 export default function MyAddressesScreen() {
   const router = useRouter();
-  const { colorScheme } = useTheme();
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
-  const isDark = colorScheme === 'dark';
-  // Use dark colors for now to match preview exactly
-  const colors = darkColors;
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [apiAddresses, setApiAddresses] = useState<ApiAddress[]>([]); // Store full API data
@@ -283,13 +264,13 @@ export default function MyAddressesScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.background }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backArrow}>←</Text>
+          <Text style={[styles.backArrow, { color: colors.textPrimary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{t('addresses.title')}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('addresses.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -299,26 +280,26 @@ export default function MyAddressesScreen() {
         </View>
       ) : (
         <ScrollView 
-          style={styles.content} 
+          style={[styles.content, { backgroundColor: colors.background }]} 
           contentContainerStyle={{ paddingBottom: 20 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Address Cards */}
           {addresses.map((address) => (
-            <View key={address.id} style={styles.addressCard}>
-              <View style={styles.addressIconContainer}>
+            <View key={address.id} style={[styles.addressCard, { backgroundColor: colors.card }]}>
+              <View style={[styles.addressIconContainer, { backgroundColor: colors.surfaceSecondary }]}>
                 <Text style={styles.addressIcon}>{getAddressIcon(address.type)}</Text>
               </View>
               <View style={styles.addressInfo}>
                 <View style={styles.addressHeader}>
-                  <Text style={styles.addressName}>{address.name}</Text>
+                  <Text style={[styles.addressName, { color: colors.textPrimary }]}>{address.name}</Text>
                   {address.isDefault && (
                     <View style={styles.defaultBadge}>
                       <Text style={styles.defaultBadgeText}>{t('addresses.default')}</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.addressText} numberOfLines={2}>
+                <Text style={[styles.addressText, { color: colors.textSecondary }]} numberOfLines={2}>
                   {address.fullAddress}
                 </Text>
               </View>
@@ -344,13 +325,13 @@ export default function MyAddressesScreen() {
           {/* Add New Address Button */}
           <TouchableOpacity
             onPress={handleAddNew}
-            style={styles.addAddressButton}
+            style={[styles.addAddressButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}
             activeOpacity={0.7}
           >
-            <View style={styles.addAddressIconContainer}>
-              <Text style={styles.addAddressIcon}>+</Text>
+            <View style={[styles.addAddressIconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Text style={[styles.addAddressIcon, { color: '#FFFFFF' }]}>+</Text>
             </View>
-            <Text style={styles.addAddressText}>{t('addresses.addAddress')}</Text>
+            <Text style={[styles.addAddressText, { color: '#FFFFFF' }]}>{t('addresses.addAddress')}</Text>
           </TouchableOpacity>
         </ScrollView>
       )}
@@ -372,11 +353,11 @@ export default function MyAddressesScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalKeyboardView}
           >
-            <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card, paddingBottom: insets.bottom + 20 }]}>
                 {/* Handle */}
-                <View style={styles.modalHandle} />
+                <View style={[styles.modalHandle, { backgroundColor: colors.textTertiary }]} />
 
-                <Text style={styles.modalTitle}>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
                   {editingAddress ? t('addresses.editAddress') : t('addresses.addAddress')}
                 </Text>
 
@@ -393,7 +374,7 @@ export default function MyAddressesScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder={t('addresses.namePlaceholder')}
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={colors.textTertiary}
                       value={formData.name}
                       onChangeText={(text) => setFormData((prev) => ({ ...prev, name: text }))}
                     />
@@ -433,7 +414,7 @@ export default function MyAddressesScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder={t('addresses.addressLine1Placeholder')}
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={colors.textTertiary}
                       value={formData.address_line1}
                       onChangeText={(text) =>
                         setFormData((prev) => ({ ...prev, address_line1: text }))
@@ -449,7 +430,7 @@ export default function MyAddressesScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder={t('addresses.addressLine2Placeholder')}
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={colors.textTertiary}
                       value={formData.address_line2}
                       onChangeText={(text) =>
                         setFormData((prev) => ({ ...prev, address_line2: text }))
@@ -463,7 +444,7 @@ export default function MyAddressesScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder={t('addresses.cityPlaceholder')}
-                      placeholderTextColor={colors.textSecondary}
+                      placeholderTextColor={colors.textTertiary}
                       value={formData.city}
                       onChangeText={(text) => setFormData((prev) => ({ ...prev, city: text }))}
                     />
@@ -476,7 +457,7 @@ export default function MyAddressesScreen() {
                       <TextInput
                         style={styles.input}
                         placeholder={t('addresses.statePlaceholder')}
-                        placeholderTextColor={colors.textSecondary}
+                        placeholderTextColor={colors.textTertiary}
                         value={formData.state}
                         onChangeText={(text) => setFormData((prev) => ({ ...prev, state: text }))}
                         onFocus={() => setTimeout(() => modalScrollRef.current?.scrollToEnd({ animated: true }), 150)}
@@ -487,7 +468,7 @@ export default function MyAddressesScreen() {
                       <TextInput
                         style={styles.input}
                         placeholder={t('addresses.postalCodePlaceholder')}
-                        placeholderTextColor={colors.textSecondary}
+                        placeholderTextColor={colors.textTertiary}
                         value={formData.postal_code}
                         onChangeText={(text) =>
                           setFormData((prev) => ({ ...prev, postal_code: text }))
@@ -562,19 +543,19 @@ export default function MyAddressesScreen() {
         onRequestClose={() => setShowDeleteConfirm(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.deleteModalContent}>
+          <View style={[styles.deleteModalContent, { backgroundColor: colors.card }]}>
             <View style={styles.deleteIconContainer}>
               <Text style={styles.deleteIcon}>🗑️</Text>
             </View>
-            <Text style={styles.deleteModalTitle}>{t('addresses.deleteAddress')}</Text>
-            <Text style={styles.deleteModalText}>{t('addresses.deleteConfirm')}</Text>
+            <Text style={[styles.deleteModalTitle, { color: colors.textPrimary }]}>{t('addresses.deleteAddress')}</Text>
+            <Text style={[styles.deleteModalText, { color: colors.textSecondary }]}>{t('addresses.deleteConfirm')}</Text>
             <View style={styles.deleteModalButtons}>
               <TouchableOpacity
                 onPress={() => setShowDeleteConfirm(null)}
-                style={styles.modalButtonCancel}
+                style={[styles.modalButtonCancel, { backgroundColor: colors.surfaceSecondary }]}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
+                <Text style={[styles.modalButtonTextCancel, { color: colors.textPrimary }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}

@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { fetchFaqs, flattenFaqsToItems, type FaqListItem } from '@/services/faqs';
 import { t } from '@/i18n';
 import { getLocale } from '@/i18n';
@@ -21,6 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 export default function HelpCenterScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaqs, setExpandedFaqs] = useState<Set<string>>(new Set());
 
@@ -84,7 +86,7 @@ export default function HelpCenterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       {/* Header */}
       <View
         style={[
@@ -93,6 +95,7 @@ export default function HelpCenterScreen() {
             paddingTop: insets.top + 16,
             paddingHorizontal: 20,
             paddingBottom: 20,
+            backgroundColor: colors.card,
           },
         ]}
       >
@@ -104,31 +107,31 @@ export default function HelpCenterScreen() {
           <Ionicons
             name="arrow-back"
             size={24}
-            color="#FFFFFF"
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           {t('helpCenter.title')}
         </Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
       <ScrollView
-        style={[styles.scrollView, { backgroundColor: '#1a1a2e' }]}
+        style={[styles.scrollView, { backgroundColor: colors.background }]}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: 20 + insets.bottom, backgroundColor: '#1a1a2e' },
+          { paddingBottom: 20 + insets.bottom, backgroundColor: colors.background },
         ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Search Bar - Exact match to JSX */}
         <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
+          <View style={[styles.searchInputContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.searchIcon}>🔍</Text>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.textPrimary }]}
               placeholder={t('helpCenter.searchPlaceholder')}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.textTertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -136,21 +139,21 @@ export default function HelpCenterScreen() {
         </View>
 
         {/* FAQs Section - from API (CRM/Backoffice) */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {t('helpCenter.frequentlyAskedQuestions')}
         </Text>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingText}>{t('common.loading')}</Text>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>{t('common.loading')}</Text>
           </View>
         ) : isError ? (
           <View style={styles.noResultsContainer}>
-            <Text style={styles.noResultsText}>
+            <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
               {error instanceof Error ? error.message : t('helpCenter.noResults')}
             </Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => refetch()} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => refetch()} activeOpacity={0.7}>
               <Text style={styles.retryButtonText}>{t('chat.retry')}</Text>
             </TouchableOpacity>
           </View>
@@ -158,23 +161,23 @@ export default function HelpCenterScreen() {
           filteredFaqs.map((faq) => {
             const isExpanded = expandedFaqs.has(faq.id);
             return (
-              <View key={faq.id} style={styles.faqItem}>
+              <View key={faq.id} style={[styles.faqItem, { backgroundColor: colors.card }]}>
                 <TouchableOpacity
                   style={styles.faqHeader}
                   onPress={() => toggleFaq(faq.id)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.faqIcon}>{faq.icon}</Text>
-                  <Text style={styles.faqQuestion}>{faq.question}</Text>
+                  <Text style={[styles.faqQuestion, { color: colors.textPrimary }]}>{faq.question}</Text>
                   <Ionicons
                     name={isExpanded ? 'chevron-up' : 'chevron-forward'}
                     size={20}
-                    color="#9ca3af"
+                    color={colors.textTertiary}
                   />
                 </TouchableOpacity>
                 {isExpanded && (
-                  <View style={styles.faqAnswerContainer}>
-                    <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                  <View style={[styles.faqAnswerContainer, { borderTopColor: colors.cardBorder }]}>
+                    <Text style={[styles.faqAnswer, { color: colors.textSecondary }]}>{faq.answer}</Text>
                   </View>
                 )}
               </View>
@@ -182,86 +185,86 @@ export default function HelpCenterScreen() {
           })
         ) : (
           <View style={styles.noResultsContainer}>
-            <Text style={styles.noResultsText}>
+            <Text style={[styles.noResultsText, { color: colors.textSecondary }]}>
               {t('helpCenter.noResults')}
             </Text>
           </View>
         )}
 
         {/* Contact Section - Exact match to JSX */}
-        <Text style={[styles.sectionTitle, styles.contactSectionTitle]}>
+        <Text style={[styles.sectionTitle, styles.contactSectionTitle, { color: colors.textSecondary }]}>
           {t('helpCenter.contact')}
         </Text>
 
         {/* Live Chat */}
         <TouchableOpacity
-          style={styles.contactItem}
+          style={[styles.contactItem, { backgroundColor: colors.card }]}
           onPress={handleLiveChat}
           activeOpacity={0.7}
         >
-          <View style={styles.contactIconContainer}>
+          <View style={[styles.contactIconContainer, { backgroundColor: `${colors.primary}20` }]}>
             <Text style={styles.contactIcon}>💬</Text>
           </View>
           <View style={styles.contactTextContainer}>
-            <Text style={styles.contactTitle}>
+            <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>
               {t('helpCenter.liveChat')}
             </Text>
-            <Text style={styles.contactSubtitle}>
+            <Text style={[styles.contactSubtitle, { color: colors.textSecondary }]}>
               {t('helpCenter.liveChatSubtitle')}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color="#9ca3af"
+            color={colors.textTertiary}
           />
         </TouchableOpacity>
 
         {/* Email */}
         <TouchableOpacity
-          style={styles.contactItem}
+          style={[styles.contactItem, { backgroundColor: colors.card }]}
           onPress={handleEmailSupport}
           activeOpacity={0.7}
         >
-          <View style={styles.contactIconContainer}>
+          <View style={[styles.contactIconContainer, { backgroundColor: `${colors.primary}20` }]}>
             <Text style={styles.contactIcon}>📧</Text>
           </View>
           <View style={styles.contactTextContainer}>
-            <Text style={styles.contactTitle}>
+            <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>
               {t('helpCenter.email')}
             </Text>
-            <Text style={styles.contactSubtitle}>
+            <Text style={[styles.contactSubtitle, { color: colors.textSecondary }]}>
               {t('helpCenter.emailAddress')}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color="#9ca3af"
+            color={colors.textTertiary}
           />
         </TouchableOpacity>
 
         {/* Phone */}
         <TouchableOpacity
-          style={styles.contactItem}
+          style={[styles.contactItem, { backgroundColor: colors.card }]}
           onPress={handlePhoneSupport}
           activeOpacity={0.7}
         >
-          <View style={styles.contactIconContainer}>
+          <View style={[styles.contactIconContainer, { backgroundColor: `${colors.primary}20` }]}>
             <Text style={styles.contactIcon}>📞</Text>
           </View>
           <View style={styles.contactTextContainer}>
-            <Text style={styles.contactTitle}>
+            <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>
               {t('helpCenter.phone')}
             </Text>
-            <Text style={styles.contactSubtitle}>
+            <Text style={[styles.contactSubtitle, { color: colors.textSecondary }]}>
               {t('helpCenter.phoneNumber')}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color="#9ca3af"
+            color={colors.textTertiary}
           />
         </TouchableOpacity>
       </ScrollView>

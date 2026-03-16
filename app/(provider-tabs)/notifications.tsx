@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { type Notification, type NotificationCategory, deleteAllNotifications, deleteNotification, fetchNotifications, getNotificationCategory, markAllNotificationsAsRead, markNotificationAsRead } from "@/services/notifications";
 import { fetchOrderDetail } from "@/services/orders";
@@ -8,9 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.2)";
 const UNREAD_BG = "rgba(139, 92, 246, 0.1)";
 const UNREAD_BORDER = "rgba(139, 92, 246, 0.3)";
 
@@ -38,6 +36,7 @@ interface NotificationCardProps {
 }
 
 function NotificationCard({ notification, onPress, onDelete }: NotificationCardProps) {
+  const colors = useThemeColors();
   const category = getNotificationCategory(notification.type);
   const color = CATEGORY_COLORS[category];
   const iconName = CATEGORY_ICONS[category];
@@ -59,18 +58,25 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
 
   return (
     <View style={styles.cardWrapper}>
-      <TouchableOpacity style={[styles.card, !notification.read && styles.cardUnread]} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={[
+          styles.card,
+          { backgroundColor: notification.read ? colors.card : UNREAD_BG, borderColor: notification.read ? colors.cardBorder : UNREAD_BORDER },
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
         <View style={[styles.iconWrap, { backgroundColor: `${color}26` }]}>
           <Ionicons name={iconName} size={22} color={color} />
         </View>
         <View style={styles.cardContent}>
           <View style={styles.cardRow}>
-            <Text style={[styles.cardTitle, !notification.read && styles.cardTitleUnread]} numberOfLines={1}>
+            <Text style={[styles.cardTitle, !notification.read && styles.cardTitleUnread, { color: colors.textPrimary }]} numberOfLines={1}>
               {notification.title}
             </Text>
-            <Text style={styles.cardTime}>{formatTime(notification.created_at)}</Text>
+            <Text style={[styles.cardTime, { color: colors.textTertiary }]}>{formatTime(notification.created_at)}</Text>
           </View>
-          <Text style={styles.cardMessage} numberOfLines={2}>
+          <Text style={[styles.cardMessage, { color: colors.textSecondary }]} numberOfLines={2}>
             {notification.message}
           </Text>
         </View>
@@ -83,7 +89,7 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
             onDelete();
           }}
         >
-          <Ionicons name="trash-outline" size={20} color="rgba(255,255,255,0.5)" />
+          <Ionicons name="trash-outline" size={20} color={colors.textTertiary} />
         </TouchableOpacity>
       </TouchableOpacity>
     </View>
@@ -107,6 +113,7 @@ export default function ProviderNotificationsScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const isAuthenticated = !!user;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -281,10 +288,10 @@ export default function ProviderNotificationsScreen() {
   };
 
   return (
-    <View style={[styles.container, safePadding]}>
+    <View style={[styles.container, safePadding, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{t("providerDashboard.providerNotifications.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerNotifications.title")}</Text>
         <View style={styles.headerActions}>
           {notifications.length > 0 && (
             <TouchableOpacity onPress={openClearAllModal} style={styles.headerButton}>
@@ -340,9 +347,9 @@ export default function ProviderNotificationsScreen() {
       {/* Clear all confirmation modal */}
       <Modal visible={clearAllModalVisible} transparent animationType="fade" onRequestClose={() => setClearAllModalVisible(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setClearAllModalVisible(false)}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>{t("providerDashboard.providerNotifications.clearAllConfirmTitle")}</Text>
-            <Text style={styles.modalMessage}>{t("providerDashboard.providerNotifications.clearAllConfirmMessage")}</Text>
+          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerNotifications.clearAllConfirmTitle")}</Text>
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>{t("providerDashboard.providerNotifications.clearAllConfirmMessage")}</Text>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalButtonSecondary} onPress={() => setClearAllModalVisible(false)}>
                 <Text style={styles.modalButtonSecondaryText}>{t("providerDashboard.cancel")}</Text>
@@ -361,7 +368,6 @@ export default function ProviderNotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
@@ -373,7 +379,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFF",
   },
   headerActions: {
     flexDirection: "row",
@@ -447,14 +452,9 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
-  cardUnread: {
-    backgroundColor: UNREAD_BG,
-    borderColor: UNREAD_BORDER,
-  },
+  cardUnread: {},
   iconWrap: {
     width: 40,
     height: 40,
@@ -563,22 +563,18 @@ const styles = StyleSheet.create({
   modalBox: {
     width: "100%",
     maxWidth: 340,
-    backgroundColor: CARD_BG,
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#FFF",
     marginBottom: 12,
     textAlign: "center",
   },
   modalMessage: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
     marginBottom: 24,
     lineHeight: 20,

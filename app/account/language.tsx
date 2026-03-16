@@ -1,4 +1,5 @@
 import { Toast } from '@/components/Toast';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t, setLocale, getLocale } from '@/i18n';
 import { getSettings, updateSettings } from '@/services/settings';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,13 +15,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const I18N = 'providerDashboard.providerSettings.languageScreen';
-const BACKGROUND = '#1a1a2e';
-const HEADER_BG = '#252542';
-const CARD_BG = '#252542';
-const CARD_BORDER = '#374151';
-const ACCENT = '#3b82f6';
-const TEXT_PRIMARY = '#FFFFFF';
-const TEXT_SECONDARY = '#9ca3af';
 
 type Language = 'en' | 'es';
 
@@ -38,6 +32,7 @@ const LANGUAGES: LanguageOption[] = [
 export default function ClientLanguageScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   const [currentLanguage, setCurrentLanguage] = useState<Language>(getLocale() as Language);
   const [loading, setLoading] = useState(true);
@@ -80,21 +75,21 @@ export default function ClientLanguageScreen() {
   }, [currentLanguage]);
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: colors.card }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t(`${I18N}.title`)}</Text>
-        {updating ? <ActivityIndicator size="small" color={ACCENT} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
+        {updating ? <ActivityIndicator size="small" color={colors.primary} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
       </View>
 
-      <Text style={styles.subtitle}>{t(`${I18N}.subtitle`)}</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t(`${I18N}.subtitle`)}</Text>
 
       <View style={styles.optionsList}>
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={ACCENT} />
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           LANGUAGES.map((lang) => {
@@ -102,20 +97,24 @@ export default function ClientLanguageScreen() {
             return (
               <TouchableOpacity
                 key={lang.code}
-                style={[styles.optionCard, isSelected && styles.optionCardSelected]}
+                style={[
+                  styles.optionCard,
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                  isSelected && { borderColor: colors.primary, backgroundColor: `${colors.primary}20` },
+                ]}
                 activeOpacity={0.8}
                 onPress={() => handleSelect(lang.code)}
                 disabled={updating}
               >
                 <Text style={styles.optionFlag}>{lang.flag}</Text>
                 <View style={styles.optionText}>
-                  <Text style={styles.optionLabel}>{t(lang.labelKey)}</Text>
+                  <Text style={[styles.optionLabel, { color: colors.textPrimary }]}>{t(lang.labelKey)}</Text>
                   {isSelected && (
-                    <Text style={styles.currentBadge}>{t(`${I18N}.current`)}</Text>
+                    <Text style={[styles.currentBadge, { color: colors.primary }]}>{t(`${I18N}.current`)}</Text>
                   )}
                 </View>
                 {isSelected && (
-                  <Ionicons name="checkmark-circle" size={24} color={ACCENT} />
+                  <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
                 )}
               </TouchableOpacity>
             );
@@ -134,32 +133,29 @@ export default function ClientLanguageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
-    paddingHorizontal: 20, backgroundColor: HEADER_BG,
+    paddingHorizontal: 20,
   },
   backButton: { padding: 4 },
-  title: { flex: 1, fontSize: 20, fontWeight: '600', textAlign: 'center', color: TEXT_PRIMARY },
+  title: { flex: 1, fontSize: 20, fontWeight: '600', textAlign: 'center' },
   headerPlaceholder: { width: 32 },
   subtitle: {
-    color: TEXT_SECONDARY, fontSize: 14,
+    fontSize: 14,
     paddingHorizontal: 20, marginBottom: 20,
   },
   optionsList: { paddingHorizontal: 20, gap: 10 },
   centered: { paddingVertical: 40, alignItems: 'center' },
   optionCard: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
-    borderRadius: 12, backgroundColor: CARD_BG,
-    borderWidth: 1, borderColor: CARD_BORDER,
-  },
-  optionCardSelected: {
-    borderColor: ACCENT, backgroundColor: '#3b82f620',
+    borderRadius: 12,
+    borderWidth: 1,
   },
   optionFlag: { fontSize: 28, marginRight: 14 },
   optionText: { flex: 1 },
-  optionLabel: { color: TEXT_PRIMARY, fontSize: 16, fontWeight: '500' },
+  optionLabel: { fontSize: 16, fontWeight: '500' },
   currentBadge: {
-    color: ACCENT, fontSize: 12, fontWeight: '600', marginTop: 2,
+    fontSize: 12, fontWeight: '600', marginTop: 2,
   },
 });

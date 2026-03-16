@@ -2,6 +2,7 @@ import {
   BookingDateTimePicker,
   type BookingDateTimePickerProviderCard,
 } from '@/components/BookingDateTimePicker';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import {
   fetchSupplierProfile,
   fetchSupplierServices,
@@ -11,7 +12,7 @@ import {
 } from '@/services/suppliers';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,22 +24,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
-
-// Theme colors matching the JSX design
-const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  accent: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-  white: '#ffffff',
-};
 
 // Get service duration in hours from service description or category
 const getServiceDurationHours = (service: SupplierService | null): number => {
@@ -74,6 +59,132 @@ export default function BookingDateTimeScreen() {
   const router = useRouter();
   const { supplierId, serviceId } = useLocalSearchParams<{ supplierId: string; serviceId: string }>();
   const insets = useSafeAreaInsets();
+  const themeColors = useThemeColors();
+  const colors = useMemo(
+    () => ({
+      bg: themeColors.background,
+      bgCard: themeColors.card,
+      bgInput: themeColors.surfaceSecondary,
+      primary: themeColors.primary,
+      secondary: '#10b981',
+      accent: '#f59e0b',
+      danger: '#ef4444',
+      purple: themeColors.primary,
+      pink: '#ec4899',
+      textSecondary: themeColors.textSecondary,
+      border: themeColors.border,
+      white: '#ffffff',
+    }),
+    [themeColors]
+  );
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.bg,
+        },
+        centerContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
+        },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingBottom: 20,
+        },
+        backButton: {
+          width: 40,
+          height: 40,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        headerTitle: {
+          fontSize: 20,
+          fontWeight: '600',
+          color: colors.white,
+        },
+        scrollView: {
+          flex: 1,
+        },
+        section: {
+          paddingHorizontal: 0,
+          marginBottom: 24,
+        },
+        sectionTitleCentered: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: colors.white,
+          marginBottom: 16,
+          textAlign: 'center',
+        },
+        durationInfoCard: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          backgroundColor: colors.bgCard,
+          borderRadius: 12,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+        durationInfoText: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: colors.secondary,
+        },
+        bottomBar: {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: 20,
+          backgroundColor: colors.bg,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
+        continueButton: {
+          width: '100%',
+          paddingVertical: 18,
+          backgroundColor: colors.primary,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        continueButtonDisabled: {
+          backgroundColor: colors.bgCard,
+          opacity: 0.5,
+        },
+        continueButtonText: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: colors.white,
+        },
+        errorText: {
+          fontSize: 16,
+          color: colors.danger,
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        retryButton: {
+          backgroundColor: colors.primary,
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 8,
+        },
+        retryText: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [colors]
+  );
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [service, setService] = useState<SupplierService | null>(null);
@@ -240,108 +351,3 @@ export default function BookingDateTimeScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  section: {
-    paddingHorizontal: 0,
-    marginBottom: 24,
-  },
-  sectionTitleCentered: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  durationInfoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  durationInfoText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.secondary,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 20,
-    backgroundColor: colors.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  continueButton: {
-    width: '100%',
-    paddingVertical: 18,
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueButtonDisabled: {
-    backgroundColor: colors.bgCard,
-    opacity: 0.5,
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  errorText: {
-    fontSize: 16,
-    color: colors.danger,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

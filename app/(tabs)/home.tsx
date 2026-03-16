@@ -1,6 +1,7 @@
 import { CategoryCard } from "@/components/CategoryCard";
 import { TopProviderCard } from "@/components/TopProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t, getLocale } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import { getAddresses, type Address } from "@/services/addresses";
@@ -25,6 +26,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [categories, setCategories] = useState<Category[]>([]);
   const [topProviders, setTopProviders] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,47 +215,47 @@ export default function HomeScreen() {
   });
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#252542" translucent={Platform.OS === "android"} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.background === "#12121A" ? "light-content" : "dark-content"} backgroundColor={colors.card} translucent={Platform.OS === "android"} />
 
       {/* Header with Location, Notifications and Search */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor: colors.card }]}>
         <View style={styles.header}>
           <View style={styles.locationSection}>
-            <Text style={styles.locationLabel}>{t("home.locationLabel")}</Text>
+            <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>{t("home.locationLabel")}</Text>
             <TouchableOpacity style={styles.locationButton} onPress={() => router.push("/account/my-addresses")}>
-              <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={[styles.locationText, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">
                 {location}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#9CA3AF" style={{ marginLeft: 4 }} />
+              <Ionicons name="chevron-down" size={16} color={colors.textTertiary} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.notificationButton} onPress={() => router.push("/(tabs)/notifications")}>
-            <View style={styles.notificationIconContainer}>
-              <Ionicons name="notifications-outline" size={20} color="#FFFFFF" />
+            <View style={[styles.notificationIconContainer, { backgroundColor: colors.surface }]}>
+              <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
-          <TextInput style={styles.searchInput} placeholder={t("home.searchPlaceholder")} placeholderTextColor="#9CA3AF" value={searchQuery} onChangeText={setSearchQuery} onSubmitEditing={handleSearchPress} returnKeyType="search" />
+        <View style={[styles.searchBar, { backgroundColor: colors.surface }]}>
+          <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
+          <TextInput style={[styles.searchInput, { color: colors.textPrimary }]} placeholder={t("home.searchPlaceholder")} placeholderTextColor={colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} onSubmitEditing={handleSearchPress} returnKeyType="search" />
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={true} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}>
+      <ScrollView style={[styles.content, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={true} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}>
         {/* Categories Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t("home.categories")}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t("home.categories")}</Text>
             <TouchableOpacity onPress={handleViewAllCategories}>
-              <Text style={styles.viewAllText}>{t("home.viewAll")}</Text>
+              <Text style={[styles.viewAllText, { color: colors.primary }]}>{t("home.viewAll")}</Text>
             </TouchableOpacity>
           </View>
 
           {loading ?
-            <ActivityIndicator size="small" color="#3B82F6" style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
           : categories.length > 0 ?
             <View style={styles.categoriesGrid}>
               {categories.map((category) => {
@@ -262,7 +264,7 @@ export default function HomeScreen() {
               })}
             </View>
           : <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>{t("home.noCategories")}</Text>
+              <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>{t("home.noCategories")}</Text>
             </View>
           }
         </View>
@@ -339,11 +341,11 @@ export default function HomeScreen() {
         {/* Top Providers Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{t("home.topProviders")}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t("home.topProviders")}</Text>
           </View>
 
           {providersLoading ?
-            <ActivityIndicator size="small" color="#3B82F6" style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
           : topProviders.length > 0 ?
             <View style={styles.providersList}>
               {topProviders.map((item) => (
@@ -361,7 +363,7 @@ export default function HomeScreen() {
               ))}
             </View>
           : <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>{t("home.noProviders")}</Text>
+              <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>{t("home.noProviders")}</Text>
             </View>
           }
         </View>

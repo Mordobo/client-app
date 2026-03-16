@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeOrderMessages } from '@/hooks/useRealtimeOrderMessages';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { ApiError, fetchMessages, Message, sendMessage } from '@/services/messages';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
@@ -9,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     AppState,
     AppStateStatus,
@@ -32,23 +33,196 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 /** Poll every 2s so new messages appear without leaving the screen; Realtime still used when configured. */
 const POLLING_INTERVAL_MS = 2000;
 
-// Colors from JSX design
-const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
-  primary: '#3b82f6',
-  secondary: '#10b981',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-};
-
 export default function ChatScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  
+  const themeColors = useThemeColors();
+  const colors = useMemo(
+    () => ({
+      bg: themeColors.background,
+      bgCard: themeColors.card,
+      bgInput: themeColors.surfaceSecondary,
+      primary: themeColors.primary,
+      secondary: '#10b981',
+      textSecondary: themeColors.textSecondary,
+      border: themeColors.border,
+    }),
+    [themeColors]
+  );
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: colors.bg },
+        flex: { flex: 1 },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+          paddingHorizontal: 20,
+          paddingBottom: 16,
+          backgroundColor: colors.bgCard,
+        },
+        backButton: {
+          width: 40,
+          height: 40,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        headerAvatar: { width: 44, height: 44, borderRadius: 22 },
+        headerAvatarPlaceholder: {
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.bgInput,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        headerAvatarEmoji: { fontSize: 20 },
+        headerInfo: { flex: 1 },
+        headerName: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#FFFFFF',
+          marginBottom: 2,
+        },
+        statusContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+        statusDot: {
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: colors.secondary,
+        },
+        statusText: { fontSize: 12, color: colors.secondary },
+        callButton: {
+          width: 40,
+          height: 40,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        centerContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
+        },
+        messagesList: { paddingHorizontal: 20, paddingVertical: 20 },
+        dateContainer: { alignItems: 'center', marginBottom: 16 },
+        dateText: {
+          fontSize: 12,
+          color: colors.textSecondary,
+          backgroundColor: colors.bgCard,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: 12,
+        },
+        messageBubbleContainer: { flexDirection: 'row', marginBottom: 12 },
+        myMessageContainer: { justifyContent: 'flex-end' },
+        messageBubble: {
+          maxWidth: '75%',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        },
+        myMessage: {
+          backgroundColor: colors.primary,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 4,
+          borderBottomLeftRadius: 16,
+        },
+        theirMessage: {
+          backgroundColor: colors.bgCard,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
+          borderBottomLeftRadius: 4,
+        },
+        messageText: {
+          fontSize: 14,
+          lineHeight: 20,
+          color: '#FFFFFF',
+        },
+        messageTime: {
+          fontSize: 11,
+          marginTop: 4,
+          textAlign: 'right',
+          color: colors.textSecondary,
+        },
+        myMessageTime: { color: 'rgba(255, 255, 255, 0.7)' },
+        inputContainer: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingHorizontal: 20,
+          paddingBottom: 30,
+          paddingTop: 16,
+          backgroundColor: colors.bgCard,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
+        attachButton: {
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.bgInput,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        input: {
+          flex: 1,
+          minHeight: 44,
+          maxHeight: 100,
+          borderRadius: 24,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          fontSize: 14,
+          color: '#FFFFFF',
+          backgroundColor: colors.bgInput,
+        },
+        sendButton: {
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: colors.primary,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        sendButtonDisabled: {
+          backgroundColor: colors.border,
+          opacity: 0.5,
+        },
+        emptyText: {
+          fontSize: 16,
+          marginTop: 12,
+          color: '#FFFFFF',
+        },
+        emptySubtext: {
+          fontSize: 14,
+          marginTop: 4,
+          color: colors.textSecondary,
+        },
+        errorText: {
+          fontSize: 16,
+          color: '#EF4444',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        retryButton: {
+          backgroundColor: colors.primary,
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 8,
+        },
+        retryText: {
+          color: '#FFFFFF',
+          fontSize: 16,
+          fontWeight: '600',
+        },
+      }),
+    [colors]
+  );
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -509,210 +683,3 @@ export default function ChatScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  flex: {
-    flex: 1,
-  },
-  // Header - Exact match to JSX
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: colors.bgCard,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  headerAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.bgInput,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerAvatarEmoji: {
-    fontSize: 20,
-  },
-  headerInfo: {
-    flex: 1,
-  },
-  headerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.secondary,
-  },
-  statusText: {
-    fontSize: 12,
-    color: colors.secondary,
-  },
-  callButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  messagesList: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  // Date Divider - Exact match to JSX: backgroundColor: #252542
-  dateContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dateText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    backgroundColor: colors.bgCard,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  // Message Bubbles - Exact match to JSX border radius
-  messageBubbleContainer: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  myMessageContainer: {
-    justifyContent: 'flex-end',
-  },
-  messageBubble: {
-    maxWidth: '75%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  // User message: borderRadius: '16px 16px 4px 16px'
-  myMessage: {
-    backgroundColor: colors.primary,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 4,
-    borderBottomLeftRadius: 16,
-  },
-  // Provider message: borderRadius: '16px 16px 16px 4px'
-  theirMessage: {
-    backgroundColor: colors.bgCard,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#FFFFFF',
-  },
-  messageTime: {
-    fontSize: 11,
-    marginTop: 4,
-    textAlign: 'right',
-    color: colors.textSecondary,
-  },
-  myMessageTime: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  // Input Area - Exact match to JSX
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    paddingTop: 16,
-    backgroundColor: colors.bgCard,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  attachButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.bgInput,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 100,
-    borderRadius: 24, // Exact match to JSX: borderRadius: '24px'
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 14,
-    color: '#FFFFFF',
-    backgroundColor: colors.bgInput,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22, // Circular
-    backgroundColor: colors.primary, // Primary color
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: colors.border,
-    opacity: 0.5,
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 12,
-    color: '#FFFFFF',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 4,
-    color: colors.textSecondary,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

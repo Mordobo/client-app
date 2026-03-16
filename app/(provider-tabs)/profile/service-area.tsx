@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
   loadProviderServiceArea,
@@ -28,16 +29,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Toast } from '@/components/Toast';
 import { useQueryClient } from '@tanstack/react-query';
 
-const BACKGROUND = '#12121A';
-const CARD_BG = '#1E1B2E';
-const CARD_BORDER = 'rgba(61, 51, 112, 0.2)';
-const CARD_BORDER_MAP = 'rgba(61, 51, 112, 0.3)';
-const SECTION_HEADER_COLOR = 'rgba(255,255,255,0.4)';
-const PURPLE_ACTIVE = '#8B5CF6';
-
 export default function ProviderServiceAreaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const [state, setState] = useState<ProviderServiceAreaState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,15 +142,15 @@ export default function ProviderServiceAreaScreen() {
 
   if (loading || !state) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
-            <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>{t('providerDashboard.providerServiceArea.title')}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.title')}</Text>
         </View>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color={PURPLE_ACTIVE} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -164,12 +159,12 @@ export default function ProviderServiceAreaScreen() {
   const radiusRatio = (state.radiusKm - RADIUS_MIN_KM) / (RADIUS_MAX_KM - RADIUS_MIN_KM);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t('providerDashboard.providerServiceArea.title')}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.title')}</Text>
         <TouchableOpacity
           style={styles.saveButton}
           onPress={save}
@@ -177,9 +172,9 @@ export default function ProviderServiceAreaScreen() {
           activeOpacity={0.8}
         >
           {saving ? (
-            <ActivityIndicator size="small" color={PURPLE_ACTIVE} />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : (
-            <Text style={styles.saveButtonText}>{t('providerDashboard.providerServiceArea.save')}</Text>
+            <Text style={[styles.saveButtonText, { color: colors.primary }]}>{t('providerDashboard.providerServiceArea.save')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -190,113 +185,113 @@ export default function ProviderServiceAreaScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Map placeholder */}
-        <View style={[styles.mapCard, { borderColor: CARD_BORDER_MAP }]}>
+        <View style={[styles.mapCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.mapPlaceholder}>
-            <View style={styles.mapCircle}>
-              <View style={styles.mapDot} />
+            <View style={[styles.mapCircle, { borderColor: `${colors.primary}66`, backgroundColor: `${colors.primary}1A` }]}>
+              <View style={[styles.mapDot, { backgroundColor: colors.primary }]} />
             </View>
             <View style={styles.zoomControls}>
               <TouchableOpacity style={styles.zoomButton} onPress={() => setRadius(state.radiusKm - 1)}>
-                <Text style={styles.zoomButtonText}>−</Text>
+                <Text style={[styles.zoomButtonText, { color: colors.textSecondary }]}>−</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.zoomButton} onPress={() => setRadius(state.radiusKm + 1)}>
-                <Text style={styles.zoomButtonText}>+</Text>
+                <Text style={[styles.zoomButtonText, { color: colors.textSecondary }]}>+</Text>
               </TouchableOpacity>
             </View>
           </View>
           <View style={styles.baseLocationRow}>
             <Text style={styles.locationIcon}>📍</Text>
             <View style={styles.baseLocationText}>
-              <Text style={styles.baseLocationLabel}>{t('providerDashboard.providerServiceArea.baseLocation')}</Text>
+              <Text style={[styles.baseLocationLabel, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.baseLocation')}</Text>
               {editingAddress ? (
                 <TextInput
-                  style={styles.addressInput}
+                  style={[styles.addressInput, { color: colors.textPrimary, borderBottomColor: colors.cardBorder }]}
                   value={state.baseAddress}
                   onChangeText={(text) => setState((prev) => (prev ? { ...prev, baseAddress: text } : null))}
                   placeholder={t('providerDashboard.providerServiceArea.baseLocationPlaceholder')}
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor={colors.textTertiary}
                   autoFocus
                   onBlur={() => setEditingAddress(false)}
                 />
               ) : (
-                <Text style={styles.baseLocationAddress} numberOfLines={1}>
+                <Text style={[styles.baseLocationAddress, { color: colors.textTertiary }]} numberOfLines={1}>
                   {state.baseAddress || '—'}
                 </Text>
               )}
             </View>
             <TouchableOpacity onPress={() => setEditingAddress((v) => !v)}>
-              <Text style={styles.editLink}>{t('providerDashboard.providerServiceArea.edit')}</Text>
+              <Text style={[styles.editLink, { color: colors.primary }]}>{t('providerDashboard.providerServiceArea.edit')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Coverage radius */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerServiceArea.sectionCoverageRadius')}
         </Text>
-        <View style={[styles.card, { borderColor: CARD_BORDER }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.radiusRow}>
-            <Text style={styles.radiusLabel}>{t('providerDashboard.providerServiceArea.currentRadius')}</Text>
-            <Text style={styles.radiusValue}>{state.radiusKm} km</Text>
+            <Text style={[styles.radiusLabel, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.currentRadius')}</Text>
+            <Text style={[styles.radiusValue, { color: colors.primary }]}>{state.radiusKm} km</Text>
           </View>
           <View
             style={styles.sliderTrack}
             onLayout={onSliderLayout}
             {...panResponder.panHandlers}
           >
-            <View style={[styles.sliderTrackInner, { width: `${radiusRatio * 100}%` }]} />
-            <View style={[styles.sliderThumb, { left: `${radiusRatio * 100}%`, marginLeft: -10 }]} />
+            <View style={[styles.sliderTrackInner, { width: `${radiusRatio * 100}%`, backgroundColor: colors.primary }]} />
+            <View style={[styles.sliderThumb, { left: `${radiusRatio * 100}%`, marginLeft: -10, borderColor: colors.card, backgroundColor: colors.primary }]} />
           </View>
           <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabelText}>{RADIUS_MIN_KM} km</Text>
-            <Text style={styles.sliderLabelText}>{RADIUS_MAX_KM} km</Text>
+            <Text style={[styles.sliderLabelText, { color: colors.textTertiary }]}>{RADIUS_MIN_KM} km</Text>
+            <Text style={[styles.sliderLabelText, { color: colors.textTertiary }]}>{RADIUS_MAX_KM} km</Text>
           </View>
         </View>
 
         {/* Specific zones */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerServiceArea.sectionSpecificZones')}
         </Text>
         <View style={styles.zonesList}>
           {state.zones.map((zone: ServiceZoneItem) => (
-            <View key={zone.id} style={[styles.zoneRow, { borderColor: CARD_BORDER }]}>
+            <View key={zone.id} style={[styles.zoneRow, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
               <View style={styles.zoneLeft}>
                 <View style={[styles.zoneIcon, zone.enabled ? styles.zoneIconOn : styles.zoneIconOff]}>
                   <Text style={styles.zoneIconText}>📍</Text>
                 </View>
-                <Text style={[styles.zoneName, !zone.enabled && styles.zoneNameOff]}>{zone.name}</Text>
+                <Text style={[styles.zoneName, { color: colors.textPrimary }, !zone.enabled && { color: colors.textTertiary }]}>{zone.name}</Text>
               </View>
               <Switch
                 value={zone.enabled}
                 onValueChange={(v) => toggleZone(zone.id, v)}
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34, 197, 94, 0.4)' }}
-                thumbColor={zone.enabled ? '#4ADE80' : 'rgba(255,255,255,0.4)'}
+                trackColor={{ false: colors.cardBorder, true: 'rgba(34, 197, 94, 0.4)' }}
+                thumbColor={zone.enabled ? '#4ADE80' : colors.textTertiary}
               />
             </View>
           ))}
         </View>
 
         {/* Distance charge */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>
           {t('providerDashboard.providerServiceArea.sectionDistanceCharge')}
         </Text>
-        <View style={[styles.card, { borderColor: CARD_BORDER }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.distanceChargeRow}>
-            <Text style={styles.distanceChargeLabel}>
+            <Text style={[styles.distanceChargeLabel, { color: colors.textPrimary }]}>
               {t('providerDashboard.providerServiceArea.distanceChargeLabel')}
             </Text>
             <Switch
               value={state.distanceChargeEnabled}
               onValueChange={(v) => setDistanceCharge({ distanceChargeEnabled: v })}
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34, 197, 94, 0.4)' }}
-              thumbColor={state.distanceChargeEnabled ? '#4ADE80' : 'rgba(255,255,255,0.4)'}
+              trackColor={{ false: colors.cardBorder, true: 'rgba(34, 197, 94, 0.4)' }}
+              thumbColor={state.distanceChargeEnabled ? '#4ADE80' : colors.textTertiary}
             />
           </View>
-          <View style={styles.distanceChargeInputRow}>
+          <View style={[styles.distanceChargeInputRow, { backgroundColor: colors.background }]}>
             <View style={styles.afterKmRow}>
-              <Text style={styles.afterKmLabel}>{t('providerDashboard.providerServiceArea.afterKmBefore')}</Text>
+              <Text style={[styles.afterKmLabel, { color: colors.textSecondary }]}>{t('providerDashboard.providerServiceArea.afterKmBefore')}</Text>
               <TextInput
-                style={styles.afterKmInput}
+                style={[styles.afterKmInput, { color: colors.textPrimary }]}
                 value={String(state.distanceChargeAfterKm)}
                 onChangeText={(text) => {
                   const n = parseInt(text.replace(/\D/g, ''), 10);
@@ -304,13 +299,14 @@ export default function ProviderServiceAreaScreen() {
                 }}
                 keyboardType="number-pad"
                 placeholder="10"
+                placeholderTextColor={colors.textTertiary}
               />
-              <Text style={styles.afterKmSuffix}>{t('providerDashboard.providerServiceArea.afterKmAfter')}</Text>
+              <Text style={[styles.afterKmSuffix, { color: colors.textSecondary }]}>{t('providerDashboard.providerServiceArea.afterKmAfter')}</Text>
             </View>
             <View style={styles.perKmRow}>
-              <Text style={styles.currencySymbol}>$</Text>
+              <Text style={[styles.currencySymbol, { color: colors.textTertiary }]}>$</Text>
               <TextInput
-                style={styles.perKmInput}
+                style={[styles.perKmInput, { color: colors.textPrimary }]}
                 value={String(state.distanceChargeRatePerKm)}
                 onChangeText={(text) => {
                   const n = parseInt(text.replace(/\D/g, ''), 10);
@@ -318,8 +314,9 @@ export default function ProviderServiceAreaScreen() {
                 }}
                 keyboardType="number-pad"
                 placeholder="0"
+                placeholderTextColor={colors.textTertiary}
               />
-              <Text style={styles.perKmSuffix}>{t('providerDashboard.providerServiceArea.perKm')}</Text>
+              <Text style={[styles.perKmSuffix, { color: colors.textTertiary }]}>{t('providerDashboard.providerServiceArea.perKm')}</Text>
             </View>
           </View>
         </View>
@@ -339,7 +336,7 @@ export default function ProviderServiceAreaScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,22 +353,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { flex: 1, fontSize: 18, fontWeight: '700', color: '#fff' },
+  title: { flex: 1, fontSize: 18, fontWeight: '700' },
   saveButton: { paddingVertical: 8, paddingHorizontal: 12, minWidth: 60, alignItems: 'flex-end' },
-  saveButtonText: { color: PURPLE_ACTIVE, fontSize: 14, fontWeight: '600' },
+  saveButtonText: { fontSize: 14, fontWeight: '600' },
   loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
   sectionTitle: {
     fontSize: 12,
-    color: SECTION_HEADER_COLOR,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 12,
   },
   mapCard: {
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
     marginBottom: 20,
     overflow: 'hidden',
@@ -388,8 +383,6 @@ const styles = StyleSheet.create({
     height: 128,
     borderRadius: 64,
     borderWidth: 2,
-    borderColor: 'rgba(139, 92, 246, 0.4)',
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -397,7 +390,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: PURPLE_ACTIVE,
   },
   zoomControls: {
     position: 'absolute',
@@ -414,7 +406,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  zoomButtonText: { color: 'rgba(255,255,255,0.6)', fontSize: 16 },
+  zoomButtonText: { fontSize: 16 },
   baseLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -423,28 +415,25 @@ const styles = StyleSheet.create({
   },
   locationIcon: { fontSize: 18 },
   baseLocationText: { flex: 1 },
-  baseLocationLabel: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  baseLocationAddress: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 2 },
+  baseLocationLabel: { fontSize: 14, fontWeight: '500' },
+  baseLocationAddress: { fontSize: 12, marginTop: 2 },
   addressInput: {
-    color: '#fff',
     fontSize: 12,
     marginTop: 4,
     paddingVertical: 4,
     paddingHorizontal: 0,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
   },
-  editLink: { color: '#A78BFA', fontSize: 12 },
+  editLink: { fontSize: 12 },
   card: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
     marginBottom: 20,
   },
   radiusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  radiusLabel: { color: '#fff', fontSize: 14 },
-  radiusValue: { color: PURPLE_ACTIVE, fontWeight: '700', fontSize: 18 },
+  radiusLabel: { fontSize: 14 },
+  radiusValue: { fontWeight: '700', fontSize: 18 },
   sliderTrack: {
     height: 8,
     borderRadius: 4,
@@ -459,7 +448,6 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     borderRadius: 4,
-    backgroundColor: PURPLE_ACTIVE,
   },
   sliderThumb: {
     position: 'absolute',
@@ -469,11 +457,9 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#fff',
-    backgroundColor: PURPLE_ACTIVE,
   },
   sliderLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  sliderLabelText: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },
+  sliderLabelText: { fontSize: 12 },
   zonesList: { gap: 8, marginBottom: 20 },
   zoneRow: {
     flexDirection: 'row',
@@ -481,7 +467,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
   },
   zoneLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -489,36 +474,32 @@ const styles = StyleSheet.create({
   zoneIconOn: { backgroundColor: 'rgba(34, 197, 94, 0.15)' },
   zoneIconOff: { backgroundColor: 'rgba(255,255,255,0.05)' },
   zoneIconText: { fontSize: 14 },
-  zoneName: { color: '#fff', fontSize: 14 },
-  zoneNameOff: { color: 'rgba(255,255,255,0.4)' },
+  zoneName: { fontSize: 14 },
   distanceChargeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  distanceChargeLabel: { color: '#fff', fontSize: 14 },
+  distanceChargeLabel: { fontSize: 14 },
   distanceChargeInputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   afterKmRow: { flexDirection: 'row', alignItems: 'center' },
-  afterKmLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 14 },
+  afterKmLabel: { fontSize: 14 },
   afterKmInput: {
     width: 40,
-    color: '#fff',
     fontSize: 14,
     paddingHorizontal: 4,
     paddingVertical: 0,
   },
-  afterKmSuffix: { color: 'rgba(255,255,255,0.6)', fontSize: 14 },
+  afterKmSuffix: { fontSize: 14 },
   perKmRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  currencySymbol: { color: 'rgba(255,255,255,0.4)' },
+  currencySymbol: {},
   perKmInput: {
     minWidth: 48,
-    color: '#fff',
     fontSize: 14,
     textAlign: 'right',
     padding: 0,
   },
-  perKmSuffix: { color: 'rgba(255,255,255,0.4)' },
+  perKmSuffix: {},
 });
