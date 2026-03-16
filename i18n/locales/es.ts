@@ -534,13 +534,6 @@ export default {
     addItemButton: "Agregar",
     createQuoteButton: "Crear Cotización",
   },
-  booking: {
-    selectDateTime: "Selecciona fecha y hora",
-    availableTimes: "Horarios disponibles",
-    estimatedDuration: "Duración estimada",
-    selectAllFields: "Por favor selecciona fecha, hora y duración",
-    continue: "Continuar",
-  },
   payment: {
     title: "Método de pago",
     addNewCard: "Agregar nueva tarjeta",
@@ -629,6 +622,11 @@ export default {
     add: "Agregar",
   },
   booking: {
+    selectDateTime: "Selecciona fecha y hora",
+    availableTimes: "Horarios disponibles",
+    estimatedDuration: "Duración estimada",
+    selectAllFields: "Por favor selecciona fecha, hora y duración",
+    continue: "Continuar",
     serviceAddress: "Dirección del servicio",
     locationMap: "Mapa de ubicación",
     savedAddresses: "Direcciones guardadas",
