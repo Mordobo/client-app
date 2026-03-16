@@ -280,7 +280,7 @@ export default function LoginScreen() {
 
           {/* Title */}
           <Text style={styles.title}>{t('auth.welcome')}</Text>
-          <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
+          <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
 
           {showRegistrationSuccess && (
             <View style={styles.successToast}>
@@ -366,7 +366,7 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
+                <Text style={styles.loginButtonText}>{t('auth.loginCta')}</Text>
               )}
             </TouchableOpacity>
           </View>

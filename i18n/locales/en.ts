@@ -12,6 +12,7 @@ export default {
     back: "Back",
     discard: "Discard",
     redirecting: "Redirecting...",
+    loading: "Loading...",
   },
   auth: {
     firstName: "First Name",
@@ -34,8 +35,7 @@ export default {
     searchCountry: "Search country...",
     loginTitle: "Login",
     welcome: "Welcome",
-    welcomeSubtitle: "Enter your credentials to continue",
-    signIn: "Log in",
+    loginSubtitle: "Enter your credentials to continue",
     signUp: "Sign up",
     forgotPassword: "Forgot password?",
     forgotPasswordTitle: "Forgot your password?",
