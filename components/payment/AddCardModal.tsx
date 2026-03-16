@@ -281,7 +281,7 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
                   <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 {loading ? (
-                  <View style={styles.modalButtonConfirm}>
+                  <View style={[styles.modalButtonConfirm, styles.modalButtonConfirmLoading]}>
                     <ActivityIndicator color="#FFFFFF" />
                   </View>
                 ) : (
@@ -404,6 +404,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 15,
     elevation: 8,
+  },
+  modalButtonConfirmLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+    backgroundColor: colors.primary,
   },
   modalButtonGradient: {
     padding: 18,
