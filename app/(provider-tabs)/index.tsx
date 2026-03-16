@@ -152,8 +152,13 @@ export default function ProviderDashboardScreen() {
 
   const cardStyle = { backgroundColor: colors.card, borderColor: colors.cardBorder };
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 80, backgroundColor: colors.background }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <ScrollView
+        style={[styles.scroll, { backgroundColor: colors.background }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Header: green gradient matching preview (linear-gradient 135deg #1B8B5E → #25A870) */}
         <LinearGradient colors={["#1B8B5E", "#25A870"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
           <View style={styles.headerTop}>
@@ -297,8 +302,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 16,
-    flexGrow: 0,
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 20,
