@@ -87,7 +87,8 @@ export default function RateClientScreen() {
     return () => { cancelled = true; };
   }, [id]);
 
-  const canRate = orderStatus === "completed";
+  const canRate =
+    orderStatus === "completed" || orderStatus === "pending_review";
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) =>
@@ -172,14 +173,6 @@ export default function RateClientScreen() {
           <Text style={[styles.clientNameLarge, { color: colors.textPrimary }]}>{clientData?.fullName ?? "—"}</Text>
           <Text style={[styles.clientServiceLabel, { color: colors.textTertiary }]}>{clientData?.serviceName ?? ""}</Text>
         </View>
-
-        {!canRate && orderStatus != null && (
-          <View style={styles.waitBanner}>
-            <Text style={styles.waitBannerText}>
-              {t("providerDashboard.rateClient.errors.orderNotCompleted")}
-            </Text>
-          </View>
-        )}
 
         {/* Star Rating */}
         <Text style={styles.ratingQuestion}>{t("providerDashboard.rateClient.howWasExperience")}</Text>
@@ -359,20 +352,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.6)",
     textAlign: "center",
     marginBottom: 24,
-  },
-
-  waitBanner: {
-    backgroundColor: AMBER_BG,
-    borderWidth: 1,
-    borderColor: AMBER_BORDER,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 24,
-  },
-  waitBannerText: {
-    fontSize: 14,
-    color: AMBER_TEXT,
-    textAlign: "center",
   },
 
   // Section Label
