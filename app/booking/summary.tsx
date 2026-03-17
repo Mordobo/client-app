@@ -1,4 +1,3 @@
-import { CLIENT_TIERS } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { getLocale, t } from "@/i18n";
@@ -241,7 +240,6 @@ export default function BookingSummaryScreen() {
     addressId: string;
   }>();
   const insets = useSafeAreaInsets();
-  const tierConfig = CLIENT_TIERS[user?.tier ?? "bronze"];
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [service, setService] = useState<SupplierService | null>(null);
@@ -326,27 +324,24 @@ export default function BookingSummaryScreen() {
     return parts.join(", ");
   };
 
-  // Calculate pricing
+  // Pricing: service has a fixed price (not per hour). No platform fee for direct booking.
   const calculatePricing = () => {
-    if (!service || !duration) {
+    if (!service) {
       return {
         serviceCost: 0,
-        travelFee: 5.0,
-        platformFee: 5.0,
+        serviceFee: 0,
         discount: 0,
         total: 0,
       };
     }
 
-    const durationHours = parseFloat(duration) || 2;
-    const hourlyRate = service.price || 60;
-    const serviceCost = hourlyRate * durationHours;
-    const serviceFee = tierConfig.platformFee;
-    const subtotal = serviceCost + serviceFee;
+    const serviceCost = Number(service.price) || 0;
+    const serviceFee = 0;
+    const subtotal = serviceCost;
 
     const discountPercent = appliedDiscount > 0 ? appliedDiscount : 0;
     const discount = subtotal * (discountPercent / 100);
-    const total = subtotal - discount;
+    const total = Math.max(0, subtotal - discount);
 
     return {
       serviceCost,
@@ -359,7 +354,7 @@ export default function BookingSummaryScreen() {
   const pricing = calculatePricing();
 
   const handleProceedToPayment = () => {
-    if (!supplierId || !serviceId || !scheduledAt || !duration || !addressId || !address || !service) {
+    if (!supplierId || !serviceId || !scheduledAt || !addressId || !address || !service) {
       Alert.alert(t("common.error"), t("booking.missingBookingData"));
       return;
     }
@@ -470,11 +465,17 @@ export default function BookingSummaryScreen() {
               <Text style={styles.detailValue}>{formattedTime}</Text>
             </View>
 
-            {/* Duration */}
+            {/* Duration (estimated job length; price is fixed, not per hour) */}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t("booking.estimatedDuration")}</Text>
               <Text style={styles.detailValue}>
-                {duration} {t("booking.hours")}
+                {duration
+                  ? `${duration} ${t("booking.hours")}`
+                  : service.duration_minutes != null
+                    ? service.duration_minutes >= 60
+                      ? `${Math.round(service.duration_minutes / 60)} ${t("booking.hours")}`
+                      : `${service.duration_minutes} ${t("booking.minutes")}`
+                    : "—"}
               </Text>
             </View>
 
@@ -495,27 +496,12 @@ export default function BookingSummaryScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("booking.paymentSummary")}</Text>
 
-            {/* Service Cost */}
+            {/* Service cost (fixed price) */}
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>
-                {service.name?.trim() || service.category_name || "Service"} ({duration} {t("booking.hours")} x ${service.price || 60}/hr)
+                {service.name?.trim() || service.category_name || "Service"}
               </Text>
               <Text style={styles.priceValue}>${pricing.serviceCost.toFixed(2)}</Text>
-            </View>
-
-            {/* Platform Fee */}
-            <View style={styles.priceRow}>
-              <View>
-                <Text style={styles.priceLabel}>{t("booking.travelFee")}</Text>
-                {tierConfig.key !== "bronze" && (
-                  <Text style={[styles.priceLabel, { color: tierConfig.color, fontSize: 11 }]}>
-                    {t("booking.tierFeeLabel", { tier: t(tierConfig.i18nKey) })}
-                  </Text>
-                )}
-              </View>
-              <Text style={[styles.priceValue, pricing.serviceFee === 0 && { color: "#10b981" }]}>
-                {pricing.serviceFee === 0 ? "$0.00" : `$${pricing.serviceFee.toFixed(2)}`}
-              </Text>
             </View>
 
             {/* Discount */}

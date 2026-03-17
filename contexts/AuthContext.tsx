@@ -153,7 +153,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             await AsyncStorage.setItem('user', JSON.stringify(syncedUser));
             console.log('AuthContext - User synced from backend');
           } catch (syncError: unknown) {
-            console.warn('AuthContext - Failed to sync user from backend, using stored data:', syncError);
+            const isTokenError = syncError instanceof ApiError &&
+              (syncError.status === 401 || syncError.status === 403 || syncError.sessionExpired === true);
+            const msg = syncError instanceof Error ? syncError.message.toLowerCase() : '';
+            const isInvalidExpiredToken = msg.includes('invalid') && (msg.includes('expired') || msg.includes('token'));
+            if (isTokenError || isInvalidExpiredToken) {
+              console.warn('AuthContext - Token invalid or expired on profile sync, clearing session');
+              setUser(null);
+              await AsyncStorage.removeItem('user');
+              clearTokenState();
+            } else {
+              console.warn('AuthContext - Failed to sync user from backend, using stored data:', syncError);
+            }
           }
         }
       } else {

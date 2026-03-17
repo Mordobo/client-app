@@ -657,6 +657,7 @@ export default {
     time: "Time",
     address: "Address",
     hours: "hours",
+    minutes: "min",
     additionalNotes: "Additional notes",
     notesPlaceholder: "Special instructions for the provider...",
     paymentSummary: "Payment summary",
