@@ -66,20 +66,40 @@ export default function RootLayout() {
     initializeGoogleSignIn();
   }, []);
 
-  // Prevent "Uncaught Error" overlay when token expired (session expired already emitted, app redirects to login)
+  // Prevent "Uncaught Error" overlay when token invalid/expired (session expired or cleared, user stays on welcome)
   // Only on web: window.addEventListener/removeEventListener do not exist in React Native (APK)
   useEffect(() => {
     if (Platform.OS !== "web") return;
     const w = typeof window !== "undefined" ? window : null;
     if (!w?.addEventListener || !w?.removeEventListener) return;
-    const handler = (event: PromiseRejectionEvent) => {
-      const reason = event?.reason;
-      if (reason instanceof ApiError && reason.sessionExpired) {
+
+    const isTokenExpiredError = (reason: unknown): boolean => {
+      if (reason instanceof ApiError && reason.sessionExpired) return true;
+      const msg = reason instanceof Error ? reason.message?.toLowerCase() ?? "" : "";
+      return msg.includes("invalid") && (msg.includes("expired") || msg.includes("token"));
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      if (isTokenExpiredError(event?.reason)) {
         event.preventDefault();
       }
     };
-    w.addEventListener("unhandledrejection", handler);
-    return () => w.removeEventListener("unhandledrejection", handler);
+
+    const handleError = (event: ErrorEvent) => {
+      const msg = (event?.message ?? "").toLowerCase();
+      if (msg.includes("invalid") && (msg.includes("expired") || msg.includes("token"))) {
+        event.preventDefault();
+        return true;
+      }
+      return false;
+    };
+
+    w.addEventListener("unhandledrejection", handleRejection);
+    w.addEventListener("error", handleError);
+    return () => {
+      w.removeEventListener("unhandledrejection", handleRejection);
+      w.removeEventListener("error", handleError);
+    };
   }, []);
 
   return (

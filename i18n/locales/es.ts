@@ -657,6 +657,7 @@ export default {
     time: "Hora",
     address: "Dirección",
     hours: "horas",
+    minutes: "min",
     additionalNotes: "Notas adicionales",
     notesPlaceholder: "Instrucciones especiales para el proveedor...",
     paymentSummary: "Resumen de pago",
