@@ -494,7 +494,7 @@ export const getProviderBankAccounts = async (): Promise<ProviderBankAccount[]> 
 
 // ========== EARNINGS ==========
 export type EarningsPeriod = "today" | "week" | "month" | "custom" | "all";
-export type EarningsTransactionStatus = "completed" | "pending" | "processing";
+export type EarningsTransactionStatus = "completed" | "pending" | "processing" | "refunded";
 
 export interface ProviderEarningsSummary {
   balance: number;
@@ -520,7 +520,8 @@ export interface ProviderEarningsTransaction {
   serviceName: string;
   amount: number;
   status: EarningsTransactionStatus;
-  type: "income" | "pending_income" | "withdrawal";
+  type: "income" | "pending_income" | "withdrawal" | "refund";
+  refundReason?: string | null;
 }
 
 export interface ProviderEarningsTransactionsResponse {
@@ -558,7 +559,7 @@ export const getEarningsChart = async (period: "week" | "month" = "week"): Promi
   );
 };
 
-export const getEarningsTransactions = async (params?: { period?: EarningsPeriod; from?: string; to?: string; status?: "all" | EarningsTransactionStatus; page?: number; limit?: number }): Promise<ProviderEarningsTransactionsResponse> => {
+export const getEarningsTransactions = async (params?: { period?: EarningsPeriod; from?: string; to?: string; status?: "all" | EarningsTransactionStatus | "refunded"; page?: number; limit?: number }): Promise<ProviderEarningsTransactionsResponse> => {
   const q = new URLSearchParams();
   if (params?.period) q.set("period", params.period);
   if (params?.from) q.set("from", params.from);

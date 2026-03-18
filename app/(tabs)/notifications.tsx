@@ -55,6 +55,8 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
         return { icon: '💰', bgColor: '#10B981' };
       case 'new_review':
         return { icon: '⭐', bgColor: '#F59E0B' };
+      case 'refund_issued':
+        return { icon: '↩️', bgColor: '#10B981' };
       default:
         return { icon: '🔔', bgColor: '#6B7280' };
     }
@@ -208,6 +210,7 @@ export default function NotificationsScreen() {
         case 'payment_processed':
         case 'provider_on_way':
         case 'quote_received':
+        case 'refund_issued':
           if (metadata.orderId) {
             router.push(`/booking/quote/${metadata.orderId}`);
           }

@@ -38,6 +38,8 @@ const STATUS_PENDING_BG = "rgba(251, 191, 36, 0.15)";
 const STATUS_PENDING_TEXT = "#FBBF24";
 const STATUS_PROCESSING_BG = "rgba(139, 92, 246, 0.15)";
 const STATUS_PROCESSING_TEXT = "#8B5CF6";
+const STATUS_REFUNDED_BG = "rgba(239, 68, 68, 0.15)";
+const STATUS_REFUNDED_TEXT = "#EF4444";
 
 function formatCurrency(value: number | null | undefined): string {
   const num = typeof value === "number" && !Number.isNaN(value) ? value : 0;
@@ -87,7 +89,7 @@ export default function ProviderEarningsScreen() {
   const colors = useThemeColors();
   const [period, setPeriod] = useState<EarningsPeriod>("month");
   const [txPage, setTxPage] = useState(1);
-  const [txStatusFilter, setTxStatusFilter] = useState<"all" | "completed" | "pending" | "processing">("all");
+  const [txStatusFilter, setTxStatusFilter] = useState<"all" | "completed" | "pending" | "processing" | "refunded">("all");
   const [accumulatedTx, setAccumulatedTx] = useState<ProviderEarningsTransaction[]>([]);
 
   const summaryQuery = useQuery({
@@ -297,7 +299,7 @@ export default function ProviderEarningsScreen() {
         <View style={styles.txFilterRow}>
           <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.recentTransactions")}</Text>
           <View style={styles.txFilterChips}>
-            {(["all", "completed", "pending", "processing"] as const).map((status) => (
+            {(["all", "completed", "pending", "processing", "refunded"] as const).map((status) => (
               <TouchableOpacity
                 key={status}
                 style={[
@@ -361,34 +363,43 @@ export default function ProviderEarningsScreen() {
 
 function TransactionItem({ transaction, colors }: { transaction: ProviderEarningsTransaction; colors: ThemeColors }) {
   const isIncome = transaction.type === "income";
+  const isRefund = transaction.type === "refund";
   const desc =
     transaction.type === "income"
       ? t("providerDashboard.earnings.serviceCompleted")
-      : t("providerDashboard.earnings.withdrawalToAccount");
-  const displayName = isIncome ? transaction.clientName : transaction.serviceName || "—";
+      : transaction.type === "refund"
+        ? t("providerDashboard.earnings.refundIssued")
+        : t("providerDashboard.earnings.withdrawalToAccount");
+  const displayName = isIncome || isRefund ? transaction.clientName : transaction.serviceName || "—";
   const amountStr = isIncome ? `+${formatCurrency(transaction.amount)}` : `-${formatCurrency(transaction.amount)}`;
   const statusStyle =
     transaction.status === "completed"
       ? { bg: STATUS_COMPLETED_BG, text: STATUS_COMPLETED_TEXT }
-      : transaction.status === "processing"
-        ? { bg: STATUS_PROCESSING_BG, text: STATUS_PROCESSING_TEXT }
-        : { bg: STATUS_PENDING_BG, text: STATUS_PENDING_TEXT };
+      : transaction.status === "refunded"
+        ? { bg: STATUS_REFUNDED_BG, text: STATUS_REFUNDED_TEXT }
+        : transaction.status === "processing"
+          ? { bg: STATUS_PROCESSING_BG, text: STATUS_PROCESSING_TEXT }
+          : { bg: STATUS_PENDING_BG, text: STATUS_PENDING_TEXT };
   const statusLabel =
     transaction.status === "completed"
       ? t("providerDashboard.earnings.statusCompleted")
-      : transaction.status === "processing"
-        ? t("providerDashboard.earnings.statusProcessing")
-        : t("providerDashboard.earnings.statusPending");
+      : transaction.status === "refunded"
+        ? t("providerDashboard.earnings.statusRefunded")
+        : transaction.status === "processing"
+          ? t("providerDashboard.earnings.statusProcessing")
+          : t("providerDashboard.earnings.statusPending");
 
   return (
     <View style={[styles.txItem, { backgroundColor: colors.card }]}>
       <View
         style={[
           styles.txIconWrap,
-          { backgroundColor: isIncome ? STATUS_COMPLETED_BG : "rgba(239, 68, 68, 0.15)" },
+          { backgroundColor: isIncome ? STATUS_COMPLETED_BG : STATUS_REFUNDED_BG },
         ]}
       >
-        <Text style={styles.txIconText}>{isIncome ? "↓" : "↑"}</Text>
+        <Text style={[styles.txIconText, { color: isIncome ? STATUS_COMPLETED_TEXT : STATUS_REFUNDED_TEXT }]}>
+          {isIncome ? "↓" : "↑"}
+        </Text>
       </View>
       <View style={styles.txBody}>
         <Text style={[styles.txDesc, { color: colors.textPrimary }]}>{desc}</Text>
@@ -396,9 +407,12 @@ function TransactionItem({ transaction, colors }: { transaction: ProviderEarning
         {isIncome && transaction.serviceName ? (
           <Text style={[styles.txService, { color: colors.textTertiary }]}>{transaction.serviceName}</Text>
         ) : null}
+        {isRefund && transaction.refundReason ? (
+          <Text style={[styles.txService, { color: colors.textTertiary }]}>{transaction.refundReason}</Text>
+        ) : null}
       </View>
       <View style={styles.txRight}>
-        <Text style={[styles.txAmount, { color: isIncome ? STATUS_COMPLETED_TEXT : "#EF4444" }]}>
+        <Text style={[styles.txAmount, { color: isIncome ? STATUS_COMPLETED_TEXT : STATUS_REFUNDED_TEXT }]}>
           {amountStr}
         </Text>
         <View style={[styles.txBadge, { backgroundColor: statusStyle.bg }]}>

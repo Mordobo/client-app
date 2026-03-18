@@ -236,6 +236,7 @@ export default function ProviderNotificationsScreen() {
           break;
         case "payment_processed":
         case "payment_received":
+        case "refund_issued":
           router.push("/(provider-tabs)/earnings");
           break;
         case "rate_service":
