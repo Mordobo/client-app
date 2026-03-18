@@ -31,7 +31,8 @@ export type NotificationType =
   | 'new_booking_request'
   | 'quote_received'
   | 'quote_approved'
-  | 'new_review';
+  | 'new_review'
+  | 'refund_issued';
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -142,6 +143,7 @@ export function getNotificationCategory(type: NotificationType): NotificationCat
       return 'jobs';
     case 'payment_processed':
     case 'payment_received':
+    case 'refund_issued':
       return 'payments';
     case 'rate_service':
     case 'new_review':
