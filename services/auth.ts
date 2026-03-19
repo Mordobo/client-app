@@ -17,6 +17,22 @@ const getPhysicalDeviceHint = (): string => {
   return '\n\nSi usas un dispositivo físico (no emulador), en .env pon EXPO_PUBLIC_API_URL con la IP de tu PC, ej: http://192.168.1.x:3000 (misma Wi‑Fi).';
 };
 
+const SENSITIVE_HEADER_KEYS = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
+
+/** Returns a copy of headers with sensitive values redacted for safe logging. */
+function sanitizeHeadersForLog(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const keyLower = key.toLowerCase();
+    if (SENSITIVE_HEADER_KEYS.some((s) => keyLower === s)) {
+      out[key] = value ? '[REDACTED]' : value;
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 export interface RegisterPayload {
   fullName: string;
   email: string;
@@ -266,7 +282,7 @@ export const request = async <T>(
     let response: Response;
     try {
       console.log('[API] Attempting fetch to:', url);
-      console.log('[API] Headers:', headers);
+      console.log('[API] Headers:', sanitizeHeadersForLog(headers));
       console.log('[API] Method:', init.method || 'GET');
       
       response = await fetch(url, { 
