@@ -78,11 +78,16 @@ export const uploadProviderAvatar = async (
   );
 };
 
+/** Supplier status from backend. Only 'active' is allowed to access provider screens. */
+export type ProviderAccountStatus = "pending" | "pending_verification" | "active" | "rejected" | "suspended";
+
 export interface ProviderStatusResponse {
   isProvider: boolean;
   isVerified: boolean;
   onboardingCompleted: boolean;
   onboardingStep?: number; // Current step (0-7)
+  /** Supplier account status. Must be 'active' to use provider tabs. */
+  status?: ProviderAccountStatus;
 }
 
 export interface ProviderOnboardingData {

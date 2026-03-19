@@ -2,10 +2,9 @@ import { useMode } from "@/contexts/ModeContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { checkProviderStatus } from "@/services/providers";
-import { CommonActions } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -29,28 +28,21 @@ export default function SwitchModeScreen() {
   const { target = "client" } = useLocalSearchParams<{ target?: string }>();
   const targetMode: TargetMode = target === "provider" ? "provider" : "client";
   const router = useRouter();
-  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const { setMode } = useMode();
   const [switching, setSwitching] = useState(false);
 
-  const resetTo = useCallback((routeName: string) => {
-    navigation.dispatch(
-      CommonActions.reset({ index: 0, routes: [{ name: routeName }] })
-    );
-  }, [navigation]);
-
   const handleSwitchToClient = useCallback(async () => {
     try {
       setSwitching(true);
       await setMode("client");
-      resetTo("(tabs)");
+      router.replace("/(tabs)");
     } catch (e) {
       console.error("[SwitchMode] Switch to client failed:", e);
       setSwitching(false);
     }
-  }, [setMode, resetTo]);
+  }, [setMode, router]);
 
   const handleSwitchToProvider = useCallback(async () => {
     try {
@@ -59,22 +51,22 @@ export default function SwitchModeScreen() {
       const status = await checkProviderStatus();
       if (result.needsOnboarding || !status.onboardingCompleted) {
         if (status.onboardingCompleted && !status.isVerified) {
-          resetTo("provider-onboarding/verification");
+          router.replace("/provider-onboarding/verification");
         } else {
-          resetTo("provider-onboarding");
+          router.replace("/provider-onboarding");
         }
         return;
       }
       if (!status.isVerified) {
-        resetTo("provider-onboarding/verification");
+        router.replace("/provider-onboarding/verification");
         return;
       }
-      resetTo("(provider-tabs)");
+      router.replace("/(provider-tabs)");
     } catch (e) {
       console.error("[SwitchMode] Switch to provider failed:", e);
       setSwitching(false);
     }
-  }, [setMode, resetTo]);
+  }, [setMode, router]);
 
   const handleConfirm = useCallback(() => {
     if (targetMode === "client") handleSwitchToClient();
