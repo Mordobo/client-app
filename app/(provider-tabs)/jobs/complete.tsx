@@ -140,6 +140,13 @@ export default function CompleteJobScreen() {
     return () => { cancelled = true; };
   }, [id, data]);
 
+  useEffect(() => {
+    if (!id || !data) return;
+    if (data.order.status === "pending_review") {
+      router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
+    }
+  }, [id, data, router]);
+
   const durationLabel = useMemo(() => {
     if (!data) return "";
     return formatDuration(data.durationMinutes);
@@ -246,19 +253,14 @@ export default function CompleteJobScreen() {
       clearSession(id);
       queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
       queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
-
-      Alert.alert(
-        t("common.success"),
-        t("providerDashboard.completeJob.pendingReviewSuccess"),
-        [{ text: t("common.ok"), onPress: () => router.replace({ pathname: "/(provider-tabs)/jobs/invoice", params: { id } }) }],
-      );
+      router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
     } catch (err) {
       const apiData = err instanceof ApiError ? err.data : undefined;
       const code = apiData && typeof apiData === "object" && "code" in apiData ? (apiData as { code: string }).code : undefined;
       if (code === "invalid_status") {
         queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
         queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
-        router.push({ pathname: "/(provider-tabs)/jobs/invoice", params: { id } });
+        router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
         return;
       }
       console.error("[CompleteJob] Submit error:", err);
@@ -317,27 +319,8 @@ export default function CompleteJobScreen() {
 
   if (data.order.status === "pending_review") {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
-        </View>
-        <View style={[styles.centered, styles.flexGrow]}>
-          <View style={styles.successCard}>
-            <Ionicons name="time" size={48} color={PURPLE_END} style={styles.successIcon} />
-            <Text style={styles.successTitle}>{t("providerDashboard.completeJob.waitingForClientReview")}</Text>
-            <Text style={styles.successSubtitle}>{t("providerDashboard.completeJob.waitingForClientReviewDesc")}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.submitBtn}
-            onPress={() => router.push({ pathname: "/(provider-tabs)/jobs/invoice", params: { id: id! } })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.submitBtnText}>{t("providerDashboard.completeJob.viewInvoice")}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={PURPLE_END} />
       </View>
     );
   }
