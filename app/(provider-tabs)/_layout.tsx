@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { HapticTab } from "@/components/haptic-tab";
 import { AvailabilityProvider } from "@/contexts/AvailabilityContext";
 import { useAuth } from "@/contexts/AuthContext";
