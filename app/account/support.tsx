@@ -57,6 +57,10 @@ export default function HelpCenterScreen() {
     });
   };
 
+  const handleComplaints = () => {
+    router.push('/account/complaints');
+  };
+
   const handleLiveChat = () => {
     // TODO: Implement live chat integration
     Alert.alert(
@@ -195,6 +199,32 @@ export default function HelpCenterScreen() {
         <Text style={[styles.sectionTitle, styles.contactSectionTitle, { color: colors.textSecondary }]}>
           {t('helpCenter.contact')}
         </Text>
+
+        {/* Complaints & suggestions (formal requests — same as /account/complaints) */}
+        <TouchableOpacity
+          style={[styles.contactItem, { backgroundColor: colors.card }]}
+          onPress={handleComplaints}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t('helpCenter.complaintsRowTitle')}
+        >
+          <View style={[styles.contactIconContainer, { backgroundColor: `${colors.primary}20` }]}>
+            <Text style={styles.contactIcon}>📋</Text>
+          </View>
+          <View style={styles.contactTextContainer}>
+            <Text style={[styles.contactTitle, { color: colors.textPrimary }]}>
+              {t('helpCenter.complaintsRowTitle')}
+            </Text>
+            <Text style={[styles.contactSubtitle, { color: colors.textSecondary }]}>
+              {t('helpCenter.complaintsRowSubtitle')}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={colors.textTertiary}
+          />
+        </TouchableOpacity>
 
         {/* Live Chat */}
         <TouchableOpacity

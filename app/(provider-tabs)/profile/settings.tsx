@@ -77,9 +77,8 @@ export default function ProviderSettingsScreen() {
     { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc", route: "/(provider-tabs)/profile/statistics" },
   ];
   const supportRows: SettingsRow[] = [
-    { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc" },
-    { icon: "chatbubble-outline", labelKey: "providerDashboard.providerSettings.contactSupport", descKey: "providerDashboard.providerSettings.contactSupportDesc" },
-    { icon: "document-outline", labelKey: "providerDashboard.providerSettings.termsPrivacy", descKey: "providerDashboard.providerSettings.termsPrivacyDesc" },
+    { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc", route: "/account/support" },
+    { icon: "document-outline", labelKey: "providerDashboard.providerSettings.termsPrivacy", descKey: "providerDashboard.providerSettings.termsPrivacyDesc", route: "/account/support" },
   ];
 
   return (
@@ -122,6 +121,7 @@ export default function ProviderSettingsScreen() {
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionSupport"
           rows={supportRows}
+          onRowPress={(route) => router.push(route)}
           colors={colors}
         />
       </ScrollView>

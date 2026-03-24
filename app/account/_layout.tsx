@@ -18,6 +18,7 @@ export default function AccountLayout() {
       <Stack.Screen name="my-addresses" />
       <Stack.Screen name="favorites" />
       <Stack.Screen name="support" />
+      <Stack.Screen name="complaints" />
       <Stack.Screen name="invoices" />
       <Stack.Screen name="chat-history" />
     </Stack>

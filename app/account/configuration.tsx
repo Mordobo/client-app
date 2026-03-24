@@ -109,12 +109,6 @@ export default function ClientConfigurationScreen() {
       route: "/account/support",
     },
     {
-      icon: "chatbubble-outline",
-      labelKey: "providerDashboard.providerSettings.contactSupport",
-      descKey: "providerDashboard.providerSettings.contactSupportDesc",
-      route: "/account/support",
-    },
-    {
       icon: "document-outline",
       labelKey: "providerDashboard.providerSettings.termsPrivacy",
       descKey: "providerDashboard.providerSettings.termsPrivacyDesc",
