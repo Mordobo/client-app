@@ -1191,6 +1191,7 @@ export default {
       acceptNotifications: "Acepto recibir notificaciones",
       back: "Atrás",
       accept: "Aceptar",
+      saveError: "No se pudieron guardar los términos. Revisa tu conexión e intenta de nuevo.",
     },
     verification: {
       title: "¡Solicitud enviada!",

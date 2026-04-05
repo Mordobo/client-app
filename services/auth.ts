@@ -387,7 +387,47 @@ export const request = async <T>(
           ...(init.headers as Record<string, string>),
           Authorization: `Bearer ${newTokens.accessToken}`,
         };
-        const retryResponse = await fetch(url, { ...init, headers: retryHeaders, mode: 'cors' });
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
+        let retryResponse: Response;
+        try {
+          retryResponse = await fetch(url, {
+            ...init,
+            headers: retryHeaders,
+            mode: 'cors',
+            signal: retryController.signal,
+          });
+          clearTimeout(retryTimeoutId);
+        } catch (retryFetchError) {
+          clearTimeout(retryTimeoutId);
+          const isRetryTimeout =
+            retryFetchError instanceof Error && retryFetchError.name === 'AbortError';
+          if (isRetryTimeout) {
+            const renderHint = url.includes('onrender.com')
+              ? '\n\n' + t('errors.requestTimeoutRenderHint')
+              : '';
+            throw new ApiError(
+              t('errors.requestTimeout') + renderHint + getPhysicalDeviceHint(),
+              0,
+              { code: 'request_timeout', isTimeout: true },
+            );
+          }
+          if (retryFetchError instanceof TypeError) {
+            throw new ApiError(
+              t('errors.connectionFailed') + getPhysicalDeviceHint(),
+              0,
+              { code: 'network_error' },
+            );
+          }
+          throw new ApiError(
+            retryFetchError instanceof Error
+              ? retryFetchError.message || t('errors.connectionFailed')
+              : t('errors.connectionFailed'),
+            0,
+            { code: 'fetch_error' },
+          );
+        }
+
         const retryText = await retryResponse.text();
         let retryData: unknown = undefined;
         if (retryText) {
