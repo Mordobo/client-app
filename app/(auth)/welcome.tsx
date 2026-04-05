@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError as AuthApiError } from '@/services/auth';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
 // Note: We no longer use markWelcomeScreenAsSeen - login_count is managed by backend
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import { type GoogleProfile } from '@/utils/authMapping';
@@ -211,7 +212,10 @@ export default function WelcomeScreen() {
       }
 
       if (error instanceof AuthApiError) {
-        const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
+        const restrictionMessage = translatedAuthRestrictionMessage(error);
+        const message =
+          restrictionMessage ??
+          (error.message?.length ? error.message : t('errors.googleLoginGeneric'));
         Alert.alert(t('common.error'), message);
         return;
       }
@@ -242,7 +246,11 @@ export default function WelcomeScreen() {
       router.replace('/(tabs)/home');
     } catch (error) {
       if (error instanceof AuthApiError) {
-        Alert.alert(t('common.error'), error.message || t('errors.appleLoginGeneric'));
+        const restrictionMessage = translatedAuthRestrictionMessage(error);
+        Alert.alert(
+          t('common.error'),
+          restrictionMessage ?? (error.message || t('errors.appleLoginGeneric'))
+        );
       } else {
         Alert.alert(t('common.error'), t('errors.appleLoginGeneric'));
       }
