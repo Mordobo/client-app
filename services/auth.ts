@@ -444,6 +444,13 @@ export const request = async <T>(
     }
 
     if (!response.ok) {
+      const errCodeEarly =
+        typeof responseData === 'object' && responseData && 'code' in responseData
+          ? String((responseData as { code: unknown }).code)
+          : '';
+      if (response.status === 503 && errCodeEarly === 'maintenance_mode') {
+        throw new ApiError(t('errors.maintenanceMode'), 503, responseData);
+      }
       // #region agent log
       if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response not ok',data:{path,status:response.status,code:(responseData as {code?:string})?.code},timestamp:Date.now(),hypothesisId:'H2',runId:'validate-email'})}).catch(()=>{});
       // #endregion

@@ -14,6 +14,12 @@ export default {
     redirecting: "Redirigiendo...",
     loading: "Cargando...",
   },
+  maintenance: {
+    title: "En mantenimiento",
+    message:
+      "Mordobo no está disponible por un momento mientras mejoramos la plataforma. Vuelve a intentarlo en unos minutos.",
+    checkAgain: "Comprobar de nuevo",
+  },
   auth: {
     firstName: "Nombre",
     lastName: "Apellido",
@@ -161,6 +167,8 @@ export default {
     connectionFailed: "No se puede conectar al servidor. Por favor verifica tu conexión a internet y asegúrate de que el backend esté corriendo.",
     requestTimeout: "El servidor tardó demasiado en responder. Por favor verifica tu conexión e intenta de nuevo. Si el problema persiste, asegúrate de que el servidor backend esté corriendo.",
     requestTimeoutRenderHint: "Si usas Render (QA), el servidor puede dormirse por inactividad y tardar 1–2 minutos en despertar. Espera e intenta de nuevo.",
+    maintenanceMode:
+      "La app no está disponible por mantenimiento. Por favor, inténtalo más tarde.",
     getSettingsFailed: "Error al cargar configuración. Por favor intenta de nuevo.",
     updateSettingsFailed: "Error al actualizar configuración. Por favor intenta de nuevo.",
     changePasswordFailed: "Error al cambiar contraseña. Por favor intenta de nuevo.",
