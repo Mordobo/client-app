@@ -3,6 +3,7 @@ import { PhoneInput } from '@/components/PhoneInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, registerUser } from '@/services/auth';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
@@ -467,6 +468,18 @@ export default function RegisterScreen() {
         
         // Check if it's an SMTP/email error (no modal with code; show error only)
         if (validateError instanceof ApiError) {
+          const restrictionMessage = translatedAuthRestrictionMessage(validateError);
+          if (restrictionMessage) {
+            Alert.alert(t('common.error'), restrictionMessage, [
+              {
+                text: t('common.ok'),
+                onPress: () => {
+                  router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+                },
+              },
+            ]);
+            return;
+          }
           const errorData = validateError.data as Record<string, unknown> | undefined;
           const errorCode = errorData?.code as string | undefined;
           const errorMessage = validateError.message || t('errors.verificationFailed');

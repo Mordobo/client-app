@@ -2,6 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
 import { mapApiUserToUser } from '@/utils/authMapping';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
@@ -179,6 +180,12 @@ export default function LoginScreen() {
           return;
         }
 
+        const restrictionMessage = translatedAuthRestrictionMessage(error);
+        if (restrictionMessage) {
+          setErrorMessage(restrictionMessage);
+          return;
+        }
+
         // Handle other API errors
         if (error.status === 401 || error.status === 404) {
           setErrorMessage(t('errors.loginFailed'));
@@ -228,7 +235,14 @@ export default function LoginScreen() {
       router.replace('/(tabs)/home');
     } catch (error) {
       if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('canceled'))) return;
-      const msg = error instanceof ApiError ? error.message : t('errors.googleLoginGeneric');
+      if (error instanceof ApiError) {
+        const restriction = translatedAuthRestrictionMessage(error);
+        const msg = restriction ?? (error.message || t('errors.googleLoginGeneric'));
+        setErrorMessage(msg);
+        Alert.alert(t('common.error'), msg);
+        return;
+      }
+      const msg = t('errors.googleLoginGeneric');
       setErrorMessage(msg);
       Alert.alert(t('common.error'), msg);
     } finally {
@@ -246,7 +260,14 @@ export default function LoginScreen() {
       await login(userData);
       router.replace('/(tabs)/home');
     } catch (error) {
-      const msg = error instanceof ApiError ? error.message : t('errors.appleLoginGeneric');
+      if (error instanceof ApiError) {
+        const restriction = translatedAuthRestrictionMessage(error);
+        const msg = restriction ?? (error.message || t('errors.appleLoginGeneric'));
+        setErrorMessage(msg);
+        Alert.alert(t('common.error'), msg);
+        return;
+      }
+      const msg = t('errors.appleLoginGeneric');
       setErrorMessage(msg);
       Alert.alert(t('common.error'), msg);
     } finally {
