@@ -1,5 +1,6 @@
 import { useMode } from '@/contexts/ModeContext';
 import { t } from '@/i18n';
+import { ApiError } from '@/services/auth';
 import { submitOnboardingStep } from '@/services/providers';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -14,15 +15,22 @@ export default function ProviderOnboardingVerificationScreen() {
   const insets = useSafeAreaInsets();
   const { setMode } = useMode();
   const [submitState, setSubmitState] = useState<SubmitState>('submitting');
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const step7Sent = useRef(false);
 
   const sendStep7 = useCallback(async () => {
     setSubmitState('submitting');
+    setErrorDetail(null);
     try {
       await submitOnboardingStep(7, {});
       setSubmitState('submitted');
     } catch (e) {
       console.error('[Verification] submitOnboardingStep(7) failed:', e);
+      const message =
+        e instanceof ApiError && e.message.trim().length > 0
+          ? e.message
+          : t('providerOnboarding.verification.submitError');
+      setErrorDetail(message);
       setSubmitState('error');
     }
   }, []);
@@ -76,7 +84,7 @@ export default function ProviderOnboardingVerificationScreen() {
               </View>
             </View>
             <Text style={styles.errorText}>
-              {t('providerOnboarding.verification.submitError')}
+              {errorDetail ?? t('providerOnboarding.verification.submitError')}
             </Text>
             <TouchableOpacity
               style={styles.retryButton}

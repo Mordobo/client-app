@@ -1191,6 +1191,7 @@ export default {
       acceptNotifications: "I accept receiving notifications",
       back: "Back",
       accept: "Accept",
+      saveError: "Could not save your acceptance. Check your connection and try again.",
     },
     verification: {
       title: "Request sent!",
