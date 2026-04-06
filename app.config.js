@@ -1,4 +1,7 @@
 // app.config.js - Expo configuration with environment variables support
+/** Same default QA host as utils/apiConfig.ts (REST API → QA DB on Render). */
+const DEFAULT_QA_API_URL = "https://mordobo-api-qa.onrender.com";
+
 const IS_DEV = process.env.EXPO_PUBLIC_ENV === "development";
 const IS_STAGING = process.env.EXPO_PUBLIC_ENV === "staging";
 const IS_PRODUCTION = process.env.EXPO_PUBLIC_ENV === "production";
@@ -78,7 +81,7 @@ export default {
       googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "",
       googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "",
       googleIosUrlScheme: process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME || "",
-      expoPublicApiUrl: process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000",
+      expoPublicApiUrl: (process.env.EXPO_PUBLIC_API_URL || "").trim() || DEFAULT_QA_API_URL,
       environment: process.env.EXPO_PUBLIC_ENV || "development",
       buildNumber: getBuildNumber(),
       buildDate: new Date().toISOString(),

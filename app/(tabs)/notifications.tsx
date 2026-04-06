@@ -7,10 +7,12 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '@/services/notifications';
+import { getLocalizedNotificationDisplay } from '@/utils/notificationDisplay';
 import { fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -102,6 +104,7 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
   };
 
   const config = getNotificationConfig(notification.type);
+  const display = getLocalizedNotificationDisplay(notification, 'client');
 
   return (
     <TouchableOpacity
@@ -122,10 +125,10 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
       </View>
       <View style={styles.notificationContent}>
         <Text style={[styles.notificationTitle, { color: colors.textPrimary }]}>
-          {notification.title}
+          {display.title}
         </Text>
         <Text style={[styles.notificationMessage, { color: colors.textSecondary }]}>
-          {notification.message}
+          {display.message}
         </Text>
         <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>
           {formatTime(notification.created_at)}
@@ -164,9 +167,12 @@ export default function NotificationsScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+  // Tab screens often stay mounted; reload when user opens Alertas so new items (e.g. refunds) appear.
+  useFocusEffect(
+    useCallback(() => {
+      loadNotifications();
+    }, [loadNotifications]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

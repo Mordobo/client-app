@@ -5,7 +5,7 @@ import React from "react";
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 /** Version label shown in profile footer for both Client and Provider. */
-const PROFILE_VERSION_LABEL = "3.0.6";
+const PROFILE_VERSION_LABEL = "3.0.7";
 
 /**
  * Shared footer for Client and Provider profile screens: app version label and logout button.

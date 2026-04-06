@@ -2,10 +2,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { type Notification, type NotificationCategory, deleteAllNotifications, deleteNotification, fetchNotifications, getNotificationCategory, markAllNotificationsAsRead, markNotificationAsRead } from "@/services/notifications";
+import { getLocalizedNotificationDisplay } from "@/utils/notificationDisplay";
 import { fetchOrderDetail } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -40,6 +42,7 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
   const category = getNotificationCategory(notification.type);
   const color = CATEGORY_COLORS[category];
   const iconName = CATEGORY_ICONS[category];
+  const display = getLocalizedNotificationDisplay(notification, "provider");
 
   const formatTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
@@ -72,12 +75,12 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
         <View style={styles.cardContent}>
           <View style={styles.cardRow}>
             <Text style={[styles.cardTitle, !notification.read && styles.cardTitleUnread, { color: colors.textPrimary }]} numberOfLines={1}>
-              {notification.title}
+              {display.title}
             </Text>
             <Text style={[styles.cardTime, { color: colors.textTertiary }]}>{formatTime(notification.created_at)}</Text>
           </View>
           <Text style={[styles.cardMessage, { color: colors.textSecondary }]} numberOfLines={2}>
-            {notification.message}
+            {display.message}
           </Text>
         </View>
         {!notification.read && <View style={[styles.unreadDot, { backgroundColor: color }]} />}
@@ -139,13 +142,15 @@ export default function ProviderNotificationsScreen() {
     }
   }, [isAuthenticated]);
 
-  useEffect(() => {
-    if (isAuthenticated) loadNotifications();
-    else {
-      setNotifications([]);
-      setLoading(false);
-    }
-  }, [loadNotifications, isAuthenticated]);
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) loadNotifications();
+      else {
+        setNotifications([]);
+        setLoading(false);
+      }
+    }, [loadNotifications, isAuthenticated]),
+  );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);

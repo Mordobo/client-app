@@ -4,6 +4,8 @@ import { request } from './auth';
 export interface Notification {
   id: string;
   type: NotificationType;
+  /** Row in DB: refund to client vs supplier use different copy */
+  user_type?: 'client' | 'supplier';
   title: string;
   message: string;
   read: boolean;
@@ -15,6 +17,9 @@ export interface Notification {
     quoteId?: string;
     reviewId?: string;
     paymentId?: string;
+    refundAmount?: number;
+    reason?: string;
+    serviceName?: string;
     [key: string]: unknown;
   };
 }
