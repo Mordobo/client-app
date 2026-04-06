@@ -20,7 +20,9 @@
         "gradleCommand": ":app:assembleDebug"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "development"
+        "EXPO_PUBLIC_ENV": "development",
+        "EXPO_PUBLIC_API_ENV": "qa",
+        "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
       }
     },
     "preview": {
@@ -37,6 +39,7 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "staging",
+        "EXPO_PUBLIC_API_ENV": "qa",
         "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
       }
     },
@@ -55,6 +58,7 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "staging",
+        "EXPO_PUBLIC_API_ENV": "qa",
         "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
       },
       "channel": "staging"
@@ -74,6 +78,7 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "qa",
+        "EXPO_PUBLIC_API_ENV": "qa",
         "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com"
       },
       "channel": "qa"
@@ -91,7 +96,9 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.mordobo.com"
+        "EXPO_PUBLIC_API_ENV": "qa",
+        "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com",
+        "EXPO_PUBLIC_API_URL_PROD": "https://mordobo-api-qa.onrender.com"
       },
       "channel": "production"
     }

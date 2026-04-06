@@ -979,6 +979,13 @@ export default {
     empty: "No tienes notificaciones",
     today: "HOY",
     yesterday: "AYER",
+    refundIssuedClientTitle: "Reembolso emitido",
+    refundIssuedClientMessage:
+      "Se emitió un reembolso de %{amount} por %{serviceName}. Motivo: %{reason}.",
+    refundIssuedProviderTitle: "Reembolso registrado",
+    refundIssuedProviderMessage:
+      "Se registró un reembolso de %{amount} por %{serviceName}. Motivo: %{reason}.",
+    refundServiceFallback: "tu reserva",
   },
   settings: {
     title: "Configuración",

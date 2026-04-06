@@ -979,6 +979,13 @@ export default {
     empty: "You have no notifications",
     today: "TODAY",
     yesterday: "YESTERDAY",
+    refundIssuedClientTitle: "Refund issued",
+    refundIssuedClientMessage:
+      "A refund of %{amount} has been issued for %{serviceName}. Reason: %{reason}.",
+    refundIssuedProviderTitle: "Refund recorded",
+    refundIssuedProviderMessage:
+      "A refund of %{amount} was recorded for %{serviceName}. Reason: %{reason}.",
+    refundServiceFallback: "your booking",
   },
   settings: {
     title: "Settings",
