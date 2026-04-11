@@ -14,6 +14,8 @@ export interface Order {
   address?: string;
   notes?: string;
   total_amount?: number;
+  /** Set by GET /orders when a quote exists: sum(line items)+tax (fixed price; same as charged amount). */
+  display_total?: number | null;
   status: OrderStatus;
   created_at: string;
   updated_at: string;

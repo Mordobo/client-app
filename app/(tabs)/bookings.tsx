@@ -124,6 +124,12 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
   const statusInfo = getStatusInfo();
   const timeInfo = getTimeInfo();
   const dateTime = formatDateTime();
+  const displayPrice =
+    order.display_total != null && Number.isFinite(Number(order.display_total))
+      ? Number(order.display_total)
+      : order.total_amount != null
+        ? Number(order.total_amount)
+        : null;
 
   return (
     <View style={[
@@ -172,9 +178,9 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
           )}
         </View>
 
-        {order.total_amount && (
+        {displayPrice != null && displayPrice > 0 && (
           <Text style={[styles.price, { color: '#F59E0B' }]}>
-            ${typeof order.total_amount === 'number' ? order.total_amount.toFixed(0) : parseFloat(order.total_amount).toFixed(0)}
+            ${displayPrice.toFixed(0)}
           </Text>
         )}
       </View>
@@ -311,7 +317,10 @@ export default function BookingsScreen() {
   };
 
   const handlePayPress = (order: Order) => {
-    const total = order.total_amount ?? 0;
+    const total =
+      order.display_total != null && Number.isFinite(Number(order.display_total))
+        ? Number(order.display_total)
+        : Number(order.total_amount ?? 0);
     router.push({
       pathname: `/booking/payment/${order.id}`,
       params: { totalAmount: String(total) },
