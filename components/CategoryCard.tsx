@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -17,12 +18,13 @@ const hexToRgba = (hex: string, opacity: number): string => {
 };
 
 export function CategoryCard({ name, emoji, color, onPress }: CategoryCardProps) {
+  const colors = useThemeColors();
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
       <View style={[styles.iconContainer, { backgroundColor: hexToRgba(color, 0.2) }]}>
         <Text style={styles.emoji}>{emoji}</Text>
       </View>
-      <Text style={styles.name}>{name}</Text>
+      <Text style={[styles.name, { color: colors.textPrimary }]}>{name}</Text>
     </TouchableOpacity>
   );
 }
@@ -47,7 +49,6 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#FFFFFF',
     textAlign: 'center',
   },
 });

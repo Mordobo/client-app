@@ -157,7 +157,7 @@ export default function FavoritesScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('profile.favorites')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('profile.favorites')}</Text>
         </View>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -176,7 +176,7 @@ export default function FavoritesScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('profile.favorites')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('profile.favorites')}</Text>
       </View>
 
       {favorites.length === 0 ? (
@@ -240,7 +240,9 @@ export default function FavoritesScreen() {
 
                 {/* Info in the middle */}
                 <View style={styles.providerInfo}>
-                  <Text style={styles.providerName}>{provider.business_name?.trim() || provider.full_name}</Text>
+                  <Text style={[styles.providerName, { color: colors.textPrimary }]}>
+                    {provider.business_name?.trim() || provider.full_name}
+                  </Text>
                   <Text style={[styles.providerService, { color: colors.primary }]}>
                     {getServiceName(provider)}
                   </Text>
@@ -304,7 +306,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#ffffff', // Hardcode white to match JSX
   },
   centerContainer: {
     flex: 1,
@@ -366,7 +367,6 @@ const styles = StyleSheet.create({
   providerName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff', // Hardcode white
     marginBottom: 4,
   },
   // Service - Exact match: fontSize: '14px', color: secondary
