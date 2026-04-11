@@ -370,7 +370,9 @@ export default function BookingsScreen() {
           {ordersPendingPayment.length > 0 && (
             <View style={styles.pendingPaymentSection}>
               <Text style={styles.pendingPaymentTitle}>{t('orders.pendingPaymentSection')}</Text>
-              <Text style={styles.pendingPaymentSubtitle}>{t('orders.pendingPaymentSectionSubtitle')}</Text>
+              <Text style={[styles.pendingPaymentSubtitle, { color: colors.textSecondary }]}>
+                {t('orders.pendingPaymentSectionSubtitle')}
+              </Text>
               {ordersPendingPayment.map((order) => (
                 <BookingCard
                   key={order.id}
@@ -393,7 +395,9 @@ export default function BookingsScreen() {
           ) : filteredOrders.length === 0 ? null : (
             <>
               {ordersPendingPayment.length > 0 && <View style={styles.sectionDivider} />}
-              <Text style={styles.reservationsSectionTitle}>{t('orders.reservationsSection')}</Text>
+              <Text style={[styles.reservationsSectionTitle, { color: colors.textPrimary }]}>
+                {t('orders.reservationsSection')}
+              </Text>
               {filteredOrders.map((order) => (
                 <BookingCard
                   key={order.id}
@@ -466,7 +470,6 @@ const styles = StyleSheet.create({
   },
   tabTextInactive: {
     fontWeight: '400',
-    color: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -486,7 +489,6 @@ const styles = StyleSheet.create({
   },
   pendingPaymentSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
     marginBottom: 12,
   },
   sectionDivider: {
@@ -497,7 +499,6 @@ const styles = StyleSheet.create({
   reservationsSectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 12,
   },
   bookingCard: {
