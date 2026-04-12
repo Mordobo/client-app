@@ -84,6 +84,33 @@ export const getDashboardStats = async (): Promise<ProviderDashboardStats> => {
   );
 };
 
+export type ProviderStatisticsPeriod = "week" | "month" | "year";
+
+export interface ProviderStatisticsResponse {
+  period: ProviderStatisticsPeriod;
+  totalJobs: number;
+  completedJobs: number;
+  averageRating: number | null;
+  reviewCountInPeriod: number;
+  totalEarnings: number;
+  repeatClients: number;
+  averageResponseMinutes: number | null;
+  completionRatePercent: number | null;
+  hasEverCompletedJob: boolean;
+}
+
+export const getProviderStatistics = async (period: ProviderStatisticsPeriod): Promise<ProviderStatisticsResponse> => {
+  const qs = new URLSearchParams({ period });
+  return request<ProviderStatisticsResponse>(
+    `/api/providers/dashboard/statistics?${qs.toString()}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.providerSettings.statisticsScreen.loadFailed"),
+  );
+};
+
 export const getDashboardRequestCounts = async (): Promise<ProviderRequestCounts> => {
   return request<ProviderRequestCounts>(
     "/api/providers/dashboard/requests/counts",

@@ -1381,6 +1381,8 @@ export default {
         noData: "No hay estadísticas disponibles aún",
         noDataDesc: "Completa trabajos para ver tus métricas de rendimiento aquí.",
         minutes: "min",
+        loadFailed: "No se pudieron cargar las estadísticas. Intenta de nuevo.",
+        retry: "Reintentar",
       },
     },
     providerNotificationPreferences: {
