@@ -4,8 +4,10 @@ import { Toast } from "@/components/Toast";
 import { CLIENT_TIERS } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
+import { getClientReceivedReviews } from "@/services/reviews";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
@@ -23,6 +25,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { mode, setMode } = useMode();
+  const colors = useThemeColors();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<UserStats>({ services: 0, reviews: 0 });
@@ -39,15 +42,17 @@ export default function ProfileScreen() {
 
   const loadStats = useCallback(async () => {
     try {
-      const ordersData = await fetchOrders();
+      const [ordersData, reviewsData] = await Promise.all([
+        fetchOrders(),
+        getClientReceivedReviews().catch(() => ({ count: 0, reviews: [] })),
+      ]);
 
       setStats({
         services: Array.isArray(ordersData) ? ordersData.length : 0,
-        reviews: 0, // TODO: Get from reviews endpoint when available
+        reviews: reviewsData.count ?? 0,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
-      // Keep default values on error
       setStats({ services: 0, reviews: 0 });
     } finally {
       setLoadingStats(false);
@@ -82,29 +87,22 @@ export default function ProfileScreen() {
   const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "" : "";
 
   return (
-    <View style={styles.container} collapsable={false}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]} collapsable={false}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: colors.background }]} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         {/* Header - Exact match to JSX: padding: '50px 20px 30px', backgroundColor: colors.bgCard */}
-        <View
-          style={[
-            styles.header,
-            {
-              paddingTop: insets.top + 20,
-            },
-          ]}
-        >
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
           <View style={styles.profileHeader}>
             {/* Avatar - Exact match: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' */}
-            <View style={styles.avatarContainer}>
+            <View style={[styles.avatarContainer, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
               {user?.avatar ?
                 <Image source={{ uri: user.avatar }} style={styles.avatarImage} contentFit="cover" />
-              : <Ionicons name="person" size={40} color="#3b82f6" />}
+              : <Ionicons name="person" size={40} color={colors.primary} />}
             </View>
             <View style={styles.profileInfo}>
               {/* Name - Exact match: fontSize: '22px', fontWeight: '700' */}
-              <Text style={styles.userName}>{fullName || t("profile.guest")}</Text>
+              <Text style={[styles.userName, { color: colors.textPrimary }]}>{fullName || t("profile.guest")}</Text>
               {/* Email - Exact match: fontSize: '14px', color: textSecondary */}
-              <Text style={styles.userEmail}>{user?.email || ""}</Text>
+              <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email || ""}</Text>
               {(() => {
                 const tier = user?.tier ?? "bronze";
                 const cfg = CLIENT_TIERS[tier];
@@ -123,7 +121,7 @@ export default function ProfileScreen() {
           {/* Mode Switch - deferred mount to avoid Fabric view attachment race on Android */}
           {showModeSwitch && (
             <View style={styles.modeSwitchContainer} collapsable={false}>
-              <Text style={styles.modeSwitchLabel}>{t("mode.switchMode")}</Text>
+              <Text style={[styles.modeSwitchLabel, { color: colors.textPrimary }]}>{t("mode.switchMode")}</Text>
               <View style={{ alignItems: "center", width: "100%" }} collapsable={false}>
                 <ModeSwitch
                   variant="pill"
@@ -147,11 +145,11 @@ export default function ProfileScreen() {
             { value: loadingStats ? "..." : stats.services.toString(), label: t("profile.services") },
             { value: loadingStats ? "..." : stats.reviews.toString(), label: t("profile.reviews") },
           ].map((stat, i) => (
-            <View key={i} style={styles.statCard}>
+            <View key={i} style={[styles.statCard, { backgroundColor: colors.card }]}>
               {/* Value - Exact match: color: primary, fontSize: '20px', fontWeight: '700' */}
-              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={[styles.statValue, { color: colors.primary }]}>{stat.value}</Text>
               {/* Label - Exact match: color: textSecondary, fontSize: '12px' */}
-              <Text style={styles.statLabel}>{stat.label}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{stat.label}</Text>
             </View>
           ))}
         </View>
@@ -161,7 +159,7 @@ export default function ProfileScreen() {
           {menuItems.map((item, i) => (
             <TouchableOpacity
               key={i}
-              style={[styles.menuItem, i === menuItems.length - 1 && styles.menuItemLast]}
+              style={[styles.menuItem, { borderBottomColor: colors.cardBorder }, i === menuItems.length - 1 && styles.menuItemLast]}
               onPress={() => {
                 if (item.route) {
                   router.push(item.route as any);
@@ -172,9 +170,9 @@ export default function ProfileScreen() {
               {/* Icon - Exact match: fontSize: '20px' */}
               <Text style={styles.menuIcon}>{item.icon}</Text>
               {/* Label - Exact match: fontSize: '15px', flex: 1 */}
-              <Text style={styles.menuLabel}>{item.label}</Text>
+              <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{item.label}</Text>
               {/* Chevron - Exact match: color: textSecondary, fontSize: '16px' */}
-              <Text style={styles.menuChevron}>›</Text>
+              <Text style={[styles.menuChevron, { color: colors.textSecondary }]}>›</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -199,8 +197,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 100, // Space for bottom nav
   },
-  // Header: padding: '50px 20px 30px' from JSX
+  // Header: padding: '50px 20px 30px' from JSX (top padding from container safe area)
   header: {
+    paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 30,
     backgroundColor: "#252542", // Hardcode dark header

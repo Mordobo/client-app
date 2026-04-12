@@ -1,5 +1,6 @@
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { Conversation, deleteConversation, fetchConversations } from '@/services/conversations';
 import { t } from '@/i18n';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,14 +24,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Design tokens from provider-communication-preview.jsx
-const BACKGROUND = '#12121A';
-const CARD_BG = '#1E1B2E';
-const CARD_BORDER = 'rgba(61, 51, 112, 0.2)';
 const UNREAD_BG = 'rgba(139, 92, 246, 0.1)';
 const UNREAD_BORDER = 'rgba(139, 92, 246, 0.3)';
 const AVATAR_BG = 'rgba(61, 51, 112, 0.5)';
-const FILTER_ACTIVE_BG = 'rgba(99, 102, 241, 0.9)'; // gradient approximated
+const FILTER_ACTIVE_BG = 'rgba(99, 102, 241, 0.9)';
 const FILTER_INACTIVE_BG = 'rgba(255,255,255,0.05)';
 const PURPLE_GRADIENT = ['#6366F1', '#8B5CF6'];
 const STATUS_COLORS: Record<string, string> = {
@@ -43,10 +40,23 @@ const STATUS_COLORS: Record<string, string> = {
 
 type FilterType = 'all' | 'unread' | 'active' | 'archived';
 
-/** Derive a display status from conversation (API may later send order_status). */
-function getConversationStatus(conversation: Conversation): string {
-  if (conversation.order_id) return 'in_progress';
-  return 'inquiry';
+/** Display status key for badge; null = no active order, do not show tag. */
+function getConversationStatus(conversation: Conversation): string | null {
+  const status = conversation.active_order_status;
+  if (!status) return null;
+  switch (status) {
+    case 'in_progress':
+    case 'pending_review':
+      return 'in_progress';
+    case 'accepted':
+      return 'scheduled';
+    case 'pending_for_provider':
+    case 'pending_for_client':
+    case 'pending_payment':
+      return 'quote';
+    default:
+      return 'inquiry';
+  }
 }
 
 function formatTime(dateString: string | null): string {
@@ -90,6 +100,7 @@ export default function ProviderInboxScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -179,7 +190,7 @@ export default function ProviderInboxScreen() {
   const filteredConversations = useMemo(() => {
     let list = conversations;
     if (filter === 'unread') list = list.filter((c) => c.unread_count > 0);
-    if (filter === 'active') list = list.filter((c) => !!c.order_id);
+    if (filter === 'active') list = list.filter((c) => !!c.active_order_status);
     if (filter === 'archived') list = []; // No API support yet
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -196,7 +207,7 @@ export default function ProviderInboxScreen() {
     () => ({
       all: conversations.length,
       unread: conversations.filter((c) => c.unread_count > 0).length,
-      active: conversations.filter((c) => !!c.order_id).length,
+      active: conversations.filter((c) => !!c.active_order_status).length,
       archived: 0,
     }),
     [conversations]
@@ -269,9 +280,13 @@ export default function ProviderInboxScreen() {
     ({ item, index }: { item: Conversation; index: number }) => {
       const unread = item.unread_count > 0;
       const statusKey = getConversationStatus(item);
-      const statusColor = STATUS_COLORS[statusKey] ?? STATUS_COLORS.inquiry;
-      const statusLabel = getStatusLabel(statusKey);
+      const statusColor = statusKey ? (STATUS_COLORS[statusKey] ?? STATUS_COLORS.inquiry) : '';
+      const statusLabel = statusKey ? getStatusLabel(statusKey) : '';
       const isOnline = false; // TODO: from backend when available
+      const cardStyle = {
+        backgroundColor: unread ? UNREAD_BG : colors.card,
+        borderColor: unread ? UNREAD_BORDER : colors.cardBorder,
+      };
 
       return (
         <View
@@ -279,6 +294,7 @@ export default function ProviderInboxScreen() {
             styles.card,
             unread && styles.cardUnread,
             index === filteredConversations.length - 1 && styles.cardLast,
+            cardStyle,
           ]}
         >
           <TouchableOpacity
@@ -294,28 +310,30 @@ export default function ProviderInboxScreen() {
                 rounded
                 style={styles.avatar}
               />
-              {isOnline && <View style={styles.onlineIndicator} />}
+              {isOnline && <View style={[styles.onlineIndicator, { borderColor: colors.card }]} />}
             </View>
             <View style={styles.content}>
               <View style={styles.row1}>
-                <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
+                <Text style={[styles.name, unread && styles.nameUnread, { color: colors.textPrimary }]} numberOfLines={1}>
                   {item.other_user_name}
                 </Text>
-                <Text style={[styles.time, unread && styles.timeUnread]}>
+                <Text style={[styles.time, unread && styles.timeUnread, { color: colors.textTertiary }]}>
                   {formatTime(item.last_message_at)}
                 </Text>
               </View>
               <View style={styles.row2}>
                 <Text
-                  style={[styles.preview, unread && styles.previewUnread]}
+                  style={[styles.preview, unread && styles.previewUnread, { color: colors.textSecondary }]}
                   numberOfLines={1}
                 >
                   {item.last_message || t('chat.noMessages')}
                 </Text>
                 <View style={styles.badges}>
-                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
-                    <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-                  </View>
+                  {statusKey ? (
+                    <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20` }]}>
+                      <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
+                    </View>
+                  ) : null}
                   {unread && (
                     <View style={styles.unreadBadge}>
                       <Text style={styles.unreadText}>
@@ -333,32 +351,32 @@ export default function ProviderInboxScreen() {
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityLabel={t('chat.options')}
           >
-            <Ionicons name="ellipsis-vertical" size={22} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
       );
     },
-    [filteredConversations.length, handleConversationPress]
+    [filteredConversations.length, handleConversationPress, colors],
   );
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 24, backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t('providerDashboard.inbox.title')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('providerDashboard.inbox.title')}</Text>
         </View>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 24, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>{t('providerDashboard.inbox.title')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('providerDashboard.inbox.title')}</Text>
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => setSearchVisible((v) => !v)}
@@ -441,8 +459,8 @@ export default function ProviderInboxScreen() {
 
       <Modal visible={optionsConversation !== null} transparent animationType="fade" onRequestClose={closeOptionsMenu}>
         <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={closeOptionsMenu}>
-          <View style={styles.optionsBox} onStartShouldSetResponder={() => true}>
-            <Text style={styles.optionsTitle}>{t('chat.options')}</Text>
+          <View style={[styles.optionsBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onStartShouldSetResponder={() => true}>
+            <Text style={[styles.optionsTitle, { color: colors.textPrimary }]}>{t('chat.options')}</Text>
             <TouchableOpacity style={styles.optionsButton} onPress={handleOptionDeleteChat}>
               <Ionicons name="trash-outline" size={20} color="#EF4444" />
               <Text style={styles.optionsButtonTextDestructive}>{t('chat.deleteChat')}</Text>
@@ -460,7 +478,6 @@ export default function ProviderInboxScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     paddingHorizontal: 20,
@@ -475,7 +492,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
   },
   iconButton: {
     width: 40,
@@ -551,9 +567,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 8,
   },
   cardTouchable: {
@@ -567,10 +581,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardUnread: {
-    backgroundColor: UNREAD_BG,
-    borderColor: UNREAD_BORDER,
-  },
+  cardUnread: {},
   cardLast: {
     marginBottom: 0,
   },
@@ -602,7 +613,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: '#22C55E',
     borderWidth: 2,
-    borderColor: BACKGROUND,
   },
   content: {
     flex: 1,
@@ -617,15 +627,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '500',
-    color: 'rgba(255,255,255,0.8)',
     flex: 1,
   },
-  nameUnread: {
-    color: '#FFFFFF',
-  },
+  nameUnread: {},
   time: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.3)',
   },
   timeUnread: {
     color: 'rgba(167, 139, 250, 1)',
@@ -637,13 +643,10 @@ const styles = StyleSheet.create({
   },
   preview: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.4)',
     flex: 1,
     marginRight: 8,
   },
-  previewUnread: {
-    color: 'rgba(255,255,255,0.7)',
-  },
+  previewUnread: {},
   badges: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -716,17 +719,14 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   optionsBox: {
-    backgroundColor: CARD_BG,
     borderRadius: 12,
     paddingVertical: 8,
     minWidth: 220,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   optionsTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },

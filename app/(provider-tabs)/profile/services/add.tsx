@@ -1,4 +1,5 @@
 import { Toast } from "@/components/Toast";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import {
@@ -26,9 +27,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const INPUT_BORDER = "rgba(61, 51, 112, 0.5)";
 const QUERY_KEY = ["providerServices"] as const;
 
 const schema = z.object({
@@ -47,6 +45,7 @@ type FormValues = z.infer<typeof schema>;
 export default function ProviderServiceAddScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ id?: string }>();
   const serviceId = params.id;
@@ -140,15 +139,15 @@ export default function ProviderServiceAddScreen() {
 
   if (isEdit && serviceLoading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#8B5CF6" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.8}>
           <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.6)" />
         </TouchableOpacity>
@@ -173,7 +172,7 @@ export default function ProviderServiceAddScreen() {
         keyboardVerticalOffset={insets.top + 56}
       >
         <ScrollView
-          style={styles.scroll}
+          style={[styles.scroll, { backgroundColor: colors.background }]}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -187,7 +186,7 @@ export default function ProviderServiceAddScreen() {
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.name && styles.inputError]}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.name && styles.inputError]}
                   placeholder={t("providerDashboard.providerServices.formName")}
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   value={value}
@@ -211,7 +210,7 @@ export default function ProviderServiceAddScreen() {
               name="description"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, styles.textArea]}
+                  style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
                   placeholder={t("providerDashboard.providerServices.formDescription")}
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   value={value}
@@ -233,7 +232,7 @@ export default function ProviderServiceAddScreen() {
               name="price"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, errors.price && styles.inputError]}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.price && styles.inputError]}
                   placeholder="0"
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   value={value}
@@ -257,7 +256,7 @@ export default function ProviderServiceAddScreen() {
               name="durationMinutes"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
                   placeholder="30"
                   placeholderTextColor="rgba(255,255,255,0.35)"
                   value={value}
@@ -282,10 +281,10 @@ export default function ProviderServiceAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1 },
   centered: { justifyContent: "center", alignItems: "center" },
   keyboard: { flex: 1 },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: "rgba(61, 51, 112, 0.2)" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
   title: { fontSize: 18, fontWeight: "700", color: "#fff" },
   saveBtn: { paddingVertical: 8, paddingHorizontal: 12 },
@@ -294,7 +293,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingTop: 24 },
   field: { marginBottom: 20 },
   label: { fontSize: 12, fontWeight: "500", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
-  input: { backgroundColor: CARD_BG, borderWidth: 1, borderColor: INPUT_BORDER, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: "#fff" },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: "#fff" },
   inputError: { borderColor: "rgba(239, 68, 68, 0.5)" },
   textArea: { minHeight: 88, textAlignVertical: "top" },
   errorText: { fontSize: 12, color: "#F87171", marginTop: 4 },

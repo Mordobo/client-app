@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { getLocale, t } from "@/i18n";
 import {
     getDashboardSchedule,
@@ -58,6 +59,7 @@ export default function ProviderScheduleScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const isAuthenticated = !!user;
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
@@ -109,9 +111,9 @@ export default function ProviderScheduleScreen() {
   });
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 16, backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
           {t("providerDashboard.scheduleScreenTitle")}
         </Text>
         <TouchableOpacity
@@ -131,15 +133,15 @@ export default function ProviderScheduleScreen() {
           hitSlop={12}
           style={styles.weekNavButton}
         >
-          <Text style={styles.weekNavArrow}>←</Text>
+          <Text style={[styles.weekNavArrow, { color: colors.textTertiary }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.weekNavLabel}>{monthYearLabel}</Text>
+        <Text style={[styles.weekNavLabel, { color: colors.textPrimary }]}>{monthYearLabel}</Text>
         <TouchableOpacity
           onPress={goNextWeek}
           hitSlop={12}
           style={styles.weekNavButton}
         >
-          <Text style={styles.weekNavArrow}>→</Text>
+          <Text style={[styles.weekNavArrow, { color: colors.textTertiary }]}>→</Text>
         </TouchableOpacity>
       </View>
 
@@ -156,7 +158,7 @@ export default function ProviderScheduleScreen() {
               onPress={() => setSelectedDate(d)}
               activeOpacity={0.7}
             >
-              <Text style={styles.dayLabel}>
+              <Text style={[styles.dayLabel, { color: colors.textTertiary }]}>
                 {t(`providerDashboard.${dayKey}`)}
               </Text>
               {isSelected ? (
@@ -166,11 +168,11 @@ export default function ProviderScheduleScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.dayNumWrapGradient}
                 >
-                  <Text style={styles.dayNumToday}>{dateNum}</Text>
+                  <Text style={[styles.dayNumToday, { color: colors.textPrimary }]}>{dateNum}</Text>
                 </LinearGradient>
               ) : (
                 <View style={styles.dayNumWrap}>
-                  <Text style={styles.dayNum}>{dateNum}</Text>
+                  <Text style={[styles.dayNum, { color: colors.textTertiary }]}>{dateNum}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -189,18 +191,18 @@ export default function ProviderScheduleScreen() {
           <RefreshControl
             refreshing={isRefetching && !isLoading}
             onRefresh={() => refetch()}
-            tintColor="rgba(139, 92, 246, 0.8)"
+            tintColor={colors.primary}
           />
         }
       >
-        <Text style={styles.sectionLabel}>{dayDetailLabel}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{dayDetailLabel}</Text>
 
         {isLoading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="small" color="#8B5CF6" />
+            <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : schedule.length === 0 ? (
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
             {t("providerDashboard.noAppointmentsDay")}
           </Text>
         ) : (
@@ -214,24 +216,26 @@ export default function ProviderScheduleScreen() {
 }
 
 function ScheduleItemCard({ item }: { item: ProviderDashboardScheduleItem }) {
+  const colors = useThemeColors();
   const displayStatus = getDisplayStatus(item.status);
   const isPending = displayStatus === "pending";
 
   return (
     <View style={styles.itemRow}>
       <View style={styles.itemTimeWrap}>
-        <Text style={styles.itemTime}>{formatTime(item.scheduledAt)}</Text>
+        <Text style={[styles.itemTime, { color: colors.textTertiary }]}>{formatTime(item.scheduledAt)}</Text>
       </View>
       <View
         style={[
           styles.card,
           isPending && styles.cardPending,
+          { backgroundColor: colors.card, borderColor: isPending ? "rgba(251, 191, 36, 0.3)" : colors.cardBorder },
         ]}
       >
         <View style={styles.cardRow}>
           <View style={styles.cardMain}>
-            <Text style={styles.cardClient}>{item.clientName}</Text>
-            <Text style={styles.cardService}>{item.serviceName}</Text>
+            <Text style={[styles.cardClient, { color: colors.textPrimary }]}>{item.clientName}</Text>
+            <Text style={[styles.cardService, { color: colors.textSecondary }]}>{item.serviceName}</Text>
           </View>
           <View
             style={[
@@ -259,7 +263,6 @@ function ScheduleItemCard({ item }: { item: ProviderDashboardScheduleItem }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#12121A",
     paddingHorizontal: 20,
   },
   header: {
@@ -271,7 +274,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   blockButton: {
     paddingHorizontal: 12,
@@ -295,12 +297,10 @@ const styles = StyleSheet.create({
   },
   weekNavArrow: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.4)",
   },
   weekNavLabel: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#FFFFFF",
   },
   weekRow: {
     flexDirection: "row",
@@ -313,7 +313,6 @@ const styles = StyleSheet.create({
   },
   dayLabel: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
     marginBottom: 8,
   },
   dayNumWrap: {
@@ -334,12 +333,10 @@ const styles = StyleSheet.create({
   dayNum: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.6)",
   },
   dayNumToday: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#FFFFFF",
   },
   scroll: {
     flex: 1,
@@ -350,7 +347,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.5)",
     letterSpacing: 0.5,
     marginBottom: 12,
     textTransform: "uppercase",
@@ -361,7 +357,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.5)",
   },
   itemRow: {
     flexDirection: "row",
@@ -375,19 +370,14 @@ const styles = StyleSheet.create({
   },
   itemTime: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
   },
   card: {
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "#1E1B2E",
     borderWidth: 1,
-    borderColor: "rgba(61, 51, 112, 0.3)",
   },
-  cardPending: {
-    borderColor: "rgba(251, 191, 36, 0.3)",
-  },
+  cardPending: {},
   cardRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -399,11 +389,9 @@ const styles = StyleSheet.create({
   cardClient: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#FFFFFF",
   },
   cardService: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
     marginTop: 2,
   },
   badge: {

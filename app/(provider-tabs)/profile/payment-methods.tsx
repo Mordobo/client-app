@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { getLocale, t } from "@/i18n";
 import {
     getEarningsSummary,
@@ -26,9 +27,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.2)";
 const CARD_BORDER_PRIMARY = "rgba(34, 197, 94, 0.3)";
 const SECTION_HEADER = "rgba(255,255,255,0.4)";
 const GRADIENT_START = "#6366F1";
@@ -64,6 +62,7 @@ type PayoutFrequency = "weekly" | "biweekly" | "monthly";
 export default function ProviderPaymentMethodsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [payoutFrequency, setPayoutFrequency] = useState<PayoutFrequency>("weekly");
   const [minWithdrawal, setMinWithdrawal] = useState("100");
 
@@ -115,7 +114,7 @@ export default function ProviderPaymentMethodsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -132,7 +131,7 @@ export default function ProviderPaymentMethodsScreen() {
       </View>
 
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, { backgroundColor: colors.background }]}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -189,12 +188,12 @@ export default function ProviderPaymentMethodsScreen() {
         </Text>
         <View style={styles.bankList}>
           {bankAccountsQuery.isLoading ? (
-            <View style={styles.card}>
-              <ActivityIndicator color="#8B5CF6" size="small" />
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <ActivityIndicator color={colors.primary} size="small" />
             </View>
           ) : (
             bankAccounts.map((account) => (
-              <BankAccountCard key={account.id} account={account} />
+              <BankAccountCard key={account.id} account={account} colors={colors} />
             ))
           )}
           <TouchableOpacity
@@ -212,7 +211,7 @@ export default function ProviderPaymentMethodsScreen() {
         <Text style={styles.sectionTitle}>
           {t("providerDashboard.paymentMethods.payoutFrequency")}
         </Text>
-        <View style={styles.frequencyCard}>
+        <View style={[styles.frequencyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.frequencyRow}>
             {(
               [
@@ -258,7 +257,7 @@ export default function ProviderPaymentMethodsScreen() {
         <Text style={styles.sectionTitle}>
           {t("providerDashboard.paymentMethods.minWithdrawal")}
         </Text>
-        <View style={styles.minWithdrawalCard}>
+        <View style={[styles.minWithdrawalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.minWithdrawalRow}>
             <Text style={styles.currencyPrefix}>$</Text>
             <TextInput
@@ -283,11 +282,11 @@ export default function ProviderPaymentMethodsScreen() {
           {t("providerDashboard.paymentMethods.recentPayouts")}
         </Text>
         {transactionsQuery.isLoading ? (
-          <View style={styles.payoutItem}>
-            <ActivityIndicator color="#8B5CF6" size="small" />
+          <View style={[styles.payoutItem, { backgroundColor: colors.card }]}>
+            <ActivityIndicator color={colors.primary} size="small" />
           </View>
         ) : transactions.length === 0 ? (
-          <View style={styles.payoutItem}>
+          <View style={[styles.payoutItem, { backgroundColor: colors.card }]}>
             <Text style={styles.noPayouts}>
               {t("providerDashboard.paymentMethods.noPayouts")}
             </Text>
@@ -301,6 +300,7 @@ export default function ProviderPaymentMethodsScreen() {
                 key={tx.id}
                 transaction={tx}
                 destinationLabel={firstBankLabel}
+                colors={colors}
               />
             ))
         )}
@@ -309,11 +309,18 @@ export default function ProviderPaymentMethodsScreen() {
   );
 }
 
-function BankAccountCard({ account }: { account: ProviderBankAccount }) {
+function BankAccountCard({
+  account,
+  colors: themeColors,
+}: {
+  account: ProviderBankAccount;
+  colors: ReturnType<typeof useThemeColors>;
+}) {
   return (
     <View
       style={[
         styles.bankCard,
+        { backgroundColor: themeColors.card, borderColor: themeColors.cardBorder },
         account.primary && styles.bankCardPrimary,
       ]}
     >
@@ -343,12 +350,14 @@ function BankAccountCard({ account }: { account: ProviderBankAccount }) {
 function PayoutItem({
   transaction,
   destinationLabel,
+  colors: themeColors,
 }: {
   transaction: ProviderEarningsTransaction;
   destinationLabel: string;
+  colors: ReturnType<typeof useThemeColors>;
 }) {
   return (
-    <View style={styles.payoutItem}>
+    <View style={[styles.payoutItem, { backgroundColor: themeColors.card }]}>
       <View style={styles.payoutItemLeft}>
         <View style={styles.payoutIconWrap}>
           <Ionicons name="checkmark" size={14} color="#22C55E" />
@@ -372,7 +381,6 @@ function PayoutItem({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
@@ -452,18 +460,14 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   bankCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     gap: 12,
     marginBottom: 8,
   },
@@ -517,9 +521,7 @@ const styles = StyleSheet.create({
   frequencyCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 20,
   },
   frequencyRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
@@ -553,9 +555,7 @@ const styles = StyleSheet.create({
   minWithdrawalCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 20,
   },
   minWithdrawalRow: {
@@ -583,7 +583,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     marginBottom: 8,
   },
   payoutItemLeft: { flexDirection: "row", alignItems: "center", gap: 12 },

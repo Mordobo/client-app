@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useAvailability } from "@/contexts/AvailabilityContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import { acceptOrder, getDashboardRequests, getDashboardSchedule, getDashboardStats, rejectOrder, type ProviderDashboardRequest, type ProviderDashboardScheduleItem, type ProviderDashboardStats } from "@/services/providerDashboard";
@@ -13,10 +14,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Animated, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
-const SCREEN_BG = "#12121A";
 
 function formatCurrency(value: number | null | undefined): string {
   const num = typeof value === "number" && !Number.isNaN(value) ? value : 0;
@@ -65,6 +62,7 @@ export default function ProviderDashboardScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const isAuthenticated = !!user;
   const [stats, setStats] = useState<ProviderDashboardStats | null>(null);
   const [requests, setRequests] = useState<ProviderDashboardRequest[]>([]);
@@ -152,9 +150,10 @@ export default function ProviderDashboardScreen() {
     }
   }, []);
 
+  const cardStyle = { backgroundColor: colors.card, borderColor: colors.cardBorder };
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom + 80 }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <ScrollView style={[styles.scroll, { backgroundColor: colors.background }]} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25A870" />} showsVerticalScrollIndicator={true}>
         {/* Header: green gradient matching preview (linear-gradient 135deg #1B8B5E → #25A870) */}
         <LinearGradient colors={["#1B8B5E", "#25A870"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.header}>
           <View style={styles.headerTop}>
@@ -189,27 +188,27 @@ export default function ProviderDashboardScreen() {
         : <View style={styles.body}>
             {/* Stats grid */}
             <View style={styles.statsGrid}>
-              <View style={[styles.statCard, styles.statCardFirst]}>
-                <Text style={styles.statLabel}>{t("providerDashboard.today")}</Text>
+              <View style={[styles.statCard, styles.statCardFirst, cardStyle]}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t("providerDashboard.today")}</Text>
                 <Text style={[styles.statValue, { color: "#F59E0B" }]}>{stats ? formatCurrency(stats.todayEarnings) : "$0"}</Text>
-                <Text style={styles.statSub}>{stats?.todayJobs === 1 ? t("providerDashboard.job", { count: stats.todayJobs }) : t("providerDashboard.jobs", { count: stats?.todayJobs ?? 0 })}</Text>
+                <Text style={[styles.statSub, { color: colors.textTertiary }]}>{stats?.todayJobs === 1 ? t("providerDashboard.job", { count: stats.todayJobs }) : t("providerDashboard.jobs", { count: stats?.todayJobs ?? 0 })}</Text>
               </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>{t("providerDashboard.thisWeek")}</Text>
+              <View style={[styles.statCard, cardStyle]}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t("providerDashboard.thisWeek")}</Text>
                 <Text style={[styles.statValue, { color: "#22C55E" }]}>{stats ? formatCurrency(stats.weekEarnings) : "$0"}</Text>
-                <Text style={styles.statSub}>{stats?.weekJobs === 1 ? t("providerDashboard.job", { count: stats.weekJobs }) : t("providerDashboard.jobs", { count: stats?.weekJobs ?? 0 })}</Text>
+                <Text style={[styles.statSub, { color: colors.textTertiary }]}>{stats?.weekJobs === 1 ? t("providerDashboard.job", { count: stats.weekJobs }) : t("providerDashboard.jobs", { count: stats?.weekJobs ?? 0 })}</Text>
               </View>
-              <View style={[styles.statCard, styles.statCardLast]}>
-                <Text style={styles.statLabel}>{t("providerDashboard.rating")}</Text>
-                <Text style={[styles.statValue, { color: "#FFFFFF" }]}>{stats?.averageRating?.toFixed(1) ?? "0.0"}</Text>
-                <Text style={styles.statSub}>⭐ {t("providerDashboard.reviews", { count: stats?.reviewCount ?? 0 })}</Text>
+              <View style={[styles.statCard, styles.statCardLast, cardStyle]}>
+                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t("providerDashboard.rating")}</Text>
+                <Text style={[styles.statValue, { color: colors.textPrimary }]}>{stats?.averageRating?.toFixed(1) ?? "0.0"}</Text>
+                <Text style={[styles.statSub, { color: colors.textTertiary }]}>⭐ {t("providerDashboard.reviews", { count: stats?.reviewCount ?? 0 })}</Text>
               </View>
             </View>
 
             {/* New requests */}
             <View style={styles.sectionHead}>
               <View style={styles.sectionTitleRow}>
-                <Text style={styles.sectionTitle}>{t("providerDashboard.newRequests")}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t("providerDashboard.newRequests")}</Text>
                 {requests.length > 0 && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{t("providerDashboard.newCount", { count: requests.length })}</Text>
@@ -217,25 +216,25 @@ export default function ProviderDashboardScreen() {
                 )}
               </View>
               <TouchableOpacity style={styles.seeAllLink} onPress={() => router.push("/(provider-tabs)/requests")} activeOpacity={0.7}>
-                <Text style={styles.seeAllLinkText}>{t("providerDashboard.requestsScreenTitle")}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#8B5CF6" />
+                <Text style={[styles.seeAllLinkText, { color: colors.primary }]}>{t("providerDashboard.requestsScreenTitle")}</Text>
+                <Ionicons name="chevron-forward" size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
             {requests.length === 0 ?
-              <View style={styles.card}>
-                <Text style={styles.emptyText}>{t("providerDashboard.emptyRequests")}</Text>
+              <View style={[styles.card, cardStyle]}>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyRequests")}</Text>
               </View>
             : requests.slice(0, 3).map((req) => (
-                <View key={req.id} style={styles.requestCard}>
+                <View key={req.id} style={[styles.requestCard, cardStyle]}>
                   <View style={styles.requestRow}>
                     <View style={styles.requestLeft}>
-                      <Text style={styles.requestClient}>{req.clientName}</Text>
+                      <Text style={[styles.requestClient, { color: colors.textPrimary }]}>{req.clientName}</Text>
                       <Text style={styles.requestService}>{req.serviceName}</Text>
-                      <Text style={styles.requestMeta}>📍 {req.address ? req.address.slice(0, 30) + (req.address.length > 30 ? "…" : "") : "—"}</Text>
+                      <Text style={[styles.requestMeta, { color: colors.textTertiary }]}>📍 {req.address ? req.address.slice(0, 30) + (req.address.length > 30 ? "…" : "") : "—"}</Text>
                     </View>
                     <View style={styles.requestRight}>
                       <Text style={styles.requestPrice}>{req.quoteTotal != null ? formatCurrency(req.quoteTotal) : "—"}</Text>
-                      <Text style={styles.requestTime}>{req.scheduledAt ? formatScheduleTime(req.scheduledAt) : "—"}</Text>
+                      <Text style={[styles.requestTime, { color: colors.textTertiary }]}>{req.scheduledAt ? formatScheduleTime(req.scheduledAt) : "—"}</Text>
                     </View>
                   </View>
                   <View style={styles.requestActions}>
@@ -255,16 +254,16 @@ export default function ProviderDashboardScreen() {
             }
 
             {/* Today's schedule */}
-            <Text style={[styles.sectionTitle, styles.scheduleTitle]}>{t("providerDashboard.todaySchedule")}</Text>
+            <Text style={[styles.sectionTitle, styles.scheduleTitle, { color: colors.textPrimary }]}>{t("providerDashboard.todaySchedule")}</Text>
             {schedule.length === 0 ?
-              <View style={styles.card}>
-                <Text style={styles.emptyText}>{t("providerDashboard.emptySchedule")}</Text>
+              <View style={[styles.card, cardStyle]}>
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptySchedule")}</Text>
               </View>
             : schedule.map((item) => (
-                <View key={item.id} style={styles.scheduleCard}>
+                <View key={item.id} style={[styles.scheduleCard, cardStyle]}>
                   <View style={styles.scheduleTimeBlock}>
                     <Text style={styles.scheduleTime}>{item.scheduledAt ? formatScheduleTime(item.scheduledAt).replace(/\s*(AM|PM)$/, "") : "—"}</Text>
-                    <Text style={styles.scheduleAmPm}>
+                    <Text style={[styles.scheduleAmPm, { color: colors.textTertiary }]}>
                       {item.scheduledAt ?
                         new Date(item.scheduledAt).getHours() < 12 ?
                           "AM"
@@ -273,9 +272,9 @@ export default function ProviderDashboardScreen() {
                     </Text>
                   </View>
                   <View style={styles.scheduleInfo}>
-                    <Text style={styles.scheduleService}>{item.serviceName}</Text>
-                    <Text style={styles.scheduleClient}>{item.clientName}</Text>
-                    <Text style={styles.scheduleAddress}>📍 {item.address || "—"}</Text>
+                    <Text style={[styles.scheduleService, { color: colors.textPrimary }]}>{item.serviceName}</Text>
+                    <Text style={[styles.scheduleClient, { color: colors.textSecondary }]}>{item.clientName}</Text>
+                    <Text style={[styles.scheduleAddress, { color: colors.textTertiary }]}>📍 {item.address || "—"}</Text>
                   </View>
                   <View style={styles.scheduleBadge}>
                     <Text style={styles.scheduleBadgeText}>{t("providerDashboard.inTime", { time: "2h" })}</Text>
@@ -293,13 +292,12 @@ export default function ProviderDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
   header: {
     paddingHorizontal: 20,
@@ -419,26 +417,23 @@ const styles = StyleSheet.create({
   },
   body: {
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16,
   },
   statsGrid: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     alignItems: "center",
   },
   statCardFirst: {},
   statCardLast: {},
   statLabel: {
-    color: "rgba(255,255,255,0.5)",
     fontSize: 12,
     marginBottom: 4,
   },
@@ -447,7 +442,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   statSub: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 10,
     marginTop: 4,
   },
@@ -455,7 +449,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   sectionTitleRow: {
     flexDirection: "row",
@@ -473,7 +467,6 @@ const styles = StyleSheet.create({
     color: "#8B5CF6",
   },
   sectionTitle: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -491,13 +484,10 @@ const styles = StyleSheet.create({
   card: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   emptyText: {
-    color: "rgba(255,255,255,0.55)",
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
@@ -506,10 +496,8 @@ const styles = StyleSheet.create({
   requestCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   requestRow: {
     flexDirection: "row",
@@ -519,7 +507,6 @@ const styles = StyleSheet.create({
   requestLeft: { flex: 1 },
   requestRight: { alignItems: "flex-end" },
   requestClient: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -528,7 +515,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   requestMeta: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     marginTop: 4,
   },
@@ -538,7 +524,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   requestTime: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
   },
   requestActions: {
@@ -574,17 +559,16 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   scheduleTitle: {
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 8,
   },
   scheduleCard: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
-    marginBottom: 12,
+    marginBottom: 8,
     gap: 16,
   },
   scheduleTimeBlock: {
@@ -601,7 +585,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   scheduleAmPm: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
   },
   scheduleInfo: {

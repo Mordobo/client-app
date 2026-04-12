@@ -4,6 +4,8 @@ import { request } from './auth';
 export interface Notification {
   id: string;
   type: NotificationType;
+  /** Row in DB: refund to client vs supplier use different copy */
+  user_type?: 'client' | 'supplier';
   title: string;
   message: string;
   read: boolean;
@@ -15,6 +17,9 @@ export interface Notification {
     quoteId?: string;
     reviewId?: string;
     paymentId?: string;
+    refundAmount?: number;
+    reason?: string;
+    serviceName?: string;
     [key: string]: unknown;
   };
 }
@@ -31,7 +36,8 @@ export type NotificationType =
   | 'new_booking_request'
   | 'quote_received'
   | 'quote_approved'
-  | 'new_review';
+  | 'new_review'
+  | 'refund_issued';
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -142,6 +148,7 @@ export function getNotificationCategory(type: NotificationType): NotificationCat
       return 'jobs';
     case 'payment_processed':
     case 'payment_received':
+    case 'refund_issued':
       return 'payments';
     case 'rate_service':
     case 'new_review':

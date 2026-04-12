@@ -3,12 +3,13 @@ import { PhoneInput } from '@/components/PhoneInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, registerUser } from '@/services/auth';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
 import { type GoogleProfile } from '@/utils/authMapping';
+import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
   consumePendingGoogleWebResult,
-  getGoogleStatusCodes,
-  isGoogleWebAvailable,
+  isGoogleConfigured,
   signInWithGoogleMobile,
   signInWithGoogleWeb,
   WEB_RESULT_STORAGE_KEY,
@@ -156,10 +157,14 @@ export default function RegisterScreen() {
   const [apiErrorMessage, setApiErrorMessage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ password?: string; country?: string; terms?: string }>({});
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const googleStatusCodes = getGoogleStatusCodes();
-  const webGoogleSupported = isGoogleWebAvailable();
-  const isGoogleSupported = webGoogleSupported;
+  const isGoogleSupported = isGoogleConfigured();
+
+  useEffect(() => {
+    isAppleSignInAvailable().then(setAppleAvailable);
+  }, []);
 
   const placeholderColor = 'rgba(156, 163, 175, 0.5)';
   const isFieldFocused = (field: string) => focusedField === field;
@@ -463,6 +468,18 @@ export default function RegisterScreen() {
         
         // Check if it's an SMTP/email error (no modal with code; show error only)
         if (validateError instanceof ApiError) {
+          const restrictionMessage = translatedAuthRestrictionMessage(validateError);
+          if (restrictionMessage) {
+            Alert.alert(t('common.error'), restrictionMessage, [
+              {
+                text: t('common.ok'),
+                onPress: () => {
+                  router.push({ pathname: '/(auth)/login', params: { registered: '1' } });
+                },
+              },
+            ]);
+            return;
+          }
           const errorData = validateError.data as Record<string, unknown> | undefined;
           const errorCode = errorData?.code as string | undefined;
           const errorMessage = validateError.message || t('errors.verificationFailed');
@@ -596,7 +613,22 @@ export default function RegisterScreen() {
   };
 
   const handleAppleRegister = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonApple'));
+    setAppleLoading(true);
+    try {
+      const creds = await signInWithApple();
+      if (!creds) return;
+      const userData = await loginOrRegisterWithApple(creds);
+      await login(userData);
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        Alert.alert(t('common.error'), error.message || t('errors.appleLoginGeneric'));
+      } else {
+        Alert.alert(t('common.error'), t('errors.appleLoginGeneric'));
+      }
+    } finally {
+      setAppleLoading(false);
+    }
   };
 
   return (

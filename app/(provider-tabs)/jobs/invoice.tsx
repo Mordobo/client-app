@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
   getJobInvoice,
@@ -18,9 +19,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const PURPLE_GRADIENT_START = "#6366F1";
 const PURPLE_GRADIENT_END = "#8B5CF6";
 const GREEN = "#22C55E";
@@ -41,6 +39,7 @@ export default function InvoiceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<InvoiceData | null>(null);
@@ -92,36 +91,42 @@ export default function InvoiceScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={PURPLE_GRADIENT_END} />
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (!data) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <Text style={styles.errorText}>{t("providerDashboard.invoice.errors.loadFailed")}</Text>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t("providerDashboard.invoice.errors.loadFailed")}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-back" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
     );
   }
 
+  const footerBottom = Math.max(insets.bottom, 12);
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("providerDashboard.invoice.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.invoice.title")}</Text>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Invoice Card */}
-        <View style={styles.invoiceCard}>
+        <View style={[styles.invoiceCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {/* Invoice Header */}
           <View style={styles.invoiceHeader}>
             <Text style={styles.invoiceHeaderLabel}>{t("providerDashboard.invoice.invoiceLabel")}</Text>
@@ -275,17 +280,17 @@ export default function InvoiceScreen() {
 
         {/* Action Buttons */}
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionCard} onPress={handleDownloadPdf} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onPress={handleDownloadPdf} activeOpacity={0.7}>
             <Text style={styles.actionCardIcon}>📄</Text>
-            <Text style={styles.actionCardLabel}>{t("providerDashboard.invoice.downloadPdf")}</Text>
+            <Text style={[styles.actionCardLabel, { color: colors.textSecondary }]}>{t("providerDashboard.invoice.downloadPdf")}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard} onPress={handleSendEmail} activeOpacity={0.7} disabled={sendingEmail}>
+          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onPress={handleSendEmail} activeOpacity={0.7} disabled={sendingEmail}>
             {sendingEmail ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
                 <Text style={styles.actionCardIcon}>📧</Text>
-                <Text style={styles.actionCardLabel}>{t("providerDashboard.invoice.sendEmail")}</Text>
+                <Text style={[styles.actionCardLabel, { color: colors.textSecondary }]}>{t("providerDashboard.invoice.sendEmail")}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -293,8 +298,8 @@ export default function InvoiceScreen() {
       </ScrollView>
 
       {/* Continue Button */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <TouchableOpacity style={styles.continueBtn} onPress={handleContinueToRate} activeOpacity={0.8}>
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+        <TouchableOpacity style={[styles.continueBtn, { backgroundColor: colors.primary }]} onPress={handleContinueToRate} activeOpacity={0.8}>
           <Text style={styles.continueBtnText}>{t("providerDashboard.invoice.continueToRate")}</Text>
         </TouchableOpacity>
       </View>
@@ -305,7 +310,6 @@ export default function InvoiceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   centered: {
     justifyContent: "center",
@@ -342,16 +346,14 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
 
   // Invoice Card
   invoiceCard: {
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 16,
   },
   invoiceHeader: {
@@ -559,16 +561,13 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   actionCardIcon: {
     fontSize: 16,
   },
   actionCardLabel: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
   },
 
   // Footer

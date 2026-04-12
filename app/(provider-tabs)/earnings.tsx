@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { getLocale, t } from "@/i18n";
 import {
   exportEarnings,
@@ -7,6 +8,7 @@ import {
   type EarningsPeriod,
   type ProviderEarningsTransaction,
 } from "@/services/providerDashboard";
+import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -27,9 +29,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const GRADIENT_START = "#6366F1";
 const GRADIENT_MID = "#8B5CF6";
 const GRADIENT_END = "#EC4899";
@@ -39,6 +38,8 @@ const STATUS_PENDING_BG = "rgba(251, 191, 36, 0.15)";
 const STATUS_PENDING_TEXT = "#FBBF24";
 const STATUS_PROCESSING_BG = "rgba(139, 92, 246, 0.15)";
 const STATUS_PROCESSING_TEXT = "#8B5CF6";
+const STATUS_REFUNDED_BG = "rgba(239, 68, 68, 0.15)";
+const STATUS_REFUNDED_TEXT = "#EF4444";
 
 function formatCurrency(value: number | null | undefined): string {
   const num = typeof value === "number" && !Number.isNaN(value) ? value : 0;
@@ -85,9 +86,10 @@ const PERIOD_TABS: { key: EarningsPeriod; labelKey: string }[] = [
 
 export default function ProviderEarningsScreen() {
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [period, setPeriod] = useState<EarningsPeriod>("month");
   const [txPage, setTxPage] = useState(1);
-  const [txStatusFilter, setTxStatusFilter] = useState<"all" | "completed" | "pending" | "processing">("all");
+  const [txStatusFilter, setTxStatusFilter] = useState<"all" | "completed" | "pending" | "processing" | "refunded">("all");
   const [accumulatedTx, setAccumulatedTx] = useState<ProviderEarningsTransaction[]>([]);
 
   const summaryQuery = useQuery({
@@ -171,8 +173,9 @@ export default function ProviderEarningsScreen() {
     ? formatNextPayout(summary.nextPayoutDate)
     : "";
 
+  const cardStyle = { backgroundColor: colors.card, borderColor: colors.cardBorder };
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
@@ -181,12 +184,12 @@ export default function ProviderEarningsScreen() {
           <RefreshControl
             refreshing={summaryQuery.isRefetching || chartQuery.isRefetching}
             onRefresh={refetch}
-            tintColor="#8B5CF6"
+            tintColor={colors.primary}
           />
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>{t("providerDashboard.earnings.title")}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.earnings.title")}</Text>
         </View>
 
         {/* Balance Card - Gradient */}
@@ -237,25 +240,25 @@ export default function ProviderEarningsScreen() {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={[styles.statCard, styles.statCardFirst]}>
-            <Text style={styles.statLabel}>{t("providerDashboard.earnings.periodToday")}</Text>
-            <Text style={styles.statValue}>{formatCurrency(summary?.todayEarnings ?? 0)}</Text>
+          <View style={[styles.statCard, styles.statCardFirst, cardStyle]}>
+            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.periodToday")}</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(summary?.todayEarnings ?? 0)}</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>{t("providerDashboard.earnings.periodWeek")}</Text>
-            <Text style={styles.statValue}>{formatCurrency(summary?.weekEarnings ?? 0)}</Text>
+          <View style={[styles.statCard, cardStyle]}>
+            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.periodWeek")}</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(summary?.weekEarnings ?? 0)}</Text>
           </View>
-          <View style={[styles.statCard, styles.statCardLast]}>
-            <Text style={styles.statLabel}>{t("providerDashboard.earnings.periodMonth")}</Text>
-            <Text style={styles.statValue}>{formatCurrency(summary?.monthEarnings ?? 0)}</Text>
+          <View style={[styles.statCard, styles.statCardLast, cardStyle]}>
+            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.periodMonth")}</Text>
+            <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(summary?.monthEarnings ?? 0)}</Text>
           </View>
         </View>
 
         {/* Chart */}
-        <View style={styles.chartCard}>
-          <Text style={styles.chartLabel}>{t("providerDashboard.earnings.chartLast7Days")}</Text>
+        <View style={[styles.chartCard, cardStyle]}>
+          <Text style={[styles.chartLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.chartLast7Days")}</Text>
           {chartQuery.isLoading ? (
-            <ActivityIndicator color="#8B5CF6" size="small" style={styles.chartLoader} />
+            <ActivityIndicator color={colors.primary} size="small" style={styles.chartLoader} />
           ) : (
             <View style={styles.chartBars}>
               {chartData.map((point, idx) => (
@@ -285,7 +288,7 @@ export default function ProviderEarningsScreen() {
           )}
           <View style={styles.chartDays}>
             {["L", "M", "X", "J", "V", "S", "D"].map((d, i) => (
-              <Text key={i} style={styles.chartDayLabel}>
+              <Text key={i} style={[styles.chartDayLabel, { color: colors.textTertiary }]}>
                 {d}
               </Text>
             ))}
@@ -294,9 +297,9 @@ export default function ProviderEarningsScreen() {
 
         {/* Transaction filters */}
         <View style={styles.txFilterRow}>
-          <Text style={styles.sectionLabel}>{t("providerDashboard.earnings.recentTransactions")}</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.recentTransactions")}</Text>
           <View style={styles.txFilterChips}>
-            {(["all", "completed", "pending", "processing"] as const).map((status) => (
+            {(["all", "completed", "pending", "processing", "refunded"] as const).map((status) => (
               <TouchableOpacity
                 key={status}
                 style={[
@@ -312,6 +315,7 @@ export default function ProviderEarningsScreen() {
                   style={[
                     styles.txFilterChipText,
                     txStatusFilter === status && styles.txFilterChipTextActive,
+                    { color: txStatusFilter === status ? colors.textPrimary : colors.textTertiary },
                   ]}
                 >
                   {status === "all"
@@ -325,14 +329,14 @@ export default function ProviderEarningsScreen() {
 
         {/* Transaction list */}
         {transactionsQuery.isLoading && txPage === 1 ? (
-          <ActivityIndicator color="#8B5CF6" size="small" style={styles.txLoader} />
+          <ActivityIndicator color={colors.primary} size="small" style={styles.txLoader} />
         ) : transactions.length === 0 ? (
           <View style={styles.emptyTx}>
-            <Text style={styles.emptyTxText}>{t("providerDashboard.earnings.noTransactions")}</Text>
+            <Text style={[styles.emptyTxText, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.noTransactions")}</Text>
           </View>
         ) : (
           transactions.map((tx) => (
-            <TransactionItem key={tx.id} transaction={tx} />
+            <TransactionItem key={tx.id} transaction={tx} colors={colors} />
           ))
         )}
         {hasMoreTx && (
@@ -341,7 +345,7 @@ export default function ProviderEarningsScreen() {
             onPress={() => setTxPage((p) => p + 1)}
             disabled={transactionsQuery.isFetching}
           >
-            <Text style={styles.loadMoreText}>
+            <Text style={[styles.loadMoreText, { color: colors.primary }]}>
               {transactionsQuery.isFetching ? "..." : t("providerDashboard.earnings.loadMore")}
             </Text>
           </TouchableOpacity>
@@ -349,60 +353,72 @@ export default function ProviderEarningsScreen() {
 
         {/* Export */}
         <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
-          <Ionicons name="download-outline" size={20} color="#8B5CF6" />
-          <Text style={styles.exportButtonText}>{t("providerDashboard.earnings.exportData")}</Text>
+          <Ionicons name="download-outline" size={20} color={colors.primary} />
+          <Text style={[styles.exportButtonText, { color: colors.primary }]}>{t("providerDashboard.earnings.exportData")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
-function TransactionItem({ transaction }: { transaction: ProviderEarningsTransaction }) {
+function TransactionItem({ transaction, colors }: { transaction: ProviderEarningsTransaction; colors: ThemeColors }) {
   const isIncome = transaction.type === "income";
+  const isRefund = transaction.type === "refund";
   const desc =
     transaction.type === "income"
       ? t("providerDashboard.earnings.serviceCompleted")
-      : t("providerDashboard.earnings.withdrawalToAccount");
-  const displayName = isIncome ? transaction.clientName : transaction.serviceName || "—";
+      : transaction.type === "refund"
+        ? t("providerDashboard.earnings.refundIssued")
+        : t("providerDashboard.earnings.withdrawalToAccount");
+  const displayName = isIncome || isRefund ? transaction.clientName : transaction.serviceName || "—";
   const amountStr = isIncome ? `+${formatCurrency(transaction.amount)}` : `-${formatCurrency(transaction.amount)}`;
   const statusStyle =
     transaction.status === "completed"
       ? { bg: STATUS_COMPLETED_BG, text: STATUS_COMPLETED_TEXT }
-      : transaction.status === "processing"
-        ? { bg: STATUS_PROCESSING_BG, text: STATUS_PROCESSING_TEXT }
-        : { bg: STATUS_PENDING_BG, text: STATUS_PENDING_TEXT };
+      : transaction.status === "refunded"
+        ? { bg: STATUS_REFUNDED_BG, text: STATUS_REFUNDED_TEXT }
+        : transaction.status === "processing"
+          ? { bg: STATUS_PROCESSING_BG, text: STATUS_PROCESSING_TEXT }
+          : { bg: STATUS_PENDING_BG, text: STATUS_PENDING_TEXT };
   const statusLabel =
     transaction.status === "completed"
       ? t("providerDashboard.earnings.statusCompleted")
-      : transaction.status === "processing"
-        ? t("providerDashboard.earnings.statusProcessing")
-        : t("providerDashboard.earnings.statusPending");
+      : transaction.status === "refunded"
+        ? t("providerDashboard.earnings.statusRefunded")
+        : transaction.status === "processing"
+          ? t("providerDashboard.earnings.statusProcessing")
+          : t("providerDashboard.earnings.statusPending");
 
   return (
-    <View style={styles.txItem}>
+    <View style={[styles.txItem, { backgroundColor: colors.card }]}>
       <View
         style={[
           styles.txIconWrap,
-          { backgroundColor: isIncome ? STATUS_COMPLETED_BG : "rgba(239, 68, 68, 0.15)" },
+          { backgroundColor: isIncome ? STATUS_COMPLETED_BG : STATUS_REFUNDED_BG },
         ]}
       >
-        <Text style={styles.txIconText}>{isIncome ? "↓" : "↑"}</Text>
+        <Text style={[styles.txIconText, { color: isIncome ? STATUS_COMPLETED_TEXT : STATUS_REFUNDED_TEXT }]}>
+          {isIncome ? "↓" : "↑"}
+        </Text>
       </View>
       <View style={styles.txBody}>
-        <Text style={styles.txDesc}>{desc}</Text>
-        <Text style={styles.txClient}>{displayName}</Text>
+        <Text style={[styles.txDesc, { color: colors.textPrimary }]}>{desc}</Text>
+        <Text style={[styles.txClient, { color: colors.textTertiary }]}>{displayName}</Text>
         {isIncome && transaction.serviceName ? (
-          <Text style={styles.txService}>{transaction.serviceName}</Text>
+          <Text style={[styles.txService, { color: colors.textTertiary }]}>{transaction.serviceName}</Text>
+        ) : null}
+        {isRefund && transaction.refundReason ? (
+          <Text style={[styles.txService, { color: colors.textTertiary }]}>{transaction.refundReason}</Text>
         ) : null}
       </View>
       <View style={styles.txRight}>
-        <Text style={[styles.txAmount, { color: isIncome ? STATUS_COMPLETED_TEXT : "#EF4444" }]}>
+        <Text style={[styles.txAmount, { color: isIncome ? STATUS_COMPLETED_TEXT : STATUS_REFUNDED_TEXT }]}>
           {amountStr}
         </Text>
         <View style={[styles.txBadge, { backgroundColor: statusStyle.bg }]}>
           <Text style={[styles.txBadgeText, { color: statusStyle.text }]}>{statusLabel}</Text>
         </View>
-        <Text style={styles.txTime}>{formatTransactionDate(transaction.date)}</Text>
+        <Text style={[styles.txTime, { color: colors.textTertiary }]}>{formatTransactionDate(transaction.date)}</Text>
       </View>
     </View>
   );
@@ -411,7 +427,6 @@ function TransactionItem({ transaction }: { transaction: ProviderEarningsTransac
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 12 },
@@ -419,7 +434,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   balanceCard: {
     padding: 20,
@@ -481,34 +495,27 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     alignItems: "center",
   },
   statCardFirst: {},
   statCardLast: {},
   statLabel: {
     fontSize: 10,
-    color: "rgba(255,255,255,0.5)",
     marginBottom: 4,
   },
   statValue: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   chartCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     marginBottom: 16,
   },
   chartLabel: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
     marginBottom: 12,
   },
   chartLoader: { height: 96, justifyContent: "center" },
@@ -535,12 +542,10 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     fontSize: 10,
-    color: "rgba(255,255,255,0.3)",
   },
   txFilterRow: { marginBottom: 12 },
   sectionLabel: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 8,
@@ -555,17 +560,16 @@ const styles = StyleSheet.create({
   txFilterChipActive: {
     backgroundColor: "rgba(139, 92, 246, 0.2)",
   },
-  txFilterChipText: { fontSize: 12, color: "rgba(255,255,255,0.6)" },
-  txFilterChipTextActive: { color: "#FFFFFF" },
+  txFilterChipText: { fontSize: 12 },
+  txFilterChipTextActive: {},
   txLoader: { paddingVertical: 24 },
   emptyTx: { paddingVertical: 24, alignItems: "center" },
-  emptyTxText: { color: "rgba(255,255,255,0.4)", fontSize: 14 },
+  emptyTxText: { fontSize: 14 },
   txItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     marginBottom: 8,
     gap: 12,
   },
@@ -578,9 +582,9 @@ const styles = StyleSheet.create({
   },
   txIconText: { fontSize: 16, color: "#22C55E" },
   txBody: { flex: 1, minWidth: 0 },
-  txDesc: { fontSize: 14, color: "#FFFFFF", fontWeight: "500" },
-  txClient: { fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 2 },
-  txService: { fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 1 },
+  txDesc: { fontSize: 14, fontWeight: "500" },
+  txClient: { fontSize: 12, marginTop: 2 },
+  txService: { fontSize: 11, marginTop: 1 },
   txRight: { alignItems: "flex-end" },
   txAmount: { fontSize: 14, fontWeight: "600" },
   txBadge: {
@@ -590,12 +594,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   txBadgeText: { fontSize: 10, fontWeight: "600" },
-  txTime: { fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 },
+  txTime: { fontSize: 11, marginTop: 2 },
   loadMore: {
     paddingVertical: 12,
     alignItems: "center",
   },
-  loadMoreText: { color: "#8B5CF6", fontSize: 14 },
+  loadMoreText: { fontSize: 14 },
   exportButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -609,6 +613,5 @@ const styles = StyleSheet.create({
   exportButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#8B5CF6",
   },
 });

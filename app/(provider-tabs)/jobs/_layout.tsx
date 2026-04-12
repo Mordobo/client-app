@@ -1,12 +1,14 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { Stack } from "expo-router";
 import React from "react";
 
 export default function JobsLayout() {
+  const colors = useThemeColors();
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "#12121A" },
+        contentStyle: { backgroundColor: colors.screenBackground },
       }}
     >
       <Stack.Screen name="index" />

@@ -1,6 +1,7 @@
 import { getSettings } from '@/services/settings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { useColorScheme as useSystemColorScheme } from 'react-native';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -31,9 +32,10 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, isAuthenticated }) => {
   const [theme, setThemeState] = useState<ThemePreference>('system');
   const [isLoading, setIsLoading] = useState(true);
+  const systemColorScheme = useSystemColorScheme();
 
-  // Fixed dark theme: app always uses dark regardless of phone or user preference
-  const colorScheme: 'light' | 'dark' = 'dark';
+  const colorScheme: 'light' | 'dark' =
+    theme === 'light' ? 'light' : theme === 'dark' ? 'dark' : (systemColorScheme ?? 'light');
 
   useEffect(() => {
     if (isAuthenticated) {

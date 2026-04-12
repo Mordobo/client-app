@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
   getJobInProgressData,
@@ -36,7 +37,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
 const CARD_BG = "#1E1B2E";
 const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const CARD_BORDER_LIGHT = "rgba(61, 51, 112, 0.2)";
@@ -75,6 +75,7 @@ export default function InProgressScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<JobInProgressData | null>(null);
@@ -273,7 +274,7 @@ export default function InProgressScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={PURPLE_GRADIENT_END} />
       </View>
     );
@@ -281,7 +282,7 @@ export default function InProgressScreen() {
 
   if (!data) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <Text style={styles.errorText}>{t("providerDashboard.inProgress.errors.loadFailed")}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
@@ -291,7 +292,7 @@ export default function InProgressScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
       {/* Status Banner */}
       <View style={[styles.banner, { paddingTop: insets.top + 24 }]}>
         <View style={styles.bannerStatusRow}>
@@ -325,7 +326,7 @@ export default function InProgressScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Client Info */}
-        <View style={styles.clientCard}>
+        <View style={[styles.clientCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.clientAvatar}>
             <Ionicons name="person" size={24} color="rgba(255,255,255,0.6)" />
           </View>
@@ -429,7 +430,7 @@ export default function InProgressScreen() {
       {/* Add Note Modal */}
       <Modal visible={noteModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.modalTitle}>{t("providerDashboard.inProgress.addNote")}</Text>
             <TextInput
               style={styles.modalInput}
@@ -455,7 +456,7 @@ export default function InProgressScreen() {
       {/* Extra Charge Modal (placeholder) */}
       <Modal visible={extraChargeModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.modalTitle}>{t("providerDashboard.inProgress.extraCharge")}</Text>
             <Text style={styles.modalPlaceholderText}>{t("providerDashboard.inProgress.comingSoon")}</Text>
             <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setExtraChargeModalVisible(false)} activeOpacity={0.7}>
@@ -468,7 +469,7 @@ export default function InProgressScreen() {
       {/* Extend Time Modal (placeholder) */}
       <Modal visible={extendTimeModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.modalTitle}>{t("providerDashboard.inProgress.extendTime")}</Text>
             <Text style={styles.modalPlaceholderText}>{t("providerDashboard.inProgress.comingSoon")}</Text>
             <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setExtendTimeModalVisible(false)} activeOpacity={0.7}>
@@ -491,7 +492,6 @@ export default function InProgressScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   centered: {
     justifyContent: "center",

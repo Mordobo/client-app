@@ -17,8 +17,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Colors } from '@/constants/theme';
+import { useThemeColors } from '@/hooks/useThemeColors';
 
 type TabType = 'active' | 'completed' | 'cancelled';
 
@@ -28,13 +27,10 @@ interface BookingCardProps {
   onMessagePress: () => void;
   onReviewQuote?: () => void;
   onPayPress?: () => void;
-  colorScheme: 'light' | 'dark' | null;
+  colors: ReturnType<typeof useThemeColors>;
 }
 
-function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress, colorScheme }: BookingCardProps) {
-  // Force dark mode for this screen (Bookings screen is always dark)
-  const isDark = true;
-  const themeColors = Colors[isDark ? 'dark' : 'light'];
+function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress, colors: themeColors }: BookingCardProps) {
 
   const getStatusInfo = () => {
     switch (order.status) {
@@ -134,7 +130,7 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
   return (
     <View style={[
       styles.bookingCard,
-      { backgroundColor: isDark ? '#252542' : '#FFFFFF' },
+      { backgroundColor: themeColors.card },
       (order.status === 'accepted' || order.status === 'pending_for_provider') && { borderColor: '#10B98140', borderWidth: 1 }
     ]}>
       <View style={styles.bookingHeader}>
@@ -147,31 +143,28 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
           </Text>
         </View>
         {timeInfo && (
-          <Text style={[styles.timeText, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
+          <Text style={[styles.timeText, { color: themeColors.textSecondary }]}>
             {timeInfo}
           </Text>
         )}
       </View>
 
       <View style={styles.bookingContent}>
-        <View style={[
-          styles.providerImage,
-          { backgroundColor: isDark ? '#2d2d4a' : '#E5E7EB' }
-        ]}>
-          <Ionicons name="person" size={24} color={isDark ? '#9ca3af' : '#6B7280'} />
+        <View style={[styles.providerImage, { backgroundColor: themeColors.surfaceSecondary }]}>
+          <Ionicons name="person" size={24} color={themeColors.textSecondary} />
         </View>
         
         <View style={styles.bookingInfo}>
-          <Text style={[styles.providerName, { color: isDark ? '#fff' : '#1F2937' }]}>
+          <Text style={[styles.providerName, { color: themeColors.textPrimary }]}>
             {order.supplier_name || order.business_name || (order.supplier_id ? t('orders.provider') : t('orders.noProvider'))}
           </Text>
-          <Text style={[styles.serviceName, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
+          <Text style={[styles.serviceName, { color: themeColors.textSecondary }]}>
             {order.service_name || `${t('orders.service')} #${order.id.slice(0, 8)}`}
           </Text>
           {dateTime && (
             <View style={styles.dateTimeRow}>
-              <Ionicons name="calendar-outline" size={14} color={isDark ? '#9ca3af' : '#6B7280'} />
-              <Text style={[styles.dateTime, { color: isDark ? '#9ca3af' : '#6B7280' }]}>
+              <Ionicons name="calendar-outline" size={14} color={themeColors.textSecondary} />
+              <Text style={[styles.dateTime, { color: themeColors.textSecondary }]}>
                 {dateTime}
               </Text>
             </View>
@@ -187,11 +180,11 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
 
       <View style={styles.bookingActions}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.messageButton, { backgroundColor: isDark ? '#2d2d4a' : '#F3F4F6' }]}
+          style={[styles.actionButton, styles.messageButton, { backgroundColor: themeColors.surfaceSecondary }]}
           onPress={onMessagePress}
         >
-          <Ionicons name="chatbubble-outline" size={16} color={isDark ? '#fff' : '#1F2937'} />
-          <Text style={[styles.actionButtonText, { color: isDark ? '#fff' : '#1F2937' }]}>
+          <Ionicons name="chatbubble-outline" size={16} color={themeColors.textPrimary} />
+          <Text style={[styles.actionButtonText, { color: themeColors.textPrimary }]}>
             {t('orders.message')}
           </Text>
         </TouchableOpacity>
@@ -234,10 +227,7 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
 export default function BookingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { colorScheme } = useTheme();
-  // Default to light theme if colorScheme is undefined or null
-  const isDark = colorScheme === 'dark';
-  const themeColors = Colors[isDark ? 'dark' : 'light'];
+  const colors = useThemeColors();
 
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const [orders, setOrders] = useState<Order[]>([]);
@@ -339,9 +329,9 @@ export default function BookingsScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.title}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.card, borderBottomColor: colors.cardBorder }]}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
           {t('orders.title')}
         </Text>
         
@@ -351,15 +341,15 @@ export default function BookingsScreen() {
               key={tab.id}
               style={[
                 styles.tab,
-                activeTab === tab.id && styles.tabActive,
-                activeTab !== tab.id && styles.tabInactive,
+                activeTab === tab.id && [styles.tabActive, { backgroundColor: colors.primary }],
+                activeTab !== tab.id && [styles.tabInactive, { borderColor: colors.cardBorder }],
               ]}
               onPress={() => handleTabPress(tab.id)}
             >
               <Text
                 style={[
                   styles.tabText,
-                  activeTab === tab.id ? styles.tabTextActive : styles.tabTextInactive,
+                  activeTab === tab.id ? [styles.tabTextActive, { color: '#FFFFFF' }] : [styles.tabTextInactive, { color: colors.textSecondary }],
                 ]}
               >
                 {tab.label} ({tab.count})
@@ -371,17 +361,17 @@ export default function BookingsScreen() {
 
       {loading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <ScrollView
-          style={styles.content}
+          style={[styles.content, { backgroundColor: colors.background }]}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#fff"
+              tintColor={colors.primary}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -389,7 +379,9 @@ export default function BookingsScreen() {
           {ordersPendingPayment.length > 0 && (
             <View style={styles.pendingPaymentSection}>
               <Text style={styles.pendingPaymentTitle}>{t('orders.pendingPaymentSection')}</Text>
-              <Text style={styles.pendingPaymentSubtitle}>{t('orders.pendingPaymentSectionSubtitle')}</Text>
+              <Text style={[styles.pendingPaymentSubtitle, { color: colors.textSecondary }]}>
+                {t('orders.pendingPaymentSectionSubtitle')}
+              </Text>
               {ordersPendingPayment.map((order) => (
                 <BookingCard
                   key={order.id}
@@ -398,7 +390,7 @@ export default function BookingsScreen() {
                   onMessagePress={() => handleMessagePress(order)}
                   onReviewQuote={order.status === 'pending_for_client' ? () => handleReviewQuote(order.id) : undefined}
                   onPayPress={order.status === 'pending_payment' ? () => handlePayPress(order) : undefined}
-                  colorScheme={colorScheme}
+                  colors={colors}
                 />
               ))}
             </View>
@@ -412,7 +404,9 @@ export default function BookingsScreen() {
           ) : filteredOrders.length === 0 ? null : (
             <>
               {ordersPendingPayment.length > 0 && <View style={styles.sectionDivider} />}
-              <Text style={styles.reservationsSectionTitle}>{t('orders.reservationsSection')}</Text>
+              <Text style={[styles.reservationsSectionTitle, { color: colors.textPrimary }]}>
+                {t('orders.reservationsSection')}
+              </Text>
               {filteredOrders.map((order) => (
                 <BookingCard
                   key={order.id}
@@ -421,7 +415,7 @@ export default function BookingsScreen() {
                   onMessagePress={() => handleMessagePress(order)}
                   onReviewQuote={order.status === 'pending_for_client' ? () => handleReviewQuote(order.id) : undefined}
                   onPayPress={order.status === 'pending_payment' ? () => handlePayPress(order) : undefined}
-                  colorScheme={colorScheme}
+                  colors={colors}
                 />
               ))}
             </>
@@ -485,7 +479,6 @@ const styles = StyleSheet.create({
   },
   tabTextInactive: {
     fontWeight: '400',
-    color: '#FFFFFF',
   },
   content: {
     flex: 1,
@@ -505,7 +498,6 @@ const styles = StyleSheet.create({
   },
   pendingPaymentSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.6)',
     marginBottom: 12,
   },
   sectionDivider: {
@@ -516,7 +508,6 @@ const styles = StyleSheet.create({
   reservationsSectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 12,
   },
   bookingCard: {

@@ -1,6 +1,8 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, type ProviderActiveJob, type ProviderActiveJobStatus } from "@/services/providerDashboard";
+import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,9 +11,6 @@ import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.3)";
 const FILTER_ACTIVE_GRADIENT = ["#6366F1", "#8B5CF6"];
 const FILTER_INACTIVE_BG = "rgba(255,255,255,0.05)";
 const STATUS_PENDING_BG = "rgba(245, 158, 11, 0.15)";
@@ -66,7 +65,7 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
   );
 }
 
-function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void }) {
+function JobCard({ job, onChat, onCall, onDetails, colors }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void; colors: ThemeColors }) {
   const isScheduled = job.status === "scheduled";
   const isPendingReview = job.status === "pending_review";
   const timeLabel =
@@ -88,43 +87,43 @@ function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; o
     : "—";
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={22} color="rgba(255,255,255,0.6)" />
+              <Ionicons name="person" size={22} color={colors.textTertiary} />
             </View>
             <View>
-              <Text style={styles.clientName}>{job.clientName}</Text>
+              <Text style={[styles.clientName, { color: colors.textPrimary }]}>{job.clientName}</Text>
               <Text style={styles.serviceName}>{job.serviceName}</Text>
             </View>
           </View>
           <Text style={styles.price}>{formatCurrency(job.agreedPrice)}</Text>
         </View>
         <View style={styles.addressRow}>
-          <Ionicons name="location-outline" size={14} color="rgba(255,255,255,0.4)" />
-          <Text style={styles.address} numberOfLines={1}>
+          <Ionicons name="location-outline" size={14} color={colors.textTertiary} />
+          <Text style={[styles.address, { color: colors.textTertiary }]} numberOfLines={1}>
             {job.address}
           </Text>
         </View>
         <View style={styles.statusRow}>
           {job.status !== "scheduled" && <JobStatusBadge status={job.status} />}
-          <Text style={styles.timeLabel}>{timeLabel}</Text>
+          <Text style={[styles.timeLabel, { color: colors.textTertiary }]}>{timeLabel}</Text>
         </View>
       </View>
       <View style={styles.cardFooter}>
         <TouchableOpacity style={styles.footerBtn} onPress={() => onChat(job)} activeOpacity={0.7}>
-          <Ionicons name="chatbubble-outline" size={18} color="rgba(255,255,255,0.6)" />
-          <Text style={styles.footerBtnText}>{t("providerDashboard.chat")}</Text>
+          <Ionicons name="chatbubble-outline" size={18} color={colors.textTertiary} />
+          <Text style={[styles.footerBtnText, { color: colors.textTertiary }]}>{t("providerDashboard.chat")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.footerBtn, styles.footerBtnBorder]} onPress={() => onCall(job)} activeOpacity={0.7}>
-          <Ionicons name="call-outline" size={18} color="rgba(255,255,255,0.6)" />
-          <Text style={styles.footerBtnText}>{t("providerDashboard.call")}</Text>
+          <Ionicons name="call-outline" size={18} color={colors.textTertiary} />
+          <Text style={[styles.footerBtnText, { color: colors.textTertiary }]}>{t("providerDashboard.call")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.footerBtn, styles.footerBtnBorder]} onPress={() => onDetails(job)} activeOpacity={0.7}>
-          <Ionicons name="document-text-outline" size={18} color="#A78BFA" />
-          <Text style={[styles.footerBtnText, styles.footerBtnTextAccent]}>{t("providerDashboard.viewDetails")}</Text>
+          <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+          <Text style={[styles.footerBtnText, styles.footerBtnTextAccent, { color: colors.primary }]}>{t("providerDashboard.viewDetails")}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -134,6 +133,7 @@ function JobCard({ job, onChat, onCall, onDetails }: { job: ProviderActiveJob; o
 export default function ProviderJobsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const colors = useThemeColors();
   const [filter, setFilter] = useState<FilterType>("pending");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -197,9 +197,9 @@ export default function ProviderJobsScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 80 }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("providerDashboard.jobsScreenTitle")}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.jobsScreenTitle")}</Text>
       </View>
 
       <View style={styles.filters}>
@@ -214,12 +214,12 @@ export default function ProviderJobsScreen() {
           return isActive ? (
             <TouchableOpacity key={f} onPress={() => setFilter(f)} activeOpacity={0.8} style={styles.filterBtnWrapper}>
               <LinearGradient colors={FILTER_ACTIVE_GRADIENT as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.filterBtn}>
-                <Text style={[styles.filterBtnText, styles.filterBtnTextActive]}>{label}</Text>
+                <Text style={[styles.filterBtnText, styles.filterBtnTextActive, { color: colors.textPrimary }]}>{label}</Text>
               </LinearGradient>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity key={f} style={styles.filterBtn} onPress={() => setFilter(f)} activeOpacity={0.8}>
-              <Text style={styles.filterBtnText}>{label}</Text>
+              <Text style={[styles.filterBtnText, { color: colors.textTertiary }]}>{label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -227,13 +227,13 @@ export default function ProviderJobsScreen() {
 
       {isLoading ?
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       : filteredJobs.length === 0 ?
         <View style={styles.centered}>
-          <Text style={styles.emptyText}>{t("providerDashboard.emptyActiveJobs")}</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyActiveJobs")}</Text>
         </View>
-      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} />} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor="#8B5CF6" />} />}
+      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} colors={colors} />} style={styles.list} contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={true} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />} />}
     </View>
   );
 }
@@ -241,47 +241,45 @@ export default function ProviderJobsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
     paddingHorizontal: 20,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingTop: 24,
+    paddingVertical: 10,
+    paddingTop: 16,
   },
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   filters: {
     flexDirection: "row",
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   filterBtnWrapper: {
     borderRadius: 999,
     overflow: "hidden",
   },
   filterBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: FILTER_INACTIVE_BG,
   },
   filterBtnText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.5)",
   },
-  filterBtnTextActive: {
-    color: "#FFFFFF",
+  filterBtnTextActive: {},
+  list: {
+    flex: 1,
   },
   listContent: {
-    paddingBottom: 24,
-    gap: 12,
+    paddingBottom: 100,
+    gap: 8,
   },
   centered: {
     flex: 1,
@@ -290,34 +288,31 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.5)",
     textAlign: "center",
   },
   card: {
-    backgroundColor: CARD_BG,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     overflow: "hidden",
   },
   cardBody: {
-    padding: 16,
+    padding: 12,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   cardHeaderLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "rgba(61, 51, 112, 0.5)",
     alignItems: "center",
     justifyContent: "center",
@@ -325,7 +320,6 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#FFFFFF",
   },
   serviceName: {
     fontSize: 14,
@@ -341,12 +335,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   address: {
     flex: 1,
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
   },
   statusRow: {
     flexDirection: "row",
@@ -364,7 +357,6 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.5)",
   },
   cardFooter: {
     flexDirection: "row",
@@ -377,7 +369,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   footerBtnBorder: {
     borderLeftWidth: 1,
@@ -386,9 +378,6 @@ const styles = StyleSheet.create({
   footerBtnText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.6)",
   },
-  footerBtnTextAccent: {
-    color: "#A78BFA",
-  },
+  footerBtnTextAccent: {},
 });

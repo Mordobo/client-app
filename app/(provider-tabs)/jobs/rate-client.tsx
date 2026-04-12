@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import {
@@ -11,7 +12,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,8 +21,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const SCREEN_BG = "#12121A";
-const CARD_BG = "#1E1B2E";
 const CARD_BORDER_LIGHT = "rgba(61, 51, 112, 0.2)";
 const PURPLE_GRADIENT_START = "#6366F1";
 const PURPLE_GRADIENT_END = "#8B5CF6";
@@ -55,8 +53,9 @@ export default function RateClientScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const queryClient = useQueryClient();
-  const bottomInset = insets.bottom || (Platform.OS === "android" ? 40 : 0);
+  const footerBottom = Math.max(insets.bottom, 12);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +87,8 @@ export default function RateClientScreen() {
     return () => { cancelled = true; };
   }, [id]);
 
-  const canRate = orderStatus === "completed";
+  const canRate =
+    orderStatus === "completed" || orderStatus === "pending_review";
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) =>
@@ -143,44 +143,36 @@ export default function RateClientScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={PURPLE_GRADIENT_END} />
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("providerDashboard.rateClient.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.rateClient.title")}</Text>
       </View>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* Client Avatar & Info */}
         <View style={styles.clientSection}>
-          <View style={styles.clientAvatarLarge}>
-            <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
+          <View style={[styles.clientAvatarLarge, { backgroundColor: colors.card }]}>
+            <Ionicons name="person" size={40} color={colors.textSecondary} />
           </View>
-          <Text style={styles.clientNameLarge}>{clientData?.fullName ?? "—"}</Text>
-          <Text style={styles.clientServiceLabel}>{clientData?.serviceName ?? ""}</Text>
+          <Text style={[styles.clientNameLarge, { color: colors.textPrimary }]}>{clientData?.fullName ?? "—"}</Text>
+          <Text style={[styles.clientServiceLabel, { color: colors.textTertiary }]}>{clientData?.serviceName ?? ""}</Text>
         </View>
-
-        {!canRate && orderStatus != null && (
-          <View style={styles.waitBanner}>
-            <Text style={styles.waitBannerText}>
-              {t("providerDashboard.rateClient.errors.orderNotCompleted")}
-            </Text>
-          </View>
-        )}
 
         {/* Star Rating */}
         <Text style={styles.ratingQuestion}>{t("providerDashboard.rateClient.howWasExperience")}</Text>
@@ -204,22 +196,22 @@ export default function RateClientScreen() {
             return (
               <TouchableOpacity
                 key={tagKey}
-                style={[styles.tagChip, selected && styles.tagChipSelected]}
+                style={[styles.tagChip, { backgroundColor: selected ? colors.primary : colors.background }, selected && styles.tagChipSelected]}
                 onPress={() => toggleTag(tagKey)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{label}</Text>
+                <Text style={[styles.tagText, { color: selected ? colors.textOnDark : colors.textTertiary }, selected && styles.tagTextSelected]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         {/* Comment */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.rateClient.comment")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.rateClient.comment")}</Text>
         <TextInput
-          style={styles.textArea}
+          style={[styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]}
           placeholder={t("providerDashboard.rateClient.commentPlaceholder")}
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor={colors.textTertiary}
           value={comment}
           onChangeText={setComment}
           multiline
@@ -247,9 +239,9 @@ export default function RateClientScreen() {
       </ScrollView>
 
       {/* Actions */}
-      <View style={[styles.footer, { paddingBottom: Math.max(bottomInset, 16) }]}>
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
         <TouchableOpacity
-          style={[styles.submitBtn, (submitting || !canRate) && styles.submitBtnDisabled]}
+          style={[styles.submitBtn, { backgroundColor: colors.primary }, (submitting || !canRate) && styles.submitBtnDisabled]}
           onPress={handleSubmit}
           activeOpacity={0.8}
           disabled={submitting || !canRate}
@@ -271,7 +263,6 @@ export default function RateClientScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
   },
   centered: {
     justifyContent: "center",
@@ -303,7 +294,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
 
   // Client Section
@@ -363,20 +354,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
-  waitBanner: {
-    backgroundColor: AMBER_BG,
-    borderWidth: 1,
-    borderColor: AMBER_BORDER,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 24,
-  },
-  waitBannerText: {
-    fontSize: 14,
-    color: AMBER_TEXT,
-    textAlign: "center",
-  },
-
   // Section Label
   sectionLabel: {
     fontSize: 11,
@@ -414,12 +391,9 @@ const styles = StyleSheet.create({
 
   // Text Area
   textArea: {
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER_LIGHT,
     borderRadius: 12,
     padding: 12,
-    color: "#FFFFFF",
     fontSize: 14,
     minHeight: 80,
     marginBottom: 16,

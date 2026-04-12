@@ -152,8 +152,30 @@ export const respondToReview = async (
   );
 };
 
+// --- Client: ratings that providers left for the current user (provider feedback) ---
 
+export interface ClientReceivedReview {
+  id: string;
+  order_id: string;
+  rating: number;
+  comment: string | null;
+  tags: string[];
+  provider_name: string;
+  service_name: string;
+}
 
+export interface ClientReceivedReviewsResponse {
+  count: number;
+  reviews: ClientReceivedReview[];
+}
 
+// GET /reviews/received - List ratings that providers left for the current user
+export const getClientReceivedReviews = async (): Promise<ClientReceivedReviewsResponse> => {
+  return request<ClientReceivedReviewsResponse>(
+    '/reviews/received',
+    { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+    t('profile.errors.reviewsFetchFailed')
+  );
+};
 
 

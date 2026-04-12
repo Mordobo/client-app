@@ -17,6 +17,22 @@ const getPhysicalDeviceHint = (): string => {
   return '\n\nSi usas un dispositivo físico (no emulador), en .env pon EXPO_PUBLIC_API_URL con la IP de tu PC, ej: http://192.168.1.x:3000 (misma Wi‑Fi).';
 };
 
+const SENSITIVE_HEADER_KEYS = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
+
+/** Returns a copy of headers with sensitive values redacted for safe logging. */
+function sanitizeHeadersForLog(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const keyLower = key.toLowerCase();
+    if (SENSITIVE_HEADER_KEYS.some((s) => keyLower === s)) {
+      out[key] = value ? '[REDACTED]' : value;
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
 export interface RegisterPayload {
   fullName: string;
   email: string;
@@ -200,7 +216,7 @@ export const request = async <T>(
   retryOn401 = true
 ): Promise<T> => {
   // List of public endpoints that don't require authentication
-  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate'];
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/apple', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
   
   // If logout was just called and this is not a public endpoint, throw error
@@ -252,13 +268,13 @@ export const request = async <T>(
     console.log('[API] ========================================');
     
     // Endpoints that send email can take 25s+ (Brevo SMTP); use longer timeout so emulator/host round-trip doesn't hit limit
-    // QA on Render can cold-start in 50–60s; use longer timeout when targeting Render
+    // QA on Render free tier cold-starts in 50–90s; use 90s when targeting Render
     const isRender = url.includes('onrender.com');
     const timeoutMs =
       path.includes('validate-email') || path.includes('resend-code')
         ? 70000
         : isRender
-          ? 65000
+          ? 90000
           : 45000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -266,7 +282,7 @@ export const request = async <T>(
     let response: Response;
     try {
       console.log('[API] Attempting fetch to:', url);
-      console.log('[API] Headers:', headers);
+      console.log('[API] Headers:', sanitizeHeadersForLog(headers));
       console.log('[API] Method:', init.method || 'GET');
       
       response = await fetch(url, { 
@@ -307,8 +323,11 @@ export const request = async <T>(
 
       // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
+        const renderHint = url.includes('onrender.com')
+          ? '\n\n' + t('errors.requestTimeoutRenderHint')
+          : '';
         throw new ApiError(
-          t('errors.requestTimeout') + getPhysicalDeviceHint(),
+          t('errors.requestTimeout') + renderHint + getPhysicalDeviceHint(),
           0,
           { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
         );
@@ -368,7 +387,47 @@ export const request = async <T>(
           ...(init.headers as Record<string, string>),
           Authorization: `Bearer ${newTokens.accessToken}`,
         };
-        const retryResponse = await fetch(url, { ...init, headers: retryHeaders, mode: 'cors' });
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
+        let retryResponse: Response;
+        try {
+          retryResponse = await fetch(url, {
+            ...init,
+            headers: retryHeaders,
+            mode: 'cors',
+            signal: retryController.signal,
+          });
+          clearTimeout(retryTimeoutId);
+        } catch (retryFetchError) {
+          clearTimeout(retryTimeoutId);
+          const isRetryTimeout =
+            retryFetchError instanceof Error && retryFetchError.name === 'AbortError';
+          if (isRetryTimeout) {
+            const renderHint = url.includes('onrender.com')
+              ? '\n\n' + t('errors.requestTimeoutRenderHint')
+              : '';
+            throw new ApiError(
+              t('errors.requestTimeout') + renderHint + getPhysicalDeviceHint(),
+              0,
+              { code: 'request_timeout', isTimeout: true },
+            );
+          }
+          if (retryFetchError instanceof TypeError) {
+            throw new ApiError(
+              t('errors.connectionFailed') + getPhysicalDeviceHint(),
+              0,
+              { code: 'network_error' },
+            );
+          }
+          throw new ApiError(
+            retryFetchError instanceof Error
+              ? retryFetchError.message || t('errors.connectionFailed')
+              : t('errors.connectionFailed'),
+            0,
+            { code: 'fetch_error' },
+          );
+        }
+
         const retryText = await retryResponse.text();
         let retryData: unknown = undefined;
         if (retryText) {
@@ -418,11 +477,20 @@ export const request = async <T>(
           refreshFailedRaw != null && refreshFailedRaw !== ''
             ? String(refreshFailedRaw)
             : t('errors.tokenRefreshFailed');
-        throw new ApiError(message, response.status, responseData, false);
+        const msgLower = message.toLowerCase();
+        const isTokenInvalidOrExpired = (msgLower.includes('invalid') && (msgLower.includes('expired') || msgLower.includes('token'))) || msgLower.includes('token');
+        throw new ApiError(message, response.status, responseData, isTokenInvalidOrExpired);
       }
     }
 
     if (!response.ok) {
+      const errCodeEarly =
+        typeof responseData === 'object' && responseData && 'code' in responseData
+          ? String((responseData as { code: unknown }).code)
+          : '';
+      if (response.status === 503 && errCodeEarly === 'maintenance_mode') {
+        throw new ApiError(t('errors.maintenanceMode'), 503, responseData);
+      }
       // #region agent log
       if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response not ok',data:{path,status:response.status,code:(responseData as {code?:string})?.code},timestamp:Date.now(),hypothesisId:'H2',runId:'validate-email'})}).catch(()=>{});
       // #endregion
@@ -620,6 +688,29 @@ export const loginWithGoogle = async (
       body: JSON.stringify(payload),
     },
     t('errors.googleLoginGeneric')
+  );
+};
+
+export interface AppleLoginPayload {
+  identityToken: string;
+  authorizationCode?: string;
+  email?: string;
+  fullName?: string;
+}
+
+export const loginWithApple = async (
+  payload: AppleLoginPayload
+): Promise<AuthSuccessResponse> => {
+  return request<AuthSuccessResponse>(
+    '/auth/apple',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+    t('errors.appleLoginGeneric')
   );
 };
 

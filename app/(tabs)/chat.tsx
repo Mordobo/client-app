@@ -1,5 +1,6 @@
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function ConversationsListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { isAuthenticated } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,7 +242,7 @@ export default function ConversationsListScreen() {
       const showBorder = index < 4;
 
       return (
-        <View style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder, { backgroundColor: "#1a1a2e", borderBottomColor: "#374151" }]}>
+        <View style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder, { backgroundColor: colors.background, borderBottomColor: colors.cardBorder }]}>
           <TouchableOpacity style={styles.conversationRowTouchable} onPress={() => handleConversationPress(item.id)} onLongPress={() => handleLongPressConversation(item)} activeOpacity={0.7}>
             <View style={styles.avatarContainer}>
               <ProviderAvatar
@@ -253,11 +255,11 @@ export default function ConversationsListScreen() {
             </View>
             <View style={styles.conversationContent}>
               <View style={styles.conversationHeader}>
-                <Text style={[styles.userName, { color: "#FFFFFF" }]}>{item.other_user_name}</Text>
-                <Text style={[styles.timeText, { color: item.unread_count > 0 ? "#3b82f6" : "#9ca3af" }]}>{formatTime(item.last_message_at)}</Text>
+                <Text style={[styles.userName, { color: colors.textPrimary }]}>{item.other_user_name}</Text>
+                <Text style={[styles.timeText, { color: item.unread_count > 0 ? colors.primary : colors.textTertiary }]}>{formatTime(item.last_message_at)}</Text>
               </View>
               <View style={styles.lastMessageRow}>
-                <Text style={[styles.lastMessage, { color: item.unread_count > 0 ? "#FFFFFF" : "#9ca3af" }, item.unread_count > 0 && { fontWeight: "500" }]} numberOfLines={1}>
+                <Text style={[styles.lastMessage, { color: item.unread_count > 0 ? colors.textPrimary : colors.textTertiary }, item.unread_count > 0 && { fontWeight: "500" }]} numberOfLines={1}>
                   {item.last_message || t("chat.noMessages")}
                 </Text>
                 {item.unread_count > 0 && (
@@ -269,7 +271,7 @@ export default function ConversationsListScreen() {
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuButton} onPress={() => handleMenuPress(item)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityLabel={t("chat.options")}>
-            <Ionicons name="ellipsis-vertical" size={22} color="#9ca3af" />
+            <Ionicons name="ellipsis-vertical" size={22} color={colors.textTertiary} />
           </TouchableOpacity>
         </View>
       );
@@ -281,60 +283,60 @@ export default function ConversationsListScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: "#1a1a2e" }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View
           style={[
             styles.header,
             {
               paddingTop: insets.top + 20,
-              backgroundColor: "#252542",
+              backgroundColor: colors.card,
             },
           ]}
         >
-          <Text style={[styles.headerTitle, { color: "#FFFFFF" }]}>{t("chat.messages")}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("chat.messages")}</Text>
         </View>
-        <View style={[styles.centerContainer, { backgroundColor: "#1a1a2e" }]}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: "#1a1a2e" }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header - Exact match to JSX: padding: '50px 20px 20px', backgroundColor: colors.bgCard */}
       <View
         style={[
           styles.header,
           {
             paddingTop: insets.top + 20,
-            backgroundColor: "#252542",
+            backgroundColor: colors.card,
           },
         ]}
       >
-        <Text style={[styles.headerTitle, { color: "#FFFFFF" }]}>{t("chat.messages")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("chat.messages")}</Text>
       </View>
 
       {error ?
-        <View style={[styles.centerContainer, { backgroundColor: "#1a1a2e" }]}>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
           <Text style={[styles.errorText, { color: "#EF4444" }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadConversations}>
             <Text style={styles.retryText}>{t("chat.retry")}</Text>
           </TouchableOpacity>
         </View>
       : conversations.length === 0 ?
-        <View style={[styles.centerContainer, { backgroundColor: "#1a1a2e" }]}>
-          <Ionicons name="chatbubbles-outline" size={64} color="#9ca3af" />
-          <Text style={[styles.emptyTitle, { color: "#FFFFFF" }]}>{t("chat.noMessages")}</Text>
-          <Text style={[styles.emptySubtitle, { color: "#9ca3af" }]}>{t("chat.noMessagesDesc")}</Text>
+        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="chatbubbles-outline" size={64} color={colors.textTertiary} />
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{t("chat.noMessages")}</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>{t("chat.noMessagesDesc")}</Text>
         </View>
-      : <View style={{ flex: 1, backgroundColor: "#1a1a2e" }}>
+      : <View style={{ flex: 1, backgroundColor: colors.background }}>
           <FlatList
             data={conversations}
             keyExtractor={(item) => item?.id || `conversation-${Math.random()}`}
             renderItem={renderConversation}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 100 + insets.bottom, backgroundColor: "#1a1a2e" }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#3b82f6"]} />}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 100 + insets.bottom, backgroundColor: colors.background }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
           />
         </View>
       }

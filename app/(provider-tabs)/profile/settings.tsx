@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -10,11 +11,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BACKGROUND = "#12121A";
-const CARD_BG = "#1E1B2E";
-const CARD_BORDER = "rgba(61, 51, 112, 0.2)";
-const SECTION_HEADER_COLOR = "rgba(255,255,255,0.4)";
-
 type SettingsRow = {
   icon: keyof typeof Ionicons.glyphMap;
   labelKey: string;
@@ -26,14 +22,16 @@ function SettingsSection({
   sectionTitleKey,
   rows,
   onRowPress,
+  colors,
 }: {
   sectionTitleKey: string;
   rows: SettingsRow[];
   onRowPress?: (route: string) => void;
+  colors: import('@/utils/themeStyles').ThemeColors;
 }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{t(sectionTitleKey)}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{t(sectionTitleKey)}</Text>
       <View style={styles.sectionRows}>
         {rows.map((row, idx) => {
           const Wrapper = row.route ? TouchableOpacity : View;
@@ -41,15 +39,15 @@ function SettingsSection({
             ? { onPress: () => onRowPress?.(row.route!), activeOpacity: 0.8 }
             : {};
           return (
-            <Wrapper key={idx} style={styles.row} {...wrapperProps}>
+            <Wrapper key={idx} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} {...wrapperProps}>
               <View style={styles.iconBox}>
-                <Ionicons name={row.icon} size={20} color="#8B5CF6" />
+                <Ionicons name={row.icon} size={20} color={colors.primary} />
               </View>
               <View style={styles.rowText}>
-                <Text style={styles.rowLabel}>{t(row.labelKey)}</Text>
-                <Text style={styles.rowDesc}>{t(row.descKey)}</Text>
+                <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t(row.labelKey)}</Text>
+                <Text style={[styles.rowDesc, { color: colors.textTertiary }]}>{t(row.descKey)}</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={[styles.arrow, { color: colors.textTertiary }]}>→</Text>
             </Wrapper>
           );
         })}
@@ -61,6 +59,7 @@ function SettingsSection({
 export default function ProviderSettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
 
   const accountRows: SettingsRow[] = [
     { icon: "person-outline", labelKey: "providerDashboard.providerSettings.editProfile", descKey: "providerDashboard.providerSettings.editProfileDesc", route: "/(provider-tabs)/profile/edit" },
@@ -78,13 +77,12 @@ export default function ProviderSettingsScreen() {
     { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc", route: "/(provider-tabs)/profile/statistics" },
   ];
   const supportRows: SettingsRow[] = [
-    { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc" },
-    { icon: "chatbubble-outline", labelKey: "providerDashboard.providerSettings.contactSupport", descKey: "providerDashboard.providerSettings.contactSupportDesc" },
-    { icon: "document-outline", labelKey: "providerDashboard.providerSettings.termsPrivacy", descKey: "providerDashboard.providerSettings.termsPrivacyDesc" },
+    { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc", route: "/account/support" },
+    { icon: "document-outline", labelKey: "providerDashboard.providerSettings.termsPrivacy", descKey: "providerDashboard.providerSettings.termsPrivacyDesc", route: "/account/support" },
   ];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -93,33 +91,38 @@ export default function ProviderSettingsScreen() {
           accessibilityLabel={t("providerDashboard.providerSettings.back")}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>{t("providerDashboard.providerSettings.title")}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.providerSettings.title")}</Text>
       </View>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionAccount"
           rows={accountRows}
           onRowPress={(route) => router.push(route)}
+          colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionPreferences"
           rows={preferencesRows}
           onRowPress={(route) => router.push(route)}
+          colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionBusiness"
           rows={businessRows}
           onRowPress={(route) => router.push(route)}
+          colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionSupport"
           rows={supportRows}
+          onRowPress={(route) => router.push(route)}
+          colors={colors}
         />
       </ScrollView>
     </View>
@@ -129,7 +132,6 @@ export default function ProviderSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   header: {
     flexDirection: "row",
@@ -150,7 +152,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#fff",
   },
   scroll: {
     flex: 1,
@@ -164,7 +165,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    color: SECTION_HEADER_COLOR,
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 12,
@@ -177,9 +177,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 14,
     borderRadius: 12,
-    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
   },
   iconBox: {
     width: 40,
@@ -194,17 +192,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rowLabel: {
-    color: "#fff",
     fontSize: 14,
     fontWeight: "500",
   },
   rowDesc: {
-    color: "rgba(255,255,255,0.4)",
     fontSize: 12,
     marginTop: 2,
   },
   arrow: {
-    color: "rgba(255,255,255,0.3)",
     fontSize: 14,
   },
 });

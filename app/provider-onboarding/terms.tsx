@@ -1,11 +1,12 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
+import { ApiError } from "@/services/auth";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
@@ -50,6 +51,11 @@ export default function ProviderOnboardingTermsScreen() {
       router.push("/provider-onboarding/verification");
     } catch (e) {
       console.error("[Terms] submitOnboardingStep failed:", e);
+      const message =
+        e instanceof ApiError && e.message.trim().length > 0
+          ? e.message
+          : t("providerOnboarding.terms.saveError");
+      Alert.alert(t("common.error"), message, [{ text: t("common.ok") }]);
     } finally {
       setSaving(false);
     }

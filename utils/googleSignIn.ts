@@ -40,6 +40,9 @@ export const getGoogleStatusCodes = (): GoogleStatusCodes | null => {
 export const getGoogleSignin = () => null; // Ya no se usa módulo nativo
 export const isGoogleSignInAvailable = () => true; // Siempre disponible con expo-auth-session
 
+/** True when Google sign-in is configured (web client ID set). Use to show the Google button on login/register (web and mobile). */
+export const isGoogleConfigured = () => !!getWebClientId();
+
 export interface GoogleWebSignInResult {
   idToken: string;
   accessToken?: string;
@@ -333,6 +336,13 @@ export const signInWithGoogleWeb = async (): Promise<GoogleWebSignInResult | nul
   };
 
   const redirectUri = resolveRedirectUri();
+  if (__DEV__) {
+    console.log(
+      '[GoogleSignIn][web] Add this exact URL to Google Cloud Console → Credentials → Your OAuth client → Authorized redirect URIs:',
+      redirectUri
+    );
+  }
+
   const state = Math.random().toString(36).slice(2);
 
   storeWebState(state);
@@ -370,8 +380,20 @@ export const signInWithGoogleMobile = async (): Promise<GoogleWebSignInResult> =
     throw new Error('google-missing-web-client-id');
   }
 
+  // Redirect direct to app (no proxy). auth.expo.io proxy is deprecated and can cause "Access blocked" on mobile.
+  // Add the logged URL to Google Console; if your Metro IP/port changes, add the new URL too.
   const redirectUri = Linking.createURL('auth/google', {});
-  
+
+  if (__DEV__) {
+    console.log(
+      '[GoogleSignIn][mobile] Add this exact URL to Google Cloud Console → Credentials → Your OAuth client → Authorized redirect URIs:',
+      redirectUri
+    );
+    console.log(
+      '[GoogleSignIn][mobile] If your network or port changes, copy the new URL from the log and add it in Google Console.'
+    );
+  }
+
   const request = new AuthSession.AuthRequest({
     clientId,
     scopes: ['openid', 'profile', 'email'],
@@ -390,7 +412,7 @@ export const signInWithGoogleMobile = async (): Promise<GoogleWebSignInResult> =
 
   try {
     const result = await request.promptAsync(discovery, {
-      useProxy: true,
+      useProxy: false,
       showInRecents: true,
     });
 

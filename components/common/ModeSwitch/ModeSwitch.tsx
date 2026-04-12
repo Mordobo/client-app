@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -204,6 +205,7 @@ function PillVariant({
   size,
   animatedScaleStyle,
 }: VariantProps) {
+  const colors = useThemeColors();
   const isClient = currentMode === 'client';
   const sizeConfig = SIZE_CONFIG[size];
   const containerPadding = sizeConfig.padding;
@@ -216,6 +218,11 @@ function PillVariant({
   const providerIconOpacity = useRef(new Animated.Value(isClient ? 0.35 : 1)).current;
   const clientTextOpacity = useRef(new Animated.Value(isClient ? 1 : 0.5)).current;
   const providerTextOpacity = useRef(new Animated.Value(isClient ? 0.5 : 1)).current;
+
+  const pillBg = colors.surfaceSecondary ?? COLORS.common.background;
+  const pillBorder = colors.border ?? COLORS.common.border;
+  const activeText = colors.textOnDark ?? COLORS.common.activeText;
+  const inactiveText = colors.textSecondary ?? COLORS.common.inactiveText;
 
   useEffect(() => {
     Animated.parallel([
@@ -249,8 +256,8 @@ function PillVariant({
         style={[
           styles.pillBackground,
           {
-            backgroundColor: COLORS.common.background,
-            borderColor: COLORS.common.border,
+            backgroundColor: pillBg,
+            borderColor: pillBorder,
             borderRadius: sizeConfig.height / 2,
             borderWidth: 1,
             padding: containerPadding,
@@ -290,14 +297,14 @@ function PillVariant({
               <Ionicons
                 name={isClient ? "person" : "person-outline"}
                 size={sizeConfig.iconSize}
-                color={COLORS.common.activeText}
+                color={isClient ? activeText : inactiveText}
               />
             </Animated.View>
             {showLabels && (
               <Animated.Text
                 style={[
                   styles.pillText,
-                  { opacity: clientTextOpacity, fontSize: sizeConfig.fontSize, color: COLORS.common.activeText, fontWeight: isClient ? '700' : '500' },
+                  { opacity: clientTextOpacity, fontSize: sizeConfig.fontSize, color: isClient ? activeText : inactiveText, fontWeight: isClient ? '700' : '500' },
                 ]}
               >
                 {t('mode.client')}
@@ -310,14 +317,14 @@ function PillVariant({
               <Ionicons
                 name={!isClient ? "construct" : "construct-outline"}
                 size={sizeConfig.iconSize}
-                color={COLORS.common.activeText}
+                color={!isClient ? activeText : inactiveText}
               />
             </Animated.View>
             {showLabels && (
               <Animated.Text
                 style={[
                   styles.pillText,
-                  { opacity: providerTextOpacity, fontSize: sizeConfig.fontSize, color: COLORS.common.activeText, fontWeight: !isClient ? '700' : '500' },
+                  { opacity: providerTextOpacity, fontSize: sizeConfig.fontSize, color: !isClient ? activeText : inactiveText, fontWeight: !isClient ? '700' : '500' },
                 ]}
               >
                 {t('mode.provider')}
@@ -332,8 +339,13 @@ function PillVariant({
 
 // Card Variant - Larger format with description
 function CardVariant({ currentMode, onModeChange, disabled, showLabels, size, animatedScaleStyle }: VariantProps) {
+  const colors = useThemeColors();
   const isClient = currentMode === 'client';
   const sizeConfig = SIZE_CONFIG[size];
+  const cardBg = colors.surfaceSecondary ?? COLORS.common.background;
+  const cardBorder = isClient ? COLORS.client.primary : COLORS.provider.primary;
+  const titleColor = colors.textPrimary ?? COLORS.common.activeText;
+  const descColor = colors.textSecondary ?? COLORS.common.inactiveText;
 
   return (
     <AnimatedTouchable
@@ -348,8 +360,8 @@ function CardVariant({ currentMode, onModeChange, disabled, showLabels, size, an
         style={[
           styles.card,
           {
-            backgroundColor: COLORS.common.background,
-            borderColor: isClient ? COLORS.client.primary : COLORS.provider.primary,
+            backgroundColor: cardBg,
+            borderColor: cardBorder,
             borderWidth: 2,
             borderRadius: 16,
             padding: 16,
@@ -362,11 +374,11 @@ function CardVariant({ currentMode, onModeChange, disabled, showLabels, size, an
             size={sizeConfig.iconSize + 8}
             color={isClient ? COLORS.client.primary : COLORS.provider.primary}
           />
-          <Text style={[styles.cardTitle, { color: COLORS.common.activeText }]}>
+          <Text style={[styles.cardTitle, { color: titleColor }]}>
             {isClient ? t('mode.client') : t('mode.provider')}
           </Text>
         </View>
-        <Text style={[styles.cardDescription, { color: COLORS.common.inactiveText, fontSize: sizeConfig.fontSize - 2 }]}>
+        <Text style={[styles.cardDescription, { color: descColor, fontSize: sizeConfig.fontSize - 2 }]}>
           {isClient ? t('mode.clientDescription') : t('mode.providerDescription')}
         </Text>
       </View>
@@ -418,8 +430,13 @@ function FloatingVariant({ currentMode, onModeChange, disabled, size, animatedSc
 
 // Dual Variant - Side-by-side selection cards
 function DualVariant({ currentMode, onModeChange, disabled, showLabels, size, animatedScaleStyle }: VariantProps) {
+  const colors = useThemeColors();
   const isClient = currentMode === 'client';
   const sizeConfig = SIZE_CONFIG[size];
+  const cardBg = colors.surfaceSecondary ?? COLORS.common.background;
+  const cardBorder = colors.border ?? COLORS.common.border;
+  const activeText = colors.textOnDark ?? COLORS.common.activeText;
+  const inactiveText = colors.textSecondary ?? COLORS.common.inactiveText;
 
   return (
     <View style={[styles.dualContainer, { gap: 12 }]}>
@@ -428,8 +445,8 @@ function DualVariant({ currentMode, onModeChange, disabled, showLabels, size, an
           styles.dualCard,
           animatedScaleStyle,
           {
-            backgroundColor: isClient ? COLORS.client.primary : COLORS.common.background,
-            borderColor: isClient ? COLORS.client.primary : COLORS.common.border,
+            backgroundColor: isClient ? COLORS.client.primary : cardBg,
+            borderColor: isClient ? COLORS.client.primary : cardBorder,
             borderRadius: 16,
             padding: 16,
             flex: 1,
@@ -444,14 +461,14 @@ function DualVariant({ currentMode, onModeChange, disabled, showLabels, size, an
         <Ionicons
           name="person"
           size={sizeConfig.iconSize + 4}
-          color={isClient ? COLORS.common.activeText : COLORS.common.inactiveText}
+          color={isClient ? activeText : inactiveText}
         />
         {showLabels && (
           <Text
             style={[
               styles.dualText,
               {
-                color: isClient ? COLORS.common.activeText : COLORS.common.inactiveText,
+                color: isClient ? activeText : inactiveText,
                 fontSize: sizeConfig.fontSize,
               },
             ]}
@@ -466,8 +483,8 @@ function DualVariant({ currentMode, onModeChange, disabled, showLabels, size, an
           styles.dualCard,
           animatedScaleStyle,
           {
-            backgroundColor: !isClient ? COLORS.provider.primary : COLORS.common.background,
-            borderColor: !isClient ? COLORS.provider.primary : COLORS.common.border,
+            backgroundColor: !isClient ? COLORS.provider.primary : cardBg,
+            borderColor: !isClient ? COLORS.provider.primary : cardBorder,
             borderRadius: 16,
             padding: 16,
             flex: 1,
@@ -482,14 +499,14 @@ function DualVariant({ currentMode, onModeChange, disabled, showLabels, size, an
         <Ionicons
           name="construct"
           size={sizeConfig.iconSize + 4}
-          color={!isClient ? COLORS.common.activeText : COLORS.common.inactiveText}
+          color={!isClient ? activeText : inactiveText}
         />
         {showLabels && (
           <Text
             style={[
               styles.dualText,
               {
-                color: !isClient ? COLORS.common.activeText : COLORS.common.inactiveText,
+                color: !isClient ? activeText : inactiveText,
                 fontSize: sizeConfig.fontSize,
               },
             ]}

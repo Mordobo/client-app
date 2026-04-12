@@ -1,34 +1,237 @@
-import { CLIENT_TIERS } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { getLocale, t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { Address, getAddresses } from "@/services/addresses";
 import { ApiError, fetchSupplierProfile, fetchSupplierServices, Supplier, SupplierService } from "@/services/suppliers";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Theme colors matching the JSX design
-const colors = {
-  bg: "#1a1a2e",
-  bgCard: "#252542",
-  bgInput: "#2d2d4a",
-  primary: "#3b82f6",
-  secondary: "#10b981",
-  accent: "#f59e0b",
-  danger: "#ef4444",
-  purple: "#8b5cf6",
-  pink: "#ec4899",
-  textSecondary: "#9ca3af",
-  border: "#374151",
-  white: "#ffffff",
-};
 
 export default function BookingSummaryScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const themeColors = useThemeColors();
+  const colors = useMemo(
+    () => ({
+      bg: themeColors.background,
+      bgCard: themeColors.card,
+      bgInput: themeColors.surfaceSecondary,
+      primary: themeColors.primary,
+      secondary: '#10b981',
+      accent: '#f59e0b',
+      danger: '#ef4444',
+      purple: themeColors.primary,
+      pink: '#ec4899',
+      textSecondary: themeColors.textSecondary,
+      border: themeColors.border,
+      white: '#ffffff',
+    }),
+    [themeColors]
+  );
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.bg,
+        },
+        centerContainer: {
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 20,
+          backgroundColor: colors.bg,
+        },
+        header: {
+          flexDirection: "row",
+          alignItems: "center",
+          paddingTop: 50,
+          paddingHorizontal: 20,
+          paddingBottom: 20,
+          gap: 16,
+          backgroundColor: colors.bg,
+        },
+        backButton: { padding: 4 },
+        headerTitle: {
+          color: colors.white,
+          fontSize: 20,
+          fontWeight: "600",
+        },
+        keyboardAvoidingView: { flex: 1 },
+        scrollView: { flex: 1, backgroundColor: colors.bg },
+        scrollContent: {
+          padding: 0,
+          paddingBottom: 20,
+          backgroundColor: colors.bg,
+        },
+        card: {
+          backgroundColor: colors.bgCard,
+          borderRadius: 16,
+          padding: 16,
+          marginHorizontal: 20,
+          marginBottom: 16,
+        },
+        cardTitle: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: "600",
+          marginBottom: 16,
+        },
+        providerRow: {
+          flexDirection: "row",
+          gap: 14,
+          alignItems: "center",
+        },
+        providerAvatar: {
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+          backgroundColor: colors.bgInput,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        avatarImage: {
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+        },
+        avatarEmoji: { fontSize: 28 },
+        providerInfo: { flex: 1 },
+        providerNameRow: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        },
+        providerName: {
+          color: colors.white,
+          fontSize: 18,
+          fontWeight: "600",
+        },
+        verifiedCheckmark: {
+          color: colors.secondary,
+          fontSize: 18,
+        },
+        ratingText: {
+          color: colors.accent,
+          fontSize: 14,
+          marginTop: 4,
+        },
+        detailRow: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        },
+        detailLabel: {
+          color: colors.textSecondary,
+          fontSize: 14,
+        },
+        detailValue: {
+          color: colors.white,
+          fontSize: 14,
+          textAlign: "right",
+          maxWidth: 180,
+        },
+        addressValue: { flex: 1, textAlign: "right" },
+        notesInput: {
+          width: "100%",
+          padding: 14,
+          backgroundColor: colors.bgInput,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: 12,
+          color: colors.white,
+          fontSize: 14,
+          minHeight: 80,
+          textAlignVertical: "top",
+        },
+        priceRow: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginBottom: 10,
+        },
+        priceLabel: {
+          color: colors.textSecondary,
+          fontSize: 14,
+        },
+        priceValue: {
+          color: colors.white,
+          fontSize: 14,
+        },
+        discountLabel: { color: colors.secondary },
+        discountValue: { color: colors.secondary },
+        divider: {
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          marginTop: 12,
+          marginBottom: 12,
+        },
+        totalRow: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+        totalLabel: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: "600",
+        },
+        totalValue: {
+          color: colors.secondary,
+          fontSize: 24,
+          fontWeight: "700",
+        },
+        ctaContainer: {
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          paddingHorizontal: 20,
+          paddingTop: 16,
+          backgroundColor: colors.bg,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+        },
+        ctaButton: {
+          width: "100%",
+          padding: 18,
+          backgroundColor: colors.primary,
+          borderRadius: 14,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+        },
+        ctaButtonEmoji: { fontSize: 20 },
+        ctaButtonText: {
+          color: colors.white,
+          fontSize: 16,
+          fontWeight: "700",
+        },
+        errorText: {
+          color: colors.danger,
+          fontSize: 16,
+          textAlign: "center",
+          marginBottom: 16,
+        },
+        retryButton: {
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          backgroundColor: colors.primary,
+          borderRadius: 8,
+        },
+        retryText: {
+          color: colors.white,
+          fontSize: 14,
+          fontWeight: "600",
+        },
+      }),
+    [colors]
+  );
   const { supplierId, serviceId, scheduledAt, duration, addressId } = useLocalSearchParams<{
     supplierId: string;
     serviceId: string;
@@ -37,7 +240,6 @@ export default function BookingSummaryScreen() {
     addressId: string;
   }>();
   const insets = useSafeAreaInsets();
-  const tierConfig = CLIENT_TIERS[user?.tier ?? "bronze"];
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [service, setService] = useState<SupplierService | null>(null);
@@ -122,27 +324,24 @@ export default function BookingSummaryScreen() {
     return parts.join(", ");
   };
 
-  // Calculate pricing
+  // Pricing: service has a fixed price (not per hour). No platform fee for direct booking.
   const calculatePricing = () => {
-    if (!service || !duration) {
+    if (!service) {
       return {
         serviceCost: 0,
-        travelFee: 5.0,
-        platformFee: 5.0,
+        serviceFee: 0,
         discount: 0,
         total: 0,
       };
     }
 
-    const durationHours = parseFloat(duration) || 2;
-    const hourlyRate = service.price || 60;
-    const serviceCost = hourlyRate * durationHours;
-    const serviceFee = tierConfig.platformFee;
-    const subtotal = serviceCost + serviceFee;
+    const serviceCost = Number(service.price) || 0;
+    const serviceFee = 0;
+    const subtotal = serviceCost;
 
     const discountPercent = appliedDiscount > 0 ? appliedDiscount : 0;
     const discount = subtotal * (discountPercent / 100);
-    const total = subtotal - discount;
+    const total = Math.max(0, subtotal - discount);
 
     return {
       serviceCost,
@@ -155,7 +354,7 @@ export default function BookingSummaryScreen() {
   const pricing = calculatePricing();
 
   const handleProceedToPayment = () => {
-    if (!supplierId || !serviceId || !scheduledAt || !duration || !addressId || !address || !service) {
+    if (!supplierId || !serviceId || !scheduledAt || !addressId || !address || !service) {
       Alert.alert(t("common.error"), t("booking.missingBookingData"));
       return;
     }
@@ -251,7 +450,7 @@ export default function BookingSummaryScreen() {
             {/* Service */}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t("booking.service")}</Text>
-              <Text style={styles.detailValue}>{service.category_name || service.description || "Service"}</Text>
+              <Text style={styles.detailValue}>{service.name?.trim() || service.category_name || service.description || "Service"}</Text>
             </View>
 
             {/* Date */}
@@ -266,11 +465,17 @@ export default function BookingSummaryScreen() {
               <Text style={styles.detailValue}>{formattedTime}</Text>
             </View>
 
-            {/* Duration */}
+            {/* Duration (estimated job length; price is fixed, not per hour) */}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t("booking.estimatedDuration")}</Text>
               <Text style={styles.detailValue}>
-                {duration} {t("booking.hours")}
+                {duration
+                  ? `${duration} ${t("booking.hours")}`
+                  : service.duration_minutes != null
+                    ? service.duration_minutes >= 60
+                      ? `${Math.round(service.duration_minutes / 60)} ${t("booking.hours")}`
+                      : `${service.duration_minutes} ${t("booking.minutes")}`
+                    : "—"}
               </Text>
             </View>
 
@@ -291,27 +496,12 @@ export default function BookingSummaryScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t("booking.paymentSummary")}</Text>
 
-            {/* Service Cost */}
+            {/* Service cost (fixed price) */}
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>
-                {service.category_name || "Service"} ({duration} {t("booking.hours")} x ${service.price || 60}/hr)
+                {service.name?.trim() || service.category_name || "Service"}
               </Text>
               <Text style={styles.priceValue}>${pricing.serviceCost.toFixed(2)}</Text>
-            </View>
-
-            {/* Platform Fee */}
-            <View style={styles.priceRow}>
-              <View>
-                <Text style={styles.priceLabel}>{t("booking.travelFee")}</Text>
-                {tierConfig.key !== "bronze" && (
-                  <Text style={[styles.priceLabel, { color: tierConfig.color, fontSize: 11 }]}>
-                    {t("booking.tierFeeLabel", { tier: t(tierConfig.i18nKey) })}
-                  </Text>
-                )}
-              </View>
-              <Text style={[styles.priceValue, pricing.serviceFee === 0 && { color: "#10b981" }]}>
-                {pricing.serviceFee === 0 ? "$0.00" : `$${pricing.serviceFee.toFixed(2)}`}
-              </Text>
             </View>
 
             {/* Discount */}
@@ -346,221 +536,3 @@ export default function BookingSummaryScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: colors.bg,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    gap: 16,
-    backgroundColor: colors.bg,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  scrollContent: {
-    padding: 0,
-    paddingBottom: 20,
-    backgroundColor: colors.bg,
-  },
-  card: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 20,
-    marginBottom: 16,
-  },
-  cardTitle: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  providerRow: {
-    flexDirection: "row",
-    gap: 14,
-    alignItems: "center",
-  },
-  providerAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.bgInput,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  avatarEmoji: {
-    fontSize: 28,
-  },
-  providerInfo: {
-    flex: 1,
-  },
-  providerNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  providerName: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  verifiedCheckmark: {
-    color: colors.secondary,
-    fontSize: 18,
-  },
-  ratingText: {
-    color: colors.accent,
-    fontSize: 14,
-    marginTop: 4,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  detailLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  detailValue: {
-    color: colors.white,
-    fontSize: 14,
-    textAlign: "right",
-    maxWidth: 180,
-  },
-  addressValue: {
-    flex: 1,
-    textAlign: "right",
-  },
-  notesInput: {
-    width: "100%",
-    padding: 14,
-    backgroundColor: colors.bgInput,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    color: colors.white,
-    fontSize: 14,
-    minHeight: 80,
-    textAlignVertical: "top",
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  priceLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  priceValue: {
-    color: colors.white,
-    fontSize: 14,
-  },
-  discountLabel: {
-    color: colors.secondary,
-  },
-  discountValue: {
-    color: colors.secondary,
-  },
-  divider: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  totalLabel: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  totalValue: {
-    color: colors.secondary,
-    fontSize: 24,
-    fontWeight: "700",
-  },
-  ctaContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    backgroundColor: colors.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  ctaButton: {
-    width: "100%",
-    padding: 18,
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  ctaButtonEmoji: {
-    fontSize: 20,
-  },
-  ctaButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 16,
-  },
-  retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-});
