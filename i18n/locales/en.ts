@@ -1349,6 +1349,8 @@ export default {
         noData: "No statistics available yet",
         noDataDesc: "Complete jobs to see your performance metrics here.",
         minutes: "min",
+        loadFailed: "Could not load statistics. Please try again.",
+        retry: "Retry",
       },
     },
     providerNotificationPreferences: {
