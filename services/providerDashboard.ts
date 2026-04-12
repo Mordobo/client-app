@@ -184,12 +184,30 @@ export interface BlockedDateItem {
   label?: string;
 }
 
+/** Service area (map base, zones, distance pricing) returned with schedule-config. */
+export interface ProviderScheduleServiceArea {
+  baseAddress: string;
+  latitude: number | null;
+  longitude: number | null;
+  zones: {
+    id: string;
+    name: string;
+    enabled: boolean;
+    latitude?: number | null;
+    longitude?: number | null;
+  }[];
+  distanceChargeEnabled: boolean;
+  distanceChargeAfterKm: number;
+  distanceChargeRatePerKm: number;
+}
+
 export interface ProviderScheduleConfigResponse {
   scheduleConfig: WeeklyScheduleConfig;
   bufferMinutes: number;
   maxJobsPerDay: number;
   coverageRadiusKm: number | null;
   blockedDates: BlockedDateItem[];
+  serviceArea?: ProviderScheduleServiceArea;
 }
 
 export const getProviderScheduleConfig = async (): Promise<ProviderScheduleConfigResponse> => {
@@ -203,7 +221,14 @@ export const getProviderScheduleConfig = async (): Promise<ProviderScheduleConfi
   );
 };
 
-export const putProviderScheduleConfig = async (payload: { scheduleConfig: WeeklyScheduleConfig; bufferMinutes?: number; maxJobsPerDay?: number; coverageRadiusKm?: number; blockedDates?: BlockedDateItem[] }): Promise<ProviderScheduleConfigResponse> => {
+export const putProviderScheduleConfig = async (payload: {
+  scheduleConfig: WeeklyScheduleConfig;
+  bufferMinutes?: number;
+  maxJobsPerDay?: number;
+  coverageRadiusKm?: number;
+  blockedDates?: BlockedDateItem[];
+  serviceArea?: ProviderScheduleServiceArea;
+}): Promise<ProviderScheduleConfigResponse> => {
   return request<ProviderScheduleConfigResponse>(
     "/api/providers/schedule-config",
     {

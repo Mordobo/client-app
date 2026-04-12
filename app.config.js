@@ -37,6 +37,11 @@ export default {
     },
     android: {
       package: "com.mordobo.client",
+      config: {
+        googleMaps: {
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+        },
+      },
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
@@ -56,6 +61,13 @@ export default {
       "expo-router",
       "expo-localization",
       "expo-web-browser",
+      [
+        "expo-location",
+        {
+          locationWhenInUsePermission:
+            "Mordobo uses your location to set your service area and coverage on the map.",
+        },
+      ],
       [
         "expo-splash-screen",
         {
