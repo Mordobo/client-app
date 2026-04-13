@@ -140,7 +140,7 @@ export default function ProviderServiceAddScreen() {
   if (isEdit && serviceLoading) {
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -148,10 +148,14 @@ export default function ProviderServiceAddScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.8}>
-          <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.6)" />
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]}
+          onPress={handleBack}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>
           {isEdit ? t("providerDashboard.providerServices.edit") : t("providerDashboard.providerServices.addNew")}
         </Text>
         <TouchableOpacity
@@ -178,7 +182,7 @@ export default function ProviderServiceAddScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.field}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               {t("providerDashboard.providerServices.formName")}
             </Text>
             <Controller
@@ -186,9 +190,13 @@ export default function ProviderServiceAddScreen() {
               name="name"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.name && styles.inputError]}
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary },
+                    errors.name && styles.inputError,
+                  ]}
                   placeholder={t("providerDashboard.providerServices.formName")}
-                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  placeholderTextColor={colors.textTertiary}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -202,7 +210,7 @@ export default function ProviderServiceAddScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               {t("providerDashboard.providerServices.formDescription")}
             </Text>
             <Controller
@@ -210,9 +218,13 @@ export default function ProviderServiceAddScreen() {
               name="description"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+                  style={[
+                    styles.input,
+                    styles.textArea,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary },
+                  ]}
                   placeholder={t("providerDashboard.providerServices.formDescription")}
-                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  placeholderTextColor={colors.textTertiary}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -224,7 +236,7 @@ export default function ProviderServiceAddScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               {t("providerDashboard.providerServices.formPrice")}
             </Text>
             <Controller
@@ -232,9 +244,13 @@ export default function ProviderServiceAddScreen() {
               name="price"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.price && styles.inputError]}
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary },
+                    errors.price && styles.inputError,
+                  ]}
                   placeholder="0"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  placeholderTextColor={colors.textTertiary}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -248,7 +264,7 @@ export default function ProviderServiceAddScreen() {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               {t("providerDashboard.providerServices.formDuration")}
             </Text>
             <Controller
@@ -256,9 +272,12 @@ export default function ProviderServiceAddScreen() {
               name="durationMinutes"
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+                  style={[
+                    styles.input,
+                    { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary },
+                  ]}
                   placeholder="30"
-                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  placeholderTextColor={colors.textTertiary}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
@@ -285,15 +304,15 @@ const styles = StyleSheet.create({
   centered: { justifyContent: "center", alignItems: "center" },
   keyboard: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
-  backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 18, fontWeight: "700" },
   saveBtn: { paddingVertical: 8, paddingHorizontal: 12 },
   saveBtnText: { fontSize: 14, fontWeight: "500", color: "#22C55E" },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 24 },
   field: { marginBottom: 20 },
-  label: { fontSize: 12, fontWeight: "500", color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: "#fff" },
+  label: { fontSize: 12, fontWeight: "500", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16 },
   inputError: { borderColor: "rgba(239, 68, 68, 0.5)" },
   textArea: { minHeight: 88, textAlignVertical: "top" },
   errorText: { fontSize: 12, color: "#F87171", marginTop: 4 },
