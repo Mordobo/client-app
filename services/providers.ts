@@ -15,6 +15,14 @@ export interface ProviderProfile {
   isEmailVerified: boolean;
 }
 
+/** All-time stats for provider profile stat cards (jobs, completion %, rating). */
+export interface ProviderProfileStats {
+  completedJobs: number;
+  completionRatePercent: number;
+  averageRating: number | null;
+  reviewCount: number;
+}
+
 export interface UpdateProviderProfilePayload {
   displayName?: string;
   categoryId?: string | null;
@@ -35,6 +43,17 @@ export const getProviderProfile = async (): Promise<ProviderProfile> => {
       headers: { "Content-Type": "application/json" },
     },
     t("errors.getProviderProfileFailed"),
+  );
+};
+
+export const getProviderProfileStats = async (): Promise<ProviderProfileStats> => {
+  return request<ProviderProfileStats>(
+    "/api/providers/profile/stats",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("errors.getProviderProfileStatsFailed"),
   );
 };
 

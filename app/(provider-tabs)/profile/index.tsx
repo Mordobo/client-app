@@ -4,8 +4,7 @@ import { useMode } from "@/contexts/ModeContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
-import { getDashboardStats } from "@/services/providerDashboard";
-import { getProviderProfile } from "@/services/providers";
+import { getProviderProfile, getProviderProfileStats } from "@/services/providers";
 import { getProviderServices } from "@/services/providerServices";
 import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -44,14 +43,14 @@ export default function ProviderProfileScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
 
   const {
-    data: stats,
-    isLoading: statsLoading,
-    refetch: refetchStats,
-    isRefetching,
+    data: profileStats,
+    isLoading: profileStatsLoading,
+    refetch: refetchProfileStats,
+    isRefetching: profileStatsRefetching,
   } = useQuery({
-    queryKey: ["providerDashboardStats"],
-    queryFn: getDashboardStats,
-    staleTime: 60_000,
+    queryKey: ["providerProfileStats"],
+    queryFn: getProviderProfileStats,
+    staleTime: 30_000,
   });
 
   const { data: servicesData } = useQuery({
@@ -83,15 +82,16 @@ export default function ProviderProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       setAvatarError(false);
-      refetchProviderProfile();
+      void refetchProviderProfile();
+      void refetchProfileStats();
       // Scroll to top when Profile tab is pressed (e.g. from nested route or another tab)
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    }, [refetchProviderProfile]),
+    }, [refetchProviderProfile, refetchProfileStats]),
   );
 
   const onRefresh = useCallback(() => {
-    refetchStats();
-  }, [refetchStats]);
+    void Promise.all([refetchProfileStats(), refetchProviderProfile()]);
+  }, [refetchProfileStats, refetchProviderProfile]);
 
   const isVerified = false; // TODO: from API when provider verification exists
 
@@ -115,70 +115,72 @@ export default function ProviderProfileScreen() {
     icon: keyof typeof Ionicons.glyphMap;
     labelKey: string;
     descKey: string;
-    descParams?: Record<string, string | number>;
+    descParams?: Record<string, string | number | undefined>;
     href: string | null;
   };
 
-  const menuItems: MenuItem[] = [
-    {
-      icon: "construct-outline",
-      labelKey: "providerDashboard.providerProfile.myServices",
-      descKey: "providerDashboard.providerProfile.myServicesDesc",
-      descParams: { count: activeServicesCount },
-      href: "/(provider-tabs)/profile/services",
-    },
-    {
-      icon: "calendar-outline",
-      labelKey: "providerDashboard.providerProfile.availability",
-      descKey: "providerDashboard.providerProfile.availabilityDesc",
-      href: "/(provider-tabs)/profile/availability",
-    },
-    {
-      icon: "images-outline",
-      labelKey: "providerDashboard.providerProfile.portfolio",
-      descKey: "providerDashboard.providerProfile.portfolioDesc",
-      descParams: { count: portfolioPhotoCount },
-      href: "/(provider-tabs)/profile/portfolio",
-    },
-    {
-      icon: "star-outline",
-      labelKey: "providerDashboard.providerProfile.reviews",
-      descKey: "providerDashboard.providerProfile.reviewsDesc",
-      descParams: {
-        rating: stats?.averageRating?.toFixed(1) ?? "0",
-        count: stats?.reviewCount ?? 0,
+  const menuItems: MenuItem[] = useMemo(
+    () => [
+      {
+        icon: "construct-outline",
+        labelKey: "providerDashboard.providerProfile.myServices",
+        descKey: "providerDashboard.providerProfile.myServicesDesc",
+        descParams: { count: activeServicesCount },
+        href: "/(provider-tabs)/profile/services",
       },
-      href: "/(provider-tabs)/profile/reviews",
-    },
-    {
-      icon: "settings-outline",
-      labelKey: "providerDashboard.providerProfile.configuration",
-      descKey: "providerDashboard.providerProfile.configurationDesc",
-      href: "/(provider-tabs)/profile/settings",
-    },
-  ];
+      {
+        icon: "calendar-outline",
+        labelKey: "providerDashboard.providerProfile.availability",
+        descKey: "providerDashboard.providerProfile.availabilityDesc",
+        href: "/(provider-tabs)/profile/availability",
+      },
+      {
+        icon: "images-outline",
+        labelKey: "providerDashboard.providerProfile.portfolio",
+        descKey: "providerDashboard.providerProfile.portfolioDesc",
+        descParams: { count: portfolioPhotoCount },
+        href: "/(provider-tabs)/profile/portfolio",
+      },
+      {
+        icon: "star-outline",
+        labelKey: "providerDashboard.providerProfile.reviews",
+        descKey: "providerDashboard.providerProfile.reviewsDesc",
+        descParams: {
+          rating:
+            profileStats?.averageRating != null && (profileStats.reviewCount ?? 0) > 0
+              ? profileStats.averageRating.toFixed(1)
+              : t("providerDashboard.providerProfile.statRatingEmpty"),
+          count: profileStats?.reviewCount ?? 0,
+        },
+        href: "/(provider-tabs)/profile/reviews",
+      },
+      {
+        icon: "settings-outline",
+        labelKey: "providerDashboard.providerProfile.configuration",
+        descKey: "providerDashboard.providerProfile.configurationDesc",
+        href: "/(provider-tabs)/profile/settings",
+      },
+    ],
+    [activeServicesCount, portfolioPhotoCount, profileStats],
+  );
 
-  const completionPercent = 85; // TODO: from API when profile completion endpoint exists
-  const completedLabel = `${completionPercent}%`; // Job completion rate or profile completion
-
-  const statValues: Array<{ value: string; labelKey: string }> = [
-    {
-      value: String(stats?.weekJobs ?? stats?.todayJobs ?? 0),
-      labelKey: "providerDashboard.providerProfile.statJobs",
-    },
-    {
-      value: completedLabel,
-      labelKey: "providerDashboard.providerProfile.statCompleted",
-    },
-    {
-      value: stats?.averageRating?.toFixed(1) ?? "0",
-      labelKey: "providerDashboard.providerProfile.statRating",
-    },
-  ];
+  const statValues = useMemo(() => {
+    const completed = profileStats?.completedJobs ?? 0;
+    const pct = profileStats?.completionRatePercent ?? 0;
+    const avgRating = profileStats?.averageRating;
+    const reviewCount = profileStats?.reviewCount ?? 0;
+    const ratingValue =
+      reviewCount > 0 && avgRating != null ? avgRating.toFixed(1) : t("providerDashboard.providerProfile.statRatingEmpty");
+    return [
+      { value: String(completed), labelKey: "providerDashboard.providerProfile.statJobs" as const },
+      { value: `${pct}%`, labelKey: "providerDashboard.providerProfile.statCompleted" as const },
+      { value: ratingValue, labelKey: "providerDashboard.providerProfile.statRating" as const },
+    ];
+  }, [profileStats]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={isRefetching && !statsLoading} onRefresh={onRefresh} tintColor={colors.primary} />}>
+      <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={profileStatsRefetching && !profileStatsLoading} onRefresh={onRefresh} tintColor={colors.primary} />}>
         {/* Header with gradient and avatar */}
         <View style={styles.headerWrapper}>
           <LinearGradient colors={[...GRADIENT_COLORS]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientHeader} />
@@ -235,7 +237,7 @@ export default function ProviderProfileScreen() {
           </View>
 
           {/* Stats */}
-          {statsLoading ?
+          {profileStatsLoading ?
             <View style={styles.statsRow}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>

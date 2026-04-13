@@ -253,6 +253,8 @@ export default function CompleteJobScreen() {
       clearSession(id);
       queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
       queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
       router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
     } catch (err) {
       const apiData = err instanceof ApiError ? err.data : undefined;
@@ -260,6 +262,8 @@ export default function CompleteJobScreen() {
       if (code === "invalid_status") {
         queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
         queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
+        queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
         router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
         return;
       }

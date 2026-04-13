@@ -2,6 +2,7 @@ import { StarRating } from '@/components/StarRating';
 import { t } from '@/i18n';
 import { fetchOrderDetail } from '@/services/orders';
 import { createReview, ApiError } from '@/services/reviews';
+import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -40,6 +41,7 @@ function formatScheduledAt(scheduledAt: string | undefined): string {
 }
 
 export default function RateExperienceScreen() {
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const insets = useSafeAreaInsets();
@@ -95,6 +97,10 @@ export default function RateExperienceScreen() {
         comment: comment.trim() || undefined,
       });
 
+      queryClient.invalidateQueries({ queryKey: ['providerProfileStats'] });
+      queryClient.invalidateQueries({ queryKey: ['provider-statistics'] });
+      queryClient.invalidateQueries({ queryKey: ['providerDashboardStats'] });
+
       Alert.alert(t('common.success'), t('rating.reviewSubmitted'), [
         { text: t('common.ok'), onPress: () => router.push('/(tabs)/home') },
       ]);
@@ -112,7 +118,7 @@ export default function RateExperienceScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [orderId, supplierId, rating, comment, router]);
+  }, [orderId, supplierId, rating, comment, router, queryClient]);
 
   const handleSkip = useCallback(() => {
     router.push('/(tabs)/home');

@@ -109,6 +109,8 @@ export default function RateClientScreen() {
 
       queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
       queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
 
       router.replace("/(provider-tabs)/jobs");
       Alert.alert(t("common.success"), t("providerDashboard.rateClient.ratingSent"), [{ text: t("common.ok") }]);
