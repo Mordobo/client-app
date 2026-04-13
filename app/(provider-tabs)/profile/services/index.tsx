@@ -153,17 +153,27 @@ export default function ProviderServicesScreen() {
         <View style={styles.cardTop}>
           <View style={styles.cardLeft}>
             <View style={styles.nameRow}>
-              <Text style={styles.serviceName} numberOfLines={1}>
+              <Text style={[styles.serviceName, { color: colors.textPrimary }]} numberOfLines={1}>
                 {item.name}
               </Text>
-              <View style={[styles.badge, item.isActive ? styles.badgeActive : styles.badgePaused]}>
-                <Text style={[styles.badgeText, item.isActive ? styles.badgeTextActive : styles.badgeTextPaused]}>
+              <View
+                style={[
+                  styles.badge,
+                  item.isActive ? styles.badgeActive : [styles.badgePaused, { backgroundColor: colors.surfaceSecondary }],
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.badgeText,
+                    item.isActive ? styles.badgeTextActive : [styles.badgeTextPaused, { color: colors.textTertiary }],
+                  ]}
+                >
                   {item.isActive ? t("providerDashboard.providerServices.active") : t("providerDashboard.providerServices.paused")}
                 </Text>
               </View>
             </View>
             <View style={styles.metaRow}>
-              <Text style={styles.metaText}>
+              <Text style={[styles.metaText, { color: colors.textSecondary }]}>
                 ⏱️ {formatDuration(item.durationMinutes)}
               </Text>
             </View>
@@ -172,11 +182,11 @@ export default function ProviderServicesScreen() {
         </View>
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={styles.actionBtn}
+            style={[styles.actionBtn, { backgroundColor: colors.surfaceSecondary }]}
             onPress={() => handleEdit(item)}
             activeOpacity={0.7}
           >
-            <Text style={styles.actionBtnText}>
+            <Text style={[styles.actionBtnText, { color: colors.textSecondary }]}>
               {t("providerDashboard.providerServices.edit")}
             </Text>
           </TouchableOpacity>
@@ -185,8 +195,8 @@ export default function ProviderServicesScreen() {
               value={item.isActive}
               onValueChange={() => handleToggleStatus(item)}
               disabled={updateStatusMutation.isPending}
-              trackColor={{ false: "rgba(255,255,255,0.2)", true: "rgba(34, 197, 94, 0.4)" }}
-              thumbColor={item.isActive ? "#22C55E" : "rgba(255,255,255,0.5)"}
+              trackColor={{ false: colors.border, true: "rgba(34, 197, 94, 0.4)" }}
+              thumbColor={item.isActive ? "#22C55E" : colors.icon}
             />
           </View>
           <TouchableOpacity
@@ -207,37 +217,39 @@ export default function ProviderServicesScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
-            style={styles.backBtn}
+            style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]}
             onPress={handleBack}
             activeOpacity={0.8}
             accessibilityLabel={t("providerDashboard.providerServices.addNew")}
           >
-            <Ionicons name="arrow-back" size={22} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="arrow-back" size={22} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.title}>{t("providerDashboard.providerServices.title")}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {t("providerDashboard.providerServices.title")}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.addBtn}
           onPress={handleAddNew}
           activeOpacity={0.8}
         >
-          <Text style={styles.addBtnText}>+ {t("providerDashboard.providerServices.addNew")}</Text>
+          <Text style={[styles.addBtnText, { color: colors.primary }]}>+ {t("providerDashboard.providerServices.addNew")}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchRow}>
         <View style={[styles.searchWrap, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" style={styles.searchIcon} />
+          <Ionicons name="search" size={18} color={colors.iconSecondary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.textPrimary }]}
             placeholder={t("providerDashboard.providerServices.searchPlaceholder")}
-            placeholderTextColor="rgba(255,255,255,0.35)"
+            placeholderTextColor={colors.textTertiary}
             value={search}
             onChangeText={setSearch}
           />
         </View>
         {data != null && (
-          <Text style={styles.countText}>
+          <Text style={[styles.countText, { color: colors.textSecondary }]}>
             {t("providerDashboard.providerServices.serviceCount", { count: data.total })}
           </Text>
         )}
@@ -245,22 +257,22 @@ export default function ProviderServicesScreen() {
 
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#8B5CF6" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : services.length === 0 ? (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
             {t("providerDashboard.providerServices.emptyTitle")}
           </Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
             {t("providerDashboard.providerServices.emptySubtitle")}
           </Text>
           <TouchableOpacity
-            style={styles.emptyCta}
+            style={[styles.emptyCta, { backgroundColor: `${colors.primary}26`, borderColor: `${colors.primary}66` }]}
             onPress={handleAddNew}
             activeOpacity={0.8}
           >
-            <Text style={styles.emptyCtaText}>+ {t("providerDashboard.providerServices.addNew")}</Text>
+            <Text style={[styles.emptyCtaText, { color: colors.primary }]}>+ {t("providerDashboard.providerServices.addNew")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -274,7 +286,7 @@ export default function ProviderServicesScreen() {
             <RefreshControl
               refreshing={isRefetching && !isLoading}
               onRefresh={onRefresh}
-              tintColor="#8B5CF6"
+              tintColor={colors.primary}
             />
           }
         />
@@ -287,39 +299,39 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 18, fontWeight: "700", color: "#fff" },
+  backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  title: { fontSize: 18, fontWeight: "700" },
   addBtn: { paddingVertical: 8, paddingHorizontal: 12 },
-  addBtnText: { fontSize: 14, fontWeight: "500", color: "#A78BFA" },
+  addBtnText: { fontSize: 14, fontWeight: "500" },
   searchRow: { paddingHorizontal: 20, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 12 },
   searchWrap: { flex: 1, flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 14, color: "#fff", paddingVertical: 0 },
-  countText: { fontSize: 12, color: "rgba(255,255,255,0.5)" },
+  searchInput: { flex: 1, fontSize: 14, paddingVertical: 0 },
+  countText: { fontSize: 12 },
   listContent: { paddingHorizontal: 20, paddingTop: 4 },
   card: { padding: 16, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   cardLeft: { flex: 1, marginRight: 12 },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  serviceName: { fontSize: 14, fontWeight: "500", color: "#fff", flex: 1 },
+  serviceName: { fontSize: 14, fontWeight: "500", flex: 1 },
   badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
   badgeActive: { backgroundColor: "rgba(34, 197, 94, 0.15)" },
-  badgePaused: { backgroundColor: "rgba(255,255,255,0.05)" },
+  badgePaused: {},
   badgeText: { fontSize: 10, fontWeight: "500" },
   badgeTextActive: { color: "#4ADE80" },
-  badgeTextPaused: { color: "rgba(255,255,255,0.4)" },
+  badgeTextPaused: {},
   metaRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  metaText: { fontSize: 12, color: "rgba(255,255,255,0.4)" },
+  metaText: { fontSize: 12 },
   price: { fontSize: 18, fontWeight: "700", color: "#4ADE80" },
   actionsRow: { flexDirection: "row", gap: 8, alignItems: "center" },
-  actionBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: "rgba(255,255,255,0.05)", alignItems: "center" },
-  actionBtnText: { fontSize: 12, fontWeight: "500", color: "rgba(255,255,255,0.6)" },
+  actionBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center" },
+  actionBtnText: { fontSize: 12, fontWeight: "500" },
   toggleWrap: { paddingVertical: 4, paddingHorizontal: 8, justifyContent: "center" },
   deleteBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: "rgba(239, 68, 68, 0.1)", alignItems: "center", justifyContent: "center" },
   centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyWrap: { flex: 1, paddingHorizontal: 20, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { fontSize: 18, fontWeight: "600", color: "#fff", marginBottom: 8 },
-  emptySubtitle: { fontSize: 14, color: "rgba(255,255,255,0.5)", textAlign: "center", marginBottom: 24 },
-  emptyCta: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, backgroundColor: "rgba(139, 92, 246, 0.2)", borderWidth: 1, borderColor: "rgba(139, 92, 246, 0.4)" },
-  emptyCtaText: { fontSize: 14, fontWeight: "500", color: "#A78BFA" },
+  emptyTitle: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, textAlign: "center", marginBottom: 24 },
+  emptyCta: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, borderWidth: 1 },
+  emptyCtaText: { fontSize: 14, fontWeight: "500" },
 });
