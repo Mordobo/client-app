@@ -612,6 +612,14 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(auth)/welcome');
+    }
+  }, []);
+
   const handleAppleRegister = async () => {
     setAppleLoading(true);
     try {
@@ -637,12 +645,19 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <ScrollView showsVerticalScrollIndicator={true} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          showsVerticalScrollIndicator={true}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.content}>
             {/* Header */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={handleBack}
+              hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back')}
             >
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -845,7 +860,13 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   backButton: {
+    alignSelf: 'flex-start',
     marginBottom: 40,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingRight: 8,
   },
   title: {
     fontSize: 32,

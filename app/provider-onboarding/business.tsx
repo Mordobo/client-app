@@ -1,13 +1,26 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { t } from "@/i18n";
 import { fetchCategories, type Category } from "@/services/categories";
+import { ApiError } from "@/services/auth";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
@@ -89,22 +102,27 @@ export default function ProviderOnboardingBusinessScreen() {
     }, []),
   );
 
-  const handleContinue = async () => {
-    if (!canContinue) return;
+  const handleContinue = useCallback(async () => {
+    if (!businessName.trim() || !selectedCategory || description.trim().length < MIN_DESCRIPTION_LENGTH) {
+      return;
+    }
     setSaving(true);
     try {
+      const categoryId = selectedCategory.id.trim();
       await submitOnboardingStep(1, {
         businessName: businessName.trim(),
-        categoryId: selectedCategory?.id,
+        ...(categoryId.length > 0 ? { categoryId } : {}),
         description: description.trim(),
       });
       router.push("/provider-onboarding/services");
     } catch (e) {
       console.error("[Business] submitOnboardingStep failed:", e);
+      const message = e instanceof ApiError ? e.message : t("errors.submitOnboardingFailed");
+      Alert.alert(t("common.error"), message, [{ text: t("common.ok") }]);
     } finally {
       setSaving(false);
     }
-  };
+  }, [businessName, description, router, selectedCategory]);
 
   const handleSelectCategory = (option: CategoryOption) => {
     setSelectedCategory(option);
@@ -115,7 +133,12 @@ export default function ProviderOnboardingBusinessScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ProgressBar currentStep={1} totalSteps={TOTAL_STEPS} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>{t("providerOnboarding.business.title")}</Text>
         <Text style={styles.subtitle}>{t("providerOnboarding.business.subtitle")}</Text>
 
@@ -187,11 +210,23 @@ export default function ProviderOnboardingBusinessScreen() {
         <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
           <Text style={styles.backButtonText}>{t("providerOnboarding.business.back")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue || saving}>
-          <LinearGradient colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.continueButtonGradient, (!canContinue || saving) && styles.continueButtonDisabled]}>
+        <Pressable
+          style={styles.continueButton}
+          onPress={handleContinue}
+          disabled={!canContinue || saving}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canContinue || saving }}
+        >
+          <LinearGradient
+            pointerEvents="none"
+            colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.continueButtonGradient, (!canContinue || saving) && styles.continueButtonDisabled]}
+          >
             {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={[styles.continueButtonText, (!canContinue || saving) && styles.continueButtonTextDisabled]}>{t("providerOnboarding.business.continue")}</Text>}
           </LinearGradient>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -367,6 +402,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 48,
   },
   continueButtonDisabled: {
     opacity: 0.6,
