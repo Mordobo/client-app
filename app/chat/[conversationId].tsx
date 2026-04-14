@@ -46,7 +46,7 @@ function isImageContent(content: string): boolean {
 
 export default function ChatScreen() {
   const router = useRouter();
-  const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
+  const { conversationId, navRef } = useLocalSearchParams<{ conversationId: string; navRef?: string }>();
   const { user } = useAuth();
   const { mode } = useMode();
   const themeColors = useThemeColors();
@@ -626,7 +626,7 @@ export default function ChatScreen() {
       sub.remove();
       stopPolling();
     };
-  }, [conversationId, loadConversation, loadMessages, refreshActiveQuote, refreshActiveOrder, router]);
+  }, [conversationId, navRef, loadConversation, loadMessages, refreshActiveQuote, refreshActiveOrder, router]);
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", (e) => {

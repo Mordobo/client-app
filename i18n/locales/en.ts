@@ -764,6 +764,10 @@ export default {
     skip: "Skip",
     reviewSubmitted: "Thank you! Your review was sent.",
     alreadyReviewed: "You already reviewed this service. Thank you!",
+    errors: {
+      orderNotReady:
+        "You can submit your rating after the provider has marked the job as finished.",
+    },
   },
   profile: {
     title: "Profile",

@@ -9,7 +9,7 @@ import {
   type NotificationType,
 } from '@/services/notifications';
 import { getLocalizedNotificationDisplay } from '@/utils/notificationDisplay';
-import { resolveNotificationRelatedHref } from '@/utils/notificationNavigation';
+import { resolveNotificationRelatedHref, withNotificationNavRefresh } from '@/utils/notificationNavigation';
 import { Ionicons } from '@expo/vector-icons';
 import type { Href } from 'expo-router';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -137,7 +137,8 @@ export default function NotificationDetailScreen() {
     try {
       const href = await resolveNotificationRelatedHref(notification, mode);
       if (href) {
-        router.push(href as Href);
+        const hrefWithBust = withNotificationNavRefresh(href);
+        router.replace(hrefWithBust as Href);
       } else {
         Alert.alert(t('common.error'), t('notifications.detail.noRelated'));
       }

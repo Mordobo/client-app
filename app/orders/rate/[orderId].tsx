@@ -43,7 +43,7 @@ function formatScheduledAt(scheduledAt: string | undefined): string {
 export default function RateExperienceScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, navRef } = useLocalSearchParams<{ orderId: string; navRef?: string }>();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom || (Platform.OS === 'android' ? 40 : 0);
 
@@ -66,7 +66,7 @@ export default function RateExperienceScreen() {
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, navRef]);
 
   useEffect(() => {
     loadOrder();
@@ -108,10 +108,16 @@ export default function RateExperienceScreen() {
       const isAlreadyReviewed =
         err instanceof ApiError &&
         (err.statusCode === 409 || err.data?.code === 'already_reviewed');
+      const isOrderNotReady =
+        err instanceof ApiError &&
+        (err.statusCode === 400 || err.statusCode === 422) &&
+        err.data?.code === 'invalid_order_status';
       if (isAlreadyReviewed) {
         Alert.alert(t('common.success'), t('rating.alreadyReviewed'), [
           { text: t('common.ok'), onPress: () => router.push('/(tabs)/home') },
         ]);
+      } else if (isOrderNotReady) {
+        Alert.alert(t('common.error'), t('rating.errors.orderNotReady'));
       } else {
         Alert.alert(t('common.error'), t('errors.requestFailed'));
       }

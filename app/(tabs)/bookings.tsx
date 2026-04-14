@@ -3,8 +3,8 @@ import { t, getLocale } from '@/i18n';
 import { getOrCreateConversation } from '@/services/conversations';
 import { fetchOrders, Order, OrderStatus } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -234,9 +234,11 @@ export default function BookingsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void loadOrders();
+    }, []),
+  );
 
   const loadOrders = async () => {
     try {

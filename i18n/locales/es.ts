@@ -764,6 +764,10 @@ export default {
     skip: "Omitir",
     reviewSubmitted: "¡Gracias! Tu reseña fue enviada.",
     alreadyReviewed: "Ya calificaste este servicio. ¡Gracias!",
+    errors: {
+      orderNotReady:
+        "Podrás enviar tu calificación cuando el proveedor marque el trabajo como finalizado.",
+    },
   },
   profile: {
     title: "Perfil",

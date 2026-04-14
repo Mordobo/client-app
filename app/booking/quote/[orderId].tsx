@@ -355,8 +355,10 @@ export default function QuoteScreen() {
       }),
     [providerColors]
   );
-  const params = useLocalSearchParams<{ orderId: string | string[] }>();
+  const params = useLocalSearchParams<{ orderId: string | string[]; navRef?: string | string[] }>();
   const orderId = typeof params.orderId === 'string' ? params.orderId : Array.isArray(params.orderId) ? params.orderId[0] : undefined;
+  const navRef =
+    typeof params.navRef === 'string' ? params.navRef : Array.isArray(params.navRef) ? params.navRef[0] : undefined;
   const insets = useSafeAreaInsets();
   const [orderData, setOrderData] = useState<OrderDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -392,7 +394,7 @@ export default function QuoteScreen() {
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, navRef]);
 
   useEffect(() => {
     if (orderId) {
@@ -401,7 +403,7 @@ export default function QuoteScreen() {
       setLoading(false);
       setError(t('quote.notFound'));
     }
-  }, [orderId, loadData]);
+  }, [orderId, navRef, loadData]);
 
   // Go to payment without approving first; order is confirmed only after successful payment
   const handleGoToPayment = () => {
