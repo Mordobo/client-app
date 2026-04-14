@@ -13,6 +13,7 @@ export default {
     discard: "Discard",
     redirecting: "Redirecting...",
     loading: "Loading...",
+    retry: "Retry",
   },
   maintenance: {
     title: "Under maintenance",
@@ -498,6 +499,9 @@ export default {
     cancelRequestFailed: "Failed to cancel request",
     chatBack: "Chat Back",
     notFound: "Quote not found",
+    orderNoQuoteSummary:
+      "This booking has no quote breakdown (for example, instant book-and-pay). Open your booking to see status and details.",
+    viewBooking: "View booking",
     noAddress: "No address specified",
     noDate: "No date specified",
     durationHours: "{{count}} hr",
@@ -987,6 +991,16 @@ export default {
     refundIssuedProviderMessage:
       "A refund of %{amount} was recorded for %{serviceName}. Reason: %{reason}.",
     refundServiceFallback: "your booking",
+    detail: {
+      screenTitle: "Notification",
+      openRelated: "View in app",
+      openRelatedHint:
+        "Opens the screen that matches this alert—for example your booking, a quote, chat, ratings, or (for providers) jobs, requests, or earnings.",
+      notFound: "This notification is no longer available.",
+      loadError: "We could not load this notification.",
+      dateLabel: "Date",
+      noRelated: "This alert has no screen to open in the app.",
+    },
   },
   settings: {
     title: "Settings",

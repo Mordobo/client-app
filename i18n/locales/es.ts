@@ -13,6 +13,7 @@ export default {
     discard: "Descartar",
     redirecting: "Redirigiendo...",
     loading: "Cargando...",
+    retry: "Reintentar",
   },
   maintenance: {
     title: "En mantenimiento",
@@ -498,6 +499,9 @@ export default {
     cancelRequestFailed: "Error al cancelar la solicitud",
     chatBack: "Volver al chat",
     notFound: "Cotización no encontrada",
+    orderNoQuoteSummary:
+      "Esta reserva no incluye desglose de cotización (por ejemplo, reserva y pago directo). Abre la reserva para ver el estado y los detalles.",
+    viewBooking: "Ver reserva",
     noAddress: "Sin dirección",
     noDate: "Sin fecha",
     durationHours: "{{count}} hr",
@@ -987,6 +991,16 @@ export default {
     refundIssuedProviderMessage:
       "Se registró un reembolso de %{amount} por %{serviceName}. Motivo: %{reason}.",
     refundServiceFallback: "tu reserva",
+    detail: {
+      screenTitle: "Notificación",
+      openRelated: "Ver en la app",
+      openRelatedHint:
+        "Te lleva a la pantalla que corresponde a esta alerta: por ejemplo tu reserva, una cotización, el chat, valorar el servicio o (si eres proveedor) el trabajo, solicitudes o ingresos.",
+      notFound: "Esta notificación ya no está disponible.",
+      loadError: "No pudimos cargar esta notificación.",
+      dateLabel: "Fecha",
+      noRelated: "Esta alerta no tiene una pantalla para abrir en la app.",
+    },
   },
   settings: {
     title: "Configuración",
