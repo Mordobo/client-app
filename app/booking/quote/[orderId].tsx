@@ -621,13 +621,53 @@ export default function QuoteScreen() {
     );
   }
 
-  if (error || !orderData?.quote || !quote) {
+  if (error) {
     return (
       <View style={[styles.container, loadingTheme?.container]}>
         <View style={[styles.centerContainer, loadingTheme?.centerContainer]}>
-          <Text style={[styles.errorText, loadingTheme?.errorText]}>{error || 'Quote not found'}</Text>
+          <Text style={[styles.errorText, loadingTheme?.errorText]}>{error}</Text>
           <TouchableOpacity style={[styles.retryButton, loadingTheme?.retryButton]} onPress={loadData}>
-            <Text style={[styles.retryText, loadingTheme?.retryText]}>Retry</Text>
+            <Text style={[styles.retryText, loadingTheme?.retryText]}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (orderData?.order && (!orderData.quote || !quote)) {
+    return (
+      <View style={[styles.container, loadingTheme?.container]}>
+        <View style={[styles.centerContainer, loadingTheme?.centerContainer]}>
+          <Text style={[styles.errorText, loadingTheme?.errorText, { color: themeColors.textSecondary }]}>
+            {t('quote.orderNoQuoteSummary')}
+          </Text>
+          {orderId ? (
+            <TouchableOpacity
+              style={[styles.retryButton, loadingTheme?.retryButton, { marginBottom: 12 }]}
+              onPress={() =>
+                router.replace(
+                  mode === 'provider' ? `/(provider-tabs)/jobs/${orderId}` : `/orders/${orderId}`
+                )
+              }
+            >
+              <Text style={[styles.retryText, loadingTheme?.retryText]}>{t('quote.viewBooking')}</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity style={[styles.retryButton, loadingTheme?.retryButton]} onPress={loadData}>
+            <Text style={[styles.retryText, loadingTheme?.retryText]}>{t('common.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!orderData?.quote || !quote) {
+    return (
+      <View style={[styles.container, loadingTheme?.container]}>
+        <View style={[styles.centerContainer, loadingTheme?.centerContainer]}>
+          <Text style={[styles.errorText, loadingTheme?.errorText]}>{t('quote.notFound')}</Text>
+          <TouchableOpacity style={[styles.retryButton, loadingTheme?.retryButton]} onPress={loadData}>
+            <Text style={[styles.retryText, loadingTheme?.retryText]}>{t('common.retry')}</Text>
           </TouchableOpacity>
         </View>
       </View>

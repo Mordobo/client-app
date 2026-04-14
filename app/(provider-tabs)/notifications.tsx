@@ -3,7 +3,6 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { type Notification, type NotificationCategory, deleteAllNotifications, deleteNotification, fetchNotifications, getNotificationCategory, markAllNotificationsAsRead, markNotificationAsRead } from "@/services/notifications";
 import { getLocalizedNotificationDisplay } from "@/utils/notificationDisplay";
-import { fetchOrderDetail } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -215,48 +214,7 @@ export default function ProviderNotificationsScreen() {
         }
       }
 
-      const meta = notification.metadata || {};
-      const type = notification.type;
-
-      switch (type) {
-        case "booking_confirmed":
-        case "booking_cancelled":
-        case "provider_on_way":
-        case "quote_approved":
-          if (meta.orderId) router.push(`/(provider-tabs)/jobs/${meta.orderId}`);
-          break;
-        case "new_booking_request":
-          router.push("/(provider-tabs)/requests");
-          break;
-        case "new_message":
-          if (meta.conversationId) {
-            router.push(`/chat/${meta.conversationId}`);
-          } else if (meta.orderId) {
-            fetchOrderDetail(meta.orderId)
-              .then((detail) => {
-                if (detail.conversation_id) router.push(`/chat/${detail.conversation_id}`);
-              })
-              .catch(() => {});
-          }
-          break;
-        case "payment_processed":
-        case "payment_received":
-        case "refund_issued":
-          router.push("/(provider-tabs)/earnings");
-          break;
-        case "rate_service":
-        case "new_review":
-          router.push("/(provider-tabs)/profile/reviews");
-          break;
-        case "quote_received":
-          if (meta.orderId) router.push(`/(provider-tabs)/jobs/${meta.orderId}`);
-          break;
-        case "offer":
-          router.push("/(provider-tabs)");
-          break;
-        default:
-          break;
-      }
+      router.push(`/notifications/${notification.id}`);
     },
     [router],
   );

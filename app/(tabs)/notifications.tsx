@@ -8,7 +8,6 @@ import {
   markAllNotificationsAsRead,
 } from '@/services/notifications';
 import { getLocalizedNotificationDisplay } from '@/utils/notificationDisplay';
-import { fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -208,43 +207,7 @@ export default function NotificationsScreen() {
         }
       }
 
-      // Navigate based on notification type
-      const metadata = notification.metadata || {};
-      switch (notification.type) {
-        case 'booking_confirmed':
-        case 'booking_cancelled':
-        case 'payment_processed':
-        case 'provider_on_way':
-        case 'quote_received':
-        case 'refund_issued':
-          if (metadata.orderId) {
-            router.push(`/booking/quote/${metadata.orderId}`);
-          }
-          break;
-        case 'new_message':
-          if (metadata.conversationId) {
-            router.push(`/chat/${metadata.conversationId}`);
-          } else if (metadata.orderId) {
-            fetchOrderDetail(metadata.orderId)
-              .then((detail) => {
-                if (detail.conversation_id) router.push(`/chat/${detail.conversation_id}`);
-              })
-              .catch(() => {});
-          }
-          break;
-        case 'rate_service':
-        case 'job_pending_review':
-        case 'job_completed':
-          if (metadata.orderId) {
-            router.push(`/orders/rate/${metadata.orderId}`);
-          }
-          break;
-        case 'offer':
-          router.push('/(tabs)/home');
-          break;
-        default:
-          break;
-      }
+      router.push(`/notifications/${notification.id}`);
     },
     [router]
   );
