@@ -89,17 +89,18 @@ export default function TabLayout() {
   const { isAuthenticated } = useAuth();
   const { mode, isLoading } = useMode();
 
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)" />;
-  }
-
   // After login: redirect to provider dashboard when saved mode is provider (synced with DB)
+  // Must run before any early return so hook order is stable when isAuthenticated flips (e.g. logout).
   useEffect(() => {
-    if (isLoading) return;
+    if (!isAuthenticated || isLoading) return;
     if (mode === 'provider') {
       router.replace('/(provider-tabs)');
     }
-  }, [isLoading, mode, router]);
+  }, [isAuthenticated, isLoading, mode, router]);
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)" />;
+  }
 
   // Calculate bottom padding respecting safe area
   const bottomPadding = Math.max(insets.bottom, 24);

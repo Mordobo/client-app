@@ -1,6 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
-import { useRouter } from "expo-router";
 import React from "react";
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -12,28 +11,17 @@ const PROFILE_VERSION_LABEL = "3.0.7";
  * Reused to avoid duplicating logic and ensure consistent layout and behavior.
  */
 export function ProfileFooter() {
-  const router = useRouter();
   const { logout } = useAuth();
 
   const handleLogout = () => {
     const performLogout = async () => {
       try {
         await logout();
-        setTimeout(() => {
-          try {
-            router.replace("/(auth)");
-          } catch {
-            router.replace("/(auth)/welcome");
-          }
-        }, 100);
+        // Navigation: (tabs)/(provider-tabs) layouts redirect to /(auth) when unauthenticated.
+        // Avoid router.replace here — it races unmount and triggers "navigate before Root Layout".
       } catch (error) {
         console.error("[ProfileFooter] Logout error:", error);
-        try {
-          router.replace("/(auth)");
-        } catch (navError) {
-          console.error("[ProfileFooter] Navigation error after logout failure:", navError);
-          Alert.alert(t("common.error"), t("profile.logoutError"));
-        }
+        Alert.alert(t("common.error"), t("profile.logoutError"));
       }
     };
 

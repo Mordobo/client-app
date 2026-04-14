@@ -29,7 +29,7 @@ interface ProgressStep {
 
 export default function OrderDetailScreen() {
   const router = useRouter();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, navRef } = useLocalSearchParams<{ orderId: string; navRef?: string }>();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetailResponse | null>(null);
@@ -37,10 +37,34 @@ export default function OrderDetailScreen() {
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    if (orderId) {
-      loadOrderDetail();
-    }
-  }, [orderId]);
+    if (!orderId) return;
+
+    let cancelled = false;
+    setOrderDetail(null);
+    setLoading(true);
+
+    (async () => {
+      try {
+        const data = await fetchOrderDetail(orderId);
+        if (!cancelled) {
+          setOrderDetail(data);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('[OrderDetail] Failed to load order:', error);
+          Alert.alert(t('common.error'), t('errors.requestFailed'));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, navRef]);
 
   const loadOrderDetail = async () => {
     if (!orderId) return;
