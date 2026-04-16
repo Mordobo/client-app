@@ -1,26 +1,25 @@
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
-import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, AppState, type AppStateStatus, Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import { MaintenanceScreen } from "@/components/MaintenanceScreen";
+import { MaintenanceModal } from "@/components/MaintenanceModal";
 import { initializeGoogleSignIn } from "@/config/google-signin";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ModeProvider } from "@/contexts/ModeContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ApiError } from "@/services/auth";
-import { fetchPlatformStatus } from "@/services/platformStatus";
+import { fetchPlatformStatus, PLATFORM_STATUS_QUERY_KEY } from "@/services/platformStatus";
+import { queryClient } from "@/services/queryClient";
 import { useEffect } from "react";
 
 
 export const unstable_settings = {
   anchor: "(auth)",
 };
-
-const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { isLoading } = useAuth();
@@ -33,10 +32,10 @@ function RootLayoutNav() {
     refetch: refetchPlatformStatus,
     isFetching: platformStatusFetching,
   } = useQuery({
-    queryKey: ["platform-status"],
+    queryKey: PLATFORM_STATUS_QUERY_KEY,
     queryFn: fetchPlatformStatus,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
     retry: 1,
   });
 
@@ -68,16 +67,15 @@ function RootLayoutNav() {
     );
   }
 
-  if (maintenanceOn) {
-    return (
-      <MaintenanceScreen onRetry={() => void refetchPlatformStatus()} isChecking={platformStatusFetching} />
-    );
-  }
-
   const statusBarBackgroundColor = colorScheme === "dark" ? "#1a1a2e" : "#F9FAFB";
 
   return (
     <NavigationThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <MaintenanceModal
+        visible={maintenanceOn}
+        onRetry={() => void refetchPlatformStatus()}
+        isChecking={platformStatusFetching}
+      />
       <Stack
         screenOptions={{
           headerShown: false,

@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n';
+import { PLATFORM_STATUS_QUERY_KEY } from '@/services/platformStatus';
+import { queryClient } from '@/services/queryClient';
 import { API_BASE, getApiBaseUrl } from '@/utils/apiConfig';
 import { authEvents } from '@/utils/authEvents';
 
@@ -445,6 +447,10 @@ export const request = async <T>(
           const retryCode = typeof retryData === 'object' && retryData && 'code' in retryData
             ? String(retryData.code)
             : '';
+          if (retryResponse.status === 503 && retryCode === 'maintenance_mode') {
+            queryClient.setQueryData(PLATFORM_STATUS_QUERY_KEY, { maintenance_mode: true });
+            throw new ApiError(t('errors.maintenanceMode'), 503, retryData);
+          }
           const isRetryTokenExpired = retryMessage.includes('invalid') && 
             (retryMessage.includes('expired') || retryMessage.includes('token'));
           const isRetryAuthError = retryResponse.status === 401 || 
@@ -489,11 +495,9 @@ export const request = async <T>(
           ? String((responseData as { code: unknown }).code)
           : '';
       if (response.status === 503 && errCodeEarly === 'maintenance_mode') {
+        queryClient.setQueryData(PLATFORM_STATUS_QUERY_KEY, { maintenance_mode: true });
         throw new ApiError(t('errors.maintenanceMode'), 503, responseData);
       }
-      // #region agent log
-      if (path.includes('validate-email')) fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:request',message:'response not ok',data:{path,status:response.status,code:(responseData as {code?:string})?.code},timestamp:Date.now(),hypothesisId:'H2',runId:'validate-email'})}).catch(()=>{});
-      // #endregion
       const rawMessage = typeof responseData === 'object' && responseData && 'message' in responseData
         ? (responseData as { message: unknown }).message
         : undefined;
@@ -733,10 +737,6 @@ export const validateEmail = async (
     email: payload.email.trim().toLowerCase(),
     password: payload.password.trim(), // Ensure password is trimmed
   };
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth.ts:validateEmail',message:'validateEmail called',data:{email:body.email,path:'/auth/validate-email'},timestamp:Date.now(),hypothesisId:'H1',runId:'validate-email'})}).catch(()=>{});
-  // #endregion
-
   return request<ValidateEmailResponse>(
     '/auth/validate-email',
     {
