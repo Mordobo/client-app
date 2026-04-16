@@ -11,7 +11,7 @@ import {
 } from "@/services/providerDashboard";
 import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
+import { PlatformFlashList } from "@/components/PlatformFlashList";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -304,7 +304,7 @@ export default function ProviderRequestsScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlashList
+        <PlatformFlashList
           data={requests}
           renderItem={renderItem}
           estimatedItemSize={140}

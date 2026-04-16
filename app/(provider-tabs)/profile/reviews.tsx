@@ -10,7 +10,7 @@ import {
     type ProviderReviewsSort,
 } from "@/services/reviews";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
+import { PlatformFlashList } from "@/components/PlatformFlashList";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -202,7 +202,7 @@ export default function ProviderReviewsScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlashList
+        <PlatformFlashList
           data={allReviews}
           keyExtractor={(item) => item.id}
           estimatedItemSize={180}

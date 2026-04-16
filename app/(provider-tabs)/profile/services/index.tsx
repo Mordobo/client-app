@@ -7,7 +7,7 @@ import {
     updateProviderServiceStatus,
 } from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
+import { PlatformFlashList } from "@/components/PlatformFlashList";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -276,7 +276,7 @@ export default function ProviderServicesScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <FlashList
+        <PlatformFlashList
           data={services}
           renderItem={renderItem}
           estimatedItemSize={140}

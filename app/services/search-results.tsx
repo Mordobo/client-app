@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FlashList } from '@shopify/flash-list';
+import { PlatformFlashList } from '@/components/PlatformFlashList';
 
 type FilterType = 'all' | 'near_me' | 'top_rated' | 'low_price' | 'available_today';
 
@@ -321,7 +321,7 @@ export default function SearchResultsScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <FlashList
+        <PlatformFlashList
           data={suppliers}
           renderItem={({ item }) => {
             // Validate item before rendering

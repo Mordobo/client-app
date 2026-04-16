@@ -3,7 +3,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { Conversation, fetchConversations } from '@/services/conversations';
 import { Ionicons } from '@expo/vector-icons';
-import { FlashList } from '@shopify/flash-list';
+import { PlatformFlashList } from '@/components/PlatformFlashList';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -386,7 +386,7 @@ export default function ConversationsListScreen() {
         </View>
       ) : (
         <View style={styles.listWrapper}>
-          <FlashList
+          <PlatformFlashList
             data={conversations}
             keyExtractor={(item) => item.id}
             renderItem={renderConversation}
