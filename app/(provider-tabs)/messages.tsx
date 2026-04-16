@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Modal,
   Platform,
   RefreshControl,
@@ -23,12 +22,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { ThemeColors } from '@/utils/themeStyles';
 
-const UNREAD_BG = 'rgba(139, 92, 246, 0.1)';
-const UNREAD_BORDER = 'rgba(139, 92, 246, 0.3)';
-const AVATAR_BG = 'rgba(61, 51, 112, 0.5)';
-const FILTER_ACTIVE_BG = 'rgba(99, 102, 241, 0.9)';
-const FILTER_INACTIVE_BG = 'rgba(255,255,255,0.05)';
 const PURPLE_GRADIENT = ['#6366F1', '#8B5CF6'];
 const STATUS_COLORS: Record<string, string> = {
   in_progress: '#8B5CF6',
@@ -79,6 +74,299 @@ function formatTime(dateString: string | null): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function createProviderInboxStyles(c: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.screenBackground,
+    },
+    header: {
+      paddingHorizontal: 20,
+      paddingBottom: 16,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    headerTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: c.textPrimary,
+    },
+    iconButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: c.surfaceSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: c.cardBorder,
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      height: 44,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      backgroundColor: c.surfaceSecondary,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: c.cardBorder,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: 14,
+      color: c.textPrimary,
+      paddingVertical: 0,
+    },
+    filters: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    filterPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 999,
+      backgroundColor: c.surfaceSecondary,
+      borderWidth: 1,
+      borderColor: c.cardBorder,
+    },
+    filterPillActive: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    filterLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+      color: c.textSecondary,
+    },
+    filterLabelActive: {
+      color: '#FFFFFF',
+    },
+    filterCount: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 999,
+      backgroundColor: c.border,
+    },
+    filterCountActive: {
+      backgroundColor: 'rgba(255,255,255,0.25)',
+    },
+    filterCountText: {
+      fontSize: 10,
+      color: c.textSecondary,
+    },
+    filterCountTextActive: {
+      color: '#FFFFFF',
+    },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingTop: 8,
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      marginBottom: 8,
+    },
+    cardTouchable: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    menuButton: {
+      padding: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    cardUnread: {},
+    cardLast: {
+      marginBottom: 0,
+    },
+    avatarWrap: {
+      position: 'relative',
+    },
+    avatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+    },
+    avatarPlaceholder: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: c.surfaceSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarEmoji: {
+      fontSize: 20,
+    },
+    onlineIndicator: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: '#22C55E',
+      borderWidth: 2,
+    },
+    content: {
+      flex: 1,
+      minWidth: 0,
+    },
+    row1: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 2,
+    },
+    name: {
+      fontSize: 14,
+      fontWeight: '500',
+      flex: 1,
+      color: c.textPrimary,
+    },
+    nameUnread: {},
+    time: {
+      fontSize: 12,
+      color: c.textTertiary,
+    },
+    timeUnread: {
+      color: c.primary,
+    },
+    row2: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    preview: {
+      fontSize: 12,
+      flex: 1,
+      marginRight: 8,
+      color: c.textSecondary,
+    },
+    previewUnread: {
+      color: c.textPrimary,
+      fontWeight: '500',
+    },
+    badges: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 999,
+    },
+    statusText: {
+      fontSize: 10,
+      fontWeight: '500',
+    },
+    unreadBadge: {
+      minWidth: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: c.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    unreadText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: '#FFFFFF',
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: c.textPrimary,
+      marginTop: 16,
+    },
+    emptySubtitle: {
+      fontSize: 14,
+      color: c.textSecondary,
+      textAlign: 'center',
+      marginTop: 8,
+      paddingHorizontal: 24,
+    },
+    errorText: {
+      fontSize: 16,
+      color: '#EF4444',
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    retryButton: {
+      backgroundColor: c.primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    retryText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    optionsOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    optionsBox: {
+      borderRadius: 12,
+      paddingVertical: 8,
+      minWidth: 220,
+      borderWidth: 1,
+      backgroundColor: c.card,
+      borderColor: c.cardBorder,
+    },
+    optionsTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: c.textPrimary,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+    },
+    optionsButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    optionsButtonText: {
+      fontSize: 16,
+      color: c.textSecondary,
+    },
+    optionsButtonTextDestructive: {
+      fontSize: 16,
+      color: '#EF4444',
+      fontWeight: '500',
+    },
+  });
+}
+
 function getStatusLabel(statusKey: string): string {
   switch (statusKey) {
     case 'in_progress':
@@ -101,6 +389,7 @@ export default function ProviderInboxScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const styles = useMemo(() => createProviderInboxStyles(colors), [colors]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -134,7 +423,7 @@ export default function ProviderInboxScreen() {
         return new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime();
       });
       setConversations(sorted);
-    } catch (err) {
+    } catch {
       setError(t('providerDashboard.inbox.failedToLoad'));
     } finally {
       setLoading(false);
@@ -284,8 +573,8 @@ export default function ProviderInboxScreen() {
       const statusLabel = statusKey ? getStatusLabel(statusKey) : '';
       const isOnline = false; // TODO: from backend when available
       const cardStyle = {
-        backgroundColor: unread ? UNREAD_BG : colors.card,
-        borderColor: unread ? UNREAD_BORDER : colors.cardBorder,
+        backgroundColor: unread ? `${colors.primary}14` : colors.card,
+        borderColor: unread ? `${colors.primary}38` : colors.cardBorder,
       };
 
       return (
@@ -314,18 +603,15 @@ export default function ProviderInboxScreen() {
             </View>
             <View style={styles.content}>
               <View style={styles.row1}>
-                <Text style={[styles.name, unread && styles.nameUnread, { color: colors.textPrimary }]} numberOfLines={1}>
+                <Text style={[styles.name, unread && styles.nameUnread]} numberOfLines={1}>
                   {item.other_user_name}
                 </Text>
-                <Text style={[styles.time, unread && styles.timeUnread, { color: colors.textTertiary }]}>
+                <Text style={[styles.time, unread && styles.timeUnread]}>
                   {formatTime(item.last_message_at)}
                 </Text>
               </View>
               <View style={styles.row2}>
-                <Text
-                  style={[styles.preview, unread && styles.previewUnread, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
                   {item.last_message || t('chat.noMessages')}
                 </Text>
                 <View style={styles.badges}>
@@ -356,14 +642,21 @@ export default function ProviderInboxScreen() {
         </View>
       );
     },
-    [filteredConversations.length, handleConversationPress, colors],
+    [
+      filteredConversations.length,
+      handleConversationPress,
+      handleLongPressConversation,
+      handleMenuPress,
+      colors,
+      styles,
+    ],
   );
 
   if (loading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top + 24, backgroundColor: colors.background }]}>
+      <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('providerDashboard.inbox.title')}</Text>
+          <Text style={styles.headerTitle}>{t('providerDashboard.inbox.title')}</Text>
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -373,24 +666,24 @@ export default function ProviderInboxScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 24, backgroundColor: colors.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 24 }]}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t('providerDashboard.inbox.title')}</Text>
+          <Text style={styles.headerTitle}>{t('providerDashboard.inbox.title')}</Text>
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => setSearchVisible((v) => !v)}
           >
-            <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="search" size={20} color={colors.icon} />
           </TouchableOpacity>
         </View>
         {searchVisible && (
           <View style={styles.searchWrap}>
-            <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
+            <Ionicons name="search" size={18} color={colors.iconSecondary} />
             <TextInput
               style={styles.searchInput}
               placeholder={t('providerDashboard.inbox.searchPlaceholder')}
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={colors.textTertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"
@@ -433,7 +726,7 @@ export default function ProviderInboxScreen() {
         </View>
       ) : filteredConversations.length === 0 ? (
         <View style={styles.center}>
-          <Ionicons name="chatbubbles-outline" size={64} color="rgba(255,255,255,0.3)" />
+          <Ionicons name="chatbubbles-outline" size={64} color={colors.textTertiary} />
           <Text style={styles.emptyTitle}>{t('providerDashboard.inbox.emptyTitle')}</Text>
           <Text style={styles.emptySubtitle}>{t('providerDashboard.inbox.emptySubtitle')}</Text>
         </View>
@@ -451,7 +744,7 @@ export default function ProviderInboxScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               colors={PURPLE_GRADIENT}
-              tintColor="#8B5CF6"
+              tintColor={colors.primary}
             />
           }
         />
@@ -459,8 +752,8 @@ export default function ProviderInboxScreen() {
 
       <Modal visible={optionsConversation !== null} transparent animationType="fade" onRequestClose={closeOptionsMenu}>
         <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={closeOptionsMenu}>
-          <View style={[styles.optionsBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onStartShouldSetResponder={() => true}>
-            <Text style={[styles.optionsTitle, { color: colors.textPrimary }]}>{t('chat.options')}</Text>
+          <View style={styles.optionsBox} onStartShouldSetResponder={() => true}>
+            <Text style={styles.optionsTitle}>{t('chat.options')}</Text>
             <TouchableOpacity style={styles.optionsButton} onPress={handleOptionDeleteChat}>
               <Ionicons name="trash-outline" size={20} color="#EF4444" />
               <Text style={styles.optionsButtonTextDestructive}>{t('chat.deleteChat')}</Text>
@@ -474,276 +767,3 @@ export default function ProviderInboxScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: FILTER_INACTIVE_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    height: 44,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: FILTER_INACTIVE_BG,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#FFFFFF',
-    paddingVertical: 0,
-  },
-  filters: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: FILTER_INACTIVE_BG,
-  },
-  filterPillActive: {
-    backgroundColor: FILTER_ACTIVE_BG,
-  },
-  filterLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.5)',
-  },
-  filterLabelActive: {
-    color: '#FFFFFF',
-  },
-  filterCount: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  filterCountActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  filterCountText: {
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  filterCountTextActive: {
-    color: '#FFFFFF',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  cardTouchable: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  menuButton: {
-    padding: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardUnread: {},
-  cardLast: {
-    marginBottom: 0,
-  },
-  avatarWrap: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: AVATAR_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarEmoji: {
-    fontSize: 20,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#22C55E',
-    borderWidth: 2,
-  },
-  content: {
-    flex: 1,
-    minWidth: 0,
-  },
-  row1: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '500',
-    flex: 1,
-  },
-  nameUnread: {},
-  time: {
-    fontSize: 12,
-  },
-  timeUnread: {
-    color: 'rgba(167, 139, 250, 1)',
-  },
-  row2: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  preview: {
-    fontSize: 12,
-    flex: 1,
-    marginRight: 8,
-  },
-  previewUnread: {},
-  badges: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  unreadBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: FILTER_ACTIVE_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  unreadText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 24,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: FILTER_ACTIVE_BG,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  optionsOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  optionsBox: {
-    borderRadius: 12,
-    paddingVertical: 8,
-    minWidth: 220,
-    borderWidth: 1,
-  },
-  optionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  optionsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  optionsButtonText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.6)',
-  },
-  optionsButtonTextDestructive: {
-    fontSize: 16,
-    color: '#EF4444',
-    fontWeight: '500',
-  },
-});

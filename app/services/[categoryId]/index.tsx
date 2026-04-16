@@ -1,20 +1,21 @@
 import { ProviderCard } from "@/components/ProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { t } from "@/i18n";
 import { getAddresses } from "@/services/addresses";
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
 import { fetchSuppliers, Supplier } from "@/services/suppliers";
 import { Ionicons } from "@expo/vector-icons";
+import { getThemeColors } from "@/utils/themeStyles";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { colorScheme } = useTheme();
+  const colorScheme = useColorScheme();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const insets = useSafeAreaInsets();
   const [categoryData, setCategoryData] = useState<CategoryWithSubcategories | null>(null);
@@ -25,19 +26,21 @@ export default function CategoryDetailScreen() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Use exact colors from JSX design
-  const colors = {
-    bg: "#1a1a2e",
-    bgCard: "#252542",
-    bgInput: "#2d2d4a",
-    primary: "#3b82f6",
-    secondary: "#10b981",
-    accent: "#f59e0b",
-    danger: "#ef4444",
-    textSecondary: "#9ca3af",
-    border: "#374151",
-    textPrimary: "#FFFFFF",
-  };
+  const colors = useMemo(() => {
+    const c = getThemeColors(colorScheme === "dark");
+    return {
+      bg: c.screenBackground,
+      bgCard: c.card,
+      bgInput: c.surfaceSecondary,
+      primary: "#3b82f6",
+      secondary: "#10b981",
+      accent: "#f59e0b",
+      danger: "#ef4444",
+      textSecondary: c.textSecondary,
+      border: c.border,
+      textPrimary: c.textPrimary,
+    };
+  }, [colorScheme]);
 
   useEffect(() => {
     if (categoryId && typeof categoryId === "string" && categoryId.trim() !== "") {
@@ -191,10 +194,10 @@ export default function CategoryDetailScreen() {
       {/* Sort Options */}
       <View style={[styles.sortContainer, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
         <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>Sort by:</Text>
-        <TouchableOpacity style={[styles.sortButton, { backgroundColor: "#374151" }, sortBy === "price" && styles.sortButtonActive]} onPress={() => setSortBy("price")}>
+        <TouchableOpacity style={[styles.sortButton, { backgroundColor: colors.bgInput }, sortBy === "price" && styles.sortButtonActive]} onPress={() => setSortBy("price")}>
           <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "price" && styles.sortButtonTextActive]}>Price</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.sortButton, { backgroundColor: "#374151" }, sortBy === "distance" && styles.sortButtonActive]} onPress={() => setSortBy("distance")}>
+        <TouchableOpacity style={[styles.sortButton, { backgroundColor: colors.bgInput }, sortBy === "distance" && styles.sortButtonActive]} onPress={() => setSortBy("distance")}>
           <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "distance" && styles.sortButtonTextActive]}>Distance</Text>
         </TouchableOpacity>
       </View>

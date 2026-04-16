@@ -12,6 +12,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,15 +28,17 @@ export default function PaymentScreen() {
   const themeColors = useThemeColors();
   const colors = useMemo(
     () => ({
-      bg: themeColors.background,
+      bg: themeColors.screenBackground,
       bgCard: themeColors.card,
       bgInput: themeColors.surfaceSecondary,
       primary: themeColors.primary,
       secondary: '#10b981',
       accent: '#f59e0b',
       danger: '#ef4444',
+      textPrimary: themeColors.textPrimary,
       textSecondary: themeColors.textSecondary,
       border: themeColors.border,
+      cardBorder: themeColors.cardBorder,
       white: '#ffffff',
     }),
     [themeColors]
@@ -62,13 +65,13 @@ export default function PaymentScreen() {
           alignItems: 'center',
           justifyContent: 'center',
         },
-        headerTitle: { fontSize: 20, fontWeight: '600', color: colors.white },
+        headerTitle: { fontSize: 20, fontWeight: '600', color: colors.textPrimary },
         content: { flex: 1 },
         totalContainer: { alignItems: 'center', paddingVertical: 20 },
         totalLabel: { fontSize: 14, color: colors.textSecondary, marginBottom: 8 },
-        totalAmount: { fontSize: 42, fontWeight: '700', color: colors.white },
+        totalAmount: { fontSize: 42, fontWeight: '700', color: colors.textPrimary },
         section: { paddingHorizontal: 20, marginBottom: 20 },
-        sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.white, marginBottom: 16 },
+        sectionTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 16 },
         emptyState: { padding: 20, alignItems: 'center' },
         emptyStateText: { color: colors.textSecondary, fontSize: 14 },
         paymentMethodCard: {
@@ -78,10 +81,11 @@ export default function PaymentScreen() {
           borderRadius: 14,
           padding: 16,
           marginBottom: 12,
-          borderWidth: 2,
-          borderColor: 'transparent',
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
         },
         paymentMethodCardSelected: {
+          borderWidth: 2,
           backgroundColor: `${colors.primary}20`,
           borderColor: colors.primary,
         },
@@ -99,7 +103,7 @@ export default function PaymentScreen() {
         paymentMethodLabel: {
           fontSize: 15,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
           marginBottom: 4,
         },
         paymentMethodSubtitle: { fontSize: 13, color: colors.textSecondary },
@@ -129,7 +133,24 @@ export default function PaymentScreen() {
           gap: 10,
         },
         securityText: { fontSize: 12, color: colors.textSecondary },
-        footer: { paddingHorizontal: 20, paddingTop: 20, backgroundColor: colors.bg },
+        footer: {
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          backgroundColor: colors.bg,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 6,
+            },
+          }),
+        },
         confirmButton: {
           backgroundColor: colors.secondary,
           borderRadius: 14,
@@ -338,7 +359,7 @@ export default function PaymentScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('payment.title')}</Text>
         <View style={{ width: 40 }} />

@@ -1,4 +1,5 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { submitOnboardingStep } from "@/services/providers";
 import { formatClabeDisplay, normalizeClabe, validateClabe } from "@/utils/clabeValidation";
@@ -56,6 +57,7 @@ function getClabeErrorKey(error: string | undefined): BankErrorKey | null {
 export default function ProviderOnboardingBankScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
   const [selectedBank, setSelectedBank] = useState<{ id: string; name: string } | null>(null);
   const [bankModalVisible, setBankModalVisible] = useState(false);
   const [clabeRaw, setClabeRaw] = useState("");
@@ -117,32 +119,55 @@ export default function ProviderOnboardingBankScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.screenBackground }]}>
       <ProgressBar currentStep={5} totalSteps={TOTAL_STEPS} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{t("providerOnboarding.bank.title")}</Text>
-        <Text style={styles.subtitle}>{t("providerOnboarding.bank.subtitle")}</Text>
+      <ScrollView style={[styles.scrollView, { backgroundColor: theme.screenBackground }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("providerOnboarding.bank.title")}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("providerOnboarding.bank.subtitle")}</Text>
 
         <View style={styles.form}>
           {/* Bank dropdown */}
           <View style={styles.field}>
-            <Text style={styles.label}>{t("providerOnboarding.bank.bank")}</Text>
-            <TouchableOpacity style={styles.selectContainer} onPress={() => setBankModalVisible(true)} activeOpacity={0.7}>
-              <Text style={[styles.selectText, !selectedBank && styles.selectPlaceholder]} numberOfLines={1}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("providerOnboarding.bank.bank")}</Text>
+            <TouchableOpacity
+              style={[styles.selectContainer, { backgroundColor: theme.surfaceSecondary, borderColor: theme.border }]}
+              onPress={() => setBankModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.selectText,
+                  { color: selectedBank ? theme.textPrimary : theme.textTertiary },
+                ]}
+                numberOfLines={1}
+              >
                 {selectedBank ? selectedBank.name : t("providerOnboarding.bank.selectBank")}
               </Text>
               <View style={styles.selectIconWrapper}>
-                <Ionicons name="chevron-down" size={16} color="rgba(255, 255, 255, 0.4)" />
+                <Ionicons name="chevron-down" size={16} color={theme.iconSecondary} />
               </View>
             </TouchableOpacity>
           </View>
 
           {/* Account number / CLABE with input mask */}
           <View style={styles.field}>
-            <Text style={styles.label}>{t("providerOnboarding.bank.clabe")}</Text>
-            <TextInput style={[styles.input, clabeError ? styles.inputError : null]} placeholder={t("providerOnboarding.bank.clabePlaceholder")} placeholderTextColor="rgba(255, 255, 255, 0.3)" value={clabeDisplay} onChangeText={handleClabeChange} onBlur={() => setTouched((p) => ({ ...p, clabe: true }))} keyboardType="numeric" maxLength={22} />
-            <Text style={styles.hint}>{t("providerOnboarding.bank.clabeHint")}</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("providerOnboarding.bank.clabe")}</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: theme.surfaceSecondary, borderColor: theme.border, color: theme.textPrimary },
+                clabeError ? styles.inputError : null,
+              ]}
+              placeholder={t("providerOnboarding.bank.clabePlaceholder")}
+              placeholderTextColor={theme.textTertiary}
+              value={clabeDisplay}
+              onChangeText={handleClabeChange}
+              onBlur={() => setTouched((p) => ({ ...p, clabe: true }))}
+              keyboardType="numeric"
+              maxLength={22}
+            />
+            <Text style={[styles.hint, { color: theme.textTertiary }]}>{t("providerOnboarding.bank.clabeHint")}</Text>
             {clabeError ?
               <Text style={styles.errorText}>{clabeError}</Text>
             : null}
@@ -150,28 +175,40 @@ export default function ProviderOnboardingBankScreen() {
 
           {/* Account holder name (required) */}
           <View style={styles.field}>
-            <Text style={styles.label}>{t("providerOnboarding.bank.accountHolder")}</Text>
-            <TextInput style={[styles.input, accountHolderError ? styles.inputError : null]} placeholder={t("providerOnboarding.bank.accountHolderPlaceholder")} placeholderTextColor="rgba(255, 255, 255, 0.3)" value={accountHolder} onChangeText={setAccountHolder} onBlur={() => setTouched((p) => ({ ...p, accountHolder: true }))} autoCapitalize="words" />
-            <Text style={styles.hint}>{t("providerOnboarding.bank.accountHolderHint")}</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{t("providerOnboarding.bank.accountHolder")}</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: theme.surfaceSecondary, borderColor: theme.border, color: theme.textPrimary },
+                accountHolderError ? styles.inputError : null,
+              ]}
+              placeholder={t("providerOnboarding.bank.accountHolderPlaceholder")}
+              placeholderTextColor={theme.textTertiary}
+              value={accountHolder}
+              onChangeText={setAccountHolder}
+              onBlur={() => setTouched((p) => ({ ...p, accountHolder: true }))}
+              autoCapitalize="words"
+            />
+            <Text style={[styles.hint, { color: theme.textTertiary }]}>{t("providerOnboarding.bank.accountHolderHint")}</Text>
             {accountHolderError ?
               <Text style={styles.errorText}>{accountHolderError}</Text>
             : null}
           </View>
 
           {/* Informative card: Weekly payments */}
-          <View style={styles.paymentInfoCard}>
+          <View style={[styles.paymentInfoCard, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}33` }]}>
             <Text style={styles.paymentIcon}>💳</Text>
             <View style={styles.paymentInfo}>
-              <Text style={styles.paymentTitle}>{t("providerOnboarding.bank.weeklyPayments")}</Text>
-              <Text style={styles.paymentDesc}>{t("providerOnboarding.bank.weeklyPaymentsDesc")}</Text>
+              <Text style={[styles.paymentTitle, { color: theme.textPrimary }]}>{t("providerOnboarding.bank.weeklyPayments")}</Text>
+              <Text style={[styles.paymentDesc, { color: theme.textSecondary }]}>{t("providerOnboarding.bank.weeklyPaymentsDesc")}</Text>
             </View>
           </View>
         </View>
       </ScrollView>
 
       <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{t("providerOnboarding.bank.back")}</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surfaceSecondary }]} onPress={handleBack} activeOpacity={0.7}>
+          <Text style={[styles.backButtonText, { color: theme.textSecondary }]}>{t("providerOnboarding.bank.back")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.continueButton, (!canContinue || saving) && styles.continueButtonDisabled]} onPress={handleContinue} activeOpacity={0.8} disabled={!canContinue || saving}>
           <LinearGradient colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
@@ -184,15 +221,15 @@ export default function ProviderOnboardingBankScreen() {
       <Modal visible={bankModalVisible} transparent animationType="slide" onRequestClose={() => setBankModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setBankModalVisible(false)} />
-          <View style={[styles.modalContent, { paddingBottom: insets.bottom + 16 }]}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>{t("providerOnboarding.bank.selectBank")}</Text>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom + 16, backgroundColor: theme.card }]}>
+            <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
+            <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t("providerOnboarding.bank.selectBank")}</Text>
             <FlatList
               data={LOCAL_BANKS}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-                <TouchableOpacity style={styles.bankOption} onPress={() => handleSelectBank(item)} activeOpacity={0.7}>
-                  <Text style={styles.bankOptionText}>{item.name}</Text>
+                <TouchableOpacity style={[styles.bankOption, { borderBottomColor: theme.border }]} onPress={() => handleSelectBank(item)} activeOpacity={0.7}>
+                  <Text style={[styles.bankOptionText, { color: theme.textPrimary }]}>{item.name}</Text>
                   {selectedBank?.id === item.id ?
                     <Ionicons name="checkmark" size={20} color="#8B5CF6" />
                   : null}
@@ -210,7 +247,6 @@ export default function ProviderOnboardingBankScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#12121A",
   },
   scrollView: {
     flex: 1,
@@ -222,13 +258,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     marginBottom: 4,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 20,
   },
   form: {
@@ -240,7 +274,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -250,10 +283,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
-    color: "#FFFFFF",
     fontSize: 14,
   },
   inputError: {
@@ -261,7 +291,6 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 11,
-    color: "rgba(255, 255, 255, 0.4)",
     marginTop: 4,
     marginLeft: 2,
   },
@@ -279,17 +308,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingRight: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   selectText: {
     flex: 1,
     fontSize: 14,
-    color: "#FFFFFF",
-  },
-  selectPlaceholder: {
-    color: "rgba(255, 255, 255, 0.3)",
   },
   selectIconWrapper: {
     position: "absolute",
@@ -306,9 +329,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: "rgba(99, 102, 241, 0.1)",
     borderWidth: 1,
-    borderColor: "rgba(99, 102, 241, 0.2)",
   },
   paymentIcon: {
     fontSize: 18,
@@ -319,12 +340,10 @@ const styles = StyleSheet.create({
   paymentTitle: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#FFFFFF",
     marginBottom: 4,
   },
   paymentDesc: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
   },
   buttonContainer: {
     flexDirection: "row",
@@ -336,14 +355,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   backButtonText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
   },
   continueButton: {
     flex: 2,
@@ -372,7 +389,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContent: {
-    backgroundColor: "#1F2937",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingTop: 12,
@@ -382,7 +398,6 @@ const styles = StyleSheet.create({
   modalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 2,
     alignSelf: "center",
     marginBottom: 16,
@@ -390,7 +405,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#FFFFFF",
     marginBottom: 12,
   },
   bankList: {
@@ -403,10 +417,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.06)",
   },
   bankOptionText: {
     fontSize: 15,
-    color: "#FFFFFF",
   },
 });

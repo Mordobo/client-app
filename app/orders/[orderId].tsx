@@ -1,10 +1,12 @@
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { t } from '@/i18n';
 import { getOrCreateConversation } from '@/services/conversations';
 import { fetchOrderDetail, OrderDetailResponse, updateOrderStatus } from '@/services/orders';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
+import { getThemeColors, type ThemeColors } from '@/utils/themeStyles';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -27,10 +29,322 @@ interface ProgressStep {
   timestamp?: string;
 }
 
+function createOrderDetailStyles(theme: ThemeColors) {
+  return StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.screenBackground,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 16,
+  },
+  greenHeader: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButtonGreen: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greenHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+    marginLeft: 16,
+  },
+  greenSection: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    alignItems: 'center',
+  },
+  serviceIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  serviceIcon: {
+    fontSize: 36,
+  },
+  serviceStatusText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  estimatedTimeLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 8,
+  },
+  estimatedTime: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  content: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  providerCard: {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+  },
+  providerImageContainer: {
+    position: 'relative',
+  },
+  providerImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.surfaceSecondary,
+    borderWidth: 3,
+    borderColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.textPrimary,
+    marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#10b981',
+  },
+  providerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: theme.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chatButton: {
+    backgroundColor: '#3b82f6',
+  },
+  progressSection: {
+    marginBottom: 20,
+  },
+  progressTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.textPrimary,
+    marginBottom: 20,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 20,
+  },
+  timelineIndicator: {
+    alignItems: 'center',
+  },
+  timelineCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timelineCircleCompleted: {
+    backgroundColor: '#10b981',
+  },
+  timelineCircleCurrent: {
+    backgroundColor: '#3b82f6',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+  },
+  timelineLine: {
+    width: 2,
+    height: 30,
+    backgroundColor: theme.border,
+    marginTop: 4,
+  },
+  timelineLineCompleted: {
+    backgroundColor: '#10b981',
+  },
+  timelineContent: {
+    flex: 1,
+  },
+  timelineLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.textPrimary,
+    marginBottom: 4,
+  },
+  timelineTime: {
+    fontSize: 13,
+    color: theme.textSecondary,
+  },
+  detailsSection: {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+  },
+  detailsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.textPrimary,
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: theme.textSecondary,
+    flex: 1,
+  },
+  actionButtonsSection: {
+    gap: 12,
+    marginTop: 20,
+  },
+  completePaymentButton: {
+    backgroundColor: '#10B981',
+    padding: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
+  },
+  completePaymentButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  cancelButton: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+    alignItems: 'center',
+    minHeight: 52,
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  cancelButtonPressed: {
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: '#ef4444',
+  },
+  cancelButtonDisabled: {
+    opacity: 0.6,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ef4444',
+  },
+  supportButton: {
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: theme.card,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: theme.cardBorder,
+  },
+  supportButtonPressed: {
+    backgroundColor: theme.surfaceSecondary,
+    opacity: 0.8,
+  },
+  supportButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: theme.card,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.cardBorder,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.textPrimary,
+  },
+  statusText: {
+    fontSize: 16,
+    color: theme.textPrimary,
+    padding: 20,
+  },
+  });
+}
+
 export default function OrderDetailScreen() {
   const router = useRouter();
   const { orderId, navRef } = useLocalSearchParams<{ orderId: string; navRef?: string }>();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const themeColors = useMemo(() => getThemeColors(colorScheme === 'dark'), [colorScheme]);
+  const styles = useMemo(() => createOrderDetailStyles(themeColors), [themeColors]);
   const [loading, setLoading] = useState(true);
   const [orderDetail, setOrderDetail] = useState<OrderDetailResponse | null>(null);
   const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState('1:24:30'); // TODO: Calculate from actual data
@@ -336,7 +650,7 @@ export default function OrderDetailScreen() {
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+            <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t('orders.viewDetails')}</Text>
           <View style={{ width: 40 }} />
@@ -358,7 +672,7 @@ export default function OrderDetailScreen() {
             <View style={styles.detailsSection}>
               <Text style={styles.detailsTitle}>Detalles del servicio</Text>
               <View style={styles.detailRow}>
-                <Ionicons name="calendar-outline" size={16} color="#9ca3af" />
+                <Ionicons name="calendar-outline" size={16} color={themeColors.iconSecondary} />
                 <Text style={styles.detailText}>
                   {new Date(order.scheduled_at).toLocaleDateString('es-ES', {
                     weekday: 'long',
@@ -370,7 +684,7 @@ export default function OrderDetailScreen() {
               </View>
               {order.address && (
                 <View style={styles.detailRow}>
-                  <Ionicons name="location-outline" size={16} color="#9ca3af" />
+                  <Ionicons name="location-outline" size={16} color={themeColors.iconSecondary} />
                   <Text style={styles.detailText}>{order.address}</Text>
                 </View>
               )}
@@ -563,7 +877,7 @@ export default function OrderDetailScreen() {
           <View style={styles.detailsSection}>
             <Text style={styles.detailsTitle}>Detalles del servicio</Text>
             <View style={styles.detailRow}>
-              <Ionicons name="calendar-outline" size={16} color="#9ca3af" />
+              <Ionicons name="calendar-outline" size={16} color={themeColors.iconSecondary} />
               <Text style={styles.detailText}>
                 {new Date(order.scheduled_at).toLocaleDateString('es-ES', {
                   weekday: 'long',
@@ -575,7 +889,7 @@ export default function OrderDetailScreen() {
             </View>
             {order.address && (
               <View style={styles.detailRow}>
-                <Ionicons name="location-outline" size={16} color="#9ca3af" />
+                <Ionicons name="location-outline" size={16} color={themeColors.iconSecondary} />
                 <Text style={styles.detailText}>{order.address}</Text>
               </View>
             )}
@@ -630,310 +944,3 @@ export default function OrderDetailScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1a1a2e',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 16,
-  },
-  // Green Header
-  greenHeader: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButtonGreen: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  greenHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-    marginLeft: 16,
-  },
-  // Green Section with Service Status
-  greenSection: {
-    backgroundColor: '#10b981',
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    alignItems: 'center',
-  },
-  serviceIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  serviceIcon: {
-    fontSize: 36,
-  },
-  serviceStatusText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  estimatedTimeLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
-  },
-  estimatedTime: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  // Content
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  // Provider Card
-  providerCard: {
-    backgroundColor: '#252542',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  providerImageContainer: {
-    position: 'relative',
-  },
-  providerImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2d2d4a',
-    borderWidth: 3,
-    borderColor: '#10b981',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerInfo: {
-    flex: 1,
-  },
-  providerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  locationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#10b981',
-  },
-  locationText: {
-    fontSize: 14,
-    color: '#10b981',
-  },
-  providerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#2d2d4a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chatButton: {
-    backgroundColor: '#3b82f6',
-  },
-  // Progress Timeline
-  progressSection: {
-    marginBottom: 20,
-  },
-  progressTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 20,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 20,
-  },
-  timelineIndicator: {
-    alignItems: 'center',
-  },
-  timelineCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#252542',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineCircleCompleted: {
-    backgroundColor: '#10b981',
-  },
-  timelineCircleCurrent: {
-    backgroundColor: '#3b82f6',
-    borderWidth: 2,
-    borderColor: '#3b82f6',
-  },
-  timelineLine: {
-    width: 2,
-    height: 30,
-    backgroundColor: '#252542',
-    marginTop: 4,
-  },
-  timelineLineCompleted: {
-    backgroundColor: '#10b981',
-  },
-  timelineContent: {
-    flex: 1,
-  },
-  timelineLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  timelineTime: {
-    fontSize: 13,
-    color: '#9ca3af',
-  },
-  // Details Section
-  detailsSection: {
-    backgroundColor: '#252542',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-  },
-  detailsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    flex: 1,
-  },
-  // Action Buttons
-  actionButtonsSection: {
-    gap: 12,
-    marginTop: 20,
-  },
-  completePaymentButton: {
-    backgroundColor: '#10B981',
-    padding: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    minHeight: 52,
-    justifyContent: 'center',
-  },
-  completePaymentButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  cancelButton: {
-    padding: 16,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#374151',
-    alignItems: 'center',
-    minHeight: 52,
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  cancelButtonPressed: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: '#ef4444',
-  },
-  cancelButtonDisabled: {
-    opacity: 0.6,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ef4444',
-  },
-  supportButton: {
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#252542',
-    alignItems: 'center',
-  },
-  supportButtonPressed: {
-    backgroundColor: '#2d2d4a',
-    opacity: 0.8,
-  },
-  supportButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3b82f6',
-  },
-  // Simple Header for non-in-progress orders
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#252542',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  statusText: {
-    fontSize: 16,
-    color: '#fff',
-    padding: 20,
-  },
-});

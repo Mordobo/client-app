@@ -1,6 +1,7 @@
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getOrCreateConversation } from '@/services/conversations';
 import { getProfileImageUrl } from '@/utils/profileImage';
 import {
@@ -12,15 +13,15 @@ import {
 } from '@/services/suppliers';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getThemeColors, type ThemeColors } from '@/utils/themeStyles';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Animated,
   Image,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -29,31 +30,296 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
 
-// Theme colors matching the JSX design
-const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  bgInput: '#2d2d4a',
+/** Brand accents (same in light/dark); surfaces and text come from `getThemeColors`. */
+const BRAND = {
   primary: '#3b82f6',
   secondary: '#10b981',
   accent: '#f59e0b',
   danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-  white: '#ffffff',
-};
+} as const;
+
+const ICON_ON_HEADER = '#ffffff';
 
 const HEADER_HEIGHT = 200;
 const PROFILE_IMAGE_SIZE = 90;
 const PROFILE_IMAGE_OFFSET = -40; // Negative margin to overlap header
+
+function createProviderDetailStyles(theme: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.screenBackground,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    headerImageContainer: {
+      height: HEADER_HEIGHT,
+      width: '100%',
+      position: 'relative',
+    },
+    headerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    headerGradient: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '100%',
+    },
+    headerButtons: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      zIndex: 10,
+    },
+    headerButtonsRight: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    headerButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    providerInfoSection: {
+      padding: 20,
+      marginTop: PROFILE_IMAGE_OFFSET,
+      backgroundColor: theme.screenBackground,
+    },
+    providerInfoRow: {
+      flexDirection: 'row',
+      gap: 16,
+      alignItems: 'flex-end',
+      marginBottom: 20,
+    },
+    profileImage: {
+      width: PROFILE_IMAGE_SIZE,
+      height: PROFILE_IMAGE_SIZE,
+      borderRadius: 20,
+      backgroundColor: theme.surfaceSecondary,
+      borderWidth: 4,
+      borderColor: theme.screenBackground,
+    },
+    providerInfoText: {
+      flex: 1,
+      paddingBottom: 8,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    providerName: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    profession: {
+      fontSize: 15,
+      color: BRAND.secondary,
+      marginBottom: 4,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    location: {
+      fontSize: 14,
+      color: theme.textSecondary,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 24,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    statContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginBottom: 4,
+    },
+    statValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.textSecondary,
+    },
+    aboutSection: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textPrimary,
+      marginBottom: 12,
+    },
+    aboutText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.textSecondary,
+    },
+    readMoreText: {
+      fontSize: 14,
+      color: BRAND.primary,
+      marginTop: 8,
+      fontWeight: '500',
+    },
+    servicesSection: {
+      marginBottom: 24,
+    },
+    serviceCard: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    serviceCardSelected: {
+      borderColor: BRAND.primary,
+      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    },
+    serviceInfo: {
+      flex: 1,
+    },
+    serviceName: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: theme.textPrimary,
+      marginBottom: 4,
+    },
+    serviceDurationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    serviceDuration: {
+      fontSize: 13,
+      color: theme.textSecondary,
+    },
+    serviceRightSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    servicePrice: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: BRAND.primary,
+    },
+    bottomBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      gap: 12,
+      padding: 20,
+      backgroundColor: theme.screenBackground,
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 8,
+        },
+      }),
+    },
+    messageButton: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: theme.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    bookButton: {
+      flex: 1,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: BRAND.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bookButtonDisabled: {
+      backgroundColor: theme.surfaceSecondary,
+      opacity: 0.6,
+    },
+    bookButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#ffffff',
+    },
+    errorText: {
+      fontSize: 16,
+      color: BRAND.danger,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    retryButton: {
+      backgroundColor: BRAND.primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    retryText: {
+      color: '#ffffff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
+}
 
 export default function ProviderDetailScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { supplierId } = useLocalSearchParams<{ supplierId: string }>();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const theme = useMemo(() => getThemeColors(colorScheme === 'dark'), [colorScheme]);
+  const styles = useMemo(() => createProviderDetailStyles(theme), [theme]);
   const isSelfProvider = Boolean(supplierId && user?.id && supplierId === user.id);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [supplier, setSupplier] = useState<Supplier | null>(null);
@@ -196,7 +462,7 @@ export default function ProviderDetailScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={BRAND.primary} />
         </View>
       </View>
     );
@@ -264,19 +530,19 @@ export default function ProviderDetailScreen() {
             onPress={() => router.back()}
             style={styles.headerButton}
           >
-            <Ionicons name="arrow-back" size={20} color={colors.white} />
+            <Ionicons name="arrow-back" size={20} color={ICON_ON_HEADER} />
           </TouchableOpacity>
           <View style={styles.headerButtonsRight}>
             <TouchableOpacity style={styles.headerButton}>
               <FavoriteButton
                 supplierId={supplierId || ''}
                 size={18}
-                color={colors.white}
-                activeColor={colors.danger}
+                color={ICON_ON_HEADER}
+                activeColor={BRAND.danger}
               />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton}>
-              <Ionicons name="share-outline" size={18} color={colors.white} />
+              <Ionicons name="share-outline" size={18} color={ICON_ON_HEADER} />
             </TouchableOpacity>
           </View>
         </View>
@@ -296,7 +562,7 @@ export default function ProviderDetailScreen() {
                 {supplier.business_name?.trim() || supplier.full_name}
               </Text>
                 {supplier.verified && (
-                  <Ionicons name="checkmark-circle" size={20} color={colors.secondary} />
+                  <Ionicons name="checkmark-circle" size={20} color={BRAND.secondary} />
                 )}
               </View>
               {supplier.service_category && (
@@ -304,7 +570,7 @@ export default function ProviderDetailScreen() {
               )}
               {supplier.location && (
                 <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                  <Ionicons name="location-outline" size={14} color={theme.textSecondary} />
                   <Text style={styles.location}>{supplier.location}</Text>
                 </View>
               )}
@@ -315,21 +581,21 @@ export default function ProviderDetailScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <View style={styles.statContent}>
-                <Ionicons name="star" size={20} color={colors.accent} />
+                <Ionicons name="star" size={20} color={BRAND.accent} />
                 <Text style={styles.statValue}>{Number(supplier.rating).toFixed(1)}</Text>
               </View>
               <Text style={styles.statLabel}>{t('supplier.rating')}</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statContent}>
-                <Ionicons name="chatbubble-outline" size={20} color={colors.white} />
+                <Ionicons name="chatbubble-outline" size={20} color={theme.icon} />
                 <Text style={styles.statValue}>{supplier.total_reviews}</Text>
               </View>
               <Text style={styles.statLabel}>{t('supplier.reviewsCount')}</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statContent}>
-                <Ionicons name="calendar-outline" size={20} color={colors.white} />
+                <Ionicons name="calendar-outline" size={20} color={theme.icon} />
                 <Text style={styles.statValue}>{supplier.years_experience || 0}</Text>
               </View>
               <Text style={styles.statLabel}>{t('supplier.years')}</Text>
@@ -371,7 +637,7 @@ export default function ProviderDetailScreen() {
                         {service.name?.trim() || service.category_name || 'Service'}
                       </Text>
                       <View style={styles.serviceDurationRow}>
-                        <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                        <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
                         <Text style={styles.serviceDuration}>{getServiceDuration(service)}</Text>
                       </View>
                     </View>
@@ -382,7 +648,7 @@ export default function ProviderDetailScreen() {
                         </Text>
                       )}
                       {isSelected && (
-                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Ionicons name="checkmark-circle" size={24} color={BRAND.primary} />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -402,9 +668,9 @@ export default function ProviderDetailScreen() {
             disabled={startingChat}
           >
             {startingChat ? (
-              <ActivityIndicator size="small" color={colors.white} />
+              <ActivityIndicator size="small" color={BRAND.primary} />
             ) : (
-              <Ionicons name="chatbubble-outline" size={24} color={colors.white} />
+              <Ionicons name="chatbubble-outline" size={24} color={BRAND.primary} />
             )}
           </TouchableOpacity>
         )}
@@ -422,265 +688,3 @@ export default function ProviderDetailScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Space for fixed bottom bar
-  },
-  headerImageContainer: {
-    height: HEADER_HEIGHT,
-    width: '100%',
-    position: 'relative',
-  },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  headerGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '100%',
-  },
-  headerButtons: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    zIndex: 10,
-  },
-  headerButtonsRight: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerInfoSection: {
-    padding: 20,
-    marginTop: PROFILE_IMAGE_OFFSET,
-    backgroundColor: colors.bg,
-  },
-  providerInfoRow: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'flex-end',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: PROFILE_IMAGE_SIZE,
-    height: PROFILE_IMAGE_SIZE,
-    borderRadius: 20,
-    backgroundColor: colors.bgInput,
-    borderWidth: 4,
-    borderColor: colors.bg,
-  },
-  providerInfoText: {
-    flex: 1,
-    paddingBottom: 8,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  providerName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  profession: {
-    fontSize: 15,
-    color: colors.secondary,
-    marginBottom: 4,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  location: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 14,
-    alignItems: 'center',
-  },
-  statContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  aboutSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 12,
-  },
-  aboutText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textSecondary,
-  },
-  readMoreText: {
-    fontSize: 14,
-    color: colors.primary,
-    marginTop: 8,
-    fontWeight: '500',
-  },
-  servicesSection: {
-    marginBottom: 24,
-  },
-  serviceCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  serviceCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: `${colors.primary}20`,
-  },
-  serviceInfo: {
-    flex: 1,
-  },
-  serviceName: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.white,
-    marginBottom: 4,
-  },
-  serviceDurationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  serviceDuration: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  serviceRightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  servicePrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    gap: 12,
-    padding: 20,
-    backgroundColor: colors.bg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  messageButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: colors.bgCard,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookButton: {
-    flex: 1,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookButtonDisabled: {
-    backgroundColor: colors.bgCard,
-    opacity: 0.5,
-  },
-  bookButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  errorText: {
-    fontSize: 16,
-    color: colors.danger,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

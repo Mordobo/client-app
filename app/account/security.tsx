@@ -236,7 +236,7 @@ export default function ClientSecurityScreen() {
         {updating ? <ActivityIndicator size="small" color={colors.primary} style={{ width: 32 }} /> : <View style={styles.headerPlaceholder} />}
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.scroll, { backgroundColor: colors.background }]} contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{t(`${I18N}.sectionPassword`)}</Text>
         <TouchableOpacity style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} activeOpacity={0.8} onPress={handleChangePassword}>
           <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>

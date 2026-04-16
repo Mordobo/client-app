@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -9,6 +10,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
+  const colors = useThemeColors();
   return (
     <View style={styles.container}>
       <View style={styles.barContainer}>
@@ -28,12 +30,12 @@ export function ProgressBar({ currentStep, totalSteps }: ProgressBarProps) {
           return (
             <View
               key={index}
-              style={styles.barSegment}
+              style={[styles.barSegment, { backgroundColor: colors.borderLight }]}
             />
           );
         })}
       </View>
-      <Text style={styles.stepText}>
+      <Text style={[styles.stepText, { color: colors.textTertiary }]}>
         Paso {currentStep + 1} de {totalSteps}
       </Text>
     </View>
@@ -55,11 +57,9 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   stepText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
     marginTop: 8,
   },
 });

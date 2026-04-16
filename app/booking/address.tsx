@@ -27,7 +27,7 @@ export default function BookingAddressScreen() {
   const themeColors = useThemeColors();
   const colors = useMemo(
     () => ({
-      bg: themeColors.background,
+      bg: themeColors.screenBackground,
       bgCard: themeColors.card,
       bgInput: themeColors.surfaceSecondary,
       primary: themeColors.primary,
@@ -36,8 +36,10 @@ export default function BookingAddressScreen() {
       danger: '#ef4444',
       purple: themeColors.primary,
       pink: '#ec4899',
+      textPrimary: themeColors.textPrimary,
       textSecondary: themeColors.textSecondary,
       border: themeColors.border,
+      cardBorder: themeColors.cardBorder,
       white: '#ffffff',
     }),
     [themeColors]
@@ -68,11 +70,11 @@ export default function BookingAddressScreen() {
           alignItems: 'center',
           justifyContent: 'center',
         },
-        backArrow: { fontSize: 24, color: colors.white },
+        backArrow: { fontSize: 24, color: colors.textPrimary },
         headerTitle: {
           fontSize: 20,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
         },
         scrollView: { flex: 1 },
         mapContainer: {
@@ -83,6 +85,8 @@ export default function BookingAddressScreen() {
           borderRadius: 16,
           overflow: 'hidden',
           position: 'relative',
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
         },
         mapContent: {
           flex: 1,
@@ -100,7 +104,7 @@ export default function BookingAddressScreen() {
         sectionTitle: {
           fontSize: 16,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
           marginBottom: 16,
         },
         addressCard: {
@@ -111,10 +115,11 @@ export default function BookingAddressScreen() {
           flexDirection: 'row',
           alignItems: 'center',
           gap: 14,
-          borderWidth: 2,
-          borderColor: 'transparent',
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
         },
         addressCardSelected: {
+          borderWidth: 2,
           borderColor: colors.primary,
           backgroundColor: `${colors.primary}20`,
         },
@@ -137,7 +142,7 @@ export default function BookingAddressScreen() {
         addressName: {
           fontSize: 16,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
         },
         defaultBadge: {
           backgroundColor: `${colors.secondary}20`,
@@ -198,7 +203,7 @@ export default function BookingAddressScreen() {
         emptyText: {
           fontSize: 18,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
           marginTop: 16,
           marginBottom: 8,
         },
@@ -227,6 +232,19 @@ export default function BookingAddressScreen() {
           paddingHorizontal: 20,
           paddingTop: 20,
           backgroundColor: colors.bg,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 6,
+            },
+          }),
         },
         continueButton: {
           width: '100%',
@@ -291,7 +309,7 @@ export default function BookingAddressScreen() {
           marginBottom: 20,
         },
         modalTitle: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 20,
           fontWeight: '700',
           marginBottom: 24,
@@ -319,7 +337,7 @@ export default function BookingAddressScreen() {
           borderWidth: 1,
           borderColor: colors.border,
           borderRadius: 12,
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 15,
         },
         typeButtons: { flexDirection: 'row', gap: 12 },
@@ -339,7 +357,7 @@ export default function BookingAddressScreen() {
           borderColor: colors.primary,
         },
         typeButtonIcon: { fontSize: 20 },
-        typeButtonText: { color: colors.white, fontSize: 14 },
+        typeButtonText: { color: colors.textPrimary, fontSize: 14 },
         typeButtonTextActive: {
           color: colors.primary,
           fontWeight: '600',
@@ -365,7 +383,7 @@ export default function BookingAddressScreen() {
           borderColor: colors.primary,
         },
         defaultToggleText: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 15,
         },
         modalButtons: {
@@ -395,7 +413,7 @@ export default function BookingAddressScreen() {
         modalButtonTextCancel: {
           fontSize: 16,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
         },
         modalButtonTextConfirm: {
           fontSize: 16,

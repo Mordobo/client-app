@@ -144,14 +144,14 @@ export default function ProviderPortfolioScreen() {
       {/* Back header */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
           onPress={() => router.back()}
           accessibilityLabel={t("common.back")}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={22} color={colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("providerDashboard.portfolio.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.portfolio.title")}</Text>
         <TouchableOpacity onPress={handleAdd} style={styles.addButton} activeOpacity={0.8}>
           <Text style={styles.addButtonText}>+ {t("providerDashboard.portfolio.addButton")}</Text>
         </TouchableOpacity>
@@ -166,8 +166,8 @@ export default function ProviderPortfolioScreen() {
         <View style={styles.statsRow}>
           {statRows.map((row, idx) => (
             <View key={idx} style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-              <Text style={styles.statValue}>{row.value}</Text>
-              <Text style={styles.statLabel}>{t(row.labelKey)}</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{row.value}</Text>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t(row.labelKey)}</Text>
             </View>
           ))}
         </View>
@@ -201,11 +201,11 @@ export default function ProviderPortfolioScreen() {
             ) : (
               <TouchableOpacity
                 key={opt.key}
-                style={styles.filterPill}
+                style={[styles.filterPill, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setFilter(opt.key)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.filterPillText}>{t(opt.labelKey)}</Text>
+                <Text style={[styles.filterPillText, { color: colors.textSecondary }]}>{t(opt.labelKey)}</Text>
               </TouchableOpacity>
             )
           )}
@@ -219,10 +219,10 @@ export default function ProviderPortfolioScreen() {
           /* Empty state */
           <View style={[styles.uploadCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.uploadEmoji}>📷</Text>
-            <Text style={styles.uploadTitle}>
+            <Text style={[styles.uploadTitle, { color: colors.textPrimary }]}>
               {t("providerDashboard.portfolio.uploadTitle")}
             </Text>
-            <Text style={styles.uploadSubtitle}>
+            <Text style={[styles.uploadSubtitle, { color: colors.textSecondary }]}>
               {t("providerDashboard.portfolio.uploadSubtitle")}
             </Text>
             <TouchableOpacity
@@ -283,10 +283,10 @@ export default function ProviderPortfolioScreen() {
         {!isLoading && projects.length > 0 && (
           <View style={[styles.uploadCard, styles.uploadCardDashed, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <Text style={styles.uploadEmoji}>📷</Text>
-            <Text style={styles.uploadTitle}>
+            <Text style={[styles.uploadTitle, { color: colors.textPrimary }]}>
               {t("providerDashboard.portfolio.uploadTitle")}
             </Text>
-            <Text style={styles.uploadSubtitle}>
+            <Text style={[styles.uploadSubtitle, { color: colors.textSecondary }]}>
               {t("providerDashboard.portfolio.uploadSubtitle")}
             </Text>
             <TouchableOpacity
@@ -330,9 +330,9 @@ export default function ProviderPortfolioScreen() {
           >
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleCloseDetail} style={styles.modalCloseBtn}>
-                <Ionicons name="close" size={24} color="#fff" />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
                 {t("providerDashboard.portfolio.projectDetail")}
               </Text>
               <View style={styles.modalHeaderRight} />
@@ -371,9 +371,9 @@ export default function ProviderPortfolioScreen() {
                     })
                   )}
                 </View>
-                <Text style={styles.detailTitle}>{detailData.project.title}</Text>
+                <Text style={[styles.detailTitle, { color: colors.textPrimary }]}>{detailData.project.title}</Text>
                 {detailData.project.description ? (
-                  <Text style={styles.detailDescription}>
+                  <Text style={[styles.detailDescription, { color: colors.textSecondary }]}>
                     {detailData.project.description}
                   </Text>
                 ) : null}
@@ -386,16 +386,16 @@ export default function ProviderPortfolioScreen() {
                 ) : null}
                 <View style={styles.detailActions}>
                   <TouchableOpacity
-                    style={styles.detailActionButton}
+                    style={[styles.detailActionButton, { backgroundColor: colors.surfaceSecondary }]}
                     onPress={() => handleEdit(detailData.project.id)}
                   >
                     <Ionicons name="pencil-outline" size={20} color="#A78BFA" />
-                    <Text style={styles.detailActionText}>
+                    <Text style={[styles.detailActionText, { color: colors.primary }]}>
                       {t("providerDashboard.portfolio.editProject")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.detailActionButton, styles.detailActionDelete]}
+                    style={[styles.detailActionButton, styles.detailActionDelete, { backgroundColor: colors.surfaceSecondary }]}
                     onPress={() => handleDelete(detailData.project)}
                   >
                     <Ionicons name="trash-outline" size={20} color="#F87171" />

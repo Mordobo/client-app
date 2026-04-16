@@ -28,7 +28,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CARD_BORDER_PRIMARY = "rgba(34, 197, 94, 0.3)";
-const SECTION_HEADER = "rgba(255,255,255,0.4)";
 const GRADIENT_START = "#6366F1";
 const GRADIENT_MID = "#8B5CF6";
 const GRADIENT_END = "#EC4899";
@@ -117,15 +116,15 @@ export default function ProviderPaymentMethodsScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
           onPress={() => router.back()}
           activeOpacity={0.8}
           accessibilityLabel={t("providerDashboard.providerSettings.back")}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={24} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={24} color={colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           {t("providerDashboard.paymentMethods.title")}
         </Text>
       </View>
@@ -183,7 +182,7 @@ export default function ProviderPaymentMethodsScreen() {
         </LinearGradient>
 
         {/* Bank accounts */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {t("providerDashboard.paymentMethods.bankAccountsSection")}
         </Text>
         <View style={styles.bankList}>
@@ -208,7 +207,7 @@ export default function ProviderPaymentMethodsScreen() {
         </View>
 
         {/* Payout frequency */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {t("providerDashboard.paymentMethods.payoutFrequency")}
         </Text>
         <View style={[styles.frequencyCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
@@ -224,6 +223,7 @@ export default function ProviderPaymentMethodsScreen() {
                 key={key}
                 style={[
                   styles.frequencyButton,
+                  { backgroundColor: payoutFrequency === key ? "transparent" : colors.surfaceSecondary },
                   payoutFrequency === key && styles.frequencyButtonActive,
                 ]}
                 onPress={() => setPayoutFrequency(key)}
@@ -240,6 +240,7 @@ export default function ProviderPaymentMethodsScreen() {
                 <Text
                   style={[
                     styles.frequencyButtonText,
+                    { color: payoutFrequency === key ? "#FFFFFF" : colors.textSecondary },
                     payoutFrequency === key && styles.frequencyButtonTextActive,
                   ]}
                 >
@@ -248,37 +249,37 @@ export default function ProviderPaymentMethodsScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.frequencyNote}>
+          <Text style={[styles.frequencyNote, { color: colors.textTertiary }]}>
             {t("providerDashboard.paymentMethods.payoutProcessedNote")}
           </Text>
         </View>
 
         {/* Minimum withdrawal */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {t("providerDashboard.paymentMethods.minWithdrawal")}
         </Text>
         <View style={[styles.minWithdrawalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.minWithdrawalRow}>
-            <Text style={styles.currencyPrefix}>$</Text>
+            <Text style={[styles.currencyPrefix, { color: colors.textTertiary }]}>$</Text>
             <TextInput
-              style={styles.minWithdrawalInput}
+              style={[styles.minWithdrawalInput, { color: colors.textPrimary }]}
               value={minWithdrawal}
               onChangeText={setMinWithdrawal}
               keyboardType="numeric"
               placeholder="100"
-              placeholderTextColor="rgba(255,255,255,0.3)"
+              placeholderTextColor={colors.textTertiary}
             />
-            <Text style={styles.currencySuffix}>
+            <Text style={[styles.currencySuffix, { color: colors.textTertiary }]}>
               {t("providerDashboard.paymentMethods.currency")}
             </Text>
           </View>
-          <Text style={styles.minWithdrawalHint}>
+          <Text style={[styles.minWithdrawalHint, { color: colors.textTertiary }]}>
             {t("providerDashboard.paymentMethods.minWithdrawalHint")}
           </Text>
         </View>
 
         {/* Recent payouts */}
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {t("providerDashboard.paymentMethods.recentPayouts")}
         </Text>
         {transactionsQuery.isLoading ? (
@@ -287,7 +288,7 @@ export default function ProviderPaymentMethodsScreen() {
           </View>
         ) : transactions.length === 0 ? (
           <View style={[styles.payoutItem, { backgroundColor: colors.card }]}>
-            <Text style={styles.noPayouts}>
+            <Text style={[styles.noPayouts, { color: colors.textSecondary }]}>
               {t("providerDashboard.paymentMethods.noPayouts")}
             </Text>
           </View>
@@ -324,12 +325,12 @@ function BankAccountCard({
         account.primary && styles.bankCardPrimary,
       ]}
     >
-      <View style={styles.bankIconBox}>
-        <Ionicons name="business-outline" size={24} color="rgba(255,255,255,0.6)" />
+      <View style={[styles.bankIconBox, { backgroundColor: themeColors.surfaceSecondary }]}>
+        <Ionicons name="business-outline" size={24} color={themeColors.icon} />
       </View>
       <View style={styles.bankCardBody}>
         <View style={styles.bankCardTitleRow}>
-          <Text style={styles.bankName}>{account.bankName}</Text>
+          <Text style={[styles.bankName, { color: themeColors.textPrimary }]}>{account.bankName}</Text>
           {account.primary && (
             <View style={styles.primaryBadge}>
               <Text style={styles.primaryBadgeText}>
@@ -338,10 +339,10 @@ function BankAccountCard({
             </View>
           )}
         </View>
-        <Text style={styles.bankMasked}>{account.maskedClabe}</Text>
+        <Text style={[styles.bankMasked, { color: themeColors.textSecondary }]}>{account.maskedClabe}</Text>
       </View>
       <TouchableOpacity hitSlop={12}>
-        <Ionicons name="ellipsis-vertical" size={20} color="rgba(255,255,255,0.3)" />
+        <Ionicons name="ellipsis-vertical" size={20} color={themeColors.iconSecondary} />
       </TouchableOpacity>
     </View>
   );
@@ -363,10 +364,10 @@ function PayoutItem({
           <Ionicons name="checkmark" size={14} color="#22C55E" />
         </View>
         <View>
-          <Text style={styles.payoutDate}>
+          <Text style={[styles.payoutDate, { color: themeColors.textPrimary }]}>
             {formatPayoutDate(transaction.date)}
           </Text>
-          <Text style={styles.payoutDestination}>
+          <Text style={[styles.payoutDestination, { color: themeColors.textSecondary }]}>
             {destinationLabel || "—"}
           </Text>
         </View>
@@ -394,14 +395,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#fff",
   },
   scroll: { flex: 1 },
   scrollContent: {
@@ -451,7 +450,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    color: SECTION_HEADER,
     textTransform: "uppercase",
     letterSpacing: 1.2,
     marginBottom: 12,
@@ -478,13 +476,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   bankCardBody: { flex: 1 },
   bankCardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  bankName: { fontSize: 14, fontWeight: "500", color: "#fff" as const },
+  bankName: { fontSize: 14, fontWeight: "500" },
   primaryBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -498,7 +495,6 @@ const styles = StyleSheet.create({
   },
   bankMasked: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.4)",
     marginTop: 2,
   },
   addAccountButton: {
@@ -532,7 +528,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.05)",
   },
   frequencyButtonActive: {
     backgroundColor: "transparent",
@@ -543,14 +538,12 @@ const styles = StyleSheet.create({
   frequencyButtonText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.5)",
   },
   frequencyButtonTextActive: {
     color: "#fff",
   },
   frequencyNote: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
   },
   minWithdrawalCard: {
     padding: 16,
@@ -563,18 +556,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  currencyPrefix: { fontSize: 18, color: "rgba(255,255,255,0.4)" },
+  currencyPrefix: { fontSize: 18 },
   minWithdrawalInput: {
     flex: 1,
     fontSize: 18,
     fontWeight: "500",
-    color: "#fff",
     padding: 0,
   },
-  currencySuffix: { fontSize: 14, color: "rgba(255,255,255,0.4)" },
+  currencySuffix: { fontSize: 14 },
   minWithdrawalHint: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.3)",
     marginTop: 8,
   },
   payoutItem: {
@@ -594,16 +585,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  payoutDate: { fontSize: 14, color: "#fff", fontWeight: "500" },
+  payoutDate: { fontSize: 14, fontWeight: "500" },
   payoutDestination: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
     marginTop: 2,
   },
   payoutAmount: { fontSize: 14, fontWeight: "500", color: "#22C55E" },
   noPayouts: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.4)",
     paddingVertical: 16,
   },
 });

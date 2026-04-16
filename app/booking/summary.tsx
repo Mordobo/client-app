@@ -16,7 +16,7 @@ export default function BookingSummaryScreen() {
   const themeColors = useThemeColors();
   const colors = useMemo(
     () => ({
-      bg: themeColors.background,
+      bg: themeColors.screenBackground,
       bgCard: themeColors.card,
       bgInput: themeColors.surfaceSecondary,
       primary: themeColors.primary,
@@ -25,8 +25,10 @@ export default function BookingSummaryScreen() {
       danger: '#ef4444',
       purple: themeColors.primary,
       pink: '#ec4899',
+      textPrimary: themeColors.textPrimary,
       textSecondary: themeColors.textSecondary,
       border: themeColors.border,
+      cardBorder: themeColors.cardBorder,
       white: '#ffffff',
     }),
     [themeColors]
@@ -56,7 +58,7 @@ export default function BookingSummaryScreen() {
         },
         backButton: { padding: 4 },
         headerTitle: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 20,
           fontWeight: "600",
         },
@@ -73,9 +75,11 @@ export default function BookingSummaryScreen() {
           padding: 16,
           marginHorizontal: 20,
           marginBottom: 16,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
         },
         cardTitle: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 16,
           fontWeight: "600",
           marginBottom: 16,
@@ -107,7 +111,7 @@ export default function BookingSummaryScreen() {
           marginBottom: 4,
         },
         providerName: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 18,
           fontWeight: "600",
         },
@@ -131,7 +135,7 @@ export default function BookingSummaryScreen() {
           fontSize: 14,
         },
         detailValue: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 14,
           textAlign: "right",
           maxWidth: 180,
@@ -144,7 +148,7 @@ export default function BookingSummaryScreen() {
           borderWidth: 1,
           borderColor: colors.border,
           borderRadius: 12,
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 14,
           minHeight: 80,
           textAlignVertical: "top",
@@ -159,7 +163,7 @@ export default function BookingSummaryScreen() {
           fontSize: 14,
         },
         priceValue: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 14,
         },
         discountLabel: { color: colors.secondary },
@@ -176,7 +180,7 @@ export default function BookingSummaryScreen() {
           alignItems: "center",
         },
         totalLabel: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 16,
           fontWeight: "600",
         },
@@ -195,6 +199,17 @@ export default function BookingSummaryScreen() {
           backgroundColor: colors.bg,
           borderTopWidth: 1,
           borderTopColor: colors.border,
+          ...Platform.select({
+            ios: {
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.08,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 6,
+            },
+          }),
         },
         ctaButton: {
           width: "100%",
@@ -413,7 +428,7 @@ export default function BookingSummaryScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t("booking.confirmReservation")}</Text>
       </View>
