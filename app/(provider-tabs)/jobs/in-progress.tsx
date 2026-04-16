@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import {
@@ -56,7 +57,7 @@ function formatElapsedTime(seconds: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function PulseDot() {
+function PulseDot({ isLight }: { isLight?: boolean }) {
   const opacity = useRef(new RNAnimated.Value(0.6)).current;
   useEffect(() => {
     const anim = RNAnimated.loop(
@@ -68,14 +69,23 @@ function PulseDot() {
     anim.start();
     return () => anim.stop();
   }, [opacity]);
-  return <RNAnimated.View style={[styles.pulseDotBase, { opacity }]} />;
+  return (
+    <RNAnimated.View
+      style={[
+        styles.pulseDotBase,
+        { backgroundColor: isLight ? "#7C3AED" : PURPLE_TEXT, opacity },
+      ]}
+    />
+  );
 }
 
 export default function InProgressScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
   const colors = useThemeColors();
+  const isLight = colorScheme === "light";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<JobInProgressData | null>(null);
@@ -283,9 +293,9 @@ export default function InProgressScreen() {
   if (!data) {
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-        <Text style={styles.errorText}>{t("providerDashboard.inProgress.errors.loadFailed")}</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t("providerDashboard.inProgress.errors.loadFailed")}</Text>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={20} color={colors.icon} />
         </TouchableOpacity>
       </View>
     );
@@ -294,15 +304,25 @@ export default function InProgressScreen() {
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
       {/* Status Banner */}
-      <View style={[styles.banner, { paddingTop: insets.top + 24 }]}>
+      <View
+        style={[
+          styles.banner,
+          { paddingTop: insets.top + 24 },
+          isLight ? { backgroundColor: "rgba(139, 92, 246, 0.12)" } : null,
+        ]}
+      >
         <View style={styles.bannerStatusRow}>
-          <PulseDot />
-          <Text style={styles.bannerStatusText}>{t("providerDashboard.inProgress.title")}</Text>
+          <PulseDot isLight={isLight} />
+          <Text style={[styles.bannerStatusText, { color: isLight ? "#5B21B6" : PURPLE_TEXT }]}>
+            {t("providerDashboard.inProgress.title")}
+          </Text>
         </View>
         <View style={styles.bannerTimerRow}>
           <View>
-            <Text style={styles.bannerElapsedLabel}>{t("providerDashboard.inProgress.elapsedTime")}</Text>
-            <Text style={styles.bannerTimer}>{formatElapsedTime(elapsedSeconds)}</Text>
+            <Text style={[styles.bannerElapsedLabel, { color: colors.textSecondary }]}>
+              {t("providerDashboard.inProgress.elapsedTime")}
+            </Text>
+            <Text style={[styles.bannerTimer, { color: colors.textPrimary }]}>{formatElapsedTime(elapsedSeconds)}</Text>
           </View>
           <View style={styles.timerCircle}>
             <Text style={styles.timerEmoji}>⏱️</Text>
@@ -310,10 +330,12 @@ export default function InProgressScreen() {
         </View>
         <View style={styles.progressSection}>
           <View style={styles.progressLabelRow}>
-            <Text style={styles.progressLabel}>{t("providerDashboard.inProgress.estimatedProgress")}</Text>
-            <Text style={styles.progressLabel}>{displayProgress}%</Text>
+            <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>
+              {t("providerDashboard.inProgress.estimatedProgress")}
+            </Text>
+            <Text style={[styles.progressLabel, { color: colors.textSecondary }]}>{displayProgress}%</Text>
           </View>
-          <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarBg, { backgroundColor: isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)" }]}>
             <LinearGradient
               colors={[PURPLE_GRADIENT_START, PURPLE_GRADIENT_END]}
               start={{ x: 0, y: 0 }}
@@ -328,11 +350,11 @@ export default function InProgressScreen() {
         {/* Client Info */}
         <View style={[styles.clientCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.clientAvatar}>
-            <Ionicons name="person" size={24} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="person" size={24} color={colors.icon} />
           </View>
           <View style={styles.clientInfo}>
-            <Text style={styles.clientName}>{data.client.fullName}</Text>
-            <Text style={styles.clientService}>{data.order.serviceName}</Text>
+            <Text style={[styles.clientName, { color: colors.textPrimary }]}>{data.client.fullName}</Text>
+            <Text style={[styles.clientService, { color: colors.textSecondary }]}>{data.order.serviceName}</Text>
           </View>
           <TouchableOpacity
             style={styles.actionIconBtn}
@@ -352,13 +374,14 @@ export default function InProgressScreen() {
         </View>
 
         {/* Task Checklist */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.inProgress.taskList")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.inProgress.taskList")}</Text>
         <View style={styles.taskList}>
           {tasks.map((task) => (
             <TouchableOpacity
               key={task.id}
               style={[
                 styles.taskItem,
+                { backgroundColor: colors.card, borderColor: colors.cardBorder },
                 task.status === "in_progress" && styles.taskItemActive,
               ]}
               onPress={() => handleToggleTask(task)}
@@ -380,8 +403,9 @@ export default function InProgressScreen() {
               <Text
                 style={[
                   styles.taskText,
-                  task.status === "completed" && styles.taskTextCompleted,
-                  task.status === "in_progress" && styles.taskTextActive,
+                  { color: colors.textSecondary },
+                  task.status === "completed" && [styles.taskTextCompleted, { color: colors.textTertiary }],
+                  task.status === "in_progress" && [styles.taskTextActive, { color: colors.textPrimary }],
                 ]}
               >
                 {task.description}
@@ -396,33 +420,49 @@ export default function InProgressScreen() {
         </View>
 
         {/* Quick Actions */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.inProgress.quickActions")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.inProgress.quickActions")}</Text>
         <View style={styles.quickActionsGrid}>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={handleTakePhoto} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={handleTakePhoto}
+            activeOpacity={0.7}
+          >
             <Text style={styles.quickActionIcon}>📷</Text>
             <View style={styles.quickActionLabelWrap}>
-              <Text style={styles.quickActionLabel}>{t("providerDashboard.inProgress.takePhoto")}</Text>
+              <Text style={[styles.quickActionLabel, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.takePhoto")}</Text>
               {sessionPhotoCount > 0 && (
                 <Text style={styles.quickActionBadge}>{sessionPhotoCount}</Text>
               )}
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={handleAddNote} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={handleAddNote}
+            activeOpacity={0.7}
+          >
             <Text style={styles.quickActionIcon}>📝</Text>
             <View style={styles.quickActionLabelWrap}>
-              <Text style={styles.quickActionLabel}>{t("providerDashboard.inProgress.addNote")}</Text>
+              <Text style={[styles.quickActionLabel, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.addNote")}</Text>
               {sessionNoteCount > 0 && (
                 <Text style={styles.quickActionBadge}>{sessionNoteCount}</Text>
               )}
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={handleExtraCharge} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={handleExtraCharge}
+            activeOpacity={0.7}
+          >
             <Text style={styles.quickActionIcon}>💰</Text>
-            <Text style={styles.quickActionLabel}>{t("providerDashboard.inProgress.extraCharge")}</Text>
+            <Text style={[styles.quickActionLabel, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.extraCharge")}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={handleExtendTime} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={[styles.quickActionBtn, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={handleExtendTime}
+            activeOpacity={0.7}
+          >
             <Text style={styles.quickActionIcon}>⏰</Text>
-            <Text style={styles.quickActionLabel}>{t("providerDashboard.inProgress.extendTime")}</Text>
+            <Text style={[styles.quickActionLabel, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.extendTime")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -431,19 +471,30 @@ export default function InProgressScreen() {
       <Modal visible={noteModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={styles.modalTitle}>{t("providerDashboard.inProgress.addNote")}</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.addNote")}</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[
+                styles.modalInput,
+                {
+                  color: colors.textPrimary,
+                  backgroundColor: colors.surfaceSecondary,
+                  borderColor: colors.border,
+                },
+              ]}
               placeholder={t("providerDashboard.inProgress.notePlaceholder")}
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={colors.textTertiary}
               value={noteText}
               onChangeText={setNoteText}
               multiline
               numberOfLines={3}
             />
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalBtnSecondary} onPress={() => { setNoteModalVisible(false); setNoteText(""); }} activeOpacity={0.7}>
-                <Text style={styles.modalBtnSecondaryText}>{t("common.cancel")}</Text>
+              <TouchableOpacity
+                style={[styles.modalBtnSecondary, { backgroundColor: colors.surfaceSecondary }]}
+                onPress={() => { setNoteModalVisible(false); setNoteText(""); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.modalBtnSecondaryText, { color: colors.textSecondary }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.modalBtnPrimary} onPress={handleSaveNote} activeOpacity={0.7}>
                 <Text style={styles.modalBtnPrimaryText}>{t("common.save")}</Text>
@@ -457,8 +508,8 @@ export default function InProgressScreen() {
       <Modal visible={extraChargeModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={styles.modalTitle}>{t("providerDashboard.inProgress.extraCharge")}</Text>
-            <Text style={styles.modalPlaceholderText}>{t("providerDashboard.inProgress.comingSoon")}</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.extraCharge")}</Text>
+            <Text style={[styles.modalPlaceholderText, { color: colors.textSecondary }]}>{t("providerDashboard.inProgress.comingSoon")}</Text>
             <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setExtraChargeModalVisible(false)} activeOpacity={0.7}>
               <Text style={styles.modalBtnPrimaryText}>{t("common.ok")}</Text>
             </TouchableOpacity>
@@ -470,8 +521,8 @@ export default function InProgressScreen() {
       <Modal visible={extendTimeModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={styles.modalTitle}>{t("providerDashboard.inProgress.extendTime")}</Text>
-            <Text style={styles.modalPlaceholderText}>{t("providerDashboard.inProgress.comingSoon")}</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.inProgress.extendTime")}</Text>
+            <Text style={[styles.modalPlaceholderText, { color: colors.textSecondary }]}>{t("providerDashboard.inProgress.comingSoon")}</Text>
             <TouchableOpacity style={styles.modalBtnPrimary} onPress={() => setExtendTimeModalVisible(false)} activeOpacity={0.7}>
               <Text style={styles.modalBtnPrimaryText}>{t("common.ok")}</Text>
             </TouchableOpacity>
@@ -527,7 +578,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: PURPLE_TEXT,
   },
   pulseDot: {
     width: 12,

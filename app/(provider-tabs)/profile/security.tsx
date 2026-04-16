@@ -215,7 +215,7 @@ export default function ProviderSecurityScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]} onPress={() => router.back()} activeOpacity={0.8}>
             <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
@@ -230,14 +230,14 @@ export default function ProviderSecurityScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]} onPress={() => router.back()} activeOpacity={0.8}>
           <Ionicons name="chevron-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.textPrimary }]}>{t(`${I18N}.title`)}</Text>
         {updating && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 'auto' }} />}
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.scroll, { backgroundColor: colors.background }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Password Section */}
         <Text style={[styles.sectionTitle, { color: colors.textTertiary }]}>{t(`${I18N}.sectionPassword`)}</Text>
         <TouchableOpacity style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} activeOpacity={0.8} onPress={handleChangePassword}>

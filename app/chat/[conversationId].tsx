@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
@@ -49,6 +50,7 @@ export default function ChatScreen() {
   const { conversationId, navRef } = useLocalSearchParams<{ conversationId: string; navRef?: string }>();
   const { user } = useAuth();
   const { mode } = useMode();
+  const colorScheme = useColorScheme();
   const themeColors = useThemeColors();
   const insets = useSafeAreaInsets();
   const isProvider = mode === "provider";
@@ -114,7 +116,11 @@ export default function ChatScreen() {
           backgroundColor: "#8B5CF6",
         },
         quoteHeaderBtnView: { backgroundColor: "rgba(139, 92, 246, 0.25)" },
-        quoteHeaderBtnText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF" },
+        quoteHeaderBtnText: {
+          fontSize: 11,
+          fontWeight: "600",
+          color: colorScheme === "light" ? "#5B21B6" : "#FFFFFF",
+        },
         quoteBanner: {
           flexDirection: "row",
           alignItems: "center",
@@ -137,7 +143,11 @@ export default function ChatScreen() {
         },
         quoteBannerContent: { flex: 1 },
         quoteBannerTitle: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
-        quoteBannerSub: { fontSize: 12, color: colors.textMuted40, marginTop: 2 },
+        quoteBannerSub: {
+          fontSize: 12,
+          color: colorScheme === "light" ? colors.textSecondary : colors.textMuted40,
+          marginTop: 2,
+        },
         headerAvatar: { width: 40, height: 40, borderRadius: 20 },
         headerAvatarPlaceholder: {
           width: 40,
@@ -181,11 +191,15 @@ export default function ChatScreen() {
           borderRadius: 999,
           backgroundColor: "rgba(139, 92, 246, 0.3)",
         },
-        jobBannerBadgeText: { fontSize: 10, fontWeight: "600", color: "#C4B5FD" },
+        jobBannerBadgeText: {
+          fontSize: 10,
+          fontWeight: "600",
+          color: colorScheme === "light" ? "#5B21B6" : "#C4B5FD",
+        },
         dateContainer: { alignItems: "center", marginBottom: 12 },
         dateText: {
           fontSize: 10,
-          color: colors.textMuted,
+          color: colorScheme === "light" ? colors.textSecondary : colors.textMuted,
           backgroundColor: colors.chipBg,
           paddingHorizontal: 12,
           paddingVertical: 4,
@@ -227,7 +241,7 @@ export default function ChatScreen() {
         bubbleReceived: { backgroundColor: colors.receivedBubble },
         bubbleSent: { backgroundColor: "#8B5CF6", borderTopLeftRadius: 16, borderTopRightRadius: 4 },
         bubbleText: { fontSize: 14, color: colors.textSecondary },
-        bubbleTextSent: { color: colors.textPrimary },
+        bubbleTextSent: { color: "#FFFFFF" },
         bubbleTime: { fontSize: 10, color: colors.textMuted, marginTop: 4, marginLeft: 8 },
         bubbleTimeRight: { marginLeft: 0, marginRight: 8, textAlign: "right" },
         imageInBubble: { width: 200, height: 160, borderRadius: 12 },
@@ -244,7 +258,10 @@ export default function ChatScreen() {
           borderRadius: 999,
           backgroundColor: colors.chipBg,
         },
-        quickActionChipText: { fontSize: 12, color: colors.textMuted40 },
+        quickActionChipText: {
+          fontSize: 12,
+          color: colorScheme === "light" ? colors.textSecondary : colors.textMuted40,
+        },
         inputWrap: {
           flexDirection: "row",
           alignItems: "center",
@@ -283,7 +300,7 @@ export default function ChatScreen() {
         sendBtnDisabled: { backgroundColor: colors.border, opacity: 0.6 },
         errorText: { fontSize: 14, color: "#EF4444", marginBottom: 12 },
         retryBtn: { backgroundColor: "#8B5CF6", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
-        retryText: { color: colors.textPrimary, fontSize: 14, fontWeight: "600" },
+        retryText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
         imageModalOverlay: {
           flex: 1,
           backgroundColor: "rgba(0,0,0,0.9)",
@@ -292,7 +309,7 @@ export default function ChatScreen() {
         },
         imageModalImage: { width: "100%", height: "80%" },
       }),
-    [colors]
+    [colors, colorScheme]
   );
 
   const clientStyles = React.useMemo(
@@ -322,7 +339,7 @@ export default function ChatScreen() {
           alignItems: "center",
         },
         quoteBannerContent: { flex: 1 },
-        quoteBannerTitle: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
+        quoteBannerTitle: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
         quoteBannerSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
         header: {
           flexDirection: "row",
@@ -923,7 +940,7 @@ export default function ChatScreen() {
                 ${getQuoteDisplayTotal(activeQuote!).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
         <KeyboardAvoidingView style={clientStyles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 80 : 0} enabled={Platform.OS === "ios"}>
@@ -1000,7 +1017,11 @@ export default function ChatScreen() {
           onPress={showQuoteBanner ? handleViewQuote : hasActiveOrder ? handleViewOrder : hasActiveQuote ? handleViewQuote : handleCreateQuote}
           style={[styles.quoteHeaderBtn, (hasActiveOrder || hasActiveQuote) && styles.quoteHeaderBtnView]}
         >
-          <Ionicons name={showQuoteBanner ? "eye-outline" : hasActiveOrder ? "briefcase-outline" : hasActiveQuote ? "eye-outline" : "document-text-outline"} size={16} color={colors.textPrimary} />
+          <Ionicons
+            name={showQuoteBanner ? "eye-outline" : hasActiveOrder ? "briefcase-outline" : hasActiveQuote ? "eye-outline" : "document-text-outline"}
+            size={16}
+            color={(hasActiveOrder || hasActiveQuote) && colorScheme === "light" ? "#5B21B6" : "#FFFFFF"}
+          />
           <Text style={styles.quoteHeaderBtnText}>
             {showQuoteBanner ? t("chat.viewQuote") : hasActiveOrder ? t("chat.viewOrder") : hasActiveQuote ? t("chat.viewQuote") : t("createQuote.createQuoteButton")}
           </Text>
@@ -1048,7 +1069,7 @@ export default function ChatScreen() {
               ${getQuoteDisplayTotal(activeQuote!).toFixed(2)} • {t(`chat.quoteStatus_${activeQuote!.status}`)}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
         </TouchableOpacity>
       )}
 

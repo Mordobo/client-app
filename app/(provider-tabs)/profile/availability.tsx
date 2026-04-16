@@ -202,13 +202,13 @@ export default function ProviderAvailabilityScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack} accessibilityLabel={t("common.back")}>
-            <Text style={styles.backArrow}>←</Text>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]} onPress={handleBack} accessibilityLabel={t("common.back")}>
+            <Text style={[styles.backArrow, { color: colors.icon }]}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("providerDashboard.availabilityConfig.title")}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.availabilityConfig.title")}</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.errorText}>{t("providerDashboard.availabilityConfig.errors.loadFailed")}</Text>
+          <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.errors.loadFailed")}</Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => refetch()}
@@ -231,10 +231,10 @@ export default function ProviderAvailabilityScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backArrow}>←</Text>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]} onPress={handleBack}>
+            <Text style={[styles.backArrow, { color: colors.icon }]}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("providerDashboard.availabilityConfig.title")}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.availabilityConfig.title")}</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#8B5CF6" />
@@ -247,10 +247,10 @@ export default function ProviderAvailabilityScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Back header with Save */}
       <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} accessibilityLabel={t("common.back")}>
-          <Text style={styles.backArrow}>←</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]} onPress={handleBack} accessibilityLabel={t("common.back")}>
+          <Text style={[styles.backArrow, { color: colors.icon }]}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("providerDashboard.availabilityConfig.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.availabilityConfig.title")}</Text>
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
@@ -271,7 +271,7 @@ export default function ProviderAvailabilityScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Work days */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.workDays")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.workDays")}</Text>
         <View style={styles.daysRow}>
           {DAY_KEYS.map((key, idx) => {
             const isActive = activeDays.includes(idx);
@@ -280,7 +280,7 @@ export default function ProviderAvailabilityScreen() {
                 key={key}
                 onPress={() => toggleDay(idx)}
                 activeOpacity={0.7}
-                style={[styles.dayButtonWrap, !isActive && styles.dayButton]}
+                style={[styles.dayButtonWrap, !isActive && [styles.dayButton, { backgroundColor: colors.surfaceSecondary }]]}
               >
                 {isActive ? (
                   <LinearGradient
@@ -294,7 +294,7 @@ export default function ProviderAvailabilityScreen() {
                     </Text>
                   </LinearGradient>
                 ) : (
-                  <Text style={styles.dayButtonText}>
+                  <Text style={[styles.dayButtonText, { color: colors.textSecondary }]}>
                     {t(`providerDashboard.availabilityConfig.${key}`)}
                   </Text>
                 )}
@@ -304,35 +304,35 @@ export default function ProviderAvailabilityScreen() {
         </View>
 
         {/* Schedule per day (first active day as template for simplicity; full UI would expand per day) */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.schedule")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.schedule")}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {[0, 1, 2, 3, 4, 5, 6].map((dayIndex) => {
             const slots = scheduleConfig[String(dayIndex)] ?? [];
             if (slots.length === 0) return null;
             return (
               <View key={dayIndex} style={styles.dayScheduleBlock}>
-                <Text style={styles.dayScheduleLabel}>
+                <Text style={[styles.dayScheduleLabel, { color: colors.textSecondary }]}>
                   {t(`providerDashboard.availabilityConfig.${DAY_KEYS[dayIndex]}`)}
                 </Text>
                 {slots.map((slot, slotIndex) => (
                   <View key={slotIndex} style={styles.timeRow}>
                     <View style={styles.timeField}>
-                      <Text style={styles.timeFieldLabel}>{t("providerDashboard.availabilityConfig.start")}</Text>
+                      <Text style={[styles.timeFieldLabel, { color: colors.textTertiary }]}>{t("providerDashboard.availabilityConfig.start")}</Text>
                       <TouchableOpacity
-                        style={styles.timeValue}
+                        style={[styles.timeValue, { backgroundColor: colors.surfaceSecondary }]}
                         onPress={() => setTimePicker({ dayIndex, slotIndex, field: "start" })}
                       >
-                        <Text style={styles.timeValueText}>{formatToDisplay(slot.start)}</Text>
+                        <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>{formatToDisplay(slot.start)}</Text>
                       </TouchableOpacity>
                     </View>
-                    <Text style={styles.timeArrow}>→</Text>
+                    <Text style={[styles.timeArrow, { color: colors.textTertiary }]}>→</Text>
                     <View style={styles.timeField}>
-                      <Text style={styles.timeFieldLabel}>{t("providerDashboard.availabilityConfig.end")}</Text>
+                      <Text style={[styles.timeFieldLabel, { color: colors.textTertiary }]}>{t("providerDashboard.availabilityConfig.end")}</Text>
                       <TouchableOpacity
-                        style={styles.timeValue}
+                        style={[styles.timeValue, { backgroundColor: colors.surfaceSecondary }]}
                         onPress={() => setTimePicker({ dayIndex, slotIndex, field: "end" })}
                       >
-                        <Text style={styles.timeValueText}>{formatToDisplay(slot.end)}</Text>
+                        <Text style={[styles.timeValueText, { color: colors.textPrimary }]}>{formatToDisplay(slot.end)}</Text>
                       </TouchableOpacity>
                     </View>
                     {slots.length > 1 && (
@@ -355,64 +355,64 @@ export default function ProviderAvailabilityScreen() {
         </View>
 
         {/* Buffer & Max jobs */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.bufferTime")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.bufferTime")}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.bufferRow}>
-            <Text style={styles.bufferLabel}>
+            <Text style={[styles.bufferLabel, { color: colors.textPrimary }]}>
               {t("providerDashboard.availabilityConfig.bufferMinutes", { minutes: bufferMinutes })}
             </Text>
             <View style={styles.stepperRow}>
               <TouchableOpacity
-                style={styles.stepperButton}
+                style={[styles.stepperButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setBufferMinutes((m) => Math.max(0, m - 15))}
               >
-                <Text style={styles.stepperText}>−</Text>
+                <Text style={[styles.stepperText, { color: colors.textSecondary }]}>−</Text>
               </TouchableOpacity>
-              <Text style={styles.stepperValue}>{bufferMinutes}</Text>
+              <Text style={[styles.stepperValue, { color: colors.textPrimary }]}>{bufferMinutes}</Text>
               <TouchableOpacity
-                style={styles.stepperButton}
+                style={[styles.stepperButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setBufferMinutes((m) => Math.min(480, m + 15))}
               >
-                <Text style={styles.stepperText}>+</Text>
+                <Text style={[styles.stepperText, { color: colors.textSecondary }]}>+</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.maxJobsPerDay")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.maxJobsPerDay")}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.bufferRow}>
-            <Text style={styles.bufferLabel}>{maxJobsPerDay}</Text>
+            <Text style={[styles.bufferLabel, { color: colors.textPrimary }]}>{maxJobsPerDay}</Text>
             <View style={styles.stepperRow}>
               <TouchableOpacity
-                style={styles.stepperButton}
+                style={[styles.stepperButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setMaxJobsPerDay((n) => Math.max(1, n - 1))}
               >
-                <Text style={styles.stepperText}>−</Text>
+                <Text style={[styles.stepperText, { color: colors.textSecondary }]}>−</Text>
               </TouchableOpacity>
-              <Text style={styles.stepperValue}>{maxJobsPerDay}</Text>
+              <Text style={[styles.stepperValue, { color: colors.textPrimary }]}>{maxJobsPerDay}</Text>
               <TouchableOpacity
-                style={styles.stepperButton}
+                style={[styles.stepperButton, { backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setMaxJobsPerDay((n) => Math.min(50, n + 1))}
               >
-                <Text style={styles.stepperText}>+</Text>
+                <Text style={[styles.stepperText, { color: colors.textSecondary }]}>+</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
         {/* Blocked dates */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.availabilityConfig.specialDays")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.specialDays")}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           {blockedDates.map((bd, idx) => (
             <View key={idx} style={styles.blockedRow}>
               <View style={styles.blockedInfo}>
                 <Text style={styles.blockedEmoji}>🏖️</Text>
                 <View>
-                  <Text style={styles.blockedTitle}>
+                  <Text style={[styles.blockedTitle, { color: colors.textPrimary }]}>
                     {bd.label || t("providerDashboard.availabilityConfig.specialDays")}
                   </Text>
-                  <Text style={styles.blockedDateRangeText}>
+                  <Text style={[styles.blockedDateRangeText, { color: colors.textSecondary }]}>
                     {bd.startDate} – {bd.endDate}
                   </Text>
                 </View>
@@ -478,11 +478,11 @@ export default function ProviderAvailabilityScreen() {
       <Modal visible={blockedDateModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <Text style={styles.modalTitle}>{t("providerDashboard.availabilityConfig.addBlockedDates")}</Text>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.availabilityConfig.addBlockedDates")}</Text>
 
-            <Text style={styles.modalLabel}>{t("providerDashboard.availabilityConfig.startDateLabel")}</Text>
+            <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.startDateLabel")}</Text>
             {isWeb ? (
-              <View style={[styles.modalDateField, { borderColor: colors.cardBorder }]}>
+              <View style={[styles.modalDateField, { borderColor: colors.cardBorder, backgroundColor: colors.surfaceSecondary }]}>
                 {React.createElement("input", {
                   type: "date",
                   value: blockedStart.toISOString().slice(0, 10),
@@ -498,11 +498,11 @@ export default function ProviderAvailabilityScreen() {
               </View>
             ) : (
               <TouchableOpacity
-                style={[styles.modalDateField, { borderColor: colors.cardBorder }]}
+                style={[styles.modalDateField, { borderColor: colors.cardBorder, backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setBlockedDatePickerField("start")}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalDateFieldText}>{formatDateForDisplay(blockedStart)}</Text>
+                <Text style={[styles.modalDateFieldText, { color: colors.textPrimary }]}>{formatDateForDisplay(blockedStart)}</Text>
                 <Ionicons name="calendar-outline" size={20} color="#A78BFA" />
               </TouchableOpacity>
             )}
@@ -526,9 +526,9 @@ export default function ProviderAvailabilityScreen() {
               </>
             )}
 
-            <Text style={[styles.modalLabel, styles.modalLabelSpaced]}>{t("providerDashboard.availabilityConfig.endDateLabel")}</Text>
+            <Text style={[styles.modalLabel, styles.modalLabelSpaced, { color: colors.textSecondary }]}>{t("providerDashboard.availabilityConfig.endDateLabel")}</Text>
             {isWeb ? (
-              <View style={[styles.modalDateField, { borderColor: colors.cardBorder }]}>
+              <View style={[styles.modalDateField, { borderColor: colors.cardBorder, backgroundColor: colors.surfaceSecondary }]}>
                 {React.createElement("input", {
                   type: "date",
                   value: blockedEnd.toISOString().slice(0, 10),
@@ -542,11 +542,11 @@ export default function ProviderAvailabilityScreen() {
               </View>
             ) : (
               <TouchableOpacity
-                style={[styles.modalDateField, { borderColor: colors.cardBorder }]}
+                style={[styles.modalDateField, { borderColor: colors.cardBorder, backgroundColor: colors.surfaceSecondary }]}
                 onPress={() => setBlockedDatePickerField("end")}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalDateFieldText}>{formatDateForDisplay(blockedEnd)}</Text>
+                <Text style={[styles.modalDateFieldText, { color: colors.textPrimary }]}>{formatDateForDisplay(blockedEnd)}</Text>
                 <Ionicons name="calendar-outline" size={20} color="#A78BFA" />
               </TouchableOpacity>
             )}

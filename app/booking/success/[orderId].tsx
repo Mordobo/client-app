@@ -80,13 +80,15 @@ export default function BookingSuccessScreen() {
   const themeColors = useThemeColors();
   const colors = useMemo(
     () => ({
-      bg: themeColors.background,
+      bg: themeColors.screenBackground,
       bgCard: themeColors.card,
       bgInput: themeColors.surfaceSecondary,
       primary: themeColors.primary,
       secondary: '#10b981',
+      textPrimary: themeColors.textPrimary,
       textSecondary: themeColors.textSecondary,
       border: themeColors.border,
+      cardBorder: themeColors.cardBorder,
       white: '#ffffff',
     }),
     [themeColors]
@@ -138,7 +140,7 @@ export default function BookingSuccessScreen() {
         title: {
           fontSize: 28,
           fontWeight: '700',
-          color: colors.white,
+          color: colors.textPrimary,
           textAlign: 'center',
           marginBottom: 12,
         },
@@ -156,6 +158,8 @@ export default function BookingSuccessScreen() {
           borderRadius: 16,
           padding: 20,
           marginBottom: 32,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
         },
         providerInfo: {
           flexDirection: 'row',
@@ -177,7 +181,7 @@ export default function BookingSuccessScreen() {
         providerName: {
           fontSize: 16,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
           marginBottom: 2,
         },
         serviceName: { fontSize: 14, color: colors.secondary },
@@ -201,7 +205,7 @@ export default function BookingSuccessScreen() {
         detailValueWrap: { flex: 1, minWidth: 0 },
         detailValue: {
           fontSize: 14,
-          color: colors.white,
+          color: colors.textPrimary,
           fontWeight: '500',
         },
         codeLabel: {
@@ -246,7 +250,7 @@ export default function BookingSuccessScreen() {
           justifyContent: 'center',
         },
         secondaryButtonText: {
-          color: colors.white,
+          color: colors.textPrimary,
           fontSize: 16,
           fontWeight: '500',
           textAlign: 'center',

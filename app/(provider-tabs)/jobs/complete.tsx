@@ -287,9 +287,9 @@ export default function CompleteJobScreen() {
   if (!data) {
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-        <Text style={styles.errorText}>{t("providerDashboard.completeJob.errors.loadFailed")}</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={20} color="rgba(255,255,255,0.6)" />
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t("providerDashboard.completeJob.errors.loadFailed")}</Text>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={20} color={colors.icon} />
         </TouchableOpacity>
       </View>
     );
@@ -299,15 +299,15 @@ export default function CompleteJobScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
         </View>
         <View style={[styles.centered, styles.flexGrow]}>
           <View style={styles.successCard}>
             <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
-            <Text style={styles.successTitle}>{t("providerDashboard.completeJob.alreadyCompleted")}</Text>
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.alreadyCompleted")}</Text>
           </View>
           <TouchableOpacity
             style={styles.submitBtn}
@@ -333,16 +333,16 @@ export default function CompleteJobScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
         </View>
         <View style={[styles.centered, styles.flexGrow]}>
           <View style={styles.successCard}>
             <Ionicons name="play-circle" size={48} color={PURPLE_END} style={styles.successIcon} />
-            <Text style={styles.successTitle}>{t("providerDashboard.completeJob.startJobFirst")}</Text>
-            <Text style={styles.successSubtitle}>{t("providerDashboard.completeJob.startJobFirstDesc")}</Text>
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.startJobFirst")}</Text>
+            <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>{t("providerDashboard.completeJob.startJobFirstDesc")}</Text>
           </View>
           <TouchableOpacity
             style={styles.submitBtn}
@@ -362,10 +362,10 @@ export default function CompleteJobScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
-          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.6)" />
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t("providerDashboard.completeJob.title")}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
       </View>
 
       <ScrollView
@@ -377,14 +377,14 @@ export default function CompleteJobScreen() {
         {/* Success Card */}
         <View style={styles.successCard}>
           <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
-          <Text style={styles.successTitle}>{t("providerDashboard.completeJob.jobCompleted")}</Text>
-          <Text style={styles.successDuration}>
+          <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.jobCompleted")}</Text>
+          <Text style={[styles.successDuration, { color: colors.textSecondary }]}>
             {t("providerDashboard.completeJob.totalDuration", { duration: durationLabel })}
           </Text>
         </View>
 
         {/* Work Photos Section */}
-        <Text style={styles.sectionLabel}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
           {t("providerDashboard.completeJob.workPhotos")}
         </Text>
         <View style={styles.photosGrid}>
@@ -411,14 +411,18 @@ export default function CompleteJobScreen() {
             </>
           )}
           {photos.length < 10 && (
-            <TouchableOpacity style={styles.addPhotoBtn} onPress={handlePhotoAction} activeOpacity={0.7}>
-              <Ionicons name="add" size={28} color="rgba(255,255,255,0.3)" />
+            <TouchableOpacity
+              style={[styles.addPhotoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+              onPress={handlePhotoAction}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add" size={28} color={colors.iconSecondary} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Work Summary */}
-        <Text style={styles.sectionLabel}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
           {t("providerDashboard.completeJob.workSummary")}
         </Text>
         <TextInput
@@ -433,7 +437,7 @@ export default function CompleteJobScreen() {
         />
 
         {/* Final Breakdown */}
-        <Text style={styles.sectionLabel}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
           {t("providerDashboard.completeJob.finalBreakdown")}
         </Text>
         <BreakdownCard
@@ -460,8 +464,8 @@ export default function CompleteJobScreen() {
             </Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.cashBtn} activeOpacity={0.7}>
-          <Text style={styles.cashBtnText}>
+        <TouchableOpacity style={[styles.cashBtn, { backgroundColor: colors.surfaceSecondary }]} activeOpacity={0.7}>
+          <Text style={[styles.cashBtnText, { color: colors.primary }]}>
             {t("providerDashboard.completeJob.requestCashPayment")}
           </Text>
         </TouchableOpacity>
@@ -490,7 +494,7 @@ const BreakdownCard = React.memo(function BreakdownCard({
         {lineItems.map((item, idx) => (
           <View key={`item-${idx}`} style={styles.breakdownRow}>
             <View style={styles.breakdownLabelRow}>
-              <Text style={styles.breakdownItemName}>{item.description}</Text>
+              <Text style={[styles.breakdownItemName, { color: colors.textSecondary }]}>{item.description}</Text>
               {item.isExtra && (
                 <View style={styles.extraBadge}>
                   <Text style={styles.extraBadgeText}>
@@ -499,24 +503,24 @@ const BreakdownCard = React.memo(function BreakdownCard({
                 </View>
               )}
             </View>
-            <Text style={styles.breakdownItemPrice}>{formatCurrency(item.amount)}</Text>
+            <Text style={[styles.breakdownItemPrice, { color: colors.textPrimary }]}>{formatCurrency(item.amount)}</Text>
           </View>
         ))}
       </View>
 
-      <View style={styles.breakdownDivider} />
+      <View style={[styles.breakdownDivider, { backgroundColor: colors.border }]} />
 
       <View style={styles.breakdownRow}>
-        <Text style={styles.breakdownSubLabel}>
+        <Text style={[styles.breakdownSubLabel, { color: colors.textSecondary }]}>
           {t("providerDashboard.completeJob.subtotal")}
         </Text>
-        <Text style={styles.breakdownSubValue}>{formatCurrency(subtotal)}</Text>
+        <Text style={[styles.breakdownSubValue, { color: colors.textPrimary }]}>{formatCurrency(subtotal)}</Text>
       </View>
 
       {discount && discount.amount > 0 && (
         <View style={styles.breakdownRow}>
           <View style={styles.breakdownLabelRow}>
-            <Text style={styles.breakdownSubLabel}>
+            <Text style={[styles.breakdownSubLabel, { color: colors.textSecondary }]}>
               {t("providerDashboard.completeJob.discount")}
             </Text>
             <View style={styles.discountBadge}>
@@ -529,10 +533,10 @@ const BreakdownCard = React.memo(function BreakdownCard({
         </View>
       )}
 
-      <View style={styles.totalDivider} />
+      <View style={[styles.totalDivider, { backgroundColor: colors.border }]} />
 
       <View style={styles.breakdownRow}>
-        <Text style={styles.totalLabel}>
+        <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>
           {t("providerDashboard.completeJob.total")}
         </Text>
         <Text style={styles.totalValue}>{formatCurrency(total)}</Text>

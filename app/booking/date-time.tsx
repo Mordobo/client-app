@@ -62,7 +62,7 @@ export default function BookingDateTimeScreen() {
   const themeColors = useThemeColors();
   const colors = useMemo(
     () => ({
-      bg: themeColors.background,
+      bg: themeColors.screenBackground,
       bgCard: themeColors.card,
       bgInput: themeColors.surfaceSecondary,
       primary: themeColors.primary,
@@ -71,6 +71,7 @@ export default function BookingDateTimeScreen() {
       danger: '#ef4444',
       purple: themeColors.primary,
       pink: '#ec4899',
+      textPrimary: themeColors.textPrimary,
       textSecondary: themeColors.textSecondary,
       border: themeColors.border,
       white: '#ffffff',
@@ -106,7 +107,7 @@ export default function BookingDateTimeScreen() {
         headerTitle: {
           fontSize: 20,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
         },
         scrollView: {
           flex: 1,
@@ -118,7 +119,7 @@ export default function BookingDateTimeScreen() {
         sectionTitleCentered: {
           fontSize: 16,
           fontWeight: '600',
-          color: colors.white,
+          color: colors.textPrimary,
           marginBottom: 16,
           textAlign: 'center',
         },
@@ -299,7 +300,7 @@ export default function BookingDateTimeScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.white} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('booking.selectDateTime')}</Text>
         <View style={{ width: 40 }} />
@@ -325,7 +326,7 @@ export default function BookingDateTimeScreen() {
             <View style={styles.durationInfoCard}>
               <Ionicons name="time-outline" size={20} color={colors.secondary} />
               <Text style={styles.durationInfoText}>
-                {getServiceDurationHours(service)} {getServiceDurationHours(service) === 1 ? 'hora' : 'horas'}
+                {t('quote.durationHours', { count: getServiceDurationHours(service) })}
               </Text>
             </View>
           </View>

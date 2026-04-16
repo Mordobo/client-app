@@ -1,8 +1,10 @@
 import { ProviderAvatar } from '@/components/ProviderAvatar';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { fetchSupplierAvailability } from '@/services/suppliers';
+import type { ThemeColors } from '@/utils/themeStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { t } from '@/i18n';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -14,14 +16,138 @@ import {
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00'];
 
-const colors = {
-  bg: '#1a1a2e',
-  bgCard: '#252542',
-  primary: '#3b82f6',
-  textSecondary: '#9ca3af',
-  border: '#374151',
-  white: '#ffffff',
-};
+const TEXT_ON_PRIMARY = '#ffffff';
+
+function createBookingDateTimePickerStyles(theme: ThemeColors) {
+  return StyleSheet.create({
+    wrap: {
+      marginBottom: 16,
+    },
+    loadingWrap: {
+      minHeight: 200,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    providerCard: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    providerImageContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.surfaceSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    providerImage: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+    },
+    providerInfo: { flex: 1 },
+    providerName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.textPrimary,
+      marginBottom: 2,
+    },
+    serviceInfo: {
+      fontSize: 13,
+      color: theme.textSecondary,
+    },
+    monthNavigation: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    monthNavButtonDisabled: { opacity: 0.3 },
+    monthText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textPrimary,
+    },
+    dateSelector: {
+      gap: 6,
+      marginBottom: 24,
+    },
+    dateItem: {
+      width: 56,
+      paddingVertical: 12,
+      paddingHorizontal: 4,
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    dateItemSelected: {
+      backgroundColor: theme.primary,
+      borderColor: theme.primary,
+    },
+    dateItemUnavailable: { opacity: 0.3 },
+    dateDayName: {
+      fontSize: 11,
+      color: theme.textSecondary,
+      marginBottom: 4,
+    },
+    dateDayNameSelected: { color: TEXT_ON_PRIMARY },
+    dateDayNameUnavailable: { color: theme.textSecondary },
+    dateDayNumber: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.textPrimary,
+    },
+    dateDayNumberSelected: { color: TEXT_ON_PRIMARY },
+    dateDayNumberUnavailable: { color: theme.textSecondary },
+    section: {
+      marginBottom: 0,
+    },
+    sectionTitleCentered: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textPrimary,
+      marginBottom: 16,
+      textAlign: 'center',
+    },
+    timeGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    timeSlot: {
+      width: '22%',
+      paddingVertical: 14,
+      paddingHorizontal: 8,
+      backgroundColor: theme.card,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    timeSlotSelected: {
+      backgroundColor: theme.primary,
+      borderColor: theme.primary,
+    },
+    timeSlotUnavailable: { opacity: 0.3 },
+    timeSlotText: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: theme.textPrimary,
+    },
+    timeSlotTextSelected: { color: TEXT_ON_PRIMARY },
+    timeSlotTextUnavailable: { color: theme.textSecondary },
+  });
+}
 
 export interface BookingDateTimePickerProviderCard {
   name: string;
@@ -46,6 +172,9 @@ export function BookingDateTimePicker({
   providerCard,
   minDate = new Date(),
 }: BookingDateTimePickerProps) {
+  const theme = useThemeColors();
+  const styles = useMemo(() => createBookingDateTimePickerStyles(theme), [theme]);
+
   const [currentMonth, setCurrentMonth] = useState(() => value || new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(() =>
     value ? new Date(value.getFullYear(), value.getMonth(), value.getDate()) : null
@@ -234,7 +363,7 @@ export function BookingDateTimePicker({
   if (loadingAvailability) {
     return (
       <View style={styles.loadingWrap}>
-        <ActivityIndicator size="small" color={colors.primary} />
+        <ActivityIndicator size="small" color={theme.primary} />
       </View>
     );
   }
@@ -269,7 +398,7 @@ export function BookingDateTimePicker({
           <Ionicons
             name="chevron-back"
             size={20}
-            color={canNavigatePrev() ? colors.textSecondary : colors.border}
+            color={canNavigatePrev() ? theme.icon : theme.border}
           />
         </TouchableOpacity>
         <Text style={styles.monthText}>
@@ -277,7 +406,7 @@ export function BookingDateTimePicker({
             formatMonthYear(currentMonth).slice(1)}
         </Text>
         <TouchableOpacity onPress={() => navigateMonth('next')}>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={20} color={theme.icon} />
         </TouchableOpacity>
       </View>
 
@@ -357,127 +486,3 @@ export function BookingDateTimePicker({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    marginBottom: 16,
-  },
-  loadingWrap: {
-    minHeight: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  providerCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  providerImageContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#2d2d4a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  providerImage: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-  },
-  providerInfo: { flex: 1 },
-  providerName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 2,
-  },
-  serviceInfo: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  monthNavigation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  monthNavButtonDisabled: { opacity: 0.3 },
-  monthText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  dateSelector: {
-    gap: 6,
-    marginBottom: 24,
-  },
-  dateItem: {
-    width: 56,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  dateItemSelected: {
-    backgroundColor: colors.primary,
-  },
-  dateItemUnavailable: { opacity: 0.3 },
-  dateDayName: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  dateDayNameSelected: { color: colors.white },
-  dateDayNameUnavailable: { color: colors.textSecondary },
-  dateDayNumber: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  dateDayNumberSelected: { color: colors.white },
-  dateDayNumberUnavailable: { color: colors.textSecondary },
-  section: {
-    marginBottom: 0,
-  },
-  sectionTitleCentered: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  timeSlot: {
-    width: '22%',
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    backgroundColor: colors.bgCard,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timeSlotSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  timeSlotUnavailable: { opacity: 0.3 },
-  timeSlotText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: colors.white,
-  },
-  timeSlotTextSelected: { color: colors.white },
-  timeSlotTextUnavailable: { color: colors.textSecondary },
-});

@@ -5,14 +5,234 @@ import { t } from "@/i18n";
 import { Conversation, deleteConversation, fetchConversations } from "@/services/conversations";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, AppStateStatus, ActivityIndicator, Alert, FlatList, Image, Modal, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppState, AppStateStatus, ActivityIndicator, Alert, FlatList, Modal, Platform, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function ConversationsListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: colors.screenBackground,
+        },
+        header: {
+          paddingHorizontal: 20,
+          paddingBottom: 20,
+          backgroundColor: colors.card,
+        },
+        headerTitle: {
+          fontSize: 28,
+          fontWeight: "700",
+          color: colors.textPrimary,
+        },
+        centerContainer: {
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 20,
+          backgroundColor: colors.screenBackground,
+        },
+        listWrapper: {
+          flex: 1,
+          backgroundColor: colors.screenBackground,
+        },
+        listContainer: {
+          flex: 1,
+          backgroundColor: colors.screenBackground,
+        },
+        listContent: {
+          paddingHorizontal: 20,
+          paddingVertical: 20,
+          backgroundColor: colors.screenBackground,
+        },
+        conversationItem: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.cardBorder,
+          backgroundColor: colors.screenBackground,
+        },
+        conversationRowTouchable: {
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 14,
+        },
+        menuButton: {
+          padding: 8,
+          justifyContent: "center",
+          alignItems: "center",
+        },
+        conversationItemNoBorder: {
+          borderBottomWidth: 0,
+        },
+        avatarContainer: {
+          position: "relative",
+        },
+        avatar: {
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+        },
+        avatarPlaceholder: {
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.surfaceSecondary,
+        },
+        avatarEmoji: {
+          fontSize: 24,
+        },
+        onlineIndicator: {
+          position: "absolute",
+          bottom: 2,
+          right: 2,
+          width: 14,
+          height: 14,
+          borderRadius: 7,
+          borderWidth: 3,
+          backgroundColor: "#10b981",
+          borderColor: colors.screenBackground,
+        },
+        unreadBadge: {
+          minWidth: 20,
+          height: 20,
+          borderRadius: 10,
+          justifyContent: "center",
+          alignItems: "center",
+          paddingHorizontal: 6,
+          backgroundColor: colors.primary,
+        },
+        unreadBadgeCircular: {
+          width: 20,
+          minWidth: 20,
+          paddingHorizontal: 0,
+        },
+        unreadText: {
+          color: "#FFFFFF",
+          fontSize: 11,
+          fontWeight: "600",
+        },
+        conversationContent: {
+          flex: 1,
+          justifyContent: "center",
+        },
+        conversationHeader: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 4,
+        },
+        userName: {
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.textPrimary,
+        },
+        timeText: {
+          fontSize: 12,
+          color: colors.textTertiary,
+        },
+        timeTextUnread: {
+          color: colors.primary,
+        },
+        lastMessageRow: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+        },
+        lastMessage: {
+          fontSize: 14,
+          flex: 1,
+          marginRight: 8,
+          maxWidth: 200,
+          color: colors.textTertiary,
+        },
+        lastMessageUnread: {
+          color: colors.textPrimary,
+          fontWeight: "500",
+        },
+        emptyTitle: {
+          fontSize: 18,
+          fontWeight: "600",
+          marginTop: 16,
+          color: colors.textPrimary,
+        },
+        emptySubtitle: {
+          fontSize: 14,
+          textAlign: "center",
+          marginTop: 8,
+          paddingHorizontal: 40,
+          color: colors.textTertiary,
+        },
+        errorText: {
+          fontSize: 16,
+          textAlign: "center",
+          marginBottom: 16,
+          color: "#EF4444",
+        },
+        retryButton: {
+          backgroundColor: colors.primary,
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 8,
+          marginTop: 8,
+        },
+        retryText: {
+          color: "#FFFFFF",
+          fontSize: 16,
+          fontWeight: "600",
+        },
+        optionsOverlay: {
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: 24,
+        },
+        optionsBox: {
+          backgroundColor: colors.card,
+          borderRadius: 12,
+          paddingVertical: 8,
+          minWidth: 220,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+        },
+        optionsTitle: {
+          fontSize: 16,
+          fontWeight: "600",
+          color: colors.textPrimary,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        },
+        optionsButton: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 10,
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+        },
+        optionsButtonText: {
+          fontSize: 16,
+          color: colors.textSecondary,
+        },
+        optionsButtonTextDestructive: {
+          fontSize: 16,
+          color: "#EF4444",
+          fontWeight: "500",
+        },
+      }),
+    [colors]
+  );
   const { isAuthenticated } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,7 +462,7 @@ export default function ConversationsListScreen() {
       const showBorder = index < 4;
 
       return (
-        <View style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder, { backgroundColor: colors.background, borderBottomColor: colors.cardBorder }]}>
+        <View style={[styles.conversationItem, !showBorder && styles.conversationItemNoBorder]}>
           <TouchableOpacity style={styles.conversationRowTouchable} onPress={() => handleConversationPress(item.id)} onLongPress={() => handleLongPressConversation(item)} activeOpacity={0.7}>
             <View style={styles.avatarContainer}>
               <ProviderAvatar
@@ -255,11 +475,11 @@ export default function ConversationsListScreen() {
             </View>
             <View style={styles.conversationContent}>
               <View style={styles.conversationHeader}>
-                <Text style={[styles.userName, { color: colors.textPrimary }]}>{item.other_user_name}</Text>
-                <Text style={[styles.timeText, { color: item.unread_count > 0 ? colors.primary : colors.textTertiary }]}>{formatTime(item.last_message_at)}</Text>
+                <Text style={styles.userName}>{item.other_user_name}</Text>
+                <Text style={[styles.timeText, item.unread_count > 0 && styles.timeTextUnread]}>{formatTime(item.last_message_at)}</Text>
               </View>
               <View style={styles.lastMessageRow}>
-                <Text style={[styles.lastMessage, { color: item.unread_count > 0 ? colors.textPrimary : colors.textTertiary }, item.unread_count > 0 && { fontWeight: "500" }]} numberOfLines={1}>
+                <Text style={[styles.lastMessage, item.unread_count > 0 && styles.lastMessageUnread]} numberOfLines={1}>
                   {item.last_message || t("chat.noMessages")}
                 </Text>
                 {item.unread_count > 0 && (
@@ -283,19 +503,11 @@ export default function ConversationsListScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View
-          style={[
-            styles.header,
-            {
-              paddingTop: insets.top + 20,
-              backgroundColor: colors.card,
-            },
-          ]}
-        >
-          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("chat.messages")}</Text>
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+          <Text style={styles.headerTitle}>{t("chat.messages")}</Text>
         </View>
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
@@ -303,39 +515,30 @@ export default function ConversationsListScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header - Exact match to JSX: padding: '50px 20px 20px', backgroundColor: colors.bgCard */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top + 20,
-            backgroundColor: colors.card,
-          },
-        ]}
-      >
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("chat.messages")}</Text>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <Text style={styles.headerTitle}>{t("chat.messages")}</Text>
       </View>
 
       {error ?
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-          <Text style={[styles.errorText, { color: "#EF4444" }]}>{error}</Text>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadConversations}>
             <Text style={styles.retryText}>{t("chat.retry")}</Text>
           </TouchableOpacity>
         </View>
       : conversations.length === 0 ?
-        <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.centerContainer}>
           <Ionicons name="chatbubbles-outline" size={64} color={colors.textTertiary} />
-          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>{t("chat.noMessages")}</Text>
-          <Text style={[styles.emptySubtitle, { color: colors.textTertiary }]}>{t("chat.noMessagesDesc")}</Text>
+          <Text style={styles.emptyTitle}>{t("chat.noMessages")}</Text>
+          <Text style={styles.emptySubtitle}>{t("chat.noMessagesDesc")}</Text>
         </View>
-      : <View style={{ flex: 1, backgroundColor: colors.background }}>
+      : <View style={styles.listWrapper}>
           <FlatList
             data={conversations}
             keyExtractor={(item) => item?.id || `conversation-${Math.random()}`}
             renderItem={renderConversation}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20, paddingBottom: 100 + insets.bottom, backgroundColor: colors.background }}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
           />
         </View>
@@ -358,230 +561,3 @@ export default function ConversationsListScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#1a1a2e", // Hardcode dark background like Home
-  },
-  // Header: padding: '50px 20px 20px' from JSX (50px top, 20px horizontal, 20px bottom)
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: "#252542", // Hardcode dark header
-    // paddingTop will be set dynamically with safe area
-  },
-  // Title: fontSize: '28px', fontWeight: '700' from JSX
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#FFFFFF", // Hardcode white text
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#1a1a2e", // Hardcode dark background
-  },
-  listWrapper: {
-    flex: 1,
-    backgroundColor: "#1a1a2e", // Hardcode dark background wrapper for FlashList
-  },
-  listContainer: {
-    flex: 1,
-    backgroundColor: "#1a1a2e", // Hardcode dark background for FlashList style prop
-  },
-  // List: padding: '20px' from JSX
-  listContent: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    backgroundColor: "#1a1a2e", // Hardcode dark background
-  },
-  // Item: gap: '14px', padding: '14px 0' from JSX - gap must be exact
-  conversationItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14, // Exact gap from JSX
-    paddingVertical: 14,
-    paddingHorizontal: 0, // No horizontal padding on item itself
-    borderBottomWidth: 1,
-    borderBottomColor: "#374151", // Hardcode dark border
-    backgroundColor: "#1a1a2e", // Hardcode dark background for each item
-  },
-  conversationRowTouchable: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  menuButton: {
-    padding: 8,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  conversationItemNoBorder: {
-    borderBottomWidth: 0,
-  },
-  avatarContainer: {
-    position: "relative",
-  },
-  // Avatar: width: '56px', height: '56px', borderRadius: '50%' from JSX
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#252542", // Hardcode dark header background
-  },
-  avatarEmoji: {
-    fontSize: 24,
-  },
-  // Online indicator: width: '14px', height: '14px', bottom: '2px', right: '2px', border: '3px solid' from JSX
-  onlineIndicator: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 3,
-    backgroundColor: "#10b981", // Hardcode secondary color
-    borderColor: "#1a1a2e", // Hardcode dark background
-  },
-  // Badge: minWidth: '20px', height: '20px', borderRadius: '50%', fontSize: '11px', fontWeight: '600' from JSX
-  unreadBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 6,
-    backgroundColor: "#3b82f6", // Hardcode primary color
-  },
-  unreadBadgeCircular: {
-    width: 20,
-    minWidth: 20,
-    paddingHorizontal: 0,
-  },
-  unreadText: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  conversationContent: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  // Header row: marginBottom: '4px' from JSX
-  conversationHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  // Name: fontSize: '16px', fontWeight: '600' from JSX
-  userName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF", // Hardcode white text
-  },
-  // Time: fontSize: '12px' from JSX
-  timeText: {
-    fontSize: 12,
-    color: "#9ca3af", // Hardcode secondary text
-  },
-  timeTextUnread: {
-    color: "#3b82f6", // Hardcode primary color for unread
-  },
-  lastMessageRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  // Message: fontSize: '14px', maxWidth: '200px' from JSX
-  lastMessage: {
-    fontSize: 14,
-    flex: 1,
-    marginRight: 8,
-    maxWidth: 200,
-    color: "#9ca3af", // Hardcode secondary text
-  },
-  lastMessageUnread: {
-    color: "#FFFFFF", // Hardcode white text for unread
-    fontWeight: "500",
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
-    color: "#FFFFFF", // Hardcode white text
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 8,
-    paddingHorizontal: 40,
-    color: "#9ca3af", // Hardcode secondary text
-  },
-  errorText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 16,
-    color: "#EF4444", // Hardcode error color
-  },
-  retryButton: {
-    backgroundColor: "#3b82f6",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  retryText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  optionsOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  optionsBox: {
-    backgroundColor: "#252542",
-    borderRadius: 12,
-    paddingVertical: 8,
-    minWidth: 220,
-  },
-  optionsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  optionsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  optionsButtonText: {
-    fontSize: 16,
-    color: "#9ca3af",
-  },
-  optionsButtonTextDestructive: {
-    fontSize: 16,
-    color: "#EF4444",
-    fontWeight: "500",
-  },
-});
