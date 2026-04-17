@@ -853,6 +853,12 @@ export default {
     emailAddress: "support@mordobo.com",
     phone: "Phone",
     phoneNumber: "+1 809 555 0000",
+    liveChatComingBody:
+      "Live chat will be available soon. Please use email or phone support for now.",
+    emailDefaultSubject: "Support Request",
+    emailDefaultBody: "Hello,\n\nI need help with:\n\n",
+    openEmailFailed: "Could not open the email app.",
+    openPhoneFailed: "Could not open the phone dialer.",
     faqs: {
       howToBook: {
         question: "How do I book a service?",
@@ -1404,6 +1410,27 @@ export default {
         loadFailed: "Could not load statistics. Please try again.",
         retry: "Retry",
       },
+    },
+    providerSupportScreens: {
+      helpCenterMoreHelpTitle: "Contact support",
+      helpCenterMoreHelpSubtitle: "Chat, email, phone, and formal requests",
+      chatSection: "Live chat",
+      statusOnline: "Online",
+      chatHoursHint: "We typically reply within a few minutes during business hours.",
+      startChat: "Start chat",
+      formalRequests: "Formal requests",
+    },
+    providerLegal: {
+      termsOfServiceTitle: "Terms of Service",
+      termsOfServiceSubtitle: "Service terms",
+      privacyTitle: "Privacy Policy",
+      privacySubtitle: "How we handle your data",
+      cookiesTitle: "Cookie Policy",
+      cookiesSubtitle: "Cookies and similar technologies",
+      providerAgreementTitle: "Provider Agreement",
+      providerAgreementSubtitle: "Terms for professionals on Mordobo",
+      lastUpdated: "Last updated: {{date}}",
+      loadError: "We could not load this document. Please try again later.",
     },
     providerNotificationPreferences: {
       title: "Notification Preferences",

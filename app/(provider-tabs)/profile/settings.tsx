@@ -77,8 +77,9 @@ export default function ProviderSettingsScreen() {
     { icon: "stats-chart-outline", labelKey: "providerDashboard.providerSettings.statistics", descKey: "providerDashboard.providerSettings.statisticsDesc", route: "/(provider-tabs)/profile/statistics" },
   ];
   const supportRows: SettingsRow[] = [
-    { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc", route: "/account/support" },
-    { icon: "document-outline", labelKey: "providerDashboard.providerSettings.termsPrivacy", descKey: "providerDashboard.providerSettings.termsPrivacyDesc", route: "/account/support" },
+    { icon: "help-circle-outline", labelKey: "providerDashboard.providerSettings.helpCenter", descKey: "providerDashboard.providerSettings.helpCenterDesc", route: "/(provider-tabs)/profile/help-center" },
+    { icon: "chatbubble-ellipses-outline", labelKey: "providerDashboard.providerSettings.contactSupport", descKey: "providerDashboard.providerSettings.contactSupportDesc", route: "/(provider-tabs)/profile/contact-support" },
+    { icon: "document-outline", labelKey: "providerDashboard.providerSettings.termsPrivacy", descKey: "providerDashboard.providerSettings.termsPrivacyDesc", route: "/(provider-tabs)/profile/terms-privacy" },
   ];
 
   return (
@@ -86,7 +87,7 @@ export default function ProviderSettingsScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(provider-tabs)/profile" as never)}
           activeOpacity={0.8}
           accessibilityLabel={t("providerDashboard.providerSettings.back")}
           accessibilityRole="button"
@@ -103,25 +104,25 @@ export default function ProviderSettingsScreen() {
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionAccount"
           rows={accountRows}
-          onRowPress={(route) => router.push(route)}
+          onRowPress={(route) => router.push(route as never)}
           colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionPreferences"
           rows={preferencesRows}
-          onRowPress={(route) => router.push(route)}
+          onRowPress={(route) => router.push(route as never)}
           colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionBusiness"
           rows={businessRows}
-          onRowPress={(route) => router.push(route)}
+          onRowPress={(route) => router.push(route as never)}
           colors={colors}
         />
         <SettingsSection
           sectionTitleKey="providerDashboard.providerSettings.sectionSupport"
           rows={supportRows}
-          onRowPress={(route) => router.push(route)}
+          onRowPress={(route) => router.push(route as never)}
           colors={colors}
         />
       </ScrollView>
