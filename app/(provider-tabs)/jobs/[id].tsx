@@ -93,6 +93,11 @@ export default function ProviderJobDetailScreen() {
     router.push({ pathname: "/(provider-tabs)/jobs/complete", params: { id: job.orderId } });
   }, [job, router]);
 
+  const handleRateClient = useCallback(() => {
+    if (!job) return;
+    router.push({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id: job.orderId } });
+  }, [job, router]);
+
   if (isLoading && jobs.length === 0) {
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
@@ -222,6 +227,12 @@ export default function ProviderJobDetailScreen() {
           <TouchableOpacity style={[styles.completeBtn, { backgroundColor: GREEN_BUTTON }]} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
             <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
             <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
+          </TouchableOpacity>
+        )}
+        {job.status === "pending_review" && (
+          <TouchableOpacity style={[styles.completeBtn, { backgroundColor: colors.primary }]} onPress={handleRateClient} activeOpacity={0.8}>
+            <Ionicons name="star-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.completeBtnText}>{t("providerDashboard.rateClient.title")}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

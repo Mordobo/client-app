@@ -775,7 +775,11 @@ export default function ChatScreen() {
         t("booking.activeOrderExists"),
         [
           { text: t("common.cancel") },
-          { text: t("booking.viewExistingOrder"), onPress: () => router.push(`/orders/${activeOrder!.id}`) },
+          {
+            text: t("booking.viewExistingOrder"),
+            onPress: () =>
+              router.push(isProvider ? `/(provider-tabs)/jobs/${activeOrder!.id}` : `/orders/${activeOrder!.id}`),
+          },
         ]
       );
       return;
@@ -798,7 +802,11 @@ export default function ChatScreen() {
 
   const handleViewOrder = () => {
     if (!activeOrder) return;
-    router.push(`/orders/${activeOrder.id}`);
+    if (isProvider) {
+      router.push(`/(provider-tabs)/jobs/${activeOrder.id}`);
+    } else {
+      router.push(`/orders/${activeOrder.id}`);
+    }
   };
 
   const handleViewQuote = () => {
