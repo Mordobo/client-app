@@ -37,12 +37,16 @@ export interface FaqListItem {
 
 const DEFAULT_ICONS = ['📅', '💳', '❌', '⭐', '🔒', '💰', '📋', '❓'];
 
+export type FaqAudience = 'client' | 'provider';
+
 /**
- * Fetches published FAQs from the API (parametrized via CRM/Backoffice).
- * @param locale - 'en' | 'es'. Should match app language.
+ * Fetches published FAQs from the API (CRM/Backoffice).
+ * Categories are scoped by `audience` on each category: `client`, `provider`, or `all` (both apps).
+ * @param audience - App role: client help center vs provider help center.
  */
-export async function fetchFaqs(locale: 'en' | 'es'): Promise<FaqsResponse> {
-  const url = `${API_BASE}/api/content/faqs?locale=${locale}`;
+export async function fetchFaqs(locale: 'en' | 'es', audience: FaqAudience): Promise<FaqsResponse> {
+  const params = new URLSearchParams({ locale, audience });
+  const url = `${API_BASE}/api/content/faqs?${params.toString()}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },

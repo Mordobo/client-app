@@ -22,6 +22,10 @@ export default function ProviderProfileLayout() {
       <Stack.Screen name="service-area" />
       <Stack.Screen name="payment-methods" />
       <Stack.Screen name="services" />
+      <Stack.Screen name="help-center" />
+      <Stack.Screen name="contact-support" />
+      <Stack.Screen name="terms-privacy" />
+      <Stack.Screen name="legal-document/[docType]" />
     </Stack>
   );
 }
