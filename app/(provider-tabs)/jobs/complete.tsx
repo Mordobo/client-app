@@ -25,6 +25,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -38,6 +39,10 @@ const GREEN_TEXT = "#4ADE80";
 const GREEN_BADGE_BG = "rgba(34, 197, 94, 0.15)";
 const SUCCESS_BG = "rgba(34, 197, 94, 0.1)";
 const SUCCESS_BORDER = "rgba(34, 197, 94, 0.3)";
+
+/** Matches `scrollContent` horizontal padding (20 * 2). */
+const COMPLETE_JOB_SCROLL_PAD_X = 40;
+const COMPLETE_JOB_PHOTO_GRID_GAP = 8;
 
 function formatCurrency(value: number): string {
   const str = value % 1 === 0 ? String(value) : value.toFixed(2);
@@ -79,8 +84,15 @@ export default function CompleteJobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
   const colors = useThemeColors();
   const queryClient = useQueryClient();
+
+  const photoSlotSize = useMemo(() => {
+    const contentWidth = Math.max(0, windowWidth - COMPLETE_JOB_SCROLL_PAD_X);
+    const slot = (contentWidth - COMPLETE_JOB_PHOTO_GRID_GAP * 2) / 3;
+    return Math.max(1, Math.floor(slot));
+  }, [windowWidth]);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -387,37 +399,48 @@ export default function CompleteJobScreen() {
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
           {t("providerDashboard.completeJob.workPhotos")}
         </Text>
-        <View style={styles.photosGrid}>
+        <View style={[styles.photosGrid, { gap: COMPLETE_JOB_PHOTO_GRID_GAP }]}>
           {photos.map((photo, idx) => (
-            <View key={`photo-${idx}`} style={styles.photoWrapper}>
-              <Image source={{ uri: photo.uri }} style={styles.photoImage} contentFit="cover" />
-              <TouchableOpacity
-                style={styles.photoDeleteBtn}
-                onPress={() => removePhoto(idx)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close-circle" size={22} color="#FF4444" />
-              </TouchableOpacity>
+            <View
+              key={`photo-${idx}`}
+              style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}
+            >
+              <View style={styles.photoWrapper}>
+                <Image source={{ uri: photo.uri }} style={styles.photoImage} contentFit="cover" />
+                <TouchableOpacity
+                  style={styles.photoDeleteBtn}
+                  onPress={() => removePhoto(idx)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close-circle" size={22} color="#FF4444" />
+                </TouchableOpacity>
+              </View>
             </View>
           ))}
           {photos.length === 0 && (
             <>
-              <TouchableOpacity style={styles.photoPlaceholder} onPress={handlePhotoAction} activeOpacity={0.7}>
-                <Ionicons name="camera" size={28} color="rgba(139, 92, 246, 0.5)" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.photoPlaceholder} onPress={handlePhotoAction} activeOpacity={0.7}>
-                <Ionicons name="camera" size={28} color="rgba(139, 92, 246, 0.5)" />
-              </TouchableOpacity>
+              <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
+                <TouchableOpacity style={styles.photoPlaceholder} onPress={handlePhotoAction} activeOpacity={0.7}>
+                  <Ionicons name="camera" size={28} color="rgba(139, 92, 246, 0.5)" />
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
+                <TouchableOpacity style={styles.photoPlaceholder} onPress={handlePhotoAction} activeOpacity={0.7}>
+                  <Ionicons name="camera" size={28} color="rgba(139, 92, 246, 0.5)" />
+                </TouchableOpacity>
+              </View>
             </>
           )}
           {photos.length < 10 && (
-            <TouchableOpacity
-              style={[styles.addPhotoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-              onPress={handlePhotoAction}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="add" size={28} color={colors.iconSecondary} />
-            </TouchableOpacity>
+            <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
+              <TouchableOpacity
+                style={[styles.addPhotoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+                onPress={handlePhotoAction}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="add" size={28} color={colors.iconSecondary} />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
 
@@ -631,16 +654,19 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // Photos grid
+  // Photos grid — slot size from window width so % + gap matches native/web; outer cell fixes row alignment.
   photosGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    alignItems: "flex-start",
     marginBottom: 20,
   },
+  photoCell: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
   photoWrapper: {
-    width: "31%",
-    aspectRatio: 1,
+    flex: 1,
     borderRadius: 12,
     overflow: "hidden",
   },
@@ -657,16 +683,18 @@ const styles = StyleSheet.create({
     borderRadius: 11,
   },
   photoPlaceholder: {
-    width: "31%",
-    aspectRatio: 1,
+    flex: 1,
+    width: "100%",
     borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
     backgroundColor: "rgba(139, 92, 246, 0.1)",
     alignItems: "center",
     justifyContent: "center",
   },
   addPhotoBtn: {
-    width: "31%",
-    aspectRatio: 1,
+    flex: 1,
+    width: "100%",
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 2,
