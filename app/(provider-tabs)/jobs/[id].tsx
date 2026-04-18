@@ -206,22 +206,24 @@ export default function ProviderJobDetailScreen() {
           : null}
         </View>
 
-        {/* Work in progress: for scheduled (accepted) jobs, call start API then navigate; for in_progress, open timer/tasks */}
-        <TouchableOpacity
-          style={[styles.inProgressBtn, { backgroundColor: colors.primary }, startingJob && styles.inProgressBtnDisabled]}
-          onPress={handleStartJob}
-          activeOpacity={0.8}
-          disabled={startingJob}
-        >
-          {startingJob ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Ionicons name="play-circle" size={20} color="#FFFFFF" />
-          )}
-          <Text style={styles.completeBtnText}>
-            {startingJob ? t("providerDashboard.inProgress.starting") : t("providerDashboard.inProgress.title")}
-          </Text>
-        </TouchableOpacity>
+        {/* Work in progress: scheduled/accepted → start API; in_progress/on_way → timer/tasks. Hidden after job is submitted for review or fully closed. */}
+        {(job.status === "scheduled" || job.status === "in_progress" || job.status === "on_way" || job.status === "pending") && (
+          <TouchableOpacity
+            style={[styles.inProgressBtn, { backgroundColor: colors.primary }, startingJob && styles.inProgressBtnDisabled]}
+            onPress={handleStartJob}
+            activeOpacity={0.8}
+            disabled={startingJob}
+          >
+            {startingJob ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="play-circle" size={20} color="#FFFFFF" />
+            )}
+            <Text style={styles.completeBtnText}>
+              {startingJob ? t("providerDashboard.inProgress.starting") : t("providerDashboard.inProgress.title")}
+            </Text>
+          </TouchableOpacity>
+        )}
         {/* Mark as completed: only when job is already in_progress (started) */}
         {job.status === "in_progress" && (
           <TouchableOpacity style={[styles.completeBtn, { backgroundColor: GREEN_BUTTON }]} onPress={handleMarkAsCompleted} activeOpacity={0.8}>
@@ -229,7 +231,7 @@ export default function ProviderJobDetailScreen() {
             <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
           </TouchableOpacity>
         )}
-        {job.status === "pending_review" && (
+        {(job.status === "pending_review" || job.status === "awaiting_provider_rating") && (
           <TouchableOpacity style={[styles.completeBtn, { backgroundColor: colors.primary }]} onPress={handleRateClient} activeOpacity={0.8}>
             <Ionicons name="star-outline" size={20} color="#FFFFFF" />
             <Text style={styles.completeBtnText}>{t("providerDashboard.rateClient.title")}</Text>
