@@ -1637,6 +1637,7 @@ export default {
     statusPending: "Pending",
     statusInProgress: "In progress",
     statusOnTheWay: "On the way",
+    statusAwaitingProviderRating: "Your rating",
     chat: "Chat",
     call: "Call",
     viewDetails: "View details",

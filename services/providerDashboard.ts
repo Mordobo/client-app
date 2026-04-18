@@ -43,7 +43,14 @@ export interface ProviderDashboardScheduleItem {
   status: string;
 }
 
-export type ProviderActiveJobStatus = "pending" | "in_progress" | "on_way" | "scheduled" | "pending_review";
+export type ProviderActiveJobStatus =
+  | "pending"
+  | "in_progress"
+  | "on_way"
+  | "scheduled"
+  | "pending_review"
+  /** Order is completed (e.g. client rated) but provider has not submitted provider_client_ratings yet */
+  | "awaiting_provider_rating";
 
 export interface ProviderActiveJob {
   id: string;

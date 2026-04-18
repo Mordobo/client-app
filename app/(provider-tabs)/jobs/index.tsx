@@ -32,8 +32,10 @@ function sortByPriority(jobs: ProviderActiveJob[]): ProviderActiveJob[] {
   const order: Record<ProviderActiveJobStatus, number> = {
     in_progress: 0,
     on_way: 1,
-    scheduled: 2,
-    pending: 3,
+    pending_review: 2,
+    awaiting_provider_rating: 2,
+    scheduled: 3,
+    pending: 4,
   };
   return [...jobs].sort((a, b) => order[a.status] - order[b.status]);
 }
@@ -44,7 +46,13 @@ function getFilteredJobs(jobs: ProviderActiveJob[], filter: FilterType): Provide
     return sorted.filter((j) => j.status === "pending");
   }
   if (filter === "in_progress") {
-    return sorted.filter((j) => j.status === "in_progress" || j.status === "on_way");
+    return sorted.filter(
+      (j) =>
+        j.status === "in_progress" ||
+        j.status === "on_way" ||
+        j.status === "pending_review" ||
+        j.status === "awaiting_provider_rating",
+    );
   }
   return sorted.filter((j) => j.status === "scheduled");
 }
@@ -56,6 +64,11 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
     on_way: { label: t("providerDashboard.statusOnTheWay"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
     scheduled: { label: t("providerDashboard.filterScheduled"), bg: STATUS_ON_WAY_BG, text: STATUS_ON_WAY_TEXT },
     pending_review: { label: t("orders.status.pending_review"), bg: STATUS_IN_PROGRESS_BG, text: STATUS_IN_PROGRESS_TEXT },
+    awaiting_provider_rating: {
+      label: t("providerDashboard.statusAwaitingProviderRating"),
+      bg: STATUS_PENDING_BG,
+      text: STATUS_PENDING_TEXT,
+    },
   };
   const c = config[status] ?? config.pending;
   return (
@@ -68,8 +81,11 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
 function JobCard({ job, onChat, onCall, onDetails, colors }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void; colors: ThemeColors }) {
   const isScheduled = job.status === "scheduled";
   const isPendingReview = job.status === "pending_review";
+  const isAwaitingProviderRating = job.status === "awaiting_provider_rating";
   const timeLabel =
-    isPendingReview
+    isAwaitingProviderRating
+      ? t("providerDashboard.invoice.continueToRate")
+      : isPendingReview
       ? t("providerDashboard.completeJob.waitingForClientReview")
       : isScheduled ?
       job.scheduledAt ?
@@ -153,7 +169,17 @@ export default function ProviderJobsScreen() {
 
   const filteredJobs = useMemo(() => getFilteredJobs(jobs, filter), [jobs, filter]);
   const pendingCount = useMemo(() => jobs.filter((j) => j.status === "pending").length, [jobs]);
-  const inProgressCount = useMemo(() => jobs.filter((j) => j.status === "in_progress" || j.status === "on_way").length, [jobs]);
+  const inProgressCount = useMemo(
+    () =>
+      jobs.filter(
+        (j) =>
+          j.status === "in_progress" ||
+          j.status === "on_way" ||
+          j.status === "pending_review" ||
+          j.status === "awaiting_provider_rating",
+      ).length,
+    [jobs],
+  );
   const scheduledCount = useMemo(() => jobs.filter((j) => j.status === "scheduled").length, [jobs]);
 
   const onRefresh = React.useCallback(async () => {
