@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { API_BASE } from '@/utils/apiConfig';
 
 /**
@@ -17,7 +19,22 @@ export function getProfileImageUrl(url: string | null | undefined): string | nul
   if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('data:')) return trimmed;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    // Android emulator: API may store avatar as http://localhost/... which does not reach the host machine.
+    if (Platform.OS === 'android') {
+      try {
+        const parsed = new URL(trimmed);
+        if (/^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname)) {
+          const origin = API_BASE.replace(/\/$/, '');
+          return `${origin}${parsed.pathname}${parsed.search}`;
+        }
+      } catch {
+        /* ignore malformed URL */
+      }
+    }
+    return trimmed;
+  }
   const base = API_BASE.replace(/\/$/, '');
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   return `${base}${path}`;

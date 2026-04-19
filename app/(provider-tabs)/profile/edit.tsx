@@ -1,9 +1,12 @@
 import { Toast } from "@/components/Toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { fetchCategoriesTree, type CategoryTreeItem } from "@/services/categories";
-import { getProviderProfile, updateProviderProfile, uploadProviderAvatar, type UpdateProviderProfilePayload } from "@/services/providers";
+import { ApiError } from "@/services/auth";
+import { getProviderProfile, providerProfileQueryKey, updateProviderProfile, uploadProviderAvatar, type UpdateProviderProfilePayload } from "@/services/providers";
 import { normalizePhoneInput, validatePhone } from "@/utils/phoneValidation";
+import { getDisplayNameInitials } from "@/utils/displayNameInitials";
 import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,14 +40,6 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-function getInitials(displayName: string): string {
-  const parts = displayName.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  }
-  return displayName.trim().slice(0, 2).toUpperCase() || "?";
-}
-
 /** Parent categories only (for first dropdown) */
 function getParentCategoryOptions(tree: CategoryTreeItem[]): { id: string; name: string }[] {
   return (tree || []).map((c) => ({ id: c.id, name: c.name }));
@@ -72,6 +67,7 @@ export default function ProviderEditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -104,9 +100,10 @@ export default function ProviderEditProfileScreen() {
   }, []);
 
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ["providerProfile"],
+    queryKey: providerProfileQueryKey(user?.id),
     queryFn: getProviderProfile,
     staleTime: 0,
+    enabled: !!user?.id,
   });
 
   const { data: categoriesTree } = useQuery({
@@ -200,7 +197,7 @@ export default function ProviderEditProfileScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t("common.error"), "Permission to access photos is required.");
+        Alert.alert(t("common.error"), t("chat.imagePermissionDenied"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -213,14 +210,18 @@ export default function ProviderEditProfileScreen() {
       const compressed = await ImageManipulator.manipulateAsync(uri, [{ resize: { width: 400 } }], { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG });
       setUploadingAvatar(true);
       const base64 = await (async (): Promise<string> => {
-        if (Platform.OS === "web" && compressed.uri.startsWith("blob:")) {
+        if (compressed.uri.startsWith("data:")) {
+          const comma = compressed.uri.indexOf(",");
+          return comma >= 0 ? compressed.uri.slice(comma + 1) : "";
+        }
+        if (Platform.OS === "web") {
           const res = await fetch(compressed.uri);
           const blob = await res.blob();
           return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => {
               const dataUrl = reader.result as string;
-              const base64Data = dataUrl.split(",")[1] || dataUrl;
+              const base64Data = dataUrl.includes(",") ? dataUrl.split(",")[1] || "" : dataUrl;
               resolve(base64Data);
             };
             reader.onerror = reject;
@@ -240,7 +241,8 @@ export default function ProviderEditProfileScreen() {
       await queryClient.invalidateQueries({ queryKey: ["providerProfile"] });
     } catch (e) {
       console.error("[ProviderEditProfile] Avatar upload failed:", e);
-      Alert.alert(t("common.error"), t("errors.uploadProviderAvatarFailed"));
+      const message = e instanceof ApiError ? e.message : t("errors.uploadProviderAvatarFailed");
+      Alert.alert(t("common.error"), message);
     } finally {
       setUploadingAvatar(false);
     }
@@ -309,7 +311,7 @@ export default function ProviderEditProfileScreen() {
               {avatarUri ?
                 <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="contain" />
               : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.card }]}>
-                  <Text style={[styles.avatarInitials, { color: colors.textSecondary }]}>{getInitials(watch("displayName") || "")}</Text>
+                  <Text style={[styles.avatarInitials, { color: colors.textSecondary }]}>{getDisplayNameInitials(watch("displayName") || "")}</Text>
                 </View>
               }
               {uploadingAvatar ?

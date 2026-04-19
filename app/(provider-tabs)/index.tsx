@@ -4,7 +4,8 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import { acceptOrder, getDashboardRequests, getDashboardSchedule, getDashboardStats, rejectOrder, type ProviderDashboardRequest, type ProviderDashboardScheduleItem, type ProviderDashboardStats } from "@/services/providerDashboard";
-import { getProviderProfile } from "@/services/providers";
+import { getProviderProfile, providerProfileQueryKey } from "@/services/providers";
+import { getDisplayNameInitials } from "@/utils/displayNameInitials";
 import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -70,15 +71,21 @@ export default function ProviderDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [headerAvatarFailed, setHeaderAvatarFailed] = useState(false);
 
   const { data: providerProfile } = useQuery({
-    queryKey: ["providerProfile"],
+    queryKey: providerProfileQueryKey(user?.id),
     queryFn: getProviderProfile,
     staleTime: 60_000,
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!user?.id,
   });
   const displayName = (providerProfile?.displayName ?? "").trim() || "—";
   const providerAvatarUrl = getProfileImageUrl(providerProfile?.avatarUrl ?? null) ?? null;
+  const headerInitials = getDisplayNameInitials(displayName === "—" ? "" : displayName);
+
+  useEffect(() => {
+    setHeaderAvatarFailed(false);
+  }, [providerAvatarUrl, user?.id]);
 
   const loadAll = useCallback(async () => {
     if (!isAuthenticated) {
@@ -166,8 +173,15 @@ export default function ProviderDashboardScreen() {
                 <Ionicons name="notifications-outline" size={24} color="rgba(255,255,255,0.9)" />
               </TouchableOpacity>
               <TouchableOpacity style={styles.profileIcon} onPress={() => router.push("/(provider-tabs)/profile")} activeOpacity={0.8} accessibilityLabel={t("providerDashboard.providerProfile.screenTitle")}>
-                {providerAvatarUrl ?
-                  <Image source={{ uri: providerAvatarUrl }} style={styles.profileAvatar} contentFit="contain" />
+                {providerAvatarUrl && !headerAvatarFailed ?
+                  <Image
+                    source={{ uri: providerAvatarUrl }}
+                    style={styles.profileAvatar}
+                    contentFit="cover"
+                    onError={() => setHeaderAvatarFailed(true)}
+                  />
+                : headerInitials !== "?" ?
+                  <Text style={styles.profileAvatarInitials}>{headerInitials}</Text>
                 : <Ionicons name="person" size={24} color="rgba(255,255,255,0.5)" />}
               </TouchableOpacity>
             </View>
@@ -349,6 +363,11 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  profileAvatarInitials: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "rgba(255,255,255,0.95)",
   },
   availabilityCard: {
     flexDirection: "row",

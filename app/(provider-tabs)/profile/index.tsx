@@ -1,11 +1,13 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { ProfileFooter } from "@/components/profile/ProfileFooter";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { getPortfolio } from "@/services/portfolio";
-import { getProviderProfile, getProviderProfileStats } from "@/services/providers";
+import { getProviderProfile, getProviderProfileStats, providerProfileQueryKey } from "@/services/providers";
 import { getProviderServices } from "@/services/providerServices";
+import { getDisplayNameInitials } from "@/utils/displayNameInitials";
 import { getProfileImageUrl } from "@/utils/profileImage";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
@@ -18,27 +20,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const GRADIENT_COLORS = ["#6366F1", "#8B5CF6", "#EC4899"] as const;
 
-/** Get initials from a display name string (e.g. "Business Name" → "BN", "Angelo Rivas" → "AR"). */
-function getInitialsFromDisplayName(displayName: string): string {
-  const parts = displayName.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    const first = parts[0].charAt(0).toUpperCase();
-    const last = parts[parts.length - 1].charAt(0).toUpperCase();
-    return first && last ? `${first}${last}` : first || last || "?";
-  }
-  if (parts.length === 1 && parts[0].length >= 2) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-  if (parts.length === 1 && parts[0].length === 1) {
-    return parts[0].toUpperCase();
-  }
-  return "?";
-}
-
 export default function ProviderProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { user } = useAuth();
   const { mode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -68,14 +54,15 @@ export default function ProviderProfileScreen() {
   const portfolioPhotoCount = portfolioData?.stats?.totalPhotos ?? 0;
 
   const { data: providerProfile, refetch: refetchProviderProfile } = useQuery({
-    queryKey: ["providerProfile"],
+    queryKey: providerProfileQueryKey(user?.id),
     queryFn: getProviderProfile,
     staleTime: 60_000,
+    enabled: !!user?.id,
   });
   const providerAvatarUrl = getProfileImageUrl(providerProfile?.avatarUrl ?? null) ?? null;
   const [avatarError, setAvatarError] = useState(false);
   const displayName = (providerProfile?.displayName ?? "").trim() || "—";
-  const initials = getInitialsFromDisplayName(displayName);
+  const initials = getDisplayNameInitials(displayName);
   const categoryName = (providerProfile?.categoryName ?? "").trim() || null;
   const bio = (providerProfile?.bio ?? "").trim() || null;
 

@@ -1,6 +1,7 @@
 import { t } from '@/i18n';
 import { ApiError, refreshTokens, setTokenUpdateCallback, clearTokenState } from '@/services/auth';
 import { getProfile } from '@/services/profile';
+import { queryClient } from '@/services/queryClient';
 import { authEvents } from '@/utils/authEvents';
 import { getTimeUntilExpiryMs, isTokenExpiringSoon } from '@/utils/tokenUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -203,6 +204,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Clear token state FIRST to prevent any new API calls
       clearTokenState();
+
+      try {
+        queryClient.clear();
+      } catch {
+        /* ignore */
+      }
       
       // Clear token update callback to prevent any pending token updates
       setTokenUpdateCallback(async () => {
