@@ -1,6 +1,10 @@
 import { t } from "@/i18n";
 import { request } from "./auth";
 
+/** React Query key for provider profile — include `userId` so cached data never leaks across account switches. */
+export const providerProfileQueryKey = (userId: string | undefined): readonly ["providerProfile", string] =>
+  ["providerProfile", userId ?? "__none__"] as const;
+
 // ========== Provider profile (edit screen) ==========
 
 export interface ProviderProfile {
