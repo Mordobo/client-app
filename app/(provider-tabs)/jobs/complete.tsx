@@ -161,7 +161,17 @@ export default function CompleteJobScreen() {
 
   const durationLabel = useMemo(() => {
     if (!data) return "";
-    return formatDuration(data.durationMinutes);
+    let minutes = data.durationMinutes;
+    if (minutes === 0 && data.order.startedAt) {
+      const ms = Date.now() - new Date(data.order.startedAt).getTime();
+      if (ms > 0) {
+        minutes = Math.max(1, Math.ceil(ms / 60000));
+      }
+    }
+    if (minutes === 0) {
+      return t("providerDashboard.completeJob.durationLessThanMinute");
+    }
+    return formatDuration(minutes);
   }, [data]);
 
   const subtotal = useMemo(() => {
@@ -173,7 +183,7 @@ export default function CompleteJobScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t("common.error"), "Permission to access photos is required.");
+        Alert.alert(t("common.error"), t("providerDashboard.completeJob.errors.galleryPermissionRequired"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -208,7 +218,7 @@ export default function CompleteJobScreen() {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t("common.error"), "Permission to access camera is required.");
+        Alert.alert(t("common.error"), t("providerDashboard.inProgress.errors.cameraPermission"));
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -238,15 +248,11 @@ export default function CompleteJobScreen() {
   }, []);
 
   const handlePhotoAction = useCallback(() => {
-    Alert.alert(
-      t("providerDashboard.completeJob.addPhoto"),
-      "",
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: "Camera", onPress: takePhoto },
-        { text: "Gallery", onPress: pickPhoto },
-      ],
-    );
+    Alert.alert(t("providerDashboard.completeJob.addPhoto"), t("providerDashboard.completeJob.addPhotoMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("providerDashboard.inProgress.takePhoto"), onPress: takePhoto },
+      { text: t("providerDashboard.completeJob.chooseFromGallery"), onPress: pickPhoto },
+    ]);
   }, [takePhoto, pickPhoto]);
 
   const handleSubmit = useCallback(async () => {
@@ -400,47 +406,61 @@ export default function CompleteJobScreen() {
           {t("providerDashboard.completeJob.workPhotos")}
         </Text>
         <View style={[styles.photosGrid, { gap: COMPLETE_JOB_PHOTO_GRID_GAP }]}>
-          {photos.map((photo, idx) => (
-            <View
-              key={`photo-${idx}`}
-              style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}
+          {photos.length === 0 ? (
+            <TouchableOpacity
+              style={[
+                styles.addPhotosEmpty,
+                { borderColor: colors.border, backgroundColor: colors.surfaceSecondary },
+              ]}
+              onPress={handlePhotoAction}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t("providerDashboard.completeJob.addPhotosCta")}
+              accessibilityHint={t("providerDashboard.completeJob.noPhotosHint")}
             >
-              <View style={styles.photoWrapper}>
-                <Image source={{ uri: photo.uri }} style={styles.photoImage} contentFit="cover" />
-                <TouchableOpacity
-                  style={styles.photoDeleteBtn}
-                  onPress={() => removePhoto(idx)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="close-circle" size={22} color="#FF4444" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-          {photos.length === 0 && (
+              <Ionicons name="images-outline" size={36} color={colors.iconSecondary} />
+              <Text style={[styles.addPhotosEmptyTitle, { color: colors.textPrimary }]}>
+                {t("providerDashboard.completeJob.addPhotosCta")}
+              </Text>
+              <Text style={[styles.addPhotosEmptyHint, { color: colors.textSecondary }]}>
+                {t("providerDashboard.completeJob.noPhotosHint")}
+              </Text>
+            </TouchableOpacity>
+          ) : (
             <>
-              <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
-                <TouchableOpacity style={styles.photoPlaceholder} onPress={handlePhotoAction} activeOpacity={0.7}>
-                  <Ionicons name="camera" size={28} color="rgba(139, 92, 246, 0.5)" />
-                </TouchableOpacity>
-              </View>
-              <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
-                <TouchableOpacity style={styles.photoPlaceholder} onPress={handlePhotoAction} activeOpacity={0.7}>
-                  <Ionicons name="camera" size={28} color="rgba(139, 92, 246, 0.5)" />
-                </TouchableOpacity>
-              </View>
+              {photos.map((photo, idx) => (
+                <View
+                  key={`photo-${idx}`}
+                  style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}
+                >
+                  <View style={styles.photoWrapper}>
+                    <Image source={{ uri: photo.uri }} style={styles.photoImage} contentFit="cover" />
+                    <TouchableOpacity
+                      style={styles.photoDeleteBtn}
+                      onPress={() => removePhoto(idx)}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("providerDashboard.completeJob.removePhotoA11y")}
+                    >
+                      <Ionicons name="close-circle" size={22} color="#FF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              {photos.length < 10 && (
+                <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
+                  <TouchableOpacity
+                    style={[styles.addPhotoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+                    onPress={handlePhotoAction}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("providerDashboard.completeJob.addPhoto")}
+                  >
+                    <Ionicons name="add" size={28} color={colors.iconSecondary} />
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
-          )}
-          {photos.length < 10 && (
-            <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
-              <TouchableOpacity
-                style={[styles.addPhotoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-                onPress={handlePhotoAction}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="add" size={28} color={colors.iconSecondary} />
-              </TouchableOpacity>
-            </View>
           )}
         </View>
 
@@ -640,7 +660,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   successDuration: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: "600",
+    marginTop: 4,
     color: "rgba(255,255,255,0.5)",
   },
 
@@ -682,15 +704,26 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 11,
   },
-  photoPlaceholder: {
-    flex: 1,
+  addPhotosEmpty: {
     width: "100%",
+    minHeight: 132,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "transparent",
-    backgroundColor: "rgba(139, 92, 246, 0.1)",
+    borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  addPhotosEmptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  addPhotosEmptyHint: {
+    fontSize: 13,
+    textAlign: "center",
+    paddingHorizontal: 8,
   },
   addPhotoBtn: {
     flex: 1,
