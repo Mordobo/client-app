@@ -15,10 +15,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -72,10 +74,13 @@ const mapApiToUi = (apiAddress: ApiAddress): Address => {
   };
 };
 
+const ADDRESS_MODAL_OVERLAY = 'rgba(0,0,0,0.65)' as const;
+
 export default function MyAddressesScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { width: screenW, height: screenH } = Dimensions.get('screen');
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [apiAddresses, setApiAddresses] = useState<ApiAddress[]>([]); // Store full API data
@@ -341,17 +346,31 @@ export default function MyAddressesScreen() {
         visible={showAddEditModal}
         transparent
         animationType="slide"
+        statusBarTranslucent={Platform.OS === 'android'}
+        presentationStyle="overFullScreen"
         onRequestClose={() => setShowAddEditModal(false)}
       >
-        <View style={[styles.modalOverlay, Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight }]}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
+        <View
+          style={[
+            styles.modalOverlay,
+            {
+              width: screenW,
+              minHeight: screenH,
+              backgroundColor: ADDRESS_MODAL_OVERLAY,
+            },
+            Platform.OS === 'android' && keyboardHeight > 0 && { paddingBottom: keyboardHeight },
+          ]}
+        >
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
             onPress={() => setShowAddEditModal(false)}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
           />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalKeyboardView}
+            pointerEvents="box-none"
           >
             <View style={[styles.modalContent, { backgroundColor: colors.card, paddingBottom: insets.bottom + 20 }]}>
                 {/* Handle */}
@@ -370,9 +389,9 @@ export default function MyAddressesScreen() {
                 >
                   {/* Address Name */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{t('addresses.name')}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.name')}</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                       placeholder={t('addresses.namePlaceholder')}
                       placeholderTextColor={colors.textTertiary}
                       value={formData.name}
@@ -382,37 +401,43 @@ export default function MyAddressesScreen() {
 
                   {/* Address Type */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{t('addresses.type')}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.type')}</Text>
                     <View style={styles.typeButtons}>
-                      {(['home', 'office', 'other'] as const).map((type) => (
-                        <TouchableOpacity
-                          key={type}
-                          onPress={() => setFormData((prev) => ({ ...prev, type }))}
-                          style={[
-                            styles.typeButton,
-                            formData.type === type && styles.typeButtonActive,
-                          ]}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={styles.typeButtonIcon}>{getAddressIcon(type)}</Text>
-                          <Text
+                      {(['home', 'office', 'other'] as const).map((type) => {
+                        const selected = formData.type === type;
+                        return (
+                          <TouchableOpacity
+                            key={type}
+                            onPress={() => setFormData((prev) => ({ ...prev, type }))}
                             style={[
-                              styles.typeButtonText,
-                              formData.type === type && styles.typeButtonTextActive,
+                              styles.typeButton,
+                              {
+                                backgroundColor: selected ? `${colors.primary}18` : colors.surfaceSecondary,
+                                borderColor: selected ? colors.primary : colors.border,
+                              },
                             ]}
+                            activeOpacity={0.7}
                           >
-                            {t(`addresses.type${type.charAt(0).toUpperCase() + type.slice(1)}`)}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <Text style={styles.typeButtonIcon}>{getAddressIcon(type)}</Text>
+                            <Text
+                              style={[
+                                styles.typeButtonText,
+                                { color: selected ? colors.primary : colors.textPrimary, fontWeight: selected ? '600' : '500' },
+                              ]}
+                            >
+                              {t(`addresses.type${type.charAt(0).toUpperCase() + type.slice(1)}`)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
 
                   {/* Address Line 1 */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{t('addresses.addressLine1')}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.addressLine1')}</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                       placeholder={t('addresses.addressLine1Placeholder')}
                       placeholderTextColor={colors.textTertiary}
                       value={formData.address_line1}
@@ -426,9 +451,9 @@ export default function MyAddressesScreen() {
 
                   {/* Address Line 2 (Optional) */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{t('addresses.addressLine2')} (Optional)</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.addressLine2')} (Optional)</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                       placeholder={t('addresses.addressLine2Placeholder')}
                       placeholderTextColor={colors.textTertiary}
                       value={formData.address_line2}
@@ -440,9 +465,9 @@ export default function MyAddressesScreen() {
 
                   {/* City */}
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>{t('addresses.city')}</Text>
+                    <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.city')}</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                       placeholder={t('addresses.cityPlaceholder')}
                       placeholderTextColor={colors.textTertiary}
                       value={formData.city}
@@ -453,9 +478,9 @@ export default function MyAddressesScreen() {
                   {/* State and Postal Code Row */}
                   <View style={styles.inputRow}>
                     <View style={[styles.inputContainer, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>{t('addresses.state')}</Text>
+                      <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.state')}</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                         placeholder={t('addresses.statePlaceholder')}
                         placeholderTextColor={colors.textTertiary}
                         value={formData.state}
@@ -464,9 +489,9 @@ export default function MyAddressesScreen() {
                       />
                     </View>
                     <View style={[styles.inputContainer, styles.inputHalf]}>
-                      <Text style={styles.inputLabel}>{t('addresses.postalCode')}</Text>
+                      <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('addresses.postalCode')}</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, color: colors.textPrimary }]}
                         placeholder={t('addresses.postalCodePlaceholder')}
                         placeholderTextColor={colors.textTertiary}
                         value={formData.postal_code}
@@ -490,29 +515,33 @@ export default function MyAddressesScreen() {
                       <View
                         style={[
                           styles.checkbox,
-                          formData.is_default && styles.checkboxChecked,
+                          {
+                            borderColor: colors.border,
+                            backgroundColor: formData.is_default ? colors.primary : colors.surfaceSecondary,
+                          },
+                          formData.is_default && { borderColor: colors.primary },
                         ]}
                       >
                         {formData.is_default && (
-                          <Ionicons name="checkmark" size={16} color={colors.textPrimary} />
+                          <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                         )}
                       </View>
-                      <Text style={styles.defaultToggleText}>{t('addresses.setAsDefault')}</Text>
+                      <Text style={[styles.defaultToggleText, { color: colors.textPrimary }]}>{t('addresses.setAsDefault')}</Text>
                     </TouchableOpacity>
                   )}
                 </ScrollView>
 
                 {/* Buttons - Fixed at bottom */}
-                <View style={styles.modalButtons}>
+                <View style={[styles.modalButtons, { borderTopColor: colors.border }]}>
                   <TouchableOpacity
                     onPress={() => {
                       setShowAddEditModal(false);
                       setEditingAddress(null);
                     }}
-                    style={styles.modalButtonCancel}
+                    style={[styles.modalButtonCancel, { backgroundColor: colors.surfaceSecondary }]}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
+                    <Text style={[styles.modalButtonTextCancel, { color: colors.textPrimary }]}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   {loading ? (
                     <View style={styles.modalButtonConfirm}>
@@ -716,19 +745,15 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
   },
   modalKeyboardView: {
     width: '100%',
+    flex: 1,
     justifyContent: 'flex-end',
   },
   modalContent: {
     width: '100%',
-    backgroundColor: '#1a1a2e',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 24,
@@ -752,7 +777,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    color: '#ffffff',
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 24,
@@ -770,7 +794,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputLabel: {
-    color: '#9ca3af',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
@@ -778,11 +801,8 @@ const styles = StyleSheet.create({
   input: {
     width: '100%',
     padding: 16,
-    backgroundColor: '#2d2d4a',
     borderWidth: 1,
-    borderColor: '#374151',
     borderRadius: 12,
-    color: '#ffffff',
     fontSize: 15,
   },
   typeButtons: {
@@ -792,28 +812,17 @@ const styles = StyleSheet.create({
   typeButton: {
     flex: 1,
     padding: 14,
-    backgroundColor: '#252542',
     borderWidth: 1,
-    borderColor: '#374151',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  typeButtonActive: {
-    backgroundColor: '#3b82f620',
-    borderColor: '#3b82f6',
-  },
   typeButtonIcon: {
     fontSize: 20,
   },
   typeButtonText: {
-    color: '#ffffff',
     fontSize: 14,
-  },
-  typeButtonTextActive: {
-    color: '#3b82f6',
-    fontWeight: '600',
   },
   defaultToggle: {
     flexDirection: 'row',
@@ -826,17 +835,10 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: '#374151',
-    backgroundColor: '#2d2d4a',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxChecked: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
   defaultToggleText: {
-    color: '#ffffff',
     fontSize: 15,
   },
   modalButtons: {
@@ -845,12 +847,10 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#374151',
   },
   modalButtonCancel: {
     flex: 1,
     padding: 18,
-    backgroundColor: '#252542',
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -866,7 +866,6 @@ const styles = StyleSheet.create({
   modalButtonTextCancel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
   },
   modalButtonTextConfirm: {
     fontSize: 16,

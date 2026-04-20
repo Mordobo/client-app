@@ -1,6 +1,6 @@
 import { ProviderCard } from "@/components/ProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { t } from "@/i18n";
 import { getAddresses } from "@/services/addresses";
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function CategoryDetailScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const colorScheme = useColorScheme();
+  const { colorScheme, theme: themePreference } = useTheme();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const insets = useSafeAreaInsets();
   const [categoryData, setCategoryData] = useState<CategoryWithSubcategories | null>(null);
@@ -216,6 +216,8 @@ export default function CategoryDetailScreen() {
         </View>
       : <FlatList
           data={suppliers}
+          extraData={`${themePreference}-${colorScheme}`}
+          removeClippedSubviews={false}
           renderItem={({ item }) => {
             if (!item || !item.id) {
               return null;

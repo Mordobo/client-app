@@ -216,21 +216,23 @@ function PillVariant({
   const slideAnim = useRef(new Animated.Value(isClient ? 0 : sliderWidth)).current;
   const clientIconOpacity = useRef(new Animated.Value(isClient ? 1 : 0.35)).current;
   const providerIconOpacity = useRef(new Animated.Value(isClient ? 0.35 : 1)).current;
-  const clientTextOpacity = useRef(new Animated.Value(isClient ? 1 : 0.5)).current;
-  const providerTextOpacity = useRef(new Animated.Value(isClient ? 0.5 : 1)).current;
+  const clientTextOpacity = useRef(new Animated.Value(isClient ? 1 : 0.72)).current;
+  const providerTextOpacity = useRef(new Animated.Value(isClient ? 0.72 : 1)).current;
 
   const pillBg = colors.surfaceSecondary ?? COLORS.common.background;
   const pillBorder = colors.border ?? COLORS.common.border;
-  const activeText = colors.textOnDark ?? COLORS.common.activeText;
-  const inactiveText = colors.textSecondary ?? COLORS.common.inactiveText;
+  /** Labels/icons on the sliding gradient must stay white (textOnDark is dark in light theme). */
+  const labelOnGradient = COLORS.common.activeText;
+  /** Inactive side sits on the light track — use primary text, not faint secondary × low opacity. */
+  const labelOnTrack = colors.textPrimary ?? COLORS.common.inactiveText;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(slideAnim, { toValue: isClient ? 0 : sliderWidth, duration: 300, useNativeDriver: true }),
       Animated.timing(clientIconOpacity, { toValue: isClient ? 1 : 0.35, duration: 200, useNativeDriver: true }),
       Animated.timing(providerIconOpacity, { toValue: isClient ? 0.35 : 1, duration: 200, useNativeDriver: true }),
-      Animated.timing(clientTextOpacity, { toValue: isClient ? 1 : 0.5, duration: 200, useNativeDriver: true }),
-      Animated.timing(providerTextOpacity, { toValue: isClient ? 0.5 : 1, duration: 200, useNativeDriver: true }),
+      Animated.timing(clientTextOpacity, { toValue: isClient ? 1 : 0.72, duration: 200, useNativeDriver: true }),
+      Animated.timing(providerTextOpacity, { toValue: isClient ? 0.72 : 1, duration: 200, useNativeDriver: true }),
     ]).start();
   }, [isClient, slideAnim, clientIconOpacity, providerIconOpacity, clientTextOpacity, providerTextOpacity, sliderWidth]);
 
@@ -297,14 +299,14 @@ function PillVariant({
               <Ionicons
                 name={isClient ? "person" : "person-outline"}
                 size={sizeConfig.iconSize}
-                color={isClient ? activeText : inactiveText}
+                color={isClient ? labelOnGradient : labelOnTrack}
               />
             </Animated.View>
             {showLabels && (
               <Animated.Text
                 style={[
                   styles.pillText,
-                  { opacity: clientTextOpacity, fontSize: sizeConfig.fontSize, color: isClient ? activeText : inactiveText, fontWeight: isClient ? '700' : '500' },
+                  { opacity: clientTextOpacity, fontSize: sizeConfig.fontSize, color: isClient ? labelOnGradient : labelOnTrack, fontWeight: isClient ? '700' : '500' },
                 ]}
               >
                 {t('mode.client')}
@@ -317,14 +319,14 @@ function PillVariant({
               <Ionicons
                 name={!isClient ? "construct" : "construct-outline"}
                 size={sizeConfig.iconSize}
-                color={!isClient ? activeText : inactiveText}
+                color={!isClient ? labelOnGradient : labelOnTrack}
               />
             </Animated.View>
             {showLabels && (
               <Animated.Text
                 style={[
                   styles.pillText,
-                  { opacity: providerTextOpacity, fontSize: sizeConfig.fontSize, color: !isClient ? activeText : inactiveText, fontWeight: !isClient ? '700' : '500' },
+                  { opacity: providerTextOpacity, fontSize: sizeConfig.fontSize, color: !isClient ? labelOnGradient : labelOnTrack, fontWeight: !isClient ? '700' : '500' },
                 ]}
               >
                 {t('mode.provider')}

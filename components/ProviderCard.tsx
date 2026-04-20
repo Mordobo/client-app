@@ -1,10 +1,12 @@
-import { useFavorite } from '@/hooks/useFavorite';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
-import { Supplier } from '@/services/suppliers';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useFavorite } from '@/hooks/useFavorite';
 import { t } from '@/i18n';
+import { Supplier } from '@/services/suppliers';
+import { getThemeColors, type ThemeColors } from '@/utils/themeStyles';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface ProviderCardProps {
   supplier: Supplier;
@@ -12,20 +14,151 @@ interface ProviderCardProps {
   onBookPress?: () => void;
 }
 
+const BRAND = {
+  primary: '#3B82F6',
+  secondary: '#10B981',
+  rating: '#D97706',
+} as const;
+
+function createStyles(theme: ThemeColors, isDark: boolean) {
+  const availableBg = isDark ? 'rgba(16, 185, 129, 0.22)' : 'rgba(16, 185, 129, 0.18)';
+  const availableFg = isDark ? BRAND.secondary : '#047857';
+  const serviceCategory = isDark ? BRAND.secondary : '#047857';
+
+  return StyleSheet.create({
+    container: {
+      backgroundColor: theme.card,
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    content: {
+      flexDirection: 'row',
+      gap: 14,
+    },
+    imageContainer: {
+      width: 80,
+      height: 80,
+      borderRadius: 14,
+      backgroundColor: theme.surfaceSecondary,
+      overflow: 'hidden',
+    },
+    image: {
+      width: 80,
+      height: 80,
+      borderRadius: 14,
+    },
+    info: {
+      flex: 1,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 4,
+    },
+    name: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textPrimary,
+      flex: 1,
+    },
+    favoriteButton: {
+      padding: 4,
+    },
+    serviceContainer: {
+      flexShrink: 1,
+      minWidth: 0,
+      marginBottom: 6,
+    },
+    service: {
+      fontSize: 14,
+      color: serviceCategory,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 8,
+    },
+    ratingText: {
+      fontSize: 13,
+      color: BRAND.rating,
+      fontWeight: '600',
+    },
+    distance: {
+      fontSize: 13,
+      color: theme.textSecondary,
+    },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+      flexWrap: 'wrap',
+    },
+    priceSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+      flexShrink: 1,
+      minWidth: 0,
+    },
+    price: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: BRAND.primary,
+      margin: 0,
+      flexShrink: 0,
+    },
+    availableBadge: {
+      backgroundColor: availableBg,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+      flexShrink: 1,
+    },
+    availableText: {
+      fontSize: 10,
+      color: availableFg,
+      fontWeight: '700',
+    },
+    bookButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: BRAND.primary,
+      borderRadius: 8,
+      flexShrink: 0,
+      minWidth: 80,
+    },
+    bookButtonText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+  });
+}
+
 export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardProps) {
-  // Validate supplier data before rendering
-  if (!supplier || !supplier.id) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+  const theme = useMemo(() => getThemeColors(isDark), [isDark]);
+  const styles = useMemo(() => createStyles(theme, isDark), [theme, isDark]);
+  const { isFavorite, isLoading: isFavoriteLoading, toggleFavorite } = useFavorite(supplier?.id);
+
+  if (!supplier?.id) {
     return null;
   }
 
-  const { isFavorite, isLoading: isFavoriteLoading, toggleFavorite } = useFavorite(supplier.id);
-  
-  const ratingValue = typeof supplier.rating === 'number' 
-    ? supplier.rating 
+  const ratingValue = typeof supplier.rating === 'number'
+    ? supplier.rating
     : (typeof supplier.rating === 'string' ? parseFloat(supplier.rating) : 0);
-  const safeRating = isNaN(ratingValue) ? 0 : ratingValue;
+  const safeRating = Number.isNaN(ratingValue) ? 0 : ratingValue;
 
-  const handleFavoritePress = (e: any) => {
+  const handleFavoritePress = (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     toggleFavorite();
   };
@@ -35,7 +168,6 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.content}>
-        {/* Profile Image - 80x80px, borderRadius 14px */}
         <View style={styles.imageContainer}>
           <ProviderAvatar
             profileImage={supplier.profile_image}
@@ -45,32 +177,28 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
           />
         </View>
 
-        {/* Info Section */}
         <View style={styles.info}>
-          {/* Name and Favorite Row */}
           <View style={styles.headerRow}>
             <Text style={styles.name} numberOfLines={1}>{supplier.business_name?.trim() || supplier.full_name || 'Unknown'}</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.favoriteButton}
               onPress={handleFavoritePress}
               disabled={isFavoriteLoading}
             >
-              <Ionicons 
-                name={isFavorite ? "heart" : "heart-outline"} 
-                size={18} 
-                color={isFavorite ? "#EF4444" : "#9CA3AF"} 
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={18}
+                color={isFavorite ? '#EF4444' : theme.icon}
               />
             </TouchableOpacity>
           </View>
 
-          {/* Service Category */}
           {supplier.service_category && (
             <View style={styles.serviceContainer}>
               <Text style={styles.service} numberOfLines={1}>{supplier.service_category}</Text>
             </View>
           )}
 
-          {/* Rating and Distance Row */}
           <View style={styles.ratingRow}>
             <Text style={styles.ratingText}>
               ⭐ {safeRating.toFixed(1)} ({supplier.total_reviews || 0})
@@ -80,7 +208,6 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
             )}
           </View>
 
-          {/* Price, Availability and Book Button Row */}
           <View style={styles.footerRow}>
             <View style={styles.priceSection}>
               {supplier.hourly_rate && (
@@ -92,7 +219,7 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
                 </View>
               )}
             </View>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.bookButton}
               onPress={(e) => {
                 e.stopPropagation();
@@ -107,116 +234,3 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#252542',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  content: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  imageContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 14,
-    backgroundColor: '#2d2d4a',
-    overflow: 'hidden',
-  },
-  image: {
-    width: 80,
-    height: 80,
-    borderRadius: 14,
-  },
-  info: {
-    flex: 1,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  favoriteButton: {
-    padding: 4,
-  },
-  serviceContainer: {
-    flexShrink: 1,
-    minWidth: 0,
-    marginBottom: 6,
-  },
-  service: {
-    fontSize: 14,
-    color: '#10B981',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
-  },
-  ratingText: {
-    fontSize: 13,
-    color: '#F59E0B',
-  },
-  distance: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  priceSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 0,
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#3B82F6',
-    margin: 0,
-    flexShrink: 0,
-  },
-  availableBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    flexShrink: 1,
-  },
-  availableText: {
-    fontSize: 10,
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  bookButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    flexShrink: 0,
-    minWidth: 80,
-  },
-  bookButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-});

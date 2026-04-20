@@ -40,7 +40,7 @@ const FILTERS: FilterOption[] = [
 export default function SearchResultsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { colorScheme } = useTheme();
+  const { colorScheme, theme: themePreference } = useTheme();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ 
     query?: string; 
@@ -323,6 +323,8 @@ export default function SearchResultsScreen() {
       ) : (
         <PlatformFlashList
           data={suppliers}
+          extraData={`${themePreference}-${colorScheme}`}
+          removeClippedSubviews={false}
           renderItem={({ item }) => {
             // Validate item before rendering
             if (!item || !item.id) {
