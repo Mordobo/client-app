@@ -1,11 +1,13 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -20,6 +22,27 @@ interface Term {
 export default function ProviderOnboardingTermsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const themed = useMemo(
+    () => ({
+      screen: colors.screenBackground,
+      title: colors.textPrimary,
+      subtitle: colors.textSecondary,
+      termsBoxBg: isDark ? "rgba(255, 255, 255, 0.03)" : colors.surfaceSecondary,
+      termsBoxBorder: isDark ? "rgba(255, 255, 255, 0.06)" : colors.border,
+      termTitle: colors.textPrimary,
+      termDesc: colors.textSecondary,
+      checkboxRowBg: isDark ? "rgba(255, 255, 255, 0.03)" : colors.surfaceSecondary,
+      checkboxEmptyBg: isDark ? "rgba(255, 255, 255, 0.1)" : colors.surfaceSecondary,
+      checkboxEmptyBorder: colors.border,
+      checkboxText: colors.textPrimary,
+      backBtnBg: isDark ? "rgba(255, 255, 255, 0.05)" : colors.surfaceSecondary,
+      backBtnText: colors.textSecondary,
+    }),
+    [colors, isDark],
+  );
   const [terms, setTerms] = useState<Term[]>([
     { id: "1", text: t("providerOnboarding.terms.acceptTerms"), checked: true },
     { id: "2", text: t("providerOnboarding.terms.acceptPrivacy"), checked: true },
@@ -62,36 +85,36 @@ export default function ProviderOnboardingTermsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themed.screen }]}>
       <ProgressBar currentStep={6} totalSteps={TOTAL_STEPS} />
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t("providerOnboarding.terms.title")}</Text>
-        <Text style={styles.subtitle}>{t("providerOnboarding.terms.subtitle")}</Text>
+        <Text style={[styles.title, { color: themed.title }]}>{t("providerOnboarding.terms.title")}</Text>
+        <Text style={[styles.subtitle, { color: themed.subtitle }]}>{t("providerOnboarding.terms.subtitle")}</Text>
 
-        <View style={styles.termsContent}>
+        <View style={[styles.termsContent, { backgroundColor: themed.termsBoxBg, borderColor: themed.termsBoxBorder }]}>
           <View style={styles.termsContentInner}>
             <View style={styles.termItem}>
-              <Text style={styles.termTitle}>{t("providerOnboarding.terms.term1")}</Text>
-              <Text style={styles.termDesc} includeFontPadding={Platform.OS === "android" ? false : undefined}>
+              <Text style={[styles.termTitle, { color: themed.termTitle }]}>{t("providerOnboarding.terms.term1")}</Text>
+              <Text style={[styles.termDesc, { color: themed.termDesc }]} includeFontPadding={Platform.OS === "android" ? false : undefined}>
                 {t("providerOnboarding.terms.term1Desc")}
               </Text>
             </View>
             <View style={styles.termItem}>
-              <Text style={styles.termTitle}>{t("providerOnboarding.terms.term2")}</Text>
-              <Text style={styles.termDesc} includeFontPadding={Platform.OS === "android" ? false : undefined}>
+              <Text style={[styles.termTitle, { color: themed.termTitle }]}>{t("providerOnboarding.terms.term2")}</Text>
+              <Text style={[styles.termDesc, { color: themed.termDesc }]} includeFontPadding={Platform.OS === "android" ? false : undefined}>
                 {t("providerOnboarding.terms.term2Desc")}
               </Text>
             </View>
             <View style={styles.termItem}>
-              <Text style={styles.termTitle}>{t("providerOnboarding.terms.term3")}</Text>
-              <Text style={styles.termDesc} includeFontPadding={Platform.OS === "android" ? false : undefined}>
+              <Text style={[styles.termTitle, { color: themed.termTitle }]}>{t("providerOnboarding.terms.term3")}</Text>
+              <Text style={[styles.termDesc, { color: themed.termDesc }]} includeFontPadding={Platform.OS === "android" ? false : undefined}>
                 {t("providerOnboarding.terms.term3Desc")}
               </Text>
             </View>
             <View style={styles.termItem}>
-              <Text style={styles.termTitle}>{t("providerOnboarding.terms.term4")}</Text>
-              <Text style={styles.termDesc} includeFontPadding={Platform.OS === "android" ? false : undefined}>
+              <Text style={[styles.termTitle, { color: themed.termTitle }]}>{t("providerOnboarding.terms.term4")}</Text>
+              <Text style={[styles.termDesc, { color: themed.termDesc }]} includeFontPadding={Platform.OS === "android" ? false : undefined}>
                 {t("providerOnboarding.terms.term4Desc")}
               </Text>
             </View>
@@ -100,17 +123,29 @@ export default function ProviderOnboardingTermsScreen() {
 
         <View style={styles.checkboxesContainer}>
           {terms.map((term) => (
-            <TouchableOpacity key={term.id} style={styles.checkboxItem} onPress={() => toggleTerm(term.id)} activeOpacity={0.7}>
-              <View style={[styles.checkbox, term.checked && styles.checkboxChecked]}>{term.checked && <Ionicons name="checkmark" size={10} color="#FFFFFF" />}</View>
-              <Text style={styles.checkboxText}>{term.text}</Text>
+            <TouchableOpacity
+              key={term.id}
+              style={[styles.checkboxItem, { backgroundColor: themed.checkboxRowBg }]}
+              onPress={() => toggleTerm(term.id)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  { backgroundColor: term.checked ? "#8B5CF6" : themed.checkboxEmptyBg, borderWidth: term.checked ? 0 : 1, borderColor: themed.checkboxEmptyBorder },
+                ]}
+              >
+                {term.checked && <Ionicons name="checkmark" size={10} color="#FFFFFF" />}
+              </View>
+              <Text style={[styles.checkboxText, { color: themed.checkboxText }]}>{term.text}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
 
       <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{t("providerOnboarding.terms.back")}</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: themed.backBtnBg }]} onPress={handleBack} activeOpacity={0.7}>
+          <Text style={[styles.backButtonText, { color: themed.backBtnText }]}>{t("providerOnboarding.terms.back")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.acceptButton, (!canContinue || saving) && styles.acceptButtonDisabled]} onPress={handleAccept} disabled={!canContinue || saving} activeOpacity={0.8}>
           <LinearGradient colors={canContinue && !saving ? ["#6366F1", "#8B5CF6"] : ["#4B5563", "#4B5563"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.acceptButtonGradient}>
@@ -125,7 +160,6 @@ export default function ProviderOnboardingTermsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#12121A",
   },
   scrollView: {
     flex: 1,
@@ -137,22 +171,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     marginBottom: 4,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 16,
   },
   termsContent: {
     marginBottom: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
   },
   termsContentInner: {
     gap: 12,
@@ -163,12 +193,10 @@ const styles = StyleSheet.create({
   termTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.8)",
     marginBottom: 4,
   },
   termDesc: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.6)",
     lineHeight: 18,
     flexShrink: 0,
   },
@@ -181,23 +209,17 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
   },
   checkbox: {
     width: 18,
     height: 18,
     borderRadius: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  checkboxChecked: {
-    backgroundColor: "transparent",
   },
   checkboxText: {
     flex: 1,
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.7)",
   },
   buttonContainer: {
     flexDirection: "row",
@@ -209,14 +231,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   backButtonText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
   },
   acceptButton: {
     flex: 2,

@@ -18,10 +18,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -43,10 +45,13 @@ interface PasswordModalState {
   newPassword: string;
 }
 
+const MODAL_DIM = 'rgba(0,0,0,0.6)' as const;
+
 export default function ProviderSecurityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { width: screenW, height: screenH } = Dimensions.get('screen');
   const { logout } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -270,10 +275,27 @@ export default function ProviderSecurityScreen() {
         </View>
       </ScrollView>
 
-      {/* Password Modal */}
-      <Modal visible={passwordModal?.visible === true} transparent animationType="fade" onRequestClose={() => setPasswordModal(null)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPasswordModal(null)}>
+      {/* Password Modal — edge-to-edge dim (status bar + nav bar) via screen size + Modal flags */}
+      <Modal
+        visible={passwordModal?.visible === true}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setPasswordModal(null)}
+      >
+        <View style={[styles.modalRoot, { width: screenW, minHeight: screenH, backgroundColor: MODAL_DIM }]}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => { setPasswordModal(null); setPasswordInput(''); }}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+          />
+          <KeyboardAvoidingView
+            style={styles.modalCenterWrap}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            pointerEvents="box-none"
+          >
             <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onStartShouldSetResponder={() => true}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{getPasswordModalTitle()}</Text>
               <TextInput
@@ -295,7 +317,7 @@ export default function ProviderSecurityScreen() {
                   <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, !passwordInput.trim() && styles.modalBtnDisabled]}
+                  style={[styles.modalConfirmBtn, { backgroundColor: colors.buttonPrimaryBg }, !passwordInput.trim() && styles.modalBtnDisabled]}
                   onPress={handlePasswordStep}
                   disabled={!passwordInput.trim() || !!updating}
                 >
@@ -307,14 +329,31 @@ export default function ProviderSecurityScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* 2FA Password Modal */}
-      <Modal visible={twoFAPasswordModal !== null} transparent animationType="fade" onRequestClose={() => setTwoFAPasswordModal(null)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setTwoFAPasswordModal(null)}>
+      <Modal
+        visible={twoFAPasswordModal !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setTwoFAPasswordModal(null)}
+      >
+        <View style={[styles.modalRoot, { width: screenW, minHeight: screenH, backgroundColor: MODAL_DIM }]}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => { setTwoFAPasswordModal(null); setTwoFAPasswordInput(''); }}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+          />
+          <KeyboardAvoidingView
+            style={styles.modalCenterWrap}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            pointerEvents="box-none"
+          >
             <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onStartShouldSetResponder={() => true}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.enterPasswordToContinue`)}</Text>
               <TextInput
@@ -333,7 +372,7 @@ export default function ProviderSecurityScreen() {
                   <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, !twoFAPasswordInput.trim() && styles.modalBtnDisabled]}
+                  style={[styles.modalConfirmBtn, { backgroundColor: colors.buttonPrimaryBg }, !twoFAPasswordInput.trim() && styles.modalBtnDisabled]}
                   onPress={handle2FAPasswordConfirm}
                   disabled={!twoFAPasswordInput.trim() || !!updating}
                 >
@@ -345,8 +384,8 @@ export default function ProviderSecurityScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-          </TouchableOpacity>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {/* QR Code + Verify Modal */}
@@ -403,7 +442,7 @@ export default function ProviderSecurityScreen() {
                     <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
+                    style={[styles.modalConfirmBtn, { backgroundColor: colors.buttonPrimaryBg }, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
                     onPress={handleVerify2FA}
                     disabled={twoFACode.trim().length !== 6 || !!updating}
                   >
@@ -465,9 +504,19 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowLabel: { fontSize: 14, fontWeight: '500' },
   rowDesc: { fontSize: 12, marginTop: 2 },
+  modalRoot: {
+    flex: 1,
+  },
+  modalCenterWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center', alignItems: 'center',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   modalOverlayFill: { flex: 1 },
   modalScrollContent: {

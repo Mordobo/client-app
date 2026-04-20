@@ -27,10 +27,12 @@ export const getThemeColors = (isDark: boolean) => ({
   icon: isDark ? '#9BA1A6' : '#374151',
   iconSecondary: isDark ? '#6B7280' : '#9CA3AF',
   primary: '#8B5CF6',
+  /** Solid fill for primary buttons (modals, CTAs) — darker in light mode for WCAG contrast with white label text */
+  buttonPrimaryBg: isDark ? '#8B5CF6' : '#5B21B6',
   tabBarActive: '#FB923C',
-  tabBarBg: isDark ? 'rgba(30, 27, 46, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+  tabBarBg: isDark ? 'rgba(30, 27, 46, 0.95)' : '#FFFFFF',
   tabBarBorder: isDark ? 'rgba(61, 51, 112, 0.5)' : 'rgba(0, 0, 0, 0.08)',
-  tabBarInactive: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.45)',
+  tabBarInactive: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.55)',
 });
 
 export const createThemeStyles = (isDark: boolean) => {

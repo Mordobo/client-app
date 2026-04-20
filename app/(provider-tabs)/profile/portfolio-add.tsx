@@ -250,14 +250,14 @@ export default function PortfolioAddScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
           onPress={() => router.back()}
           accessibilityLabel={t("common.back")}
           accessibilityRole="button"
         >
-          <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.6)" />
+          <Ionicons name="chevron-back" size={22} color={colors.icon} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           {isEdit
             ? t("providerDashboard.portfolio.editProject")
             : t("providerDashboard.portfolio.addProject")}
@@ -281,15 +281,15 @@ export default function PortfolioAddScreen() {
             name="title"
             render={({ field: { onChange, onBlur, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
                   {t("providerDashboard.portfolio.titleLabel")}
                 </Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.title && styles.inputError]}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.title && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={colors.textTertiary}
                   placeholder=""
                   autoCapitalize="words"
                 />
@@ -305,15 +305,15 @@ export default function PortfolioAddScreen() {
             name="description"
             render={({ field: { onChange, onBlur, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
                   {t("providerDashboard.portfolio.descriptionLabel")}
                 </Text>
                 <TextInput
-                  style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.description && styles.inputError]}
+                  style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.description && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={colors.textTertiary}
                   placeholder=""
                   multiline
                   numberOfLines={4}
@@ -327,15 +327,15 @@ export default function PortfolioAddScreen() {
             name="categoryTag"
             render={({ field: { onChange, onBlur, value } }) => (
               <View style={styles.field}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
                   {t("providerDashboard.portfolio.categoryLabel")}
                 </Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, errors.categoryTag && styles.inputError]}
+                  style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.categoryTag && styles.inputError]}
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={colors.textTertiary}
                   placeholder=""
                 />
               </View>
@@ -347,25 +347,25 @@ export default function PortfolioAddScreen() {
             name="isBeforeAfter"
             render={({ field: { onChange, value } }) => (
               <View style={styles.switchRow}>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
                   {t("providerDashboard.portfolio.beforeAfterLabel")}
                 </Text>
                 <Switch
                   value={value}
                   onValueChange={onChange}
-                  trackColor={{ false: "rgba(255,255,255,0.2)", true: "rgba(139, 92, 246, 0.5)" }}
-                  thumbColor={value ? "#8B5CF6" : "rgba(255,255,255,0.6)"}
+                  trackColor={{ false: colors.border, true: `${colors.primary}80` }}
+                  thumbColor={value ? colors.primary : colors.iconSecondary}
                 />
               </View>
             )}
           />
 
           <View style={styles.field}>
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>
               {t("providerDashboard.portfolio.selectPhotos")} ({totalNew}/{MAX_IMAGES})
             </Text>
             {isEdit && existingImageCount > 0 && (
-              <Text style={styles.hint}>
+              <Text style={[styles.hint, { color: colors.textTertiary }]}>
                 {t("providerDashboard.portfolio.existingImagesHint", {
                   count: existingImageCount,
                 })}
@@ -385,11 +385,11 @@ export default function PortfolioAddScreen() {
               ))}
               {canAddMore && (
                 <TouchableOpacity
-                  style={[styles.thumbAdd, { borderColor: colors.cardBorder }]}
+                  style={[styles.thumbAdd, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
                   onPress={pickImages}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="add" size={28} color="rgba(255,255,255,0.6)" />
+                  <Ionicons name="add" size={28} color={colors.icon} />
                 </TouchableOpacity>
               )}
             </View>
@@ -416,7 +416,7 @@ export default function PortfolioAddScreen() {
               disabled={isSubmitting || uploading}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelButtonText}>
+              <Text style={[styles.cancelButtonText, { color: colors.primary }]}>
                 {t("providerDashboard.portfolio.cancel")}
               </Text>
             </TouchableOpacity>
@@ -450,14 +450,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#fff",
   },
   headerRight: {
     width: 40,
@@ -479,7 +477,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textTransform: "uppercase",
     letterSpacing: 1,
-    color: "rgba(255,255,255,0.5)",
     marginBottom: 8,
   },
   input: {
@@ -488,7 +485,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 14,
-    color: "#fff",
   },
   textArea: {
     minHeight: 100,
@@ -504,7 +500,6 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.4)",
     marginBottom: 8,
   },
   switchRow: {
@@ -535,7 +530,6 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -564,6 +558,6 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
+    fontWeight: "600",
   },
 });

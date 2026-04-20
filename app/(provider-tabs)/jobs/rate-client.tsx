@@ -1,3 +1,4 @@
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { ApiError } from "@/services/auth";
@@ -21,13 +22,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const CARD_BORDER_LIGHT = "rgba(61, 51, 112, 0.2)";
 const PURPLE_GRADIENT_START = "#6366F1";
-const PURPLE_GRADIENT_END = "#8B5CF6";
 const YELLOW_STAR = "#FACC15";
-const AMBER_BG = "rgba(251, 191, 36, 0.1)";
-const AMBER_BORDER = "rgba(251, 191, 36, 0.2)";
-const AMBER_TEXT = "#FDE68A";
 
 const TAG_KEYS = [
   "tagPunctual",
@@ -53,7 +49,9 @@ export default function RateClientScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
   const colors = useThemeColors();
+  const isDark = colorScheme === "dark";
   const queryClient = useQueryClient();
   const footerBottom = Math.max(insets.bottom, 12);
 
@@ -155,7 +153,7 @@ export default function RateClientScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={goBack} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
           <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.rateClient.title")}</Text>
@@ -177,7 +175,7 @@ export default function RateClientScreen() {
         </View>
 
         {/* Star Rating */}
-        <Text style={styles.ratingQuestion}>{t("providerDashboard.rateClient.howWasExperience")}</Text>
+        <Text style={[styles.ratingQuestion, { color: colors.textSecondary }]}>{t("providerDashboard.rateClient.howWasExperience")}</Text>
         <View style={styles.starsRow}>
           {[1, 2, 3, 4, 5].map((star) => (
             <TouchableOpacity key={star} onPress={() => setRating(star)} activeOpacity={0.7}>
@@ -187,10 +185,12 @@ export default function RateClientScreen() {
             </TouchableOpacity>
           ))}
         </View>
-        <Text style={styles.ratingLabel}>{getRatingLabel(rating)}</Text>
+        <Text style={[styles.ratingLabel, { color: rating >= 4 ? colors.primary : colors.textSecondary }]}>
+          {getRatingLabel(rating)}
+        </Text>
 
         {/* Quick Tags */}
-        <Text style={styles.sectionLabel}>{t("providerDashboard.rateClient.quickTags")}</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.rateClient.quickTags")}</Text>
         <View style={styles.tagsWrap}>
           {TAG_KEYS.map((tagKey) => {
             const label = t(`providerDashboard.rateClient.${tagKey}`);
@@ -198,11 +198,19 @@ export default function RateClientScreen() {
             return (
               <TouchableOpacity
                 key={tagKey}
-                style={[styles.tagChip, { backgroundColor: selected ? colors.primary : colors.background }, selected && styles.tagChipSelected]}
+                style={[
+                  styles.tagChip,
+                  {
+                    backgroundColor: selected ? colors.primary : colors.surfaceSecondary,
+                    borderWidth: selected ? 0 : 1,
+                    borderColor: colors.border,
+                  },
+                  selected && styles.tagChipSelected,
+                ]}
                 onPress={() => toggleTag(tagKey)}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.tagText, { color: selected ? colors.textOnDark : colors.textTertiary }, selected && styles.tagTextSelected]}>{label}</Text>
+                <Text style={[styles.tagText, { color: selected ? "#FFFFFF" : colors.textSecondary }, selected && styles.tagTextSelected]}>{label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -222,15 +230,33 @@ export default function RateClientScreen() {
         />
 
         {/* Private Note */}
-        <View style={styles.privateNoteCard}>
+        <View
+          style={[
+            styles.privateNoteCard,
+            {
+              backgroundColor: isDark ? "rgba(251, 191, 36, 0.1)" : "#FFFBEB",
+              borderColor: isDark ? "rgba(251, 191, 36, 0.2)" : "rgba(217, 119, 6, 0.35)",
+            },
+          ]}
+        >
           <View style={styles.privateNoteHeader}>
             <Text style={styles.lockEmoji}>🔒</Text>
-            <Text style={styles.privateNoteTitle}>{t("providerDashboard.rateClient.privateNote")}</Text>
+            <Text style={[styles.privateNoteTitle, { color: isDark ? "#FDE68A" : "#92400E" }]}>
+              {t("providerDashboard.rateClient.privateNote")}
+            </Text>
           </View>
           <TextInput
-            style={styles.privateNoteInput}
+            style={[
+              styles.privateNoteInput,
+              {
+                backgroundColor: isDark ? "rgba(0,0,0,0.2)" : colors.surfaceSecondary,
+                color: isDark ? "#FDE68A" : colors.textPrimary,
+                borderWidth: isDark ? 0 : 1,
+                borderColor: colors.border,
+              },
+            ]}
             placeholder={t("providerDashboard.rateClient.privateNotePlaceholder")}
-            placeholderTextColor="rgba(251, 191, 36, 0.4)"
+            placeholderTextColor={isDark ? "rgba(251, 191, 36, 0.45)" : colors.textTertiary}
             value={privateNote}
             onChangeText={setPrivateNote}
             multiline
@@ -255,7 +281,7 @@ export default function RateClientScreen() {
           )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
-          <Text style={styles.skipBtnText}>{t("providerDashboard.rateClient.skip")}</Text>
+          <Text style={[styles.skipBtnText, { color: colors.primary }]}>{t("providerDashboard.rateClient.skip")}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -282,14 +308,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   scroll: {
     flex: 1,
@@ -308,7 +332,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "rgba(61, 51, 112, 0.5)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
@@ -316,19 +339,16 @@ const styles = StyleSheet.create({
   clientNameLarge: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF",
     marginBottom: 4,
   },
   clientServiceLabel: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.4)",
   },
 
   // Stars
   ratingQuestion: {
     fontSize: 11,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
     letterSpacing: 1,
     textTransform: "uppercase",
     textAlign: "center",
@@ -351,7 +371,6 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
     marginBottom: 24,
   },
@@ -360,7 +379,6 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
     letterSpacing: 1,
     textTransform: "uppercase",
     marginBottom: 12,
@@ -377,7 +395,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.05)",
   },
   tagChipSelected: {
     backgroundColor: PURPLE_GRADIENT_START,
@@ -385,7 +402,6 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.5)",
   },
   tagTextSelected: {
     color: "#FFFFFF",
@@ -403,9 +419,7 @@ const styles = StyleSheet.create({
 
   // Private Note
   privateNoteCard: {
-    backgroundColor: AMBER_BG,
     borderWidth: 1,
-    borderColor: AMBER_BORDER,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -422,13 +436,10 @@ const styles = StyleSheet.create({
   privateNoteTitle: {
     fontSize: 14,
     fontWeight: "500",
-    color: AMBER_TEXT,
   },
   privateNoteInput: {
-    backgroundColor: "rgba(0,0,0,0.2)",
     borderRadius: 8,
     padding: 12,
-    color: AMBER_TEXT,
     fontSize: 14,
     minHeight: 60,
   },
@@ -462,7 +473,6 @@ const styles = StyleSheet.create({
   },
   skipBtnText: {
     fontSize: 14,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.4)",
+    fontWeight: "600",
   },
 });
