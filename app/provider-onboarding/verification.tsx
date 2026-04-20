@@ -1,10 +1,11 @@
 import { useMode } from '@/contexts/ModeContext';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { ApiError } from '@/services/auth';
 import { submitOnboardingStep } from '@/services/providers';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,6 +15,24 @@ export default function ProviderOnboardingVerificationScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { setMode } = useMode();
+  const colors = useThemeColors();
+  const themed = useMemo(
+    () => ({
+      screen: colors.screenBackground,
+      submitting: colors.textSecondary,
+      title: colors.textPrimary,
+      subtitle: colors.textSecondary,
+      stepRowBg: colors.surfaceSecondary,
+      stepText: colors.textPrimary,
+      stepTextPending: colors.textTertiary,
+      notificationBg: colors.surfaceSecondary,
+      notificationBorder: colors.border,
+      notificationText: colors.textSecondary,
+      backBtnBg: colors.surfaceSecondary,
+      backBtnText: colors.textPrimary,
+    }),
+    [colors],
+  );
   const [submitState, setSubmitState] = useState<SubmitState>('submitting');
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const step7Sent = useRef(false);
@@ -65,12 +84,12 @@ export default function ProviderOnboardingVerificationScreen() {
   const isError = submitState === 'error';
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themed.screen }]}>
       <View style={styles.content}>
         {isSubmitting && (
           <>
-            <ActivityIndicator size="large" color="#A78BFA" style={styles.loader} />
-            <Text style={styles.submittingText}>
+            <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+            <Text style={[styles.submittingText, { color: themed.submitting }]}>
               {t('providerOnboarding.verification.submitting')}
             </Text>
           </>
@@ -83,7 +102,7 @@ export default function ProviderOnboardingVerificationScreen() {
                 <Ionicons name="alert-circle" size={40} color="#F87171" />
               </View>
             </View>
-            <Text style={styles.errorText}>
+            <Text style={[styles.errorText, { color: themed.title }]}>
               {errorDetail ?? t('providerOnboarding.verification.submitError')}
             </Text>
             <TouchableOpacity
@@ -106,16 +125,16 @@ export default function ProviderOnboardingVerificationScreen() {
               </View>
             </View>
 
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: themed.title }]}>
               {t('providerOnboarding.verification.title')}
             </Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.subtitle, { color: themed.subtitle }]}>
               {t('providerOnboarding.verification.subtitle')}
             </Text>
 
             <View style={styles.stepsContainer}>
               {steps.map((step, index) => (
-                <View key={index} style={styles.stepItem}>
+                <View key={index} style={[styles.stepItem, { backgroundColor: themed.stepRowBg }]}>
                   <View
                     style={[
                       styles.stepIcon,
@@ -136,7 +155,8 @@ export default function ProviderOnboardingVerificationScreen() {
                   <Text
                     style={[
                       styles.stepText,
-                      step.status === 'pending' && styles.stepTextPending,
+                      { color: themed.stepText },
+                      step.status === 'pending' && { color: themed.stepTextPending },
                     ]}
                   >
                     {step.label}
@@ -145,8 +165,8 @@ export default function ProviderOnboardingVerificationScreen() {
               ))}
             </View>
 
-            <View style={styles.notificationCard}>
-              <Text style={styles.notificationText}>
+            <View style={[styles.notificationCard, { backgroundColor: themed.notificationBg, borderColor: themed.notificationBorder }]}>
+              <Text style={[styles.notificationText, { color: themed.notificationText }]}>
                 {t('providerOnboarding.verification.notification')}
               </Text>
             </View>
@@ -158,11 +178,11 @@ export default function ProviderOnboardingVerificationScreen() {
       {isSubmitted && (
         <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: themed.backBtnBg }]}
             onPress={handleBackToHome}
             activeOpacity={0.7}
           >
-            <Text style={styles.backButtonText}>
+            <Text style={[styles.backButtonText, { color: themed.backBtnText }]}>
               {t('providerOnboarding.verification.backToHome')}
             </Text>
           </TouchableOpacity>
@@ -175,7 +195,6 @@ export default function ProviderOnboardingVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#12121A',
   },
   content: {
     flex: 1,
@@ -188,7 +207,6 @@ const styles = StyleSheet.create({
   },
   submittingText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   iconCircleError: {
@@ -197,7 +215,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -230,13 +247,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -253,7 +268,6 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   stepIcon: {
     width: 28,
@@ -283,22 +297,15 @@ const styles = StyleSheet.create({
   stepText: {
     flex: 1,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  stepTextPending: {
-    color: 'rgba(255, 255, 255, 0.4)',
   },
   notificationCard: {
     width: '100%',
     padding: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
   },
   notificationText: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
   },
   buttonContainer: {
     paddingHorizontal: 20,
@@ -308,13 +315,11 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

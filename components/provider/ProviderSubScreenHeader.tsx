@@ -17,7 +17,7 @@ export function ProviderSubScreenHeader({
   return (
     <View style={styles.header}>
       <TouchableOpacity
-        style={[styles.backButton, { backgroundColor: 'rgba(255,255,255,0.05)' }]}
+        style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
         onPress={onBack}
         activeOpacity={0.8}
         accessibilityLabel={accessibilityLabelBack}

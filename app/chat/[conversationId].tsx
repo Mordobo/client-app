@@ -145,7 +145,7 @@ export default function ChatScreen() {
         quoteBannerTitle: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
         quoteBannerSub: {
           fontSize: 12,
-          color: colorScheme === "light" ? colors.textSecondary : colors.textMuted40,
+          color: colorScheme === "light" ? colors.textPrimary : colors.textMuted40,
           marginTop: 2,
         },
         headerAvatar: { width: 40, height: 40, borderRadius: 20 },
@@ -189,12 +189,12 @@ export default function ChatScreen() {
           paddingHorizontal: 8,
           paddingVertical: 4,
           borderRadius: 999,
-          backgroundColor: "rgba(139, 92, 246, 0.3)",
+          backgroundColor: colorScheme === "light" ? "rgba(91, 33, 182, 0.92)" : "rgba(139, 92, 246, 0.35)",
         },
         jobBannerBadgeText: {
           fontSize: 10,
           fontWeight: "600",
-          color: colorScheme === "light" ? "#5B21B6" : "#C4B5FD",
+          color: colorScheme === "light" ? "#FFFFFF" : "#EDE9FE",
         },
         dateContainer: { alignItems: "center", marginBottom: 12 },
         dateText: {

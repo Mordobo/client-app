@@ -412,7 +412,9 @@ export default function InProgressScreen() {
               </Text>
               {task.status === "in_progress" && (
                 <View style={styles.taskBadge}>
-                  <Text style={styles.taskBadgeText}>{t("providerDashboard.inProgress.taskInProgress")}</Text>
+                  <Text style={[styles.taskBadgeText, { color: isLight ? "#5B21B6" : PURPLE_TEXT }]}>
+                    {t("providerDashboard.inProgress.taskInProgress")}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
