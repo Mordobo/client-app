@@ -11,10 +11,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm, type SubmitHandler } from "react-hook-form";
 import {
     ActivityIndicator,
+    Dimensions,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -42,10 +44,20 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/** Header (outside KAV) + small fudge for nav / status bar on iOS. */
+const IOS_KEYBOARD_OFFSET_EXTRA = 56;
+
+/** Gap between the bottom of the focused input and the top of the keyboard (px). */
+const KEYBOARD_GAP_PX = 14;
+
 export default function ProviderServiceAddScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const scrollRef = useRef<ScrollView>(null);
+  const durationInputRef = useRef<TextInput>(null);
+  const scrollYRef = useRef(0);
+  const keyboardHeightRef = useRef(0);
   const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ id?: string }>();
   const serviceId = params.id;
@@ -87,6 +99,21 @@ export default function ProviderServiceAddScreen() {
       });
     }
   }, [serviceData, reset]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillChangeFrame" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const show = Keyboard.addListener(showEvent, (e) => {
+      keyboardHeightRef.current = e.endCoordinates.height;
+    });
+    const hide = Keyboard.addListener(hideEvent, () => {
+      keyboardHeightRef.current = 0;
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToastMessage(message);
@@ -137,6 +164,28 @@ export default function ProviderServiceAddScreen() {
     router.back();
   }, [router]);
 
+  /** Scroll only enough so the duration input sits just above the keyboard (no scrollToEnd). */
+  const nudgeDurationAboveKeyboard = useCallback(() => {
+    const attempt = () => {
+      const kh = keyboardHeightRef.current;
+      if (kh <= 0) return;
+      const windowH = Dimensions.get("window").height;
+      const keyboardTop = windowH - kh;
+      durationInputRef.current?.measureInWindow((_x, inputY, _w, inputH) => {
+        const inputBottom = inputY + inputH;
+        const targetBottom = keyboardTop - KEYBOARD_GAP_PX;
+        const overlap = inputBottom - targetBottom;
+        if (overlap <= 0) return;
+        const nextY = Math.max(0, scrollYRef.current + overlap);
+        scrollYRef.current = nextY;
+        scrollRef.current?.scrollTo({ y: nextY, animated: true });
+      });
+    };
+    requestAnimationFrame(attempt);
+    setTimeout(attempt, 80);
+    setTimeout(attempt, 220);
+  }, []);
+
   if (isEdit && serviceLoading) {
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
@@ -172,14 +221,24 @@ export default function ProviderServiceAddScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboard}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={insets.top + 56}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={
+          Platform.OS === "ios" ? insets.top + IOS_KEYBOARD_OFFSET_EXTRA : insets.top
+        }
       >
         <ScrollView
+          ref={scrollRef}
           style={[styles.scroll, { backgroundColor: colors.background }]}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + 40 },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => {
+            scrollYRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
         >
           <View style={styles.field}>
             <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -270,8 +329,12 @@ export default function ProviderServiceAddScreen() {
             <Controller
               control={control}
               name="durationMinutes"
-              render={({ field: { onChange, onBlur, value } }) => (
+              render={({ field: { onChange, onBlur, value, ref: fieldRef } }) => (
                 <TextInput
+                  ref={(node) => {
+                    durationInputRef.current = node;
+                    fieldRef(node);
+                  }}
                   style={[
                     styles.input,
                     { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary },
@@ -281,6 +344,7 @@ export default function ProviderServiceAddScreen() {
                   value={value}
                   onChangeText={onChange}
                   onBlur={onBlur}
+                  onFocus={nudgeDurationAboveKeyboard}
                   keyboardType="number-pad"
                 />
               )}
