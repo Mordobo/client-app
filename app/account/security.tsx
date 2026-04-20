@@ -22,6 +22,7 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -30,9 +31,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const I18N = 'providerDashboard.providerSettings.securityScreen';
+
+const TWO_FA_DIM_BG = 'rgba(0,0,0,0.58)' as const;
+/** Inset for the grey dim layer so header and tab bar stay outside the overlay. */
+const TWO_FA_DIM_GAP_TOP = 56;
+const TWO_FA_DIM_GAP_BOTTOM = 72;
+const TWO_FA_DIM_GAP_H = 14;
 
 type PasswordStep = 'current' | 'new' | 'confirm';
 
@@ -339,70 +346,98 @@ export default function ClientSecurityScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal visible={twoFASetup !== null} transparent animationType="fade" onRequestClose={() => setTwoFASetup(null)}>
-        <SafeAreaView style={styles.modalOverlay} edges={['top', 'bottom', 'left', 'right']}>
-          <KeyboardAvoidingView style={styles.modalOverlayFill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <TouchableOpacity
-              style={[styles.modalOverlay, styles.modalOverlayTouchable]}
-              activeOpacity={1}
-              onPress={() => setTwoFASetup(null)}
+      <Modal
+        visible={twoFASetup !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setTwoFASetup(null)}
+      >
+        <View style={styles.twoFAModalRoot}>
+          <View
+            style={[
+              styles.twoFAOverlayInset,
+              {
+                top: insets.top + TWO_FA_DIM_GAP_TOP,
+                bottom: insets.bottom + TWO_FA_DIM_GAP_BOTTOM,
+                left: TWO_FA_DIM_GAP_H,
+                right: TWO_FA_DIM_GAP_H,
+                backgroundColor: TWO_FA_DIM_BG,
+              },
+            ]}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFillObject}
+              onPress={() => {
+                setTwoFASetup(null);
+                setTwoFACode('');
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
             />
-            <ScrollView
-              style={styles.modalOverlayFill}
-              contentContainerStyle={styles.modalScrollContent}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
+            <KeyboardAvoidingView
+              style={styles.twoFAOverlayContent}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              pointerEvents="box-none"
             >
-              <View
-                style={[styles.modalBox, { maxWidth: 340, backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-                onStartShouldSetResponder={() => true}
+              <ScrollView
+                style={styles.twoFAOverlayContent}
+                contentContainerStyle={styles.modalScrollContentTwoFA}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.scanQRCode`)}</Text>
-                {twoFASetup?.qrCode && (
-                  <View style={styles.qrContainer}>
-                    <Image source={{ uri: twoFASetup.qrCode }} style={styles.qrImage} resizeMode="contain" />
-                  </View>
-                )}
-                <Text style={[styles.modalSubtitle, { marginTop: 12, color: colors.textSecondary }]}>{t(`${I18N}.enter2FACode`)}</Text>
-                <TextInput
-                  style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
-                  placeholder="000000"
-                  placeholderTextColor={colors.textSecondary}
-                  value={twoFACode}
-                  onChangeText={setTwoFACode}
-                  keyboardType="number-pad"
-                  maxLength={6}
-                  textAlign="center"
-                  returnKeyType="done"
-                  onSubmitEditing={handleVerify2FA}
-                />
-                {twoFASetup?.backupCodes && twoFASetup.backupCodes.length > 0 && (
-                  <View style={[styles.backupBox, { backgroundColor: colors.background }]}>
-                    <Text style={[styles.backupTitle, { color: colors.textPrimary }]}>{t(`${I18N}.backupCodes`)}</Text>
-                    <Text style={[styles.backupHint, { color: colors.textSecondary }]}>{t(`${I18N}.saveBackupCodes`)}</Text>
-                    <View style={styles.backupCodesGrid}>
-                      {twoFASetup.backupCodes.map((code, i) => (
-                        <Text key={i} style={[styles.backupCode, { color: colors.primary, backgroundColor: `${colors.primary}20` }]}>{code}</Text>
-                      ))}
+                <View
+                  style={[styles.twoFAModalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+                  onStartShouldSetResponder={() => true}
+                >
+                  <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.scanQRCode`)}</Text>
+                  {twoFASetup?.qrCode && (
+                    <View style={styles.qrContainer}>
+                      <Image source={{ uri: twoFASetup.qrCode }} style={styles.qrImage} resizeMode="contain" />
                     </View>
+                  )}
+                  <Text style={[styles.modalSubtitle, { marginTop: 12, color: colors.textSecondary }]}>{t(`${I18N}.enter2FACode`)}</Text>
+                  <TextInput
+                    style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
+                    placeholder="000000"
+                    placeholderTextColor={colors.textSecondary}
+                    value={twoFACode}
+                    onChangeText={setTwoFACode}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    textAlign="center"
+                    returnKeyType="done"
+                    onSubmitEditing={handleVerify2FA}
+                  />
+                  {twoFASetup?.backupCodes && twoFASetup.backupCodes.length > 0 && (
+                    <View style={[styles.backupBox, { backgroundColor: colors.background }]}>
+                      <Text style={[styles.backupTitle, { color: colors.textPrimary }]}>{t(`${I18N}.backupCodes`)}</Text>
+                      <Text style={[styles.backupHint, { color: colors.textSecondary }]}>{t(`${I18N}.saveBackupCodes`)}</Text>
+                      <View style={styles.backupCodesGrid}>
+                        {twoFASetup.backupCodes.map((code, i) => (
+                          <Text key={i} style={[styles.backupCode, { color: colors.primary, backgroundColor: `${colors.primary}20` }]}>{code}</Text>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.background }]} onPress={() => { setTwoFASetup(null); setTwoFACode(''); }}>
+                      <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
+                      onPress={handleVerify2FA}
+                      disabled={twoFACode.trim().length !== 6 || !!updating}
+                    >
+                      {updating === '2fa-verify' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t(`${I18N}.verify`)}</Text>}
+                    </TouchableOpacity>
                   </View>
-                )}
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.background }]} onPress={() => { setTwoFASetup(null); setTwoFACode(''); }}>
-                    <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalConfirmBtn, { backgroundColor: colors.primary }, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
-                    onPress={handleVerify2FA}
-                    disabled={twoFACode.trim().length !== 6 || !!updating}
-                  >
-                    {updating === '2fa-verify' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t(`${I18N}.verify`)}</Text>}
-                  </TouchableOpacity>
                 </View>
-              </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </View>
+        </View>
       </Modal>
 
       <Toast message={toast?.message ?? ''} visible={toast !== null} onHide={() => setToast(null)} type={toast?.type ?? 'success'} />
@@ -454,12 +489,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalOverlayFill: { flex: 1 },
-  modalScrollContent: {
+  twoFAModalRoot: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  twoFAOverlayInset: {
+    position: 'absolute',
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  twoFAOverlayContent: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalScrollContentTwoFA: {
     flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
+    alignItems: 'stretch',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  twoFAModalBox: {
+    borderRadius: 14,
+    padding: 16,
+    width: '100%',
+    alignSelf: 'stretch',
+    borderWidth: 1,
   },
   modalOverlayTouchable: {
     position: 'absolute',
