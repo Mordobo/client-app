@@ -1,9 +1,10 @@
 import { ModeSwitch } from "@/components/common/ModeSwitch";
 import { ProfileFooter } from "@/components/profile/ProfileFooter";
 import { Toast } from "@/components/Toast";
-import { CLIENT_TIERS } from "@/constants/tiers";
+import { CLIENT_TIERS, getTierBadgeForeground } from "@/constants/tiers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMode } from "@/contexts/ModeContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
@@ -26,6 +27,7 @@ export default function ProfileScreen() {
   const { user } = useAuth();
   const { mode, setMode } = useMode();
   const colors = useThemeColors();
+  const colorScheme = useColorScheme();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<UserStats>({ services: 0, reviews: 0 });
@@ -106,9 +108,10 @@ export default function ProfileScreen() {
               {(() => {
                 const tier = user?.tier ?? "bronze";
                 const cfg = CLIENT_TIERS[tier];
+                const badgeFg = getTierBadgeForeground(tier, colorScheme === "dark");
                 return (
-                  <View style={[styles.badge, { backgroundColor: `${cfg.color}20` }]}>
-                    <Text style={[styles.badgeText, { color: cfg.color }]}>
+                  <View style={[styles.badge, { backgroundColor: `${cfg.color}28` }]}>
+                    <Text style={[styles.badgeText, { color: badgeFg }]}>
                       {cfg.emoji ? `${cfg.emoji} ` : ""}
                       {t(cfg.i18nKey)}
                     </Text>

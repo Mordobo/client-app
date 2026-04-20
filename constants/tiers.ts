@@ -61,3 +61,19 @@ export function getOrdersToNextTier(
   if (!next) return null;
   return Math.max(0, CLIENT_TIERS[next].thresholdOrders - completedOrders);
 }
+
+/** Foreground for tier badge on light backgrounds (metallic hexes are too low-contrast on white). */
+export function getTierBadgeForeground(tier: ClientTier, isDark: boolean): string {
+  if (isDark) return CLIENT_TIERS[tier].color;
+  switch (tier) {
+    case "platinum":
+      return "#4338CA";
+    case "silver":
+      return "#475569";
+    case "gold":
+      return "#92400E";
+    case "bronze":
+    default:
+      return "#92400E";
+  }
+}

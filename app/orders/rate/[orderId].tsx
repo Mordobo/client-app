@@ -1,11 +1,12 @@
 import { StarRating } from '@/components/StarRating';
+import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { fetchOrderDetail } from '@/services/orders';
 import { createReview, ApiError } from '@/services/reviews';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,14 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const BACKGROUND = '#1a1a2e';
-const HEADER_BG = '#252542';
-const CARD_BG = '#252542';
-const CARD_BORDER = '#374151';
 const ACCENT = '#3b82f6';
-const TEXT_PRIMARY = '#FFFFFF';
-const TEXT_SECONDARY = '#9ca3af';
-const SECTION_HEADER = '#9ca3af';
 
 function formatScheduledAt(scheduledAt: string | undefined): string {
   if (!scheduledAt) return '';
@@ -43,7 +37,8 @@ function formatScheduledAt(scheduledAt: string | undefined): string {
 export default function RateExperienceScreen() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { orderId, navRef } = useLocalSearchParams<{ orderId: string; navRef?: string }>();
+  const colors = useThemeColors();
+  const { orderId } = useLocalSearchParams<{ orderId: string; navRef?: string }>();
   const insets = useSafeAreaInsets();
   const bottomInset = insets.bottom || (Platform.OS === 'android' ? 40 : 0);
 
@@ -61,12 +56,12 @@ export default function RateExperienceScreen() {
       setError(null);
       const data = await fetchOrderDetail(orderId);
       setOrderDetail(data);
-    } catch (e) {
+    } catch {
       setError(t('errors.requestFailed'));
     } finally {
       setLoading(false);
     }
-  }, [orderId, navRef]);
+  }, [orderId]);
 
   useEffect(() => {
     loadOrder();
@@ -74,7 +69,12 @@ export default function RateExperienceScreen() {
 
   const order = orderDetail?.order;
   const supplierId = order?.supplier_id ?? orderDetail?.supplier?.id;
-  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.business_name?.trim() ?? orderDetail?.supplier?.full_name ?? t('orders.provider');
+  const providerName =
+    order?.supplier_name ??
+    order?.business_name ??
+    orderDetail?.supplier?.business_name?.trim() ??
+    orderDetail?.supplier?.full_name ??
+    t('orders.provider');
   const serviceName = order?.service_name ?? '';
   const scheduledLabel = formatScheduledAt(order?.scheduled_at);
 
@@ -130,9 +130,26 @@ export default function RateExperienceScreen() {
     router.push('/(tabs)/home');
   }, [router]);
 
+  const themed = useMemo(
+    () => ({
+      screenBg: colors.screenBackground,
+      headerBg: colors.card,
+      headerBorder: colors.cardBorder,
+      cardBg: colors.card,
+      cardBorder: colors.cardBorder,
+      textPrimary: colors.textPrimary,
+      textSecondary: colors.textSecondary,
+      sectionMuted: colors.textSecondary,
+      inputBg: colors.surfaceSecondary,
+      inputBorder: colors.border,
+      footerBg: colors.screenBackground,
+    }),
+    [colors],
+  );
+
   if (loading) {
     return (
-      <View style={[styles.container, styles.centered, { paddingTop: insets.top }]}>
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: themed.screenBg }]}>
         <ActivityIndicator size="large" color={ACCENT} />
       </View>
     );
@@ -140,16 +157,16 @@ export default function RateExperienceScreen() {
 
   if (error || !order) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: themed.screenBg }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: themed.headerBg, borderBottomWidth: 1, borderBottomColor: themed.headerBorder }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+            <Ionicons name="arrow-back" size={24} color={themed.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('rating.title')}</Text>
+          <Text style={[styles.headerTitle, { color: themed.textPrimary }]}>{t('rating.title')}</Text>
           <View style={styles.headerPlaceholder} />
         </View>
         <View style={styles.centered}>
-          <Text style={styles.errorText}>{error ?? t('errors.requestFailed')}</Text>
+          <Text style={[styles.errorText, { color: colors.textPrimary }]}>{error ?? t('errors.requestFailed')}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadOrder}>
             <Text style={styles.retryText}>{t('chat.retry')}</Text>
           </TouchableOpacity>
@@ -161,18 +178,18 @@ export default function RateExperienceScreen() {
   const alreadyReviewed = Boolean(orderDetail?.client_has_reviewed);
   if (alreadyReviewed) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: themed.screenBg }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: themed.headerBg, borderBottomWidth: 1, borderBottomColor: themed.headerBorder }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+            <Ionicons name="arrow-back" size={24} color={themed.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('rating.title')}</Text>
+          <Text style={[styles.headerTitle, { color: themed.textPrimary }]}>{t('rating.title')}</Text>
           <View style={styles.headerPlaceholder} />
         </View>
         <View style={[styles.centered, { flex: 1 }]}>
-          <View style={styles.card}>
+          <View style={[styles.card, { backgroundColor: themed.cardBg, borderColor: themed.cardBorder }]}>
             <Ionicons name="checkmark-circle" size={56} color={ACCENT} style={{ marginBottom: 16 }} />
-            <Text style={styles.serviceTitle}>{t('rating.alreadyReviewed')}</Text>
+            <Text style={[styles.serviceTitle, { color: themed.textPrimary }]}>{t('rating.alreadyReviewed')}</Text>
           </View>
           <TouchableOpacity
             style={[styles.submitButton, { marginTop: 24, paddingVertical: 16 }]}
@@ -187,12 +204,12 @@ export default function RateExperienceScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20 }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: themed.screenBg }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: themed.headerBg, borderBottomWidth: 1, borderBottomColor: themed.headerBorder }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={TEXT_PRIMARY} />
+          <Ionicons name="arrow-back" size={24} color={themed.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('rating.title')}</Text>
+        <Text style={[styles.headerTitle, { color: themed.textPrimary }]}>{t('rating.title')}</Text>
         <View style={styles.headerPlaceholder} />
       </View>
 
@@ -201,44 +218,52 @@ export default function RateExperienceScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(bottomInset, 24) }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
-          <Text style={styles.serviceTitle}>{serviceName || t('orders.service')}</Text>
-          <Text style={styles.providerName}>{providerName}</Text>
-          {scheduledLabel ? <Text style={styles.serviceDate}>{scheduledLabel}</Text> : null}
+        <View style={[styles.card, { backgroundColor: themed.cardBg, borderColor: themed.cardBorder }]}>
+          <Text style={[styles.serviceTitle, { color: themed.textPrimary }]}>{serviceName || t('orders.service')}</Text>
+          <Text style={[styles.providerName, { color: themed.textSecondary }]}>{providerName}</Text>
+          {scheduledLabel ? <Text style={[styles.serviceDate, { color: themed.textSecondary }]}>{scheduledLabel}</Text> : null}
         </View>
 
-        <Text style={styles.sectionQuestion}>{t('rating.howWasService')}</Text>
-        <View style={styles.card}>
+        <Text style={[styles.sectionQuestion, { color: themed.textPrimary }]}>{t('rating.howWasService')}</Text>
+        <View style={[styles.card, { backgroundColor: themed.cardBg, borderColor: themed.cardBorder }]}>
           <StarRating
             rating={rating}
             size={40}
             interactive
             onRatingChange={setRating}
           />
-          <Text style={styles.ratingHint}>{t('rating.tapToRate')}</Text>
+          <Text style={[styles.ratingHint, { color: themed.textSecondary }]}>{t('rating.tapToRate')}</Text>
         </View>
 
-        <Text style={styles.sectionLabel}>{t('rating.shareExperience')}</Text>
-        <View style={styles.card}>
-          <TextInput
-            style={styles.commentInput}
-            placeholder={t('rating.placeholder')}
-            placeholderTextColor={TEXT_SECONDARY}
-            value={comment}
-            onChangeText={setComment}
-            multiline
-            numberOfLines={6}
-            textAlignVertical="top"
-          />
-        </View>
+        <Text style={[styles.sectionLabel, { color: themed.sectionMuted }]}>{t('rating.shareExperience')}</Text>
+        <TextInput
+          style={[
+            styles.commentInput,
+            {
+              backgroundColor: themed.inputBg,
+              borderColor: themed.inputBorder,
+              color: themed.textPrimary,
+            },
+          ]}
+          placeholder={t('rating.placeholder')}
+          placeholderTextColor={colors.textTertiary}
+          value={comment}
+          onChangeText={setComment}
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+        />
 
-        <TouchableOpacity style={styles.photoButton} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.photoButton, { borderColor: themed.inputBorder }]}
+          activeOpacity={0.8}
+        >
           <Ionicons name="camera-outline" size={24} color={ACCENT} />
           <Text style={styles.photoButtonText}>{t('rating.uploadPhotos')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(bottomInset, 16) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(bottomInset, 16), backgroundColor: themed.footerBg }]}>
         <TouchableOpacity
           style={[styles.submitButton, (rating === 0 || submitting) && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -252,7 +277,7 @@ export default function RateExperienceScreen() {
           )}
         </TouchableOpacity>
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip} activeOpacity={0.7}>
-          <Text style={styles.skipButtonText}>{t('rating.skip')}</Text>
+          <Text style={[styles.skipButtonText, { color: colors.primary }]}>{t('rating.skip')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -262,7 +287,6 @@ export default function RateExperienceScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BACKGROUND,
   },
   centered: {
     flex: 1,
@@ -275,7 +299,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    backgroundColor: HEADER_BG,
   },
   backButton: {
     width: 40,
@@ -286,7 +309,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
   },
   headerPlaceholder: {
     width: 40,
@@ -300,7 +322,6 @@ const styles = StyleSheet.create({
   sectionQuestion: {
     fontSize: 16,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
     textAlign: 'center',
     marginTop: 24,
     marginBottom: 12,
@@ -309,49 +330,39 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: SECTION_HEADER,
     letterSpacing: 0.5,
     marginTop: 24,
     marginBottom: 12,
   },
   card: {
-    backgroundColor: CARD_BG,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     alignItems: 'center',
     marginBottom: 8,
   },
   serviceTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: TEXT_PRIMARY,
     marginBottom: 4,
     textAlign: 'center',
   },
   providerName: {
     fontSize: 15,
-    color: TEXT_SECONDARY,
     marginBottom: 4,
   },
   serviceDate: {
     fontSize: 13,
-    color: TEXT_SECONDARY,
   },
   ratingHint: {
     fontSize: 14,
-    color: TEXT_SECONDARY,
     marginTop: 12,
   },
   commentInput: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     padding: 16,
     fontSize: 14,
-    color: TEXT_PRIMARY,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
     minHeight: 120,
     width: '100%',
   },
@@ -362,7 +373,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: CARD_BORDER,
     borderStyle: 'dashed',
     marginTop: 8,
     marginBottom: 24,
@@ -394,7 +404,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     gap: 8,
-    backgroundColor: BACKGROUND,
   },
   submitButton: {
     backgroundColor: ACCENT,
@@ -415,8 +424,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   skipButtonText: {
-    color: TEXT_SECONDARY,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });
