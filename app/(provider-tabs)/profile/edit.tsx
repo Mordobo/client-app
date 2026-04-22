@@ -295,22 +295,31 @@ export default function ProviderEditProfileScreen() {
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 44 : 0}>
         {/* Back header with Save */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton} accessibilityLabel={t("common.back")}>
+          <TouchableOpacity
+            onPress={handleBack}
+            style={[styles.backButton, { backgroundColor: colors.surfaceSecondary }]}
+            accessibilityLabel={t("common.back")}
+          >
             <Text style={[styles.backArrow, { color: colors.textSecondary }]}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerEditProfile.title")}</Text>
           <TouchableOpacity onPress={handleSubmit(onSubmit)} disabled={!isDirty} style={[styles.saveButtonHeader, !isDirty && styles.saveButtonHeaderDisabled]}>
-            <Text style={[styles.saveButtonText, { color: colors.primary }, !isDirty && styles.saveButtonTextDisabled]}>{t("providerDashboard.providerEditProfile.save")}</Text>
+            <Text style={[styles.saveButtonText, { color: colors.primary }, !isDirty && { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.save")}</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView ref={scrollViewRef} style={styles.scroll} contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Avatar */}
           <View style={styles.avatarSection}>
-            <TouchableOpacity onPress={pickImage} style={[styles.avatarWrap, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} activeOpacity={0.8} disabled={uploadingAvatar}>
+            <TouchableOpacity
+              onPress={pickImage}
+              style={[styles.avatarWrap, { backgroundColor: colors.card, borderColor: colors.border }]}
+              activeOpacity={0.8}
+              disabled={uploadingAvatar}
+            >
               {avatarUri ?
                 <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="contain" />
-              : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.card }]}>
+              : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceSecondary }]}>
                   <Text style={[styles.avatarInitials, { color: colors.textSecondary }]}>{getDisplayNameInitials(watch("displayName") || "")}</Text>
                 </View>
               }
@@ -328,20 +337,20 @@ export default function ProviderEditProfileScreen() {
           {/* Form */}
           <View style={styles.form}>
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.displayName")}</Text>
-              <Controller control={control} name="displayName" render={({ field: { onChange, onBlur, value } }) => <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.displayName && styles.inputError]} onBlur={onBlur} onChangeText={onChange} value={value} placeholderTextColor={colors.textTertiary} />} />
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.displayName")}</Text>
+              <Controller control={control} name="displayName" render={({ field: { onChange, onBlur, value } }) => <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.displayName && styles.inputError]} onBlur={onBlur} onChangeText={onChange} value={value} placeholderTextColor={colors.textSecondary} />} />
               {errors.displayName && <Text style={styles.errorText}>{errors.displayName.message}</Text>}
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.category")}</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.category")}</Text>
               <Controller
                 control={control}
                 name="categoryId"
                 render={({ field: { onChange } }) => (
                   <>
                     <TouchableOpacity style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onPress={() => setCategoryModalVisible(true)}>
-                      <Text style={[selectedParentLabel ? styles.inputText : styles.inputPlaceholder, { color: selectedParentLabel ? colors.textPrimary : colors.textTertiary }]}>{selectedParentLabel || t("providerDashboard.providerEditProfile.selectCategory")}</Text>
+                      <Text style={[selectedParentLabel ? styles.inputText : styles.inputPlaceholder, { color: selectedParentLabel ? colors.textPrimary : colors.textSecondary }]}>{selectedParentLabel || t("providerDashboard.providerEditProfile.selectCategory")}</Text>
                       <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
                     </TouchableOpacity>
                     <Modal visible={categoryModalVisible} transparent animationType="slide" onRequestClose={() => setCategoryModalVisible(false)}>
@@ -370,14 +379,14 @@ export default function ProviderEditProfileScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.subcategory")}</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.subcategory")}</Text>
               <Controller
                 control={control}
                 name="categoryId"
                 render={({ field: { onChange } }) => (
                   <>
                     <TouchableOpacity style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder }, !selectedParentId && styles.inputDisabled]} onPress={() => selectedParentId && setSubcategoryModalVisible(true)} disabled={!selectedParentId}>
-                      <Text style={[selectedSubcategoryLabel ? styles.inputText : styles.inputPlaceholder, { color: selectedSubcategoryLabel ? colors.textPrimary : colors.textTertiary }]}>{selectedSubcategoryLabel || t("providerDashboard.providerEditProfile.selectSubcategory")}</Text>
+                      <Text style={[selectedSubcategoryLabel ? styles.inputText : styles.inputPlaceholder, { color: selectedSubcategoryLabel ? colors.textPrimary : colors.textSecondary }]}>{selectedSubcategoryLabel || t("providerDashboard.providerEditProfile.selectSubcategory")}</Text>
                       <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
                     </TouchableOpacity>
                     <Modal visible={subcategoryModalVisible} transparent animationType="slide" onRequestClose={() => setSubcategoryModalVisible(false)}>
@@ -407,18 +416,21 @@ export default function ProviderEditProfileScreen() {
 
             {/* Especialidades */}
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.specialties")}</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.specialties")}</Text>
               <View style={styles.specialtiesRow}>
                 {specialtyFields.map((field, index) => (
                   <View key={field.id} style={[styles.specialtyPill, { backgroundColor: `${colors.primary}33` }]}>
                     <Text style={[styles.specialtyPillText, { color: colors.primary }]}>{watch(`specialties.${index}`)}</Text>
                     <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} onPress={() => removeSpecialty(index)} style={styles.specialtyPillRemove}>
-                      <Text style={[styles.specialtyPillRemoveText, { color: colors.textTertiary }]}>×</Text>
+                      <Text style={[styles.specialtyPillRemoveText, { color: colors.textSecondary }]}>×</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
-                <TouchableOpacity style={[styles.specialtyAddButton, { backgroundColor: colors.background }]} onPress={() => setSpecialtyModalVisible(true)}>
-                  <Text style={[styles.specialtyAddButtonText, { color: colors.textTertiary }]}>+ {t("providerDashboard.providerEditProfile.addSpecialty")}</Text>
+                <TouchableOpacity
+                  style={[styles.specialtyAddButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => setSpecialtyModalVisible(true)}
+                >
+                  <Text style={[styles.specialtyAddButtonText, { color: colors.textSecondary }]}>+ {t("providerDashboard.providerEditProfile.addSpecialty")}</Text>
                 </TouchableOpacity>
               </View>
               <Modal
@@ -440,10 +452,10 @@ export default function ProviderEditProfileScreen() {
                 >
                   <TouchableOpacity style={[styles.specialtyModalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} activeOpacity={1} onPress={() => {}}>
                     <Text style={[styles.specialtyModalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerEditProfile.addSpecialtyModalTitle")}</Text>
-                    <TextInput style={[styles.specialtyModalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]} value={newSpecialtyText} onChangeText={setNewSpecialtyText} placeholder="ej. Emergencias" placeholderTextColor={colors.textTertiary} autoFocus />
+                    <TextInput style={[styles.specialtyModalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]} value={newSpecialtyText} onChangeText={setNewSpecialtyText} placeholder="ej. Emergencias" placeholderTextColor={colors.textSecondary} autoFocus />
                     <View style={styles.specialtyModalActions}>
                       <TouchableOpacity
-                        style={[styles.specialtyModalButton, { backgroundColor: colors.background }]}
+                        style={[styles.specialtyModalButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, borderWidth: 1 }]}
                         onPress={() => {
                           setSpecialtyModalVisible(false);
                           setNewSpecialtyText("");
@@ -461,9 +473,9 @@ export default function ProviderEditProfileScreen() {
             </View>
 
             <View style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.bio")}</Text>
-              <Controller control={control} name="bio" render={({ field: { onChange, onBlur, value } }) => <TextInput style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.bio && styles.inputError]} onBlur={onBlur} onChangeText={onChange} value={value} placeholderTextColor={colors.textTertiary} multiline numberOfLines={4} maxLength={BIO_MAX_LENGTH} />} />
-              <Text style={[styles.charCount, { color: colors.textTertiary }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.bio")}</Text>
+              <Controller control={control} name="bio" render={({ field: { onChange, onBlur, value } }) => <TextInput style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.bio && styles.inputError]} onBlur={onBlur} onChangeText={onChange} value={value} placeholderTextColor={colors.textSecondary} multiline numberOfLines={4} maxLength={BIO_MAX_LENGTH} />} />
+              <Text style={[styles.charCount, { color: colors.textSecondary }]}>
                 {t("providerDashboard.providerEditProfile.bioCharCount", {
                   current: bioLength,
                   max: BIO_MAX_LENGTH,
@@ -473,19 +485,19 @@ export default function ProviderEditProfileScreen() {
             </View>
 
             <View ref={contactPhoneFieldRef} style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.contactPhone")}</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.contactPhone")}</Text>
               <Controller
                 control={control}
                 name="phoneNumber"
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.phoneNumber && styles.inputError]} onBlur={onBlur} onFocus={() => scrollToFocusedField(contactPhoneFieldRef)} onChangeText={(text) => onChange(normalizePhoneInput(text))} value={value} placeholder="+52 55 1234 5678" placeholderTextColor={colors.textTertiary} keyboardType="phone-pad" maxLength={15} />
+                  <TextInput style={[styles.input, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }, errors.phoneNumber && styles.inputError]} onBlur={onBlur} onFocus={() => scrollToFocusedField(contactPhoneFieldRef)} onChangeText={(text) => onChange(normalizePhoneInput(text))} value={value} placeholder="+52 55 1234 5678" placeholderTextColor={colors.textSecondary} keyboardType="phone-pad" maxLength={15} />
                 )}
               />
               {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber.message}</Text>}
             </View>
 
             <View ref={yearsExperienceFieldRef} style={styles.field}>
-              <Text style={[styles.label, { color: colors.textTertiary }]}>{t("providerDashboard.providerEditProfile.yearsExperience")}</Text>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>{t("providerDashboard.providerEditProfile.yearsExperience")}</Text>
               <Controller
                 control={control}
                 name="yearsExperience"
@@ -502,7 +514,7 @@ export default function ProviderEditProfileScreen() {
                       }}
                       value={value == null ? "" : String(value)}
                       placeholder="10"
-                      placeholderTextColor={colors.textTertiary}
+                      placeholderTextColor={colors.textSecondary}
                       keyboardType="number-pad"
                       maxLength={3}
                     />
@@ -541,7 +553,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -563,9 +574,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  saveButtonTextDisabled: {
-    color: "rgba(255,255,255,0.4)",
-  },
   scroll: {
     flex: 1,
   },
@@ -583,6 +591,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     overflow: "hidden",
     position: "relative",
+    alignSelf: "center",
   },
   avatarImage: {
     width: "100%",
@@ -711,6 +720,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 999,
+    borderWidth: 1,
   },
   specialtyAddButtonText: {
     fontSize: 12,
@@ -744,13 +754,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.08)",
   },
   specialtyModalButtonPrimary: {
     backgroundColor: "#8B5CF6",
   },
   specialtyModalButtonText: {
-    color: "rgba(255,255,255,0.8)",
     fontSize: 14,
     fontWeight: "500",
   },

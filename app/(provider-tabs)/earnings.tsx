@@ -223,40 +223,50 @@ export default function ProviderEarningsScreen() {
           </View>
         </LinearGradient>
 
-        {/* Period Tabs */}
+        {/* Period Tabs — theme-aware (light: inactive was white-on-light = invisible) */}
         <View style={styles.periodTabs}>
-          {PERIOD_TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.periodTab, period === tab.key && styles.periodTabActive]}
-              onPress={() => setPeriod(tab.key)}
-            >
-              <Text style={[styles.periodTabText, period === tab.key && styles.periodTabTextActive]}>
-                {t(`providerDashboard.earnings.${tab.labelKey}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {PERIOD_TABS.map((tab) => {
+            const active = period === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[
+                  styles.periodTab,
+                  {
+                    backgroundColor: active ? "rgba(139, 92, 246, 0.18)" : colors.surfaceSecondary,
+                    borderWidth: active ? 0 : 1,
+                    borderColor: colors.border,
+                  },
+                ]}
+                onPress={() => setPeriod(tab.key)}
+              >
+                <Text style={[styles.periodTabText, { color: active ? colors.primary : colors.textSecondary }]}>
+                  {t(`providerDashboard.earnings.${tab.labelKey}`)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, styles.statCardFirst, cardStyle]}>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.periodToday")}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t("providerDashboard.earnings.periodToday")}</Text>
             <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(summary?.todayEarnings ?? 0)}</Text>
           </View>
           <View style={[styles.statCard, cardStyle]}>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.periodWeek")}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t("providerDashboard.earnings.periodWeek")}</Text>
             <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(summary?.weekEarnings ?? 0)}</Text>
           </View>
           <View style={[styles.statCard, styles.statCardLast, cardStyle]}>
-            <Text style={[styles.statLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.periodMonth")}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t("providerDashboard.earnings.periodMonth")}</Text>
             <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatCurrency(summary?.monthEarnings ?? 0)}</Text>
           </View>
         </View>
 
         {/* Chart */}
         <View style={[styles.chartCard, cardStyle]}>
-          <Text style={[styles.chartLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.chartLast7Days")}</Text>
+          <Text style={[styles.chartLabel, { color: colors.textSecondary }]}>{t("providerDashboard.earnings.chartLast7Days")}</Text>
           {chartQuery.isLoading ? (
             <ActivityIndicator color={colors.primary} size="small" style={styles.chartLoader} />
           ) : (
@@ -288,7 +298,7 @@ export default function ProviderEarningsScreen() {
           )}
           <View style={styles.chartDays}>
             {["L", "M", "X", "J", "V", "S", "D"].map((d, i) => (
-              <Text key={i} style={[styles.chartDayLabel, { color: colors.textTertiary }]}>
+              <Text key={i} style={[styles.chartDayLabel, { color: colors.textSecondary }]}>
                 {d}
               </Text>
             ))}
@@ -297,33 +307,34 @@ export default function ProviderEarningsScreen() {
 
         {/* Transaction filters */}
         <View style={styles.txFilterRow}>
-          <Text style={[styles.sectionLabel, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.recentTransactions")}</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t("providerDashboard.earnings.recentTransactions")}</Text>
           <View style={styles.txFilterChips}>
-            {(["all", "completed", "pending", "processing", "refunded"] as const).map((status) => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.txFilterChip,
-                  txStatusFilter === status && styles.txFilterChipActive,
-                ]}
-                onPress={() => {
-                  setTxStatusFilter(status);
-                  setTxPage(1);
-                }}
-              >
-                <Text
+            {(["all", "completed", "pending", "processing", "refunded"] as const).map((status) => {
+              const chipActive = txStatusFilter === status;
+              return (
+                <TouchableOpacity
+                  key={status}
                   style={[
-                    styles.txFilterChipText,
-                    txStatusFilter === status && styles.txFilterChipTextActive,
-                    { color: txStatusFilter === status ? colors.textPrimary : colors.textTertiary },
+                    styles.txFilterChip,
+                    {
+                      backgroundColor: chipActive ? "rgba(139, 92, 246, 0.15)" : colors.surfaceSecondary,
+                      borderWidth: chipActive ? 0 : 1,
+                      borderColor: colors.border,
+                    },
                   ]}
+                  onPress={() => {
+                    setTxStatusFilter(status);
+                    setTxPage(1);
+                  }}
                 >
-                  {status === "all"
-                    ? t("providerDashboard.earnings.filterAll")
-                    : t(`providerDashboard.earnings.status${status.charAt(0).toUpperCase() + status.slice(1)}`)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text style={[styles.txFilterChipText, { color: chipActive ? colors.textPrimary : colors.textSecondary }]}>
+                    {status === "all"
+                      ? t("providerDashboard.earnings.filterAll")
+                      : t(`providerDashboard.earnings.status${status.charAt(0).toUpperCase() + status.slice(1)}`)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -332,7 +343,7 @@ export default function ProviderEarningsScreen() {
           <ActivityIndicator color={colors.primary} size="small" style={styles.txLoader} />
         ) : transactions.length === 0 ? (
           <View style={styles.emptyTx}>
-            <Text style={[styles.emptyTxText, { color: colors.textTertiary }]}>{t("providerDashboard.earnings.noTransactions")}</Text>
+            <Text style={[styles.emptyTxText, { color: colors.textSecondary }]}>{t("providerDashboard.earnings.noTransactions")}</Text>
           </View>
         ) : (
           transactions.map((tx) => (
@@ -390,7 +401,7 @@ function TransactionItem({ transaction, colors }: { transaction: ProviderEarning
           : t("providerDashboard.earnings.statusPending");
 
   return (
-    <View style={[styles.txItem, { backgroundColor: colors.card }]}>
+    <View style={[styles.txItem, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
       <View
         style={[
           styles.txIconWrap,
@@ -403,12 +414,12 @@ function TransactionItem({ transaction, colors }: { transaction: ProviderEarning
       </View>
       <View style={styles.txBody}>
         <Text style={[styles.txDesc, { color: colors.textPrimary }]}>{desc}</Text>
-        <Text style={[styles.txClient, { color: colors.textTertiary }]}>{displayName}</Text>
+        <Text style={[styles.txClient, { color: colors.textSecondary }]}>{displayName}</Text>
         {isIncome && transaction.serviceName ? (
-          <Text style={[styles.txService, { color: colors.textTertiary }]}>{transaction.serviceName}</Text>
+          <Text style={[styles.txService, { color: colors.textSecondary }]}>{transaction.serviceName}</Text>
         ) : null}
         {isRefund && transaction.refundReason ? (
-          <Text style={[styles.txService, { color: colors.textTertiary }]}>{transaction.refundReason}</Text>
+          <Text style={[styles.txService, { color: colors.textSecondary }]}>{transaction.refundReason}</Text>
         ) : null}
       </View>
       <View style={styles.txRight}>
@@ -418,7 +429,7 @@ function TransactionItem({ transaction, colors }: { transaction: ProviderEarning
         <View style={[styles.txBadge, { backgroundColor: statusStyle.bg }]}>
           <Text style={[styles.txBadgeText, { color: statusStyle.text }]}>{statusLabel}</Text>
         </View>
-        <Text style={[styles.txTime, { color: colors.textTertiary }]}>{formatTransactionDate(transaction.date)}</Text>
+        <Text style={[styles.txTime, { color: colors.textSecondary }]}>{formatTransactionDate(transaction.date)}</Text>
       </View>
     </View>
   );
@@ -475,17 +486,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-  periodTabActive: {
-    backgroundColor: "rgba(99, 102, 241, 0.5)",
   },
   periodTabText: {
     fontSize: 12,
-    fontWeight: "500",
-    color: "rgba(255,255,255,0.5)",
+    fontWeight: "600",
   },
-  periodTabTextActive: { color: "#FFFFFF" },
   statsGrid: {
     flexDirection: "row",
     gap: 12,
@@ -555,13 +560,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.05)",
   },
-  txFilterChipActive: {
-    backgroundColor: "rgba(139, 92, 246, 0.2)",
-  },
-  txFilterChipText: { fontSize: 12 },
-  txFilterChipTextActive: {},
+  txFilterChipText: { fontSize: 12, fontWeight: "500" },
   txLoader: { paddingVertical: 24 },
   emptyTx: { paddingVertical: 24, alignItems: "center" },
   emptyTxText: { fontSize: 14 },
@@ -572,6 +572,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 8,
     gap: 12,
+    borderWidth: 1,
   },
   txIconWrap: {
     width: 40,
