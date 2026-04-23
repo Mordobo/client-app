@@ -1,6 +1,6 @@
 import { request, ApiError as AuthApiError } from './auth';
 import { t } from '@/i18n';
-import { Supplier } from './suppliers';
+import { coerceSupplierProfileImage, Supplier } from './suppliers';
 
 export interface FavoriteSupplier extends Supplier {
   favorite_id: string;
@@ -36,7 +36,11 @@ export const fetchFavorites = async (): Promise<FavoritesResponse> => {
       },
       t('errors.requestFailed')
     );
-    return data;
+    const favorites = (data.favorites ?? []).map((f) => ({
+      ...f,
+      profile_image: coerceSupplierProfileImage(f as Record<string, unknown>),
+    }));
+    return { ...data, favorites };
   } catch (error) {
     if (error instanceof AuthApiError) {
       throw new ApiError(error.message, error.status, error.data);
