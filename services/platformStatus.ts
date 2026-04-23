@@ -2,6 +2,8 @@ import { API_BASE } from '@/utils/apiConfig';
 
 export interface PlatformStatusResponse {
   maintenance_mode: boolean;
+  app_version?: string | null;
+  backoffice_version?: string | null;
 }
 
 export const PLATFORM_STATUS_QUERY_KEY = ['platform-status'] as const;
@@ -25,10 +27,30 @@ function parsePlatformStatusPayload(data: unknown): PlatformStatusResponse | nul
   }
   const record = data as Record<string, unknown>;
   if ('maintenance_mode' in record) {
-    return { maintenance_mode: coerceMaintenanceBoolean(record.maintenance_mode) };
+    return {
+      maintenance_mode: coerceMaintenanceBoolean(record.maintenance_mode),
+      app_version:
+        typeof record.app_version === 'string' || record.app_version == null
+          ? (record.app_version as string | null | undefined)
+          : undefined,
+      backoffice_version:
+        typeof record.backoffice_version === 'string' || record.backoffice_version == null
+          ? (record.backoffice_version as string | null | undefined)
+          : undefined,
+    };
   }
   if ('maintenanceMode' in record) {
-    return { maintenance_mode: coerceMaintenanceBoolean(record.maintenanceMode) };
+    return {
+      maintenance_mode: coerceMaintenanceBoolean(record.maintenanceMode),
+      app_version:
+        typeof record.appVersion === 'string' || record.appVersion == null
+          ? (record.appVersion as string | null | undefined)
+          : undefined,
+      backoffice_version:
+        typeof record.backofficeVersion === 'string' || record.backofficeVersion == null
+          ? (record.backofficeVersion as string | null | undefined)
+          : undefined,
+    };
   }
   if ('data' in record) {
     return parsePlatformStatusPayload(record.data);
