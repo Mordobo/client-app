@@ -32,12 +32,15 @@ export type NotificationType =
   | 'offer'
   | 'payment_processed'
   | 'payment_received'
+  | 'new_paid_booking'
   | 'provider_on_way'
   | 'new_booking_request'
   | 'quote_received'
   | 'quote_approved'
   | 'new_review'
-  | 'refund_issued';
+  | 'refund_issued'
+  | 'job_pending_review'
+  | 'job_completed';
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -148,10 +151,13 @@ export function getNotificationCategory(type: NotificationType): NotificationCat
       return 'jobs';
     case 'payment_processed':
     case 'payment_received':
+    case 'new_paid_booking':
     case 'refund_issued':
       return 'payments';
     case 'rate_service':
     case 'new_review':
+    case 'job_pending_review':
+    case 'job_completed':
       return 'reviews';
     case 'offer':
     default:

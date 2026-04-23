@@ -1034,6 +1034,97 @@ export default {
     refundIssuedProviderMessage:
       "A refund of %{amount} was recorded for %{serviceName}. Reason: %{reason}.",
     refundServiceFallback: "your booking",
+    fallbackClient: "The client",
+    fallbackSupplier: "Your provider",
+    fallbackServiceShort: "this service",
+    relative: {
+      justNow: "Now",
+      lessThanMinute: "Less than a minute ago",
+      minutesAgo: "%{count} min ago",
+      oneHourAgo: "1 hour ago",
+      hoursAgo: "%{count} hours ago",
+      yesterdayAt: "Yesterday, %{time}",
+      yesterdayShort: "Yesterday",
+      dateAt: "%{date}, %{time}",
+      compactMinutes: "%{count} min",
+      compactHours: "%{count} h",
+    },
+    types: {
+      booking_confirmed: {
+        clientTitle: "Booking confirmed",
+        clientMessage: "%{supplierName} accepted your booking.",
+        clientMessageWithService: "%{supplierName} accepted your booking for %{serviceName}.",
+        providerTitle: "Booking confirmed",
+        providerMessage: "%{clientName}'s booking is confirmed.",
+      },
+      booking_cancelled: {
+        clientTitle: "Booking cancelled",
+        clientMessage: "%{supplierName} cancelled your booking.",
+        providerTitle: "Booking cancelled",
+        providerMessage: "%{clientName} cancelled their booking.",
+      },
+      payment_processed: {
+        clientTitle: "Payment processed",
+        clientMessage: "Your payment of %{amount} was processed. Waiting for the provider to confirm.",
+        clientMessageWithService:
+          "Your payment of %{amount} for %{serviceName} was processed. Waiting for the provider to confirm.",
+        clientMessageNoAmount: "Your payment is being processed. Waiting for the provider to confirm.",
+      },
+      payment_received: {
+        providerTitle: "New paid booking",
+        providerMessage: "%{clientName} booked and paid %{amount} for %{serviceName}. Accept the booking to confirm.",
+        clientTitle: "Payment received",
+        clientMessage: "We received your payment of %{amount}.",
+        clientMessageWithService: "We received your payment of %{amount} for %{serviceName}.",
+      },
+      provider_on_way: {
+        clientTitle: "Provider on the way",
+        clientMessage: "%{supplierName} is on the way to your appointment.",
+        clientMessageWithService: "%{supplierName} is on the way for %{serviceName}.",
+      },
+      quote_received: {
+        clientTitle: "New quote",
+        clientMessage: "You have a new quote from %{supplierName}.",
+        providerTitle: "Quote request",
+        providerMessage: "%{clientName} is waiting for your quote.",
+        providerMessageWithService: "%{clientName} requested a quote for %{serviceName}.",
+      },
+      quote_approved: {
+        clientTitle: "Quote approved",
+        clientMessage: "%{supplierName}'s quote is ready to pay.",
+        providerTitle: "Quote approved",
+        providerMessage: "%{clientName} approved your quote.",
+      },
+      new_booking_request: {
+        providerTitle: "New booking request",
+        providerMessage: "%{clientName} sent a new booking request.",
+        providerMessageWithService: "%{clientName} sent a new booking request for %{serviceName}.",
+      },
+      new_review: {
+        providerTitle: "New review",
+        providerMessage: "%{clientName} left a %{stars}-star review for %{serviceName}.",
+        providerMessageNoStars: "%{clientName} left a review for %{serviceName}.",
+      },
+      rate_service: {
+        clientTitle: "Rate your service",
+        clientMessage: "How was your experience with %{supplierName}?",
+      },
+      offer: {
+        clientTitle: "Offer for you",
+        clientMessage: "You have a new offer or promotion.",
+        providerTitle: "Offer",
+        providerMessage: "You have a new offer or promotion.",
+      },
+      new_message: {
+        title: "New message",
+      },
+      job_review: {
+        clientTitle: "Rate your experience",
+        clientMessage: "Share feedback about your booking with %{supplierName}.",
+        providerTitle: "Review reminder",
+        providerMessage: "%{clientName} can leave a review.",
+      },
+    },
     detail: {
       screenTitle: "Notification",
       openRelated: "View in app",

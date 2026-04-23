@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { type Notification, type NotificationCategory, deleteAllNotifications, deleteNotification, fetchNotifications, getNotificationCategory, markAllNotificationsAsRead, markNotificationAsRead } from "@/services/notifications";
-import { getLocalizedNotificationDisplay } from "@/utils/notificationDisplay";
+import { formatNotificationRelativeTime, getLocalizedNotificationDisplay } from "@/utils/notificationDisplay";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -43,21 +43,6 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
   const iconName = CATEGORY_ICONS[category];
   const display = getLocalizedNotificationDisplay(notification, "provider");
 
-  const formatTime = useCallback((dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffMins < 1) return t("providerDashboard.providerNotifications.now");
-    if (diffMins < 60) return `${diffMins} min`;
-    if (diffHours < 24) return `${diffHours}h`;
-    if (diffDays === 1) return t("providerDashboard.providerNotifications.yesterday");
-    if (diffDays < 7) return date.toLocaleDateString(undefined, { weekday: "short" });
-    return date.toLocaleDateString();
-  }, []);
-
   return (
     <View style={styles.cardWrapper}>
       <TouchableOpacity
@@ -76,7 +61,9 @@ function NotificationCard({ notification, onPress, onDelete }: NotificationCardP
             <Text style={[styles.cardTitle, !notification.read && styles.cardTitleUnread, { color: colors.textPrimary }]} numberOfLines={1}>
               {display.title}
             </Text>
-            <Text style={[styles.cardTime, { color: colors.textTertiary }]}>{formatTime(notification.created_at)}</Text>
+            <Text style={[styles.cardTime, { color: colors.textTertiary }]}>
+              {formatNotificationRelativeTime(notification.created_at, "compact")}
+            </Text>
           </View>
           <Text style={[styles.cardMessage, { color: colors.textSecondary }]} numberOfLines={2}>
             {display.message}
