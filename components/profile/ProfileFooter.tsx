@@ -1,10 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { t } from "@/i18n";
+import { fetchPlatformStatus, PLATFORM_STATUS_QUERY_KEY } from "@/services/platformStatus";
+import { useQuery } from "@tanstack/react-query";
+import Constants from "expo-constants";
 import React from "react";
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-/** Version label shown in profile footer for both Client and Provider. */
-const PROFILE_VERSION_LABEL = "3.0.10";
 
 /**
  * Shared footer for Client and Provider profile screens: app version label and logout button.
@@ -12,6 +12,13 @@ const PROFILE_VERSION_LABEL = "3.0.10";
  */
 export function ProfileFooter() {
   const { logout } = useAuth();
+  const { data: platformStatus } = useQuery({
+    queryKey: PLATFORM_STATUS_QUERY_KEY,
+    queryFn: fetchPlatformStatus,
+    staleTime: 15_000,
+  });
+  const bundledVersion = Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? "0.0.0";
+  const visibleVersion = platformStatus?.app_version?.trim() || bundledVersion;
 
   const handleLogout = () => {
     const performLogout = async () => {
@@ -45,7 +52,7 @@ export function ProfileFooter() {
         </TouchableOpacity>
       </View>
       <View style={styles.versionContainer}>
-        <Text style={styles.versionText}>{t("profile.version")} {PROFILE_VERSION_LABEL}</Text>
+        <Text style={styles.versionText}>{t("profile.version")} {visibleVersion}</Text>
       </View>
     </View>
   );
