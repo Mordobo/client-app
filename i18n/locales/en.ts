@@ -1474,6 +1474,8 @@ export default {
       providerAgreementSubtitle: "Terms for professionals on Mordobo",
       lastUpdated: "Last updated: {{date}}",
       loadError: "We could not load this document. Please try again later.",
+      emptyDocument:
+        "This document is not available yet. Please contact support or try again later.",
     },
     providerNotificationPreferences: {
       title: "Notification Preferences",
