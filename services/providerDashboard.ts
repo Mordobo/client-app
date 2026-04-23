@@ -310,7 +310,12 @@ export interface JobCompletionData {
   subtotal: number;
   tax: number;
   total: number;
+  /** Effective commission 0..1 for this job. */
   commissionRate: number;
+  /** Present when API returns extended pricing (preferred for UI). */
+  commissionPercent?: number;
+  estimatedPlatformFee?: number;
+  feeAppliesAt?: "withdrawal";
   durationMinutes: number;
 }
 
@@ -442,6 +447,15 @@ export interface InvoiceServiceDetails {
   orderNotes: string;
 }
 
+/** From GET …/invoice when API includes platform commission breakdown. */
+export interface InvoicePlatformCommission {
+  commissionRate: number;
+  commissionPercent: number;
+  estimatedPlatformFee: number;
+  estimatedNetToProvider: number;
+  feeAppliesAt: "withdrawal";
+}
+
 export interface InvoiceData {
   invoiceNumber: string;
   createdAt: string;
@@ -460,6 +474,7 @@ export interface InvoiceData {
   discountPercent: number;
   discountAmount: number;
   total: number;
+  platformCommission?: InvoicePlatformCommission;
   payment: {
     status: "paid" | "pending" | "unpaid";
     method: string | null;

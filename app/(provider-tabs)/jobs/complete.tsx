@@ -49,6 +49,14 @@ function formatCurrency(value: number): string {
   return "$" + str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+/** Display percent for commission labels (e.g. 15, 12.5). */
+function formatCommissionPercent(percent: number): string {
+  if (!Number.isFinite(percent)) return "0";
+  const rounded = Math.round(percent * 10) / 10;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(1).replace(/\.0$/, "");
+}
+
 function formatDuration(minutes: number): string {
   if (minutes < 60) {
     return t("providerDashboard.completeJob.durationMinutes", { minutes: String(minutes) });
@@ -177,6 +185,24 @@ export default function CompleteJobScreen() {
   const subtotal = useMemo(() => {
     if (!data) return 0;
     return data.lineItems.reduce((sum, item) => sum + item.amount, 0);
+  }, [data]);
+
+  const commissionBreakdown = useMemo(() => {
+    if (!data) return null;
+    const rate =
+      Number.isFinite(data.commissionRate) && data.commissionRate >= 0 && data.commissionRate <= 1
+        ? data.commissionRate
+        : 0;
+    const pct =
+      data.commissionPercent != null && Number.isFinite(data.commissionPercent)
+        ? data.commissionPercent
+        : Math.round(rate * 1000) / 10;
+    const fee =
+      data.estimatedPlatformFee != null && Number.isFinite(data.estimatedPlatformFee)
+        ? data.estimatedPlatformFee
+        : Math.round(data.total * rate * 100) / 100;
+    const net = Math.round((data.total - fee) * 100) / 100;
+    return { pct, fee, net };
   }, [data]);
 
   const pickPhoto = useCallback(async () => {
@@ -483,12 +509,17 @@ export default function CompleteJobScreen() {
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
           {t("providerDashboard.completeJob.finalBreakdown")}
         </Text>
-        <BreakdownCard
-          lineItems={data.lineItems}
-          subtotal={subtotal}
-          total={data.total}
-          discount={data.total < subtotal ? { amount: subtotal - data.total } : undefined}
-        />
+        {commissionBreakdown && (
+          <BreakdownCard
+            lineItems={data.lineItems}
+            subtotal={subtotal}
+            total={data.total}
+            discount={data.total < subtotal ? { amount: subtotal - data.total } : undefined}
+            commissionPercentLabel={formatCommissionPercent(commissionBreakdown.pct)}
+            platformFee={commissionBreakdown.fee}
+            estimatedNetToProvider={commissionBreakdown.net}
+          />
+        )}
       </ScrollView>
 
       {/* Action Buttons */}
@@ -522,6 +553,9 @@ interface BreakdownCardProps {
   subtotal: number;
   total: number;
   discount?: { amount: number };
+  commissionPercentLabel: string;
+  platformFee: number;
+  estimatedNetToProvider: number;
 }
 
 const BreakdownCard = React.memo(function BreakdownCard({
@@ -529,6 +563,9 @@ const BreakdownCard = React.memo(function BreakdownCard({
   subtotal,
   total,
   discount,
+  commissionPercentLabel,
+  platformFee,
+  estimatedNetToProvider,
 }: BreakdownCardProps) {
   const colors = useThemeColors();
   return (
@@ -576,6 +613,16 @@ const BreakdownCard = React.memo(function BreakdownCard({
         </View>
       )}
 
+      <View style={styles.breakdownRow}>
+        <Text style={[styles.breakdownSubLabel, { flex: 1, paddingRight: 8, color: colors.textSecondary }]}>
+          {t("providerDashboard.commission.mordoboServiceFee", { percent: commissionPercentLabel })}
+        </Text>
+        <Text style={styles.discountAmount}>-{formatCurrency(platformFee)}</Text>
+      </View>
+      <Text style={[styles.breakdownFeeNote, { color: colors.textTertiary }]}>
+        {t("providerDashboard.commission.withdrawalNote")}
+      </Text>
+
       <View style={[styles.totalDivider, { backgroundColor: colors.border }]} />
 
       <View style={styles.breakdownRow}>
@@ -583,6 +630,15 @@ const BreakdownCard = React.memo(function BreakdownCard({
           {t("providerDashboard.completeJob.total")}
         </Text>
         <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+      </View>
+
+      <View style={[styles.breakdownDivider, { backgroundColor: colors.border, marginTop: 12 }]} />
+
+      <View style={styles.breakdownRow}>
+        <Text style={[styles.breakdownSubLabel, { color: colors.textSecondary }]}>
+          {t("providerDashboard.commission.estimatedYourEarnings")}
+        </Text>
+        <Text style={styles.breakdownNetValue}>{formatCurrency(estimatedNetToProvider)}</Text>
       </View>
     </View>
   );
@@ -814,6 +870,17 @@ const styles = StyleSheet.create({
   },
   discountAmount: {
     fontSize: 14,
+    color: GREEN_TEXT,
+  },
+  breakdownFeeNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  breakdownNetValue: {
+    fontSize: 16,
+    fontWeight: "700",
     color: GREEN_TEXT,
   },
   totalDivider: {
