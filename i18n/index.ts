@@ -26,9 +26,8 @@ export function getLocaleSnapshot(): string {
   return i18n.locale;
 }
 
-// Determine best language from device settings
+// Determine best language from device settings (overridden when session restores saved preference)
 const locales = Localization.getLocales();
-console.log('locales', locales);
 const primary = locales && locales.length > 0 ? locales[0] : undefined;
 const languageCode = primary?.languageCode?.toLowerCase() ?? 'en';
 

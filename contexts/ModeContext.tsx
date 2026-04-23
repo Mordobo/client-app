@@ -1,6 +1,11 @@
 import { setLocale } from '@/i18n';
 import { getSettings, updateSettings } from '@/services/settings';
 import { checkProviderStatus } from '@/services/providers';
+import {
+  applyCachedUserLanguage,
+  normalizeAppLanguage,
+  persistUserLanguage,
+} from '@/utils/userLanguagePreference';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -67,10 +72,12 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
   const loadModeFromSettings = async () => {
     try {
       setIsLoading(true);
+      await applyCachedUserLanguage();
       const response = await getSettings();
-      const lang = response.settings.language;
-      if (lang === 'es' || lang === 'en') {
+      const lang = normalizeAppLanguage(response.settings.language);
+      if (lang) {
         setLocale(lang);
+        await persistUserLanguage(lang);
       }
       const userMode = response.settings.user_mode;
       if (userMode === 'client' || userMode === 'provider') {
