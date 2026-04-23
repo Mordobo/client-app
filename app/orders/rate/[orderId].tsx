@@ -2,7 +2,7 @@ import { StarRating } from '@/components/StarRating';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { fetchOrderDetail } from '@/services/orders';
-import { createReview, ApiError } from '@/services/reviews';
+import { createReview, ApiError, type ReviewTipAmountUsd } from '@/services/reviews';
 import { useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,7 +10,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +20,25 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ACCENT = '#3b82f6';
+
+const TIP_AMOUNT_OPTIONS: readonly ReviewTipAmountUsd[] = [0, 5, 10, 15];
+
+function tipAmountLabel(amount: ReviewTipAmountUsd): string {
+  switch (amount) {
+    case 0:
+      return t('rating.tipNone');
+    case 5:
+      return t('rating.tip5');
+    case 10:
+      return t('rating.tip10');
+    case 15:
+      return t('rating.tip15');
+    default: {
+      const _exhaustive: never = amount;
+      return _exhaustive;
+    }
+  }
+}
 
 function formatScheduledAt(scheduledAt: string | undefined): string {
   if (!scheduledAt) return '';
@@ -40,10 +58,10 @@ export default function RateExperienceScreen() {
   const colors = useThemeColors();
   const { orderId } = useLocalSearchParams<{ orderId: string; navRef?: string }>();
   const insets = useSafeAreaInsets();
-  const bottomInset = insets.bottom || (Platform.OS === 'android' ? 40 : 0);
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [tipAmount, setTipAmount] = useState<ReviewTipAmountUsd>(0);
   const [submitting, setSubmitting] = useState(false);
   const [orderDetail, setOrderDetail] = useState<Awaited<ReturnType<typeof fetchOrderDetail>> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,6 +113,7 @@ export default function RateExperienceScreen() {
         supplier_id: supplierId,
         rating,
         comment: comment.trim() || undefined,
+        tip_amount: tipAmount,
       });
 
       queryClient.invalidateQueries({ queryKey: ['providerProfileStats'] });
@@ -124,7 +143,7 @@ export default function RateExperienceScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [orderId, supplierId, rating, comment, router, queryClient]);
+  }, [orderId, supplierId, rating, comment, tipAmount, router, queryClient]);
 
   const handleSkip = useCallback(() => {
     router.push('/(tabs)/home');
@@ -157,8 +176,19 @@ export default function RateExperienceScreen() {
 
   if (error || !order) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: themed.screenBg }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: themed.headerBg, borderBottomWidth: 1, borderBottomColor: themed.headerBorder }]}>
+      <View style={[styles.container, { backgroundColor: themed.screenBg }]}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+              paddingBottom: 14,
+              backgroundColor: themed.headerBg,
+              borderBottomWidth: 1,
+              borderBottomColor: themed.headerBorder,
+            },
+          ]}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={themed.textPrimary} />
           </TouchableOpacity>
@@ -178,8 +208,19 @@ export default function RateExperienceScreen() {
   const alreadyReviewed = Boolean(orderDetail?.client_has_reviewed);
   if (alreadyReviewed) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: themed.screenBg }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: themed.headerBg, borderBottomWidth: 1, borderBottomColor: themed.headerBorder }]}>
+      <View style={[styles.container, { backgroundColor: themed.screenBg }]}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+              paddingBottom: 14,
+              backgroundColor: themed.headerBg,
+              borderBottomWidth: 1,
+              borderBottomColor: themed.headerBorder,
+            },
+          ]}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={themed.textPrimary} />
           </TouchableOpacity>
@@ -204,8 +245,19 @@ export default function RateExperienceScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: bottomInset, backgroundColor: themed.screenBg }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 16, paddingBottom: 20, backgroundColor: themed.headerBg, borderBottomWidth: 1, borderBottomColor: themed.headerBorder }]}>
+    <View style={[styles.container, { backgroundColor: themed.screenBg }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: insets.top + 12,
+            paddingBottom: 14,
+            backgroundColor: themed.headerBg,
+            borderBottomWidth: 1,
+            borderBottomColor: themed.headerBorder,
+          },
+        ]}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={themed.textPrimary} />
         </TouchableOpacity>
@@ -215,7 +267,7 @@ export default function RateExperienceScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(bottomInset, 24) }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.card, { backgroundColor: themed.cardBg, borderColor: themed.cardBorder }]}>
@@ -254,6 +306,39 @@ export default function RateExperienceScreen() {
           textAlignVertical="top"
         />
 
+        <Text style={[styles.sectionLabel, { color: themed.sectionMuted }]}>{t('rating.tipSection')}</Text>
+        <View style={styles.tipRow}>
+          {TIP_AMOUNT_OPTIONS.map((amount) => {
+            const selected = tipAmount === amount;
+            return (
+              <TouchableOpacity
+                key={amount}
+                style={[
+                  styles.tipChip,
+                  {
+                    borderColor: selected ? ACCENT : themed.inputBorder,
+                    backgroundColor: selected ? ACCENT : themed.inputBg,
+                  },
+                ]}
+                onPress={() => setTipAmount(amount)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                accessibilityLabel={tipAmountLabel(amount)}
+              >
+                <Text
+                  style={[
+                    styles.tipChipText,
+                    selected ? styles.tipChipTextSelected : { color: themed.textPrimary },
+                  ]}
+                >
+                  {tipAmountLabel(amount)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         <TouchableOpacity
           style={[styles.photoButton, { borderColor: themed.inputBorder }]}
           activeOpacity={0.8}
@@ -263,7 +348,15 @@ export default function RateExperienceScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(bottomInset, 16), backgroundColor: themed.footerBg }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom: Math.max(insets.bottom, 12) + 8,
+            backgroundColor: themed.footerBg,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[styles.submitButton, (rating === 0 || submitting) && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -318,6 +411,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
+    paddingBottom: 16,
   },
   sectionQuestion: {
     fontSize: 16,
@@ -366,6 +460,25 @@ const styles = StyleSheet.create({
     minHeight: 120,
     width: '100%',
   },
+  tipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 8,
+  },
+  tipChip: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  tipChipText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  tipChipTextSelected: {
+    color: '#FFFFFF',
+  },
   photoButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -402,8 +515,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    gap: 8,
+    paddingTop: 8,
+    gap: 6,
   },
   submitButton: {
     backgroundColor: ACCENT,
