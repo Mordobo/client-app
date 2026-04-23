@@ -3,6 +3,8 @@ import { API_BASE } from '@/utils/apiConfig';
 import { request } from './auth';
 import { getToken } from '../utils/userStorage';
 
+export type ReviewTipAmountUsd = 0 | 5 | 10 | 15;
+
 export interface Review {
   id: string;
   order_id?: string;
@@ -11,6 +13,7 @@ export interface Review {
   rating: number;
   comment?: string;
   photos?: string[];
+  tip_amount?: number;
   helpful_count: number;
   created_at: string;
   updated_at: string;
@@ -81,6 +84,7 @@ interface CreateReviewData {
   rating: number;
   comment?: string;
   photos?: string[];
+  tip_amount?: ReviewTipAmountUsd;
 }
 
 // POST /reviews - Create review
