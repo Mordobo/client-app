@@ -116,6 +116,8 @@ export default function ProviderDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  /** Prevents double taps from firing two accepts/rejects before React re-renders disabled state. */
+  const orderActionInFlightRef = useRef<Set<string>>(new Set());
   const [headerAvatarFailed, setHeaderAvatarFailed] = useState(false);
 
   const { data: providerProfile } = useQuery({
@@ -177,27 +179,42 @@ export default function ProviderDashboardScreen() {
   }, [loadAll]);
 
   const handleAccept = useCallback(async (id: string) => {
+    if (orderActionInFlightRef.current.has(id)) return;
+    orderActionInFlightRef.current.add(id);
     setActionLoadingId(id);
     try {
       await acceptOrder(id);
       setRequests((prev) => prev.filter((r) => r.id !== id));
     } catch (e) {
+      // Second in-flight request after a successful accept often returns 409; treat like success.
+      if (e instanceof ApiError && e.status === 409) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        return;
+      }
       const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.acceptFailed");
       Alert.alert(t("common.error"), message);
     } finally {
+      orderActionInFlightRef.current.delete(id);
       setActionLoadingId(null);
     }
   }, []);
 
   const handleReject = useCallback(async (id: string) => {
+    if (orderActionInFlightRef.current.has(id)) return;
+    orderActionInFlightRef.current.add(id);
     setActionLoadingId(id);
     try {
       await rejectOrder(id);
       setRequests((prev) => prev.filter((r) => r.id !== id));
     } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        return;
+      }
       const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.rejectFailed");
       Alert.alert(t("common.error"), message);
     } finally {
+      orderActionInFlightRef.current.delete(id);
       setActionLoadingId(null);
     }
   }, []);
@@ -283,7 +300,9 @@ export default function ProviderDashboardScreen() {
               <View style={[styles.card, cardStyle]}>
                 <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyRequests")}</Text>
               </View>
-            : requests.slice(0, 3).map((req) => (
+            : requests.slice(0, 3).map((req) => {
+                const canAcceptOrReject = !req.status || req.status === "pending_for_provider";
+                return (
                 <View key={req.id} style={[styles.requestCard, cardStyle]}>
                   <View style={styles.requestRow}>
                     <View style={styles.requestLeft}>
@@ -296,6 +315,7 @@ export default function ProviderDashboardScreen() {
                       <Text style={[styles.requestTime, { color: colors.textTertiary }]}>{req.scheduledAt ? formatScheduleTime(req.scheduledAt) : "—"}</Text>
                     </View>
                   </View>
+                  {canAcceptOrReject && (
                   <View style={styles.requestActions}>
                     <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(req.id)} disabled={actionLoadingId === req.id}>
                       {actionLoadingId === req.id ?
@@ -308,8 +328,10 @@ export default function ProviderDashboardScreen() {
                       : <Text style={styles.acceptBtnText}>{t("providerDashboard.accept")}</Text>}
                     </TouchableOpacity>
                   </View>
+                  )}
                 </View>
-              ))
+              );
+              })
             }
 
             {/* Today's schedule */}
