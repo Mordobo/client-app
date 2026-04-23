@@ -703,9 +703,9 @@ export default function ChatScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadMessages(false), refreshActiveQuote()]);
+    await Promise.all([loadMessages(false), refreshActiveQuote(), refreshActiveOrder()]);
     setRefreshing(false);
-  }, [loadMessages, refreshActiveQuote]);
+  }, [loadMessages, refreshActiveQuote, refreshActiveOrder]);
 
   const handleCall = () => {
     const phone = conversation?.supplier_phone_number;
@@ -803,7 +803,12 @@ export default function ChatScreen() {
   const handleViewOrder = () => {
     if (!activeOrder) return;
     if (isProvider) {
-      router.push(`/(provider-tabs)/jobs/${activeOrder.id}`);
+      const preAccepted: OrderStatus[] = ["pending_for_provider", "pending_for_client", "pending_payment"];
+      if (preAccepted.includes(activeOrder.status)) {
+        router.push(`/booking/quote/${activeOrder.id}`);
+      } else {
+        router.push(`/(provider-tabs)/jobs/${activeOrder.id}`);
+      }
     } else {
       router.push(`/orders/${activeOrder.id}`);
     }
@@ -875,15 +880,18 @@ export default function ChatScreen() {
 
   const displayMessages = messages;
 
-  const jobStatusLabel =
-    activeOrder ?
-      activeOrder.status === "in_progress" ? t("chat.jobBannerInProgress")
-      : activeOrder.status === "accepted" ? t("chat.jobBannerScheduled")
-      : activeOrder.status === "pending_payment" ? t("chat.jobBannerPendingPayment")
-      : activeOrder.status === "pending_review" ? t("chat.jobBannerPendingReview")
-      : activeOrder.status === "pending_for_provider" ? t("chat.jobBannerPending")
-      : ""
-    : "";
+  const jobStatusLabel = (() => {
+    if (!activeOrder) return "";
+    if (activeOrder.status === "in_progress") return t("chat.jobBannerInProgress");
+    if (activeOrder.status === "accepted") return t("chat.jobBannerScheduled");
+    if (activeOrder.status === "pending_payment") return t("chat.jobBannerPendingPayment");
+    if (activeOrder.status === "pending_review") return t("chat.jobBannerPendingReview");
+    if (activeOrder.status === "pending_for_provider") {
+      if (activeQuote?.status === "approved") return t("chat.jobBannerPaidConfirm");
+      return t("chat.jobBannerPending");
+    }
+    return "";
+  })();
 
   const renderClientMessage = ({ item, index }: { item: Message; index: number }, list: Message[]) => {
     const isMine = isMyMessage(item);

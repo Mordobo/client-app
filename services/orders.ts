@@ -105,6 +105,8 @@ export interface OrderDetailResponse {
   conversation_id?: string | null;
   /** When true, client already submitted a review for this order (rate screen shows "already reviewed" state) */
   client_has_reviewed?: boolean;
+  /** True when at least one non-refunded completed payment exists for this order (post–quote payment). */
+  has_completed_client_payment?: boolean;
 }
 
 // Re-export ApiError from auth service for backward compatibility

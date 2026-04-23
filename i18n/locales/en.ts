@@ -473,6 +473,7 @@ export default {
     jobBannerPending: "Pending",
     jobBannerPendingPayment: "Pending Payment",
     jobBannerPendingReview: "Pending Review",
+    jobBannerPaidConfirm: "Paid — confirm",
     appointmentScheduled: "Appointment scheduled for today {{time}}",
     sharedLocation: "Shared location",
     openExample: "Open chat example",
@@ -523,6 +524,10 @@ export default {
     durationHours_other: "{{count}} hrs",
     durationDays: "{{count}} day",
     durationDays_other: "{{count}} days",
+    confirmBookingAfterPayment: "Confirm booking",
+    confirmBookingAfterPaymentHint:
+      "The client has paid. Confirm this booking to add it to your schedule.",
+    acceptBookingFailed: "Could not confirm the booking. Please try again.",
   },
   createQuote: {
     title: "New Quote",
@@ -1800,6 +1805,7 @@ export default {
       statusCompleted: "Completed",
       statusInquiry: "Inquiry",
       statusQuote: "Quote",
+      statusPaidConfirm: "Paid — confirm",
       now: "Now",
       failedToLoad: "Failed to load conversations",
       retry: "Retry",

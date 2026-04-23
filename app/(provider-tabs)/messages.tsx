@@ -31,6 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
   completed: '#6B7280',
   inquiry: '#F59E0B',
   quote: '#EC4899',
+  paid_confirm: '#22C55E',
 };
 
 type FilterType = 'all' | 'unread' | 'active' | 'archived';
@@ -39,6 +40,9 @@ type FilterType = 'all' | 'unread' | 'active' | 'archived';
 function getConversationStatus(conversation: Conversation): string | null {
   const status = conversation.active_order_status;
   if (!status) return null;
+  if (status === 'pending_for_provider' && conversation.active_order_has_client_payment) {
+    return 'paid_confirm';
+  }
   switch (status) {
     case 'in_progress':
     case 'pending_review':
@@ -379,6 +383,8 @@ function getStatusLabel(statusKey: string): string {
       return t('providerDashboard.inbox.statusInquiry');
     case 'quote':
       return t('providerDashboard.inbox.statusQuote');
+    case 'paid_confirm':
+      return t('providerDashboard.inbox.statusPaidConfirm');
     default:
       return t('providerDashboard.inbox.statusInquiry');
   }
