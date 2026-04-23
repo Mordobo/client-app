@@ -3,6 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useFavorite } from '@/hooks/useFavorite';
 import { t } from '@/i18n';
 import { Supplier } from '@/services/suppliers';
+import { getTranslatedServiceCategory } from '@/utils/categoryDisplay';
 import { getThemeColors, type ThemeColors } from '@/utils/themeStyles';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -195,7 +196,9 @@ export function ProviderCard({ supplier, onPress, onBookPress }: ProviderCardPro
 
           {supplier.service_category && (
             <View style={styles.serviceContainer}>
-              <Text style={styles.service} numberOfLines={1}>{supplier.service_category}</Text>
+              <Text style={styles.service} numberOfLines={1}>
+                {getTranslatedServiceCategory(supplier.service_category, t)}
+              </Text>
             </View>
           )}
 

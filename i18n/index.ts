@@ -2,17 +2,29 @@ import { I18n } from 'i18n-js';
 import * as Localization from 'expo-localization';
 import en from './locales/en';
 import es from './locales/es';
-import { useEffect } from 'react';
+
+const i18n = new I18n({ en, es });
+
+/** Subscribers notified when `setLocale` runs so React can re-render translated UI. */
+const localeListeners = new Set<() => void>();
+
+function notifyLocaleListeners() {
+  localeListeners.forEach((listener) => listener());
+}
 
 /**
- * Set the locale to the default locale
+ * Subscribe to app locale changes (for `useSyncExternalStore` in root layout).
  */
-/*
-useEffect(() => {
-    setLocale('en'); // o 'es'
-  }, []);
-*/
-const i18n = new I18n({ en, es });
+export function subscribeLocale(listener: () => void) {
+  localeListeners.add(listener);
+  return () => {
+    localeListeners.delete(listener);
+  };
+}
+
+export function getLocaleSnapshot(): string {
+  return i18n.locale;
+}
 
 // Determine best language from device settings
 const locales = Localization.getLocales();
@@ -30,7 +42,9 @@ export function t(key: string, options?: Record<string, any>) {
 }
 
 export function setLocale(locale: 'en' | 'es') {
+  if (i18n.locale === locale) return;
   i18n.locale = locale;
+  notifyLocaleListeners();
 }
 
 export function getLocale() {

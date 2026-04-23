@@ -1,3 +1,4 @@
+import { setLocale } from '@/i18n';
 import { getSettings, updateSettings } from '@/services/settings';
 import { checkProviderStatus } from '@/services/providers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -67,6 +68,10 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children, isAuthenti
     try {
       setIsLoading(true);
       const response = await getSettings();
+      const lang = response.settings.language;
+      if (lang === 'es' || lang === 'en') {
+        setLocale(lang);
+      }
       const userMode = response.settings.user_mode;
       if (userMode === 'client' || userMode === 'provider') {
         setModeState(userMode);

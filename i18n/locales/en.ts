@@ -231,6 +231,13 @@ export default {
     tagline2: "services made",
     tagline3: "easy",
   },
+  clientTabs: {
+    home: "Home",
+    bookings: "Bookings",
+    chat: "Chat",
+    notifications: "Alerts",
+    profile: "Profile",
+  },
   home: {
     location: "Santo Domingo",
     locationLabel: "📍 Your location",
@@ -434,6 +441,7 @@ export default {
     selectService: "Please select a service before booking",
     location: "Location",
     cannotChatWithSelf: "You cannot start a conversation with your own provider profile.",
+    defaultServiceLabel: "Service",
   },
   chat: {
     title: "Chat",

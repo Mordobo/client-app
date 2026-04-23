@@ -14,7 +14,8 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ApiError } from "@/services/auth";
 import { fetchPlatformStatus, PLATFORM_STATUS_QUERY_KEY } from "@/services/platformStatus";
 import { queryClient } from "@/services/queryClient";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { getLocaleSnapshot, subscribeLocale } from "@/i18n";
 
 
 export const unstable_settings = {
@@ -24,6 +25,8 @@ export const unstable_settings = {
 function RootLayoutNav() {
   const { isLoading } = useAuth();
   const colorScheme = useColorScheme();
+  // Re-render the tree when the user changes language so all `t()` strings update.
+  useSyncExternalStore(subscribeLocale, getLocaleSnapshot, getLocaleSnapshot);
 
   const {
     data: platformStatus,

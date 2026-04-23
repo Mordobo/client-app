@@ -4,6 +4,7 @@ import { getLocale, t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { Address, getAddresses } from "@/services/addresses";
 import { ApiError, fetchSupplierProfile, fetchSupplierServices, Supplier, SupplierService } from "@/services/suppliers";
+import { getSupplierServiceDisplayName } from "@/utils/categoryDisplay";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -465,7 +466,7 @@ export default function BookingSummaryScreen() {
             {/* Service */}
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>{t("booking.service")}</Text>
-              <Text style={styles.detailValue}>{service.name?.trim() || service.category_name || service.description || "Service"}</Text>
+              <Text style={styles.detailValue}>{getSupplierServiceDisplayName(service, t)}</Text>
             </View>
 
             {/* Date */}
@@ -514,7 +515,7 @@ export default function BookingSummaryScreen() {
             {/* Service cost (fixed price) */}
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>
-                {service.name?.trim() || service.category_name || "Service"}
+                {getSupplierServiceDisplayName(service, t)}
               </Text>
               <Text style={styles.priceValue}>${pricing.serviceCost.toFixed(2)}</Text>
             </View>
