@@ -49,10 +49,12 @@ export function useRealtimeOrderMessages(
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
+    let cancelled = false;
     const channelRef = { current: null as RealtimeChannel | null };
 
     const setup = async () => {
       const token = await getToken();
+      if (cancelled) return;
       setSupabaseAuth(token || '');
 
       const ch = supabase
@@ -73,12 +75,18 @@ export function useRealtimeOrderMessages(
           }
         )
         .subscribe();
+
+      if (cancelled) {
+        supabase.removeChannel(ch);
+        return;
+      }
       channelRef.current = ch;
     };
 
-    setup();
+    void setup();
 
     return () => {
+      cancelled = true;
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
