@@ -4,7 +4,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { fetchConversation, fetchConversations } from '@/services/conversations';
 import { ApiError, fetchOrderDetail, OrderDetailResponse, rejectQuote, withdrawQuote } from '@/services/orders';
-import { cancelOrderByProvider } from '@/services/providerDashboard';
+import { acceptOrder, cancelOrderByProvider } from '@/services/providerDashboard';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -367,6 +367,7 @@ export default function QuoteScreen() {
   const [showWithdrawConfirm, setShowWithdrawConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmingBooking, setConfirmingBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const quote = useMemo(
@@ -595,6 +596,26 @@ export default function QuoteScreen() {
     setShowCancelConfirm(true);
   }, []);
 
+  const handleConfirmPaidBooking = useCallback(async () => {
+    if (!orderId) return;
+    try {
+      setConfirmingBooking(true);
+      await acceptOrder(orderId);
+      await loadData();
+      router.replace(`/(provider-tabs)/jobs/${orderId}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        await loadData();
+        router.replace(`/(provider-tabs)/jobs/${orderId}`);
+        return;
+      }
+      const message = err instanceof ApiError ? err.message : t('quote.acceptBookingFailed');
+      Alert.alert(t('common.error'), message);
+    } finally {
+      setConfirmingBooking(false);
+    }
+  }, [orderId, loadData, router]);
+
   const handleEditQuote = () => {
     router.push({
       pathname: '/chat/create-quote',
@@ -679,6 +700,9 @@ export default function QuoteScreen() {
   const order = orderData.order;
   const isSupplier = user?.id === order.supplier_id;
   const isClient = !isSupplier;
+  const hasClientPaid =
+    orderData.has_completed_client_payment === true ||
+    (order.status === 'pending_for_provider' && quote.status === 'approved');
   const theme = isClient ? clientStyles : isSupplier ? providerStyles : null;
   const { supplier, client } = orderData;
   const serviceDate = quote.scheduled_at || order.scheduled_at;
@@ -848,6 +872,11 @@ export default function QuoteScreen() {
 
         {/* Service Info */}
         <View style={[styles.section, theme?.section]}>
+          {isSupplier && hasClientPaid && order.status === 'pending_for_provider' ? (
+            <Text style={[styles.description, theme?.description, { marginBottom: 12 }]}>
+              {t('quote.confirmBookingAfterPaymentHint')}
+            </Text>
+          ) : null}
           <View style={[styles.serviceHeader, theme?.serviceHeader]}>
             <Ionicons name="brush-outline" size={24} color={serviceIconColor} />
             <Text style={[styles.serviceTitle, theme?.serviceTitle]}>{order.service_name || t('orders.service')}</Text>
@@ -889,6 +918,21 @@ export default function QuoteScreen() {
 
       {/* Actions */}
       <View style={[styles.actions, theme?.actions, { paddingBottom: 20 + insets.bottom }]}>
+        {isSupplier && hasClientPaid && order.status === 'pending_for_provider' && (
+          <TouchableOpacity
+            style={[styles.approveButton, theme?.approveButton]}
+            onPress={handleConfirmPaidBooking}
+            disabled={confirmingBooking}
+          >
+            {confirmingBooking ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={[styles.approveButtonText, theme?.approveButtonText]}>
+                {t('quote.confirmBookingAfterPayment')}
+              </Text>
+            )}
+          </TouchableOpacity>
+        )}
         {isClient && order.status === 'pending_for_client' && (
           <>
             <TouchableOpacity
@@ -922,7 +966,8 @@ export default function QuoteScreen() {
             <Text style={[styles.approveButtonText, theme?.approveButtonText]}>{t('orders.completePayment')}</Text>
           </TouchableOpacity>
         )}
-        {isSupplier && (order.status === 'pending_for_client' || order.status === 'pending_for_provider') && (
+        {isSupplier &&
+          (order.status === 'pending_for_client' || (order.status === 'pending_for_provider' && !hasClientPaid)) && (
           <>
             {order.status === 'pending_for_client' && (
               <TouchableOpacity

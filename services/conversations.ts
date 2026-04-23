@@ -9,6 +9,8 @@ export interface Conversation {
   order_id: string | null;
   /** Real active order status for this client-supplier pair; null when no active order. */
   active_order_status: OrderStatus | null;
+  /** True when the current active order has a completed client payment (same order as active_order_status). */
+  active_order_has_client_payment?: boolean;
   last_message_at: string | null;
   created_at: string;
   other_user_name: string;
@@ -70,6 +72,9 @@ export const fetchConversations = async (role?: ConversationRole): Promise<Conve
       other_user_image: conv.other_user_image || null,
       unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
       active_order_status: conv.active_order_status ?? null,
+      active_order_has_client_payment: Boolean(
+        (conv as { active_order_has_client_payment?: boolean }).active_order_has_client_payment,
+      ),
     }));
   } catch (error) {
     if (error instanceof ApiError) throw error;
