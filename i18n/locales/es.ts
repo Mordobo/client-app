@@ -1692,6 +1692,12 @@ export default {
     jobDetailTitle: "Detalle del Trabajo",
     serviceLabel: "Servicio",
     agreedPriceLabel: "Precio acordado",
+    commission: {
+      mordoboServiceFee: "Comisión Mordobo ({{percent}}%)",
+      withdrawalNote:
+        "Esta comisión la retiene Mordobo y se descuenta al retirar tu saldo. El cliente ya pagó el total del trabajo arriba.",
+      estimatedYourEarnings: "Monto estimado que recibes",
+    },
     locationLabel: "Ubicación",
     clientNotesLabel: "Notas del cliente",
     quoteNoteLabel: "Nota de la cotización",

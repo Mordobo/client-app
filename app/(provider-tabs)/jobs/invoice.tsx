@@ -30,6 +30,13 @@ function formatCurrency(value: number): string {
   return "$" + str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function formatCommissionPercent(percent: number): string {
+  if (!Number.isFinite(percent)) return "0";
+  const rounded = Math.round(percent * 10) / 10;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(1).replace(/\.0$/, "");
+}
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
@@ -247,11 +254,41 @@ export default function InvoiceScreen() {
                   <Text style={styles.discountValue}>-{formatCurrency(data.discountAmount)}</Text>
                 </View>
               )}
+              {data.platformCommission && (
+                <>
+                  <View style={styles.totalRow}>
+                    <Text style={[styles.totalLabel, styles.totalLabelWrap]}>
+                      {t("providerDashboard.commission.mordoboServiceFee", {
+                        percent: formatCommissionPercent(data.platformCommission.commissionPercent),
+                      })}
+                    </Text>
+                    <Text style={styles.discountValue}>
+                      -{formatCurrency(data.platformCommission.estimatedPlatformFee)}
+                    </Text>
+                  </View>
+                  <Text style={[styles.invoiceFeeNote, { color: colors.textTertiary }]}>
+                    {t("providerDashboard.commission.withdrawalNote")}
+                  </Text>
+                </>
+              )}
               <View style={styles.totalDivider} />
               <View style={styles.totalRow}>
                 <Text style={styles.grandTotalLabel}>{t("providerDashboard.invoice.total")}</Text>
                 <Text style={styles.grandTotalValue}>{formatCurrency(data.total)}</Text>
               </View>
+              {data.platformCommission && (
+                <>
+                  <View style={styles.totalDivider} />
+                  <View style={styles.totalRow}>
+                    <Text style={[styles.totalLabel, styles.totalLabelWrap]}>
+                      {t("providerDashboard.commission.estimatedYourEarnings")}
+                    </Text>
+                    <Text style={styles.grandTotalValue}>
+                      {formatCurrency(data.platformCommission.estimatedNetToProvider)}
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
 
             {/* Payment Status */}
@@ -482,6 +519,16 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 14,
     color: "rgba(255,255,255,0.5)",
+  },
+  totalLabelWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  invoiceFeeNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: -2,
+    marginBottom: 4,
   },
   totalValue: {
     fontSize: 14,
