@@ -218,7 +218,7 @@ export const request = async <T>(
   retryOn401 = true
 ): Promise<T> => {
   // List of public endpoints that don't require authentication
-  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/apple', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate'];
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/apple', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate', '/auth/2fa/request-email-recovery', '/auth/2fa/confirm-email-recovery'];
   const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
   
   // If logout was just called and this is not a public endpoint, throw error
@@ -273,7 +273,7 @@ export const request = async <T>(
     // QA on Render free tier cold-starts in 50–90s; use 90s when targeting Render
     const isRender = url.includes('onrender.com');
     const timeoutMs =
-      path.includes('validate-email') || path.includes('resend-code')
+      path.includes('validate-email') || path.includes('resend-code') || path.includes('2fa/request-email-recovery')
         ? 70000
         : isRender
           ? 90000
@@ -649,6 +649,8 @@ export interface LoginResponse {
   requires_2fa?: boolean;
   twoFaToken?: string;
   email?: string;
+  /** Set when login completed via POST /auth/2fa/confirm-email-recovery */
+  two_factor_disabled_via_recovery?: boolean;
 }
 
 export const loginWithCredentials = async (
@@ -819,6 +821,53 @@ export const validate2FACode = async (
       }),
     },
     t('errors.verify2FAFailed')
+  );
+};
+
+export interface Request2FAEmailRecoveryPayload {
+  twoFaToken: string;
+}
+
+export interface Request2FAEmailRecoveryResponse {
+  message: string;
+  email: string;
+}
+
+/** Send a 6-digit code to the account email to disable 2FA and complete login (lost authenticator). */
+export const request2FAEmailRecovery = async (
+  payload: Request2FAEmailRecoveryPayload
+): Promise<Request2FAEmailRecoveryResponse> => {
+  return request<Request2FAEmailRecoveryResponse>(
+    '/auth/2fa/request-email-recovery',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ twoFaToken: payload.twoFaToken }),
+    },
+    t('errors.twoFAEmailRecoveryFailed')
+  );
+};
+
+export interface Confirm2FAEmailRecoveryPayload {
+  twoFaToken: string;
+  code: string;
+}
+
+/** Confirm email code: disables 2FA and returns tokens (same shape as validate2FACode). */
+export const confirm2FAEmailRecovery = async (
+  payload: Confirm2FAEmailRecoveryPayload
+): Promise<LoginResponse> => {
+  return request<LoginResponse>(
+    '/auth/2fa/confirm-email-recovery',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        twoFaToken: payload.twoFaToken,
+        code: payload.code.trim(),
+      }),
+    },
+    t('errors.twoFAEmailRecoveryConfirmFailed')
   );
 };
 

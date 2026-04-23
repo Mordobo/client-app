@@ -268,6 +268,7 @@ function PillVariant({
         ]}
       >
         <Animated.View
+          pointerEvents="none"
           style={[
             slideStyle,
             {
