@@ -22,14 +22,59 @@ function formatCurrency(value: number | null | undefined): string {
   return "$" + str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
+function parseScheduleDate(iso: string | null): Date | null {
+  if (!iso) return null;
+  const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(iso);
+  if (hasTimezone) {
+    const parsed = new Date(iso);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const normalized = iso.replace(" ", "T");
+  const localMatch = normalized.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d{1,3}))?$/,
+  );
+  if (localMatch) {
+    const [, year, month, day, hours, minutes, seconds = "0", millis = "0"] =
+      localMatch;
+    const parsed = new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hours),
+      Number(minutes),
+      Number(seconds),
+      Number(millis.padEnd(3, "0")),
+    );
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const fallback = new Date(iso);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+}
+
 function formatScheduleTime(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
+  const d = parseScheduleDate(iso);
+  if (!d) return "";
   const h = d.getHours();
   const m = d.getMinutes();
   const am = h < 12;
   const h12 = h % 12 || 12;
   return `${h12}:${m.toString().padStart(2, "0")} ${am ? "AM" : "PM"}`;
+}
+
+function formatTimeUntil(iso: string | null): string {
+  const target = parseScheduleDate(iso);
+  if (!target) return "—";
+
+  const diffMs = target.getTime() - Date.now();
+  const totalMinutes = Math.max(0, Math.ceil(diffMs / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h`;
+  return `${minutes}m`;
 }
 
 function GreenDotPulse() {
@@ -279,7 +324,7 @@ export default function ProviderDashboardScreen() {
                     <Text style={styles.scheduleTime}>{item.scheduledAt ? formatScheduleTime(item.scheduledAt).replace(/\s*(AM|PM)$/, "") : "—"}</Text>
                     <Text style={[styles.scheduleAmPm, { color: colors.textTertiary }]}>
                       {item.scheduledAt ?
-                        new Date(item.scheduledAt).getHours() < 12 ?
+                        (parseScheduleDate(item.scheduledAt)?.getHours() ?? 0) < 12 ?
                           "AM"
                         : "PM"
                       : ""}
@@ -291,7 +336,9 @@ export default function ProviderDashboardScreen() {
                     <Text style={[styles.scheduleAddress, { color: colors.textTertiary }]}>📍 {item.address || "—"}</Text>
                   </View>
                   <View style={styles.scheduleBadge}>
-                    <Text style={styles.scheduleBadgeText}>{t("providerDashboard.inTime", { time: "2h" })}</Text>
+                    <Text style={styles.scheduleBadgeText}>
+                      {t("providerDashboard.inTime", { time: formatTimeUntil(item.scheduledAt) })}
+                    </Text>
                   </View>
                 </View>
               ))
