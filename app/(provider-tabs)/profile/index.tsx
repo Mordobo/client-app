@@ -284,6 +284,9 @@ const styles = StyleSheet.create({
   headerWrapper: {
     position: "relative",
     height: 128,
+    /** Avatar + mode switch extend below this box; content starts at y=128 and would steal touches without z-index. */
+    zIndex: 2,
+    elevation: 4,
   },
   gradientHeader: {
     position: "absolute",

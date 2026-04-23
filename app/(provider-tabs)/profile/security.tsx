@@ -2,19 +2,24 @@ import { Toast } from '@/components/Toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
+import { formatTotpSecretForDisplay, getTotpManualEntryRaw } from '@/utils/totpDisplay';
 import {
   changePassword,
   disable2FA,
   enable2FA,
+  getBackupCodes,
   getSettings,
+  regenerateBackupCodes,
   validatePassword,
   verify2FA,
   type Enable2FAResponse,
   type UserSettings,
 } from '@/services/settings';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +30,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -33,6 +39,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const normalize2FAInput = (raw: string): string =>
+  raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8);
+const is2FAInputReady = (value: string): boolean =>
+  /^\d{6}$/.test(value) || /^[A-Z0-9]{8}$/.test(value);
 
 const I18N = 'providerDashboard.providerSettings.securityScreen';
 
@@ -68,8 +79,12 @@ export default function ProviderSecurityScreen() {
 
   const [twoFASetup, setTwoFASetup] = useState<Enable2FAResponse | null>(null);
   const [twoFACode, setTwoFACode] = useState('');
-  const [twoFAPasswordModal, setTwoFAPasswordModal] = useState<{ action: 'enable' | 'disable' } | null>(null);
+  const [twoFAPasswordModal, setTwoFAPasswordModal] = useState<{ action: 'enable' | 'disable' | 'regenerate' } | null>(null);
   const [twoFAPasswordInput, setTwoFAPasswordInput] = useState('');
+  const [backupCodesView, setBackupCodesView] = useState<string[] | null>(null);
+  const [backupCodesLoading, setBackupCodesLoading] = useState(false);
+  const backupCodesFromSetup = useMemo(() => twoFASetup?.backupCodes ?? [], [twoFASetup]);
+  const twoFaManualKeyRaw = useMemo(() => getTotpManualEntryRaw(twoFASetup), [twoFASetup]);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -173,10 +188,14 @@ export default function ProviderSecurityScreen() {
         const response = await enable2FA({ password });
         setTwoFASetup(response);
         setTwoFACode('');
-      } else {
+      } else if (twoFAPasswordModal.action === 'disable') {
         await disable2FA({ password });
         setSettings((prev) => prev ? { ...prev, two_factor_enabled: false } : prev);
         showToast(t(`${I18N}.twoFactorDisabled`), 'info');
+      } else {
+        const response = await regenerateBackupCodes({ password });
+        setBackupCodesView(response.backupCodes);
+        showToast(t(`${I18N}.regenerateCodesSuccess`), 'success');
       }
       setTwoFAPasswordModal(null);
       setTwoFAPasswordInput('');
@@ -187,6 +206,8 @@ export default function ProviderSecurityScreen() {
         showToast(t(`${I18N}.invalidPassword`), 'error');
       } else if (code === 'password_not_set') {
         showToast(t('errors.passwordNotSetFor2FA'), 'error');
+      } else if (twoFAPasswordModal.action === 'regenerate') {
+        showToast(t('errors.regenerateBackupCodesFailed'), 'error');
       } else {
         showToast(t('errors.enable2FAFailed'), 'error');
       }
@@ -196,10 +217,11 @@ export default function ProviderSecurityScreen() {
   }, [twoFAPasswordModal, twoFAPasswordInput, showToast]);
 
   const handleVerify2FA = useCallback(async () => {
-    if (twoFACode.trim().length !== 6) return;
+    const normalized = normalize2FAInput(twoFACode);
+    if (!is2FAInputReady(normalized)) return;
     try {
       setUpdating('2fa-verify');
-      await verify2FA({ token: twoFACode.trim() });
+      await verify2FA({ token: normalized });
       setTwoFASetup(null);
       setTwoFACode('');
       setSettings((prev) => prev ? { ...prev, two_factor_enabled: true } : prev);
@@ -210,6 +232,72 @@ export default function ProviderSecurityScreen() {
       setUpdating(null);
     }
   }, [twoFACode, showToast]);
+
+  const handleCopy = useCallback(async (text: string) => {
+    try {
+      await Clipboard.setStringAsync(text);
+      showToast(t('errors.copiedToClipboard'), 'success');
+    } catch {
+      showToast(t('errors.copyFailed'), 'error');
+    }
+  }, [showToast]);
+
+  const buildBackupCodesBody = useCallback((codes: string[]): string => {
+    const header = t(`${I18N}.backupCodesTitle`);
+    const hint = t(`${I18N}.saveBackupCodes`);
+    return `${header}\n${hint}\n\n${codes.join('\n')}\n`;
+  }, []);
+
+  const handleShareCodes = useCallback(async (codes: string[]) => {
+    try {
+      await Share.share({ message: buildBackupCodesBody(codes) });
+    } catch {
+      showToast(t('errors.copyFailed'), 'error');
+    }
+  }, [buildBackupCodesBody, showToast]);
+
+  const handleDownloadCodes = useCallback(async (codes: string[]) => {
+    try {
+      const fileName = `mordobo-backup-codes-${Date.now()}.txt`;
+      const dir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
+      const uri = `${dir}${fileName}`;
+      await FileSystem.writeAsStringAsync(uri, buildBackupCodesBody(codes), { encoding: FileSystem.EncodingType.UTF8 });
+      await Share.share({ url: uri, message: buildBackupCodesBody(codes), title: fileName });
+      showToast(t(`${I18N}.backupCodesSaved`, { file: fileName }), 'success');
+    } catch {
+      showToast(t('errors.copyFailed'), 'error');
+    }
+  }, [buildBackupCodesBody, showToast]);
+
+  const handleOpenBackupCodes = useCallback(async () => {
+    try {
+      setBackupCodesLoading(true);
+      const res = await getBackupCodes();
+      setBackupCodesView(res.backupCodes);
+    } catch {
+      showToast(t('errors.getBackupCodesFailed'), 'error');
+    } finally {
+      setBackupCodesLoading(false);
+    }
+  }, [showToast]);
+
+  const handleRegenerateCodes = useCallback(() => {
+    Alert.alert(
+      t(`${I18N}.regenerateCodesConfirmTitle`),
+      t(`${I18N}.regenerateCodesConfirmMessage`),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t(`${I18N}.regenerateCodes`),
+          style: 'destructive',
+          onPress: () => {
+            setTwoFAPasswordInput('');
+            setTwoFAPasswordModal({ action: 'regenerate' });
+          },
+        },
+      ],
+    );
+  }, []);
 
   const getPasswordModalTitle = useCallback((): string => {
     if (!passwordModal) return '';
@@ -268,7 +356,7 @@ export default function ProviderSecurityScreen() {
           </View>
           <View style={styles.rowText}>
             <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t(`${I18N}.twoFactorAuth`)}</Text>
-            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t(`${I18N}.twoFactorDesc`)}</Text>
+            <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t(`${I18N}.methodAuthenticatorDesc`)}</Text>
           </View>
           <Switch
             value={settings?.two_factor_enabled ?? false}
@@ -277,6 +365,24 @@ export default function ProviderSecurityScreen() {
             thumbColor="#fff"
           />
         </View>
+
+        {settings?.two_factor_enabled && (
+          <TouchableOpacity
+            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, marginTop: 12 }]}
+            activeOpacity={0.8}
+            onPress={handleOpenBackupCodes}
+            disabled={backupCodesLoading}
+          >
+            <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+              <Ionicons name="key-outline" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>{t(`${I18N}.backupCodesManage`)}</Text>
+              <Text style={[styles.rowDesc, { color: colors.textSecondary }]}>{t(`${I18N}.backupCodesManageDesc`)}</Text>
+            </View>
+            {backupCodesLoading ? <ActivityIndicator size="small" color={colors.primary} /> : <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />}
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Password Modal — edge-to-edge dim (status bar + nav bar) via screen size + Modal flags */}
@@ -439,32 +545,81 @@ export default function ProviderSecurityScreen() {
                   onStartShouldSetResponder={() => true}
                 >
                   <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.scanQRCode`)}</Text>
-                  {twoFASetup?.qrCode && (
-                    <View style={styles.qrContainer}>
-                      <Image source={{ uri: twoFASetup.qrCode }} style={styles.qrImage} resizeMode="contain" />
+                  <Text style={[styles.methodLabel, { color: colors.textTertiary }]}>{t(`${I18N}.method`)}</Text>
+                  <Text style={[styles.methodValue, { color: colors.textPrimary }]}>{t(`${I18N}.methodAuthenticator`)}</Text>
+
+                  {!!twoFaManualKeyRaw && (
+                    <View style={[styles.setupKeyBox, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
+                      <Text style={[styles.manualEntryPrimary, { color: colors.textPrimary }]}>{t(`${I18N}.manualEntryPrimary`)}</Text>
+                      <Text style={[styles.backupTitle, { color: colors.textPrimary, marginTop: 8 }]}>{t(`${I18N}.setupKey`)}</Text>
+                      <Text style={[styles.backupHint, { color: colors.textSecondary }]}>{t(`${I18N}.setupKeyHint`)}</Text>
+                      <View style={styles.setupKeyRow}>
+                        <Text
+                          style={[styles.setupKeyValueMultiline, { color: colors.textPrimary, borderColor: colors.cardBorder }]}
+                          selectable
+                        >
+                          {formatTotpSecretForDisplay(twoFaManualKeyRaw)}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleCopy(twoFaManualKeyRaw)}
+                          style={[styles.copyBtn, { backgroundColor: `${colors.primary}20` }]}
+                          accessibilityLabel={t(`${I18N}.copy`)}
+                        >
+                          <Ionicons name="copy-outline" size={16} color={colors.primary} />
+                          <Text style={[styles.copyBtnText, { color: colors.primary }]}>{t(`${I18N}.copy`)}</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
-                  <Text style={[styles.modalSubtitle, { marginTop: 12, color: colors.textSecondary }]}>{t(`${I18N}.enter2FACode`)}</Text>
+
+                  {twoFASetup?.qrCode ? (
+                    <>
+                      <Text style={[styles.modalSubtitle, { marginTop: 16, color: colors.textSecondary }]}>{t(`${I18N}.orScanQR`)}</Text>
+                      <View style={styles.qrContainer}>
+                        <Image source={{ uri: twoFASetup.qrCode }} style={styles.qrImage} resizeMode="contain" />
+                      </View>
+                    </>
+                  ) : null}
+
+                  <Text style={[styles.modalSubtitle, { marginTop: 12, color: colors.textSecondary }]}>{t(`${I18N}.codeOrBackup`)}</Text>
                   <TextInput
                     style={[styles.modalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
                     placeholder="000000"
                     placeholderTextColor={colors.textSecondary}
                     value={twoFACode}
-                    onChangeText={setTwoFACode}
-                    keyboardType="number-pad"
-                    maxLength={6}
+                    onChangeText={(v) => setTwoFACode(normalize2FAInput(v))}
+                    keyboardType="default"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={8}
                     textAlign="center"
                     returnKeyType="done"
                     onSubmitEditing={handleVerify2FA}
                   />
-                  {twoFASetup?.backupCodes && twoFASetup.backupCodes.length > 0 && (
+                  {backupCodesFromSetup.length > 0 && (
                     <View style={[styles.backupBox, { backgroundColor: colors.background }]}>
                       <Text style={[styles.backupTitle, { color: colors.textPrimary }]}>{t(`${I18N}.backupCodes`)}</Text>
                       <Text style={[styles.backupHint, { color: colors.textSecondary }]}>{t(`${I18N}.saveBackupCodes`)}</Text>
                       <View style={styles.backupCodesGrid}>
-                        {twoFASetup.backupCodes.map((code, i) => (
-                          <Text key={i} style={[styles.backupCode, { color: colors.primary, backgroundColor: `${colors.primary}20` }]}>{code}</Text>
+                        {backupCodesFromSetup.map((code) => (
+                          <TouchableOpacity key={code} onPress={() => handleCopy(code)} activeOpacity={0.7}>
+                            <Text style={[styles.backupCode, { color: colors.primary, backgroundColor: `${colors.primary}20` }]}>{code}</Text>
+                          </TouchableOpacity>
                         ))}
+                      </View>
+                      <View style={styles.backupActionsRow}>
+                        <TouchableOpacity style={[styles.backupActionBtn, { borderColor: colors.cardBorder }]} onPress={() => handleCopy(backupCodesFromSetup.join('\n'))}>
+                          <Ionicons name="copy-outline" size={14} color={colors.primary} />
+                          <Text style={[styles.backupActionText, { color: colors.primary }]}>{t(`${I18N}.copyCodes`)}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.backupActionBtn, { borderColor: colors.cardBorder }]} onPress={() => handleShareCodes(backupCodesFromSetup)}>
+                          <Ionicons name="share-outline" size={14} color={colors.primary} />
+                          <Text style={[styles.backupActionText, { color: colors.primary }]}>{t(`${I18N}.shareCodes`)}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.backupActionBtn, { borderColor: colors.cardBorder }]} onPress={() => handleDownloadCodes(backupCodesFromSetup)}>
+                          <Ionicons name="download-outline" size={14} color={colors.primary} />
+                          <Text style={[styles.backupActionText, { color: colors.primary }]}>{t(`${I18N}.downloadCodes`)}</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
                   )}
@@ -473,9 +628,9 @@ export default function ProviderSecurityScreen() {
                       <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.cancel')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.modalConfirmBtn, { backgroundColor: colors.buttonPrimaryBg }, twoFACode.trim().length !== 6 && styles.modalBtnDisabled]}
+                      style={[styles.modalConfirmBtn, { backgroundColor: colors.buttonPrimaryBg }, !is2FAInputReady(twoFACode) && styles.modalBtnDisabled]}
                       onPress={handleVerify2FA}
-                      disabled={twoFACode.trim().length !== 6 || !!updating}
+                      disabled={!is2FAInputReady(twoFACode) || !!updating}
                     >
                       {updating === '2fa-verify' ? (
                         <ActivityIndicator size="small" color="#fff" />
@@ -488,6 +643,68 @@ export default function ProviderSecurityScreen() {
               </ScrollView>
             </KeyboardAvoidingView>
           </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={backupCodesView !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={Platform.OS === 'android'}
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setBackupCodesView(null)}
+      >
+        <View style={[styles.modalRoot, { width: screenW, minHeight: screenH, backgroundColor: MODAL_DIM }]}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setBackupCodesView(null)} />
+          <KeyboardAvoidingView
+            style={styles.modalCenterWrap}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            pointerEvents="box-none"
+          >
+            <View style={[styles.modalBox, styles.backupModalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} onStartShouldSetResponder={() => true}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t(`${I18N}.backupCodesTitle`)}</Text>
+              <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>{t(`${I18N}.saveBackupCodes`)}</Text>
+              {backupCodesView && backupCodesView.length > 0 ? (
+                <>
+                  <View style={styles.backupCodesGrid}>
+                    {backupCodesView.map((code) => (
+                      <TouchableOpacity key={code} onPress={() => handleCopy(code)} activeOpacity={0.7}>
+                        <Text style={[styles.backupCode, { color: colors.primary, backgroundColor: `${colors.primary}20` }]}>{code}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <View style={styles.backupActionsRow}>
+                    <TouchableOpacity style={[styles.backupActionBtn, { borderColor: colors.cardBorder }]} onPress={() => handleCopy(backupCodesView.join('\n'))}>
+                      <Ionicons name="copy-outline" size={14} color={colors.primary} />
+                      <Text style={[styles.backupActionText, { color: colors.primary }]}>{t(`${I18N}.copyCodes`)}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.backupActionBtn, { borderColor: colors.cardBorder }]} onPress={() => handleShareCodes(backupCodesView)}>
+                      <Ionicons name="share-outline" size={14} color={colors.primary} />
+                      <Text style={[styles.backupActionText, { color: colors.primary }]}>{t(`${I18N}.shareCodes`)}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.backupActionBtn, { borderColor: colors.cardBorder }]} onPress={() => handleDownloadCodes(backupCodesView)}>
+                      <Ionicons name="download-outline" size={14} color={colors.primary} />
+                      <Text style={[styles.backupActionText, { color: colors.primary }]}>{t(`${I18N}.downloadCodes`)}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <Text style={{ color: colors.textSecondary, textAlign: 'center', marginBottom: 12 }}>—</Text>
+              )}
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={[styles.modalCancelBtn, { backgroundColor: colors.background }]} onPress={() => setBackupCodesView(null)}>
+                  <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>{t('common.close')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalConfirmBtn, { backgroundColor: colors.buttonPrimaryBg }]}
+                  onPress={handleRegenerateCodes}
+                  disabled={!!updating}
+                >
+                  {updating === '2fa' ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalConfirmText}>{t(`${I18N}.regenerateCodes`)}</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -608,5 +825,95 @@ const styles = StyleSheet.create({
   backupCode: {
     fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
+  },
+  methodLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    textAlign: 'center',
+  },
+  methodValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  setupKeyBox: {
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  setupKeyRow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 10,
+    marginTop: 8,
+  },
+  setupKeyValue: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    letterSpacing: 1,
+  },
+  setupKeyValueMultiline: {
+    fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  manualEntryPrimary: {
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'center',
+    minWidth: 120,
+  },
+  copyBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  backupActionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  backupActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  backupActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  backupModalBox: {
+    width: '92%',
+    maxWidth: 480,
   },
 });

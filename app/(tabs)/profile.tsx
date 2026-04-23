@@ -206,6 +206,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 30,
     backgroundColor: "#252542", // Hardcode dark header
+    /** Stats row uses negative margin and would otherwise sit on top of the mode switch hit area. */
+    zIndex: 2,
+    elevation: 3,
   },
   profileHeader: {
     flexDirection: "row",
