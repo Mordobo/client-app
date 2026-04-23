@@ -1475,6 +1475,8 @@ export default {
       providerAgreementSubtitle: "Condiciones para profesionales en Mordobo",
       lastUpdated: "Última actualización: {{date}}",
       loadError: "No pudimos cargar este documento. Inténtalo más tarde.",
+      emptyDocument:
+        "Este documento todavía no está disponible. Contacta a soporte o inténtalo más tarde.",
     },
     providerNotificationPreferences: {
       title: "Preferencias de Notificaciones",

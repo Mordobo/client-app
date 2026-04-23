@@ -7,7 +7,7 @@ import { format, parseISO } from 'date-fns';
 import { enUS, es as esLocale } from 'date-fns/locale';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
@@ -27,6 +27,32 @@ function wrapLegalHtml(body: string, background: string, foreground: string, lin
 </head>
 <body>${safeBody}</body>
 </html>`;
+}
+
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol|blockquote|section|article)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function isPlaceholderDocumentContent(content: string): boolean {
+  const normalized = content
+    .replace(/\s/g, '')
+    .replace(/<[^>]+>/g, '')
+    .trim();
+  return normalized.length === 0 || normalized === '#' || normalized === '##' || normalized === '###';
 }
 
 function titleForDoc(docType: LegalDocType): string {
@@ -79,6 +105,14 @@ export default function ProviderLegalDocumentScreen() {
     if (!data?.bodyHtml) return wrapLegalHtml('<p></p>', colors.background, colors.textPrimary, colors.primary);
     return wrapLegalHtml(data.bodyHtml, colors.background, colors.textPrimary, colors.primary);
   }, [data?.bodyHtml, colors.background, colors.textPrimary, colors.primary]);
+  const plainTextBody = useMemo(() => {
+    if (!data?.bodyHtml) return '';
+    return htmlToPlainText(data.bodyHtml);
+  }, [data?.bodyHtml]);
+  const hasMeaningfulContent = useMemo(() => {
+    if (!data?.bodyHtml) return false;
+    return !isPlaceholderDocumentContent(data.bodyHtml) && !isPlaceholderDocumentContent(plainTextBody);
+  }, [data?.bodyHtml, plainTextBody]);
 
   if (!valid) {
     return (
@@ -118,14 +152,32 @@ export default function ProviderLegalDocumentScreen() {
             {error instanceof Error ? error.message : t('providerDashboard.providerLegal.loadError')}
           </Text>
         </View>
+      ) : hasMeaningfulContent ? (
+        Platform.OS === 'web' ? (
+          <ScrollView
+            style={styles.webFallbackScroll}
+            contentContainerStyle={styles.webFallbackScrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={[styles.webFallbackText, { color: colors.textPrimary }]}>
+              {plainTextBody}
+            </Text>
+          </ScrollView>
+        ) : (
+          <WebView
+            style={styles.webview}
+            originWhitelist={['*']}
+            source={{ html }}
+            setSupportMultipleWindows={false}
+            nestedScrollEnabled
+          />
+        )
       ) : (
-        <WebView
-          style={styles.webview}
-          originWhitelist={['*']}
-          source={{ html }}
-          setSupportMultipleWindows={false}
-          nestedScrollEnabled
-        />
+        <View style={styles.loader}>
+          <Text style={[styles.loaderText, { color: colors.textSecondary }]}>
+            {t('providerDashboard.providerLegal.emptyDocument')}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -146,6 +198,17 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  webFallbackScroll: {
+    flex: 1,
+  },
+  webFallbackScrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+  },
+  webFallbackText: {
+    fontSize: 15,
+    lineHeight: 24,
   },
   loader: {
     flex: 1,
