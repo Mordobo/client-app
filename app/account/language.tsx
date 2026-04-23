@@ -43,7 +43,11 @@ export default function ClientLanguageScreen() {
     try {
       setLoading(true);
       const response = await getSettings();
-      setCurrentLanguage(response.settings.language);
+      const lang = response.settings.language;
+      setCurrentLanguage(lang);
+      if (lang === 'es' || lang === 'en') {
+        setLocale(lang);
+      }
     } catch {
       // Fallback to local locale
     } finally {

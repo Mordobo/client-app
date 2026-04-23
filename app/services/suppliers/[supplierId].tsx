@@ -29,6 +29,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
+import { getSupplierServiceDisplayName, getTranslatedServiceCategory } from '@/utils/categoryDisplay';
 
 /** Brand accents (same in light/dark); surfaces and text come from `getThemeColors`. */
 const BRAND = {
@@ -566,7 +567,9 @@ export default function ProviderDetailScreen() {
                 )}
               </View>
               {supplier.service_category && (
-                <Text style={styles.profession}>{supplier.service_category}</Text>
+                <Text style={styles.profession}>
+                  {getTranslatedServiceCategory(supplier.service_category, t)}
+                </Text>
               )}
               {supplier.location && (
                 <View style={styles.locationRow}>
@@ -634,7 +637,7 @@ export default function ProviderDetailScreen() {
                   >
                     <View style={styles.serviceInfo}>
                       <Text style={styles.serviceName}>
-                        {service.name?.trim() || service.category_name || 'Service'}
+                        {getSupplierServiceDisplayName(service, t)}
                       </Text>
                       <View style={styles.serviceDurationRow}>
                         <Ionicons name="time-outline" size={14} color={theme.textSecondary} />

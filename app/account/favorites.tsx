@@ -10,6 +10,7 @@ import {
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { getTranslatedServiceCategory } from '@/utils/categoryDisplay';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -134,8 +135,8 @@ export default function FavoritesScreen() {
   };
 
   const getServiceName = (supplier: FavoriteSupplier): string => {
-    // Try to get service category name, fallback to service_category field
-    return supplier.service_category || t('favorites.service');
+    const translated = getTranslatedServiceCategory(supplier.service_category, t);
+    return translated || t('favorites.service');
   };
 
   const formatRating = (rating: number | string | null | undefined): string => {

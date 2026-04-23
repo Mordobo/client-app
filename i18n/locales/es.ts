@@ -232,6 +232,13 @@ export default {
     tagline2: "a domicilio",
     tagline3: "fáciles",
   },
+  clientTabs: {
+    home: "Inicio",
+    bookings: "Reservas",
+    chat: "Chat",
+    notifications: "Alertas",
+    profile: "Perfil",
+  },
   home: {
     location: "Santo Domingo",
     locationLabel: "📍 Tu ubicación",
@@ -435,6 +442,7 @@ export default {
     selectService: "Por favor selecciona un servicio antes de reservar",
     location: "Ubicación",
     cannotChatWithSelf: "No puedes iniciar una conversación con tu propio perfil de proveedor.",
+    defaultServiceLabel: "Servicio",
   },
   chat: {
     title: "Chat",

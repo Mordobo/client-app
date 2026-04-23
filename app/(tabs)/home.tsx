@@ -9,7 +9,7 @@ import { Category, fetchCategories } from "@/services/categories";
 import { fetchPromotions, type Promotion } from "@/services/promotions";
 import { Supplier, fetchSuppliers } from "@/services/suppliers";
 import { useFavoritesStore } from "@/stores/favoritesStore";
-import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji } from "@/utils/categoryDisplay";
+import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji, getTranslatedServiceCategory } from "@/utils/categoryDisplay";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -354,7 +354,7 @@ export default function HomeScreen() {
                   id={item.id}
                   name={item.business_name?.trim() || item.full_name}
                   profileImage={item.profile_image}
-                  serviceCategory={item.service_category}
+                  serviceCategory={getTranslatedServiceCategory(item.service_category, t)}
                   rating={item.rating}
                   reviewCount={item.total_reviews}
                   hourlyRate={item.hourly_rate}
