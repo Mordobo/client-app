@@ -53,6 +53,7 @@ function getClientEmoji(type: NotificationType): { icon: string; bg: string } {
       return { icon: '🎁', bg: '#EC4899' };
     case 'payment_processed':
     case 'payment_received':
+    case 'new_paid_booking':
       return { icon: '💳', bg: '#10B981' };
     case 'provider_on_way':
       return { icon: '📍', bg: '#8B5CF6' };
@@ -62,6 +63,8 @@ function getClientEmoji(type: NotificationType): { icon: string; bg: string } {
     case 'new_booking_request':
       return { icon: '📩', bg: '#8B5CF6' };
     case 'new_review':
+    case 'job_pending_review':
+    case 'job_completed':
       return { icon: '⭐', bg: '#F59E0B' };
     case 'refund_issued':
       return { icon: '↩️', bg: '#10B981' };

@@ -1035,6 +1035,97 @@ export default {
     refundIssuedProviderMessage:
       "Se registró un reembolso de %{amount} por %{serviceName}. Motivo: %{reason}.",
     refundServiceFallback: "tu reserva",
+    fallbackClient: "El cliente",
+    fallbackSupplier: "Tu proveedor",
+    fallbackServiceShort: "este servicio",
+    relative: {
+      justNow: "Ahora",
+      lessThanMinute: "Hace menos de un minuto",
+      minutesAgo: "Hace %{count} min",
+      oneHourAgo: "Hace 1 hora",
+      hoursAgo: "Hace %{count} horas",
+      yesterdayAt: "Ayer, %{time}",
+      yesterdayShort: "Ayer",
+      dateAt: "%{date}, %{time}",
+      compactMinutes: "%{count} min",
+      compactHours: "%{count} h",
+    },
+    types: {
+      booking_confirmed: {
+        clientTitle: "Reserva confirmada",
+        clientMessage: "%{supplierName} aceptó tu reserva.",
+        clientMessageWithService: "%{supplierName} aceptó tu reserva de %{serviceName}.",
+        providerTitle: "Reserva confirmada",
+        providerMessage: "La reserva de %{clientName} está confirmada.",
+      },
+      booking_cancelled: {
+        clientTitle: "Reserva cancelada",
+        clientMessage: "%{supplierName} canceló tu reserva.",
+        providerTitle: "Reserva cancelada",
+        providerMessage: "%{clientName} canceló su reserva.",
+      },
+      payment_processed: {
+        clientTitle: "Pago procesado",
+        clientMessage: "Tu pago de %{amount} se procesó. Esperando a que el proveedor confirme.",
+        clientMessageWithService:
+          "Tu pago de %{amount} por %{serviceName} se procesó. Esperando a que el proveedor confirme.",
+        clientMessageNoAmount: "Tu pago se está procesando. Esperando a que el proveedor confirme.",
+      },
+      payment_received: {
+        providerTitle: "Nueva reserva pagada",
+        providerMessage: "%{clientName} reservó y pagó %{amount} por %{serviceName}. Acepta la reserva para confirmar.",
+        clientTitle: "Pago recibido",
+        clientMessage: "Recibimos tu pago de %{amount}.",
+        clientMessageWithService: "Recibimos tu pago de %{amount} por %{serviceName}.",
+      },
+      provider_on_way: {
+        clientTitle: "El proveedor va en camino",
+        clientMessage: "%{supplierName} va en camino a tu cita.",
+        clientMessageWithService: "%{supplierName} va en camino para %{serviceName}.",
+      },
+      quote_received: {
+        clientTitle: "Nueva cotización",
+        clientMessage: "Tienes una nueva cotización de %{supplierName}.",
+        providerTitle: "Solicitud de cotización",
+        providerMessage: "%{clientName} espera tu cotización.",
+        providerMessageWithService: "%{clientName} solicitó una cotización para %{serviceName}.",
+      },
+      quote_approved: {
+        clientTitle: "Cotización aprobada",
+        clientMessage: "La cotización de %{supplierName} está lista para pagar.",
+        providerTitle: "Cotización aprobada",
+        providerMessage: "%{clientName} aprobó tu cotización.",
+      },
+      new_booking_request: {
+        providerTitle: "Nueva solicitud de reserva",
+        providerMessage: "%{clientName} envió una nueva solicitud de reserva.",
+        providerMessageWithService: "%{clientName} envió una nueva solicitud de reserva para %{serviceName}.",
+      },
+      new_review: {
+        providerTitle: "Nueva reseña",
+        providerMessage: "%{clientName} dejó una reseña de %{stars} estrellas sobre %{serviceName}.",
+        providerMessageNoStars: "%{clientName} dejó una reseña sobre %{serviceName}.",
+      },
+      rate_service: {
+        clientTitle: "Valora tu servicio",
+        clientMessage: "¿Cómo fue tu experiencia con %{supplierName}?",
+      },
+      offer: {
+        clientTitle: "Oferta para ti",
+        clientMessage: "Tienes una nueva oferta o promoción.",
+        providerTitle: "Oferta",
+        providerMessage: "Tienes una nueva oferta o promoción.",
+      },
+      new_message: {
+        title: "Nuevo mensaje",
+      },
+      job_review: {
+        clientTitle: "Valora tu experiencia",
+        clientMessage: "Comparte tu opinión sobre tu reserva con %{supplierName}.",
+        providerTitle: "Recordatorio de reseña",
+        providerMessage: "%{clientName} puede dejar una reseña.",
+      },
+    },
     detail: {
       screenTitle: "Notificación",
       openRelated: "Ver en la app",
