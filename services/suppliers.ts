@@ -2,6 +2,19 @@ import { API_BASE } from '@/utils/apiConfig';
 import { getToken } from '@/utils/userStorage';
 import { createApiHeaders } from '@/utils/apiHeaders';
 
+/**
+ * Picks the first non-empty image URL from shapes the API may use after migrations
+ * (provider profile uses avatar_url; list/detail endpoints may use profile_image*).
+ */
+export function coerceSupplierProfileImage(raw: Record<string, unknown>): string | undefined {
+  const keys = ['profile_image_url', 'profile_image', 'profileImage', 'avatar_url', 'avatarUrl'] as const;
+  for (const key of keys) {
+    const v = raw[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return undefined;
+}
+
 export interface Supplier {
   id: string;
   full_name: string;
@@ -154,11 +167,11 @@ export const fetchSuppliers = async (
     }
 
     // Ensure suppliers is always an array and normalize profile_image (API may send snake_case;
-    // accept profile_image_url from API when present so images stay in sync with provider avatars)
+    // accept profile_image_url / avatar_url when present so images stay in sync with provider avatars)
     const rawSuppliers = Array.isArray(jsonData.suppliers) ? jsonData.suppliers : [];
     const suppliers = rawSuppliers.map((s: Record<string, unknown>) => ({
       ...s,
-      profile_image: (s.profile_image_url as string) ?? (s.profile_image as string) ?? (s.profileImage as string) ?? undefined,
+      profile_image: coerceSupplierProfileImage(s),
     }));
     
     // Ensure total is always a number
@@ -206,11 +219,7 @@ export const fetchSupplierProfile = async (
 
     const data: SupplierProfileResponse = await response.json();
     const raw = data.supplier as Record<string, unknown>;
-    // API may return profile_image_url (resolved) and/or profile_image (raw); ensure profile_image is set for UI
-    const profileImage =
-      (raw.profile_image_url as string | undefined) ??
-      (raw.profile_image as string | undefined) ??
-      (raw.profileImage as string | undefined);
+    const profileImage = coerceSupplierProfileImage(raw);
     return { ...raw, profile_image: profileImage } as Supplier;
   } catch (error) {
     if (error instanceof ApiError) {

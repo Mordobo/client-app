@@ -1,4 +1,5 @@
 import { t } from '@/i18n';
+import { coerceSupplierProfileImage } from '@/services/suppliers';
 import { ApiError as AuthApiError, request } from './auth';
 
 export type OrderStatus = 'pending_for_provider' | 'pending_for_client' | 'pending_payment' | 'accepted' | 'in_progress' | 'pending_review' | 'completed' | 'cancelled';
@@ -178,13 +179,17 @@ export const fetchOrders = async (): Promise<Order[]> => {
 // GET /orders/:id - Fetch order details
 export const fetchOrderDetail = async (orderId: string): Promise<OrderDetailResponse> => {
   try {
-    return await request<OrderDetailResponse>(
+    const res = await request<OrderDetailResponse>(
       `/orders/${orderId}`,
       {
         method: 'GET',
       },
       t('errors.requestFailed')
     );
+    if (!res.supplier) return res;
+    const profile_image =
+      coerceSupplierProfileImage(res.supplier as Record<string, unknown>) ?? res.supplier.profile_image;
+    return { ...res, supplier: { ...res.supplier, profile_image } };
   } catch (error) {
     if (error instanceof AuthApiError) {
       throw new ApiError(error.message, error.status, error.data);
