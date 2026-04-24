@@ -12,6 +12,50 @@ export interface ProviderDashboardStats {
 
 export type ProviderRequestStatusFilter = "new" | "pending" | "all";
 
+/** Keys the API may use for the amount shown on request cards (quote flow vs direct catalog booking). */
+const DASHBOARD_REQUEST_AMOUNT_KEYS = [
+  "quoteTotal",
+  "quote_total",
+  "totalAmount",
+  "total_amount",
+  "agreedPrice",
+  "agreed_price",
+  "displayTotal",
+  "display_total",
+  "amount",
+  "servicePrice",
+  "service_price",
+  "estimatedTotal",
+  "estimated_total",
+] as const;
+
+function coerceFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function pickAmountFromRecord(raw: Record<string, unknown>): number | null {
+  for (const key of DASHBOARD_REQUEST_AMOUNT_KEYS) {
+    const n = coerceFiniteNumber(raw[key]);
+    if (n != null) return n;
+  }
+  return null;
+}
+
+/** Merge alternate API shapes (snake_case, direct-booking totals) into `quoteTotal` for list UIs. */
+function normalizeProviderDashboardRequest(item: ProviderDashboardRequest): ProviderDashboardRequest {
+  const raw = item as unknown as Record<string, unknown>;
+  const existing = coerceFiniteNumber(raw.quoteTotal);
+  if (existing != null) return item;
+  const resolved = pickAmountFromRecord(raw);
+  if (resolved == null) return item;
+  return { ...item, quoteTotal: resolved };
+}
+
 export interface ProviderDashboardRequest {
   id: string;
   clientId: string;
@@ -20,6 +64,7 @@ export interface ProviderDashboardRequest {
   serviceName: string;
   scheduledAt: string | null;
   address: string;
+  /** Best-effort total for the card; may come from quote or order total for direct hires. */
   quoteTotal: number | null;
   createdAt?: string | null;
   isUrgent?: boolean;
@@ -131,7 +176,7 @@ export const getDashboardRequestCounts = async (): Promise<ProviderRequestCounts
 
 export const getDashboardRequests = async (status?: ProviderRequestStatusFilter): Promise<{ requests: ProviderDashboardRequest[]; count: number }> => {
   const qs = status && status !== "new" ? `?status=${encodeURIComponent(status)}` : "";
-  return request<{ requests: ProviderDashboardRequest[]; count: number }>(
+  const res = await request<{ requests: ProviderDashboardRequest[]; count: number }>(
     `/api/providers/dashboard/requests${qs}`,
     {
       method: "GET",
@@ -139,6 +184,8 @@ export const getDashboardRequests = async (status?: ProviderRequestStatusFilter)
     },
     t("providerDashboard.errors.requestsFailed"),
   );
+  const requests = (res.requests ?? []).map(normalizeProviderDashboardRequest);
+  return { ...res, requests, count: res.count ?? requests.length };
 };
 
 export const getDashboardSchedule = async (date?: string): Promise<{ schedule: ProviderDashboardScheduleItem[]; date: string }> => {
