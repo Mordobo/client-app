@@ -12,4 +12,6 @@ CLAUDE.md files exist in:
 - Mobile: /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile/CLAUDE.md
 - API: /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API/CLAUDE.md
 
-Always consult relevant CLAUDE.md before making changes.
+Backoffice (admin): `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/Backoffice/admin-dashboard` — no hay CLAUDE.md en ese paquete; seguir README del repo, patrones existentes en `src/`, y la regla *Cross-Repo Architecture*.
+
+Always consult relevant CLAUDE.md (cuando exista) before making changes.

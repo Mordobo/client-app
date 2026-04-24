@@ -2,11 +2,18 @@
 name: Cross-Repo Feature Development
 alwaysApply: true
 ---
+When a feature affects mobile, API, and/or Backoffice:
+
+**Rutas absolutas:** Mobile `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile`, API `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API`, Backoffice dashboard `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/Backoffice/admin-dashboard` (ver regla *Cross-Repo Architecture*).
+
+- **Solo admin / Netlify backoffice:** implementar en `Backoffice/admin-dashboard`; tocar **API** solo si hace falta endpoint, permiso o dato nuevo.
+- **Solo app móvil + backend:** flujo habitual mobile + API (sin Backoffice).
+
 When a feature affects both mobile and API repositories:
 
 0. REUSE BEFORE CREATING:
    - Before creating any new database structure or API endpoint, check if it already exists or can be reused.
-   - Search the codebase (mobile/services/, API/src/routes/) and API documentation for existing endpoints, tables, and columns.
+   - Search the codebase (mobile/services/, API/src/routes/, Backoffice/admin-dashboard/src/ when relevant) and API documentation for existing endpoints, tables, and columns.
    - Prefer extending existing endpoints or tables over adding new ones when the data fits the same domain.
 
 1. BACKEND FIRST (Mordobo/API):
@@ -25,7 +32,11 @@ When a feature affects both mobile and API repositories:
    - Create API client function in mobile/services/
    - Implement call to backend endpoint
    - Handle loading and error states
-   - Update components that consume the service4. VERIFY:
+   - Update components that consume the service
+
+4. VERIFY:
    - Test end-to-end flow
    - Verify type synchronization
-   - Check error handlingAlways check if changes require backend modifications BEFORE starting implementation.
+   - Check error handling
+
+Always check if changes require backend modifications BEFORE starting implementation.
