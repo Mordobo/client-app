@@ -11,7 +11,7 @@ import {
 import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { enUS, es } from "date-fns/locale";
 import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
@@ -60,16 +60,10 @@ function formatNextPayout(dateStr: string): string {
 function formatTransactionDate(iso: string): string {
   try {
     const d = parseISO(iso);
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const yesterdayDate = new Date(now);
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
-    const dayStr = d.toISOString().slice(0, 10);
-    if (dayStr === today) {
+    if (isToday(d)) {
       return format(d, "HH:mm");
     }
-    if (dayStr === yesterdayStr) {
+    if (isYesterday(d)) {
       return t("providerDashboard.earnings.yesterday");
     }
     return format(d, "d MMM");

@@ -299,6 +299,9 @@ export default function CompleteJobScreen() {
       queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
       queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-earnings-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-earnings-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-earnings-chart"] });
       router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
     } catch (err) {
       const apiData = err instanceof ApiError ? err.data : undefined;
@@ -308,6 +311,9 @@ export default function CompleteJobScreen() {
         queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
         queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
         queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-earnings-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-earnings-transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-earnings-chart"] });
         router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
         return;
       }
