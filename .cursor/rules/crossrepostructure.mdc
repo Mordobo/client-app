@@ -2,16 +2,35 @@
 name: Cross-Repo Architecture
 alwaysApply: true
 ---
-This is a multi-repository project:MOBILE (This repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile
-- Contains React Native/Expo frontend
-- mobile/services/ contains API CLIENT code (calls backend)
-- mobile/services/auth.ts calls POST /auth/login from backendAPI (Separate repo): /Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API
-- Contains Express.js backend
-- API/src/routes/ contains API ENDPOINTS
-- API/src/routes/auth.ts defines POST /auth/login endpoint
 
-When implementing features:
-1. Backend endpoints go in Mordobo/API/src/routes/
-2. Frontend API clients go in mobile/services/
-3. Always verify which repo you're working in before creating files
-4. Never create API endpoints in mobile/services/ - those belong in API repo
+# Mordobo: dónde está cada repositorio
+
+El trabajo puede pedirse desde el workspace **mobile**, pero los cambios en API o Backoffice deben hacerse **en su carpeta**, usando rutas absolutas con las herramientas (lectura, búsqueda, edición, terminal).
+
+## Mobile (esta app — React Native / Expo)
+
+- **Raíz:** `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/mobile`
+- **Cliente HTTP hacia el backend:** `mobile/services/` (solo llamadas; **no** son rutas Express)
+
+## API (backend Express)
+
+- **Raíz:** `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/API`
+- **Rutas HTTP:** `API/src/routes/`
+- **Servidor / arranque:** `API/src/index.ts`, `API/src/db.ts`
+
+## Backoffice (admin web — Netlify)
+
+- **Raíz del monorepo:** `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/Backoffice`
+- **App del dashboard (Vite + React):** `/Users/angelorivas/Desktop/Proyectos_Personales/Mordobo/Backoffice/admin-dashboard`
+- **Código principal del admin:** `Backoffice/admin-dashboard/src/` (páginas, componentes, hooks, llamadas al API admin)
+- **Otro paquete en el mismo repo:** `Backoffice/admin-auth-api/` — solo si la tarea es explícitamente auth/servidor auxiliar de admin
+
+## Cómo enrutar la tarea al repo correcto
+
+| Tema | Repo |
+|------|------|
+| Pantallas admin, proveedores, tablas backoffice, `mordobobackoffice.netlify.app` | `Backoffice/admin-dashboard` |
+| Endpoints REST, SQL, Zod, rate limits, `BRUNO_API_DOCUMENTATION.md` | `API` |
+| App móvil Expo, tabs, booking, modo cliente/proveedor | `mobile` |
+
+**Reglas:** No crear endpoints Express dentro de `mobile/services/`. Los endpoints viven en **API**; el cliente en **mobile** o en **admin-dashboard** según consuma la app.
