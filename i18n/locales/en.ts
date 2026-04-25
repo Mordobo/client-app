@@ -281,6 +281,10 @@ export default {
     provider: "provider",
     providersAvailable: "{{count}} providers",
     providerAvailable: "{{count}} provider",
+    subcategoriesTitle: "Subcategories",
+    invalidCategoryId: "Invalid category ID",
+    categoryNotFound: "Category not found",
+    loadDetailFailed: "Failed to load data",
     // Category/subcategory names by name_key (from API)
     items: {
       home_repairs: "Home & Repairs",

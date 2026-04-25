@@ -282,6 +282,10 @@ export default {
     provider: "proveedor",
     providersAvailable: "{{count}} proveedores",
     providerAvailable: "{{count}} proveedor",
+    subcategoriesTitle: "Subcategorías",
+    invalidCategoryId: "ID de categoría no válido",
+    categoryNotFound: "Categoría no encontrada",
+    loadDetailFailed: "No se pudieron cargar los datos",
     // Nombres de categoría/subcategoría por name_key (desde API)
     items: {
       home_repairs: "Hogar y Reparaciones",

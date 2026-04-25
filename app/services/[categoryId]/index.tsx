@@ -6,6 +6,7 @@ import { getAddresses } from "@/services/addresses";
 import { ApiError, CategoryWithSubcategories, fetchCategoryWithSubcategories } from "@/services/categories";
 import { fetchSuppliers, Supplier } from "@/services/suppliers";
 import { Ionicons } from "@expo/vector-icons";
+import { getCategoryDisplayName } from "@/utils/categoryDisplay";
 import { getThemeColors } from "@/utils/themeStyles";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -47,7 +48,7 @@ export default function CategoryDetailScreen() {
       loadUserLocation();
       loadData();
     } else {
-      setError("Invalid category ID");
+      setError(t("categories.invalidCategoryId"));
       setLoading(false);
     }
   }, [categoryId, sortBy, selectedSubcategory, user?.id]);
@@ -72,7 +73,7 @@ export default function CategoryDetailScreen() {
     try {
       // Validate categoryId before making API calls
       if (!categoryId || typeof categoryId !== "string" || categoryId.trim() === "") {
-        setError("Invalid category ID");
+        setError(t("categories.invalidCategoryId"));
         setLoading(false);
         return;
       }
@@ -98,7 +99,7 @@ export default function CategoryDetailScreen() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Failed to load data");
+        setError(t("categories.loadDetailFailed"));
       }
     } finally {
       setLoading(false);
@@ -131,9 +132,9 @@ export default function CategoryDetailScreen() {
     return (
       <View style={[styles.container, { backgroundColor: colors.bg }]}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error || "Category not found"}</Text>
+          <Text style={styles.errorText}>{error || t("categories.categoryNotFound")}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t("common.retry")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -147,14 +148,14 @@ export default function CategoryDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{categoryData.category.name}</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{getCategoryDisplayName(categoryData.category, t)}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Subcategories (if any) */}
       {categoryData.subcategories.length > 0 && (
         <View style={styles.subcategoriesSection}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Subcategories</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t("categories.subcategoriesTitle")}</Text>
           <FlatList
             data={categoryData.subcategories}
             renderItem={({ item }) => {
@@ -178,7 +179,7 @@ export default function CategoryDetailScreen() {
                       },
                     ]}
                   >
-                    {item.name}
+                    {getCategoryDisplayName(item, t)}
                   </Text>
                 </TouchableOpacity>
               );
@@ -193,12 +194,12 @@ export default function CategoryDetailScreen() {
 
       {/* Sort Options */}
       <View style={[styles.sortContainer, { backgroundColor: colors.bgCard, borderBottomColor: colors.border }]}>
-        <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>Sort by:</Text>
+        <Text style={[styles.sortLabel, { color: colors.textSecondary }]}>{t("categories.sortBy")}</Text>
         <TouchableOpacity style={[styles.sortButton, { backgroundColor: colors.bgInput }, sortBy === "price" && styles.sortButtonActive]} onPress={() => setSortBy("price")}>
-          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "price" && styles.sortButtonTextActive]}>Price</Text>
+          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "price" && styles.sortButtonTextActive]}>{t("categories.price")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.sortButton, { backgroundColor: colors.bgInput }, sortBy === "distance" && styles.sortButtonActive]} onPress={() => setSortBy("distance")}>
-          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "distance" && styles.sortButtonTextActive]}>Distance</Text>
+          <Text style={[styles.sortButtonText, { color: colors.textPrimary }, sortBy === "distance" && styles.sortButtonTextActive]}>{t("categories.distance")}</Text>
         </TouchableOpacity>
       </View>
 
@@ -211,7 +212,7 @@ export default function CategoryDetailScreen() {
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: "#EF4444" }]}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t("common.retry")}</Text>
           </TouchableOpacity>
         </View>
       : <FlatList
