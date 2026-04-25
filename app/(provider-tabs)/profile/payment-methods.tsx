@@ -109,7 +109,7 @@ export default function ProviderPaymentMethodsScreen() {
   };
 
   const handleAddAccount = () => {
-    router.push("/provider-onboarding/bank");
+    router.push("/(provider-tabs)/profile/add-bank-account");
   };
 
   return (

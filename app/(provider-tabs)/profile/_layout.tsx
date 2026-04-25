@@ -21,6 +21,7 @@ export default function ProviderProfileLayout() {
       <Stack.Screen name="statistics" />
       <Stack.Screen name="service-area" />
       <Stack.Screen name="payment-methods" />
+      <Stack.Screen name="add-bank-account" />
       <Stack.Screen name="services" />
       <Stack.Screen name="help-center" />
       <Stack.Screen name="contact-support" />
