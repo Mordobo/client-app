@@ -40,6 +40,7 @@ export interface CreateComplaintPayload {
   subject: string;
   description: string;
   order_id?: string | null;
+  submitter_type?: 'client' | 'provider';
 }
 
 export async function listComplaints(page = 1, limit = 20): Promise<ListComplaintsResponse> {
@@ -64,6 +65,7 @@ export async function createComplaint(
         subject: payload.subject.trim(),
         description: payload.description.trim(),
         order_id: payload.order_id?.trim() || undefined,
+        submitter_type: payload.submitter_type,
       }),
     },
     t('complaints.submitError')
