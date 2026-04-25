@@ -1,12 +1,14 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { hasProviderRatedClient } from "@/utils/providerClientRatedOrders";
 import {
   getJobInvoice,
   sendInvoiceEmail,
   type InvoiceData,
 } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -44,6 +46,7 @@ function formatDate(dateStr: string): string {
 
 export default function InvoiceScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
@@ -51,6 +54,23 @@ export default function InvoiceScreen() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<InvoiceData | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [providerAlreadyRated, setProviderAlreadyRated] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id || !id) {
+        setProviderAlreadyRated(false);
+        return;
+      }
+      let cancelled = false;
+      hasProviderRatedClient(user.id, id).then((v) => {
+        if (!cancelled) setProviderAlreadyRated(v);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.id, id]),
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -334,12 +354,14 @@ export default function InvoiceScreen() {
         </View>
       </ScrollView>
 
-      {/* Continue Button */}
-      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
-        <TouchableOpacity style={[styles.continueBtn, { backgroundColor: colors.primary }]} onPress={handleContinueToRate} activeOpacity={0.8}>
-          <Text style={styles.continueBtnText}>{t("providerDashboard.invoice.continueToRate")}</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Continue to rate — hidden once we know the provider already rated (API list status can lag). */}
+      {!providerAlreadyRated && (
+        <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+          <TouchableOpacity style={[styles.continueBtn, { backgroundColor: colors.primary }]} onPress={handleContinueToRate} activeOpacity={0.8}>
+            <Text style={styles.continueBtnText}>{t("providerDashboard.invoice.continueToRate")}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
