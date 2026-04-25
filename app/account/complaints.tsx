@@ -1,6 +1,7 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { ApiError } from '@/services/auth';
+import { useMode } from '@/contexts/ModeContext';
 import {
   createComplaint,
   getComplaintMessages,
@@ -62,6 +63,7 @@ export default function ComplaintsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { mode } = useMode();
   const queryClient = useQueryClient();
 
   const [type, setType] = useState<ComplaintType>('complaint');
@@ -89,6 +91,7 @@ export default function ComplaintsScreen() {
         subject: subject.trim(),
         description: description.trim(),
         order_id: orderId.trim() || undefined,
+        submitter_type: mode,
       }),
     onSuccess: () => {
       setSubject('');
