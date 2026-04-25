@@ -1,3 +1,4 @@
+import { useMode } from '@/contexts/ModeContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { getLocaleSnapshot, t } from '@/i18n';
 import {
@@ -31,9 +32,10 @@ interface NotificationItemProps {
   notification: Notification;
   onPress: () => void;
   colors: ReturnType<typeof useThemeColors>;
+  viewerRole: 'client' | 'provider';
 }
 
-function NotificationItem({ notification, onPress, colors }: NotificationItemProps) {
+function NotificationItem({ notification, onPress, colors, viewerRole }: NotificationItemProps) {
   const getNotificationConfig = (type: NotificationType) => {
     switch (type) {
       case 'booking_confirmed':
@@ -71,7 +73,7 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
   };
 
   const config = getNotificationConfig(notification.type);
-  const display = getLocalizedNotificationDisplay(notification, 'client');
+  const display = getLocalizedNotificationDisplay(notification, viewerRole);
 
   return (
     <TouchableOpacity
@@ -117,6 +119,8 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { mode } = useMode();
+  const listViewerRole = mode === 'provider' ? 'provider' : 'client';
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -309,6 +313,7 @@ export default function NotificationsScreen() {
                   notification={notification}
                   onPress={() => handleNotificationPress(notification)}
                   colors={colors}
+                  viewerRole={listViewerRole}
                 />
               ))}
             </View>

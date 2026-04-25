@@ -55,10 +55,19 @@ function formatNotificationMoney(m: Record<string, unknown>): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'MXN' }).format(n);
 }
 
+function normalizeInferKey(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\u00a0/g, ' ')
+    .replace(/[’']/g, "'")
+    .replace(/\s+/g, ' ');
+}
+
 /** When type is missing or unknown, map common English API titles to our notification types. */
 function inferNotificationTypeFromEnglishTitle(title: string | undefined): string | null {
   if (!title?.trim()) return null;
-  const k = title.trim().toLowerCase();
+  const k = normalizeInferKey(title);
   const map: Record<string, string> = {
     'new paid booking': 'payment_received',
     'payment received': 'payment_received',
@@ -87,6 +96,43 @@ function inferNotificationTypeFromEnglishTitle(title: string | undefined): strin
     'reembolso emitido': 'refund_issued',
   };
   return map[k] ?? null;
+}
+
+/** Infer type from API message body when title is missing or not in the title map (namespaced types). */
+function inferNotificationTypeFromMessageBody(message: string | undefined): string | null {
+  if (!message?.trim()) return null;
+  const m = normalizeInferKey(message);
+
+  if (
+    /\bhas cancelled their booking\b/.test(m) ||
+    /\bcancelled their booking\b/.test(m) ||
+    /\bcanceló su reserva\b/.test(m) ||
+    /\bcancelo su reserva\b/.test(m)
+  ) {
+    return 'booking_cancelled';
+  }
+  if (
+    /\bhas booked and paid\b/.test(m) ||
+    /\bbooked and paid\b/.test(m) ||
+    /\breservó y pagó\b/.test(m) ||
+    /\breservo y pago\b/.test(m)
+  ) {
+    return 'payment_received';
+  }
+  if (/\bhas paid\b/.test(m) && /\baccept the booking\b/.test(m)) {
+    return 'payment_received';
+  }
+  if (
+    /\bleft a \d+-star review\b/.test(m) ||
+    /\bdejó una reseña\b/.test(m) ||
+    /\b\d+\s*estrellas\b/.test(m)
+  ) {
+    return 'new_review';
+  }
+  if (/^[^:]+:\s*\S/.test(m) && m.length <= 500) {
+    return 'new_message';
+  }
+  return null;
 }
 
 function refundDisplay(notification: Notification, viewerRole: NotificationViewerRole): { title: string; message: string } {
@@ -333,7 +379,9 @@ export function getLocalizedNotificationDisplay(
   let typeKey = canonicalNotificationType(notification.type);
   let localized = typedDisplay(notification, roleForTemplate, typeKey, m);
   if (!localized) {
-    const inferred = inferNotificationTypeFromEnglishTitle(notification.title);
+    const inferred =
+      inferNotificationTypeFromEnglishTitle(notification.title) ??
+      inferNotificationTypeFromMessageBody(notification.message);
     if (inferred) {
       localized = typedDisplay(notification, roleForTemplate, inferred, m);
     }
