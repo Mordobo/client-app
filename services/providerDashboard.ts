@@ -613,6 +613,31 @@ export const getProviderBankAccounts = async (): Promise<ProviderBankAccount[]> 
   return res?.accounts ?? [];
 };
 
+export interface UpdateProviderPayoutBankPayload {
+  bankName: string;
+  /** 18-digit CLABE (digits only) */
+  clabe: string;
+  accountHolder: string;
+}
+
+export const updateProviderPayoutBank = async (
+  payload: UpdateProviderPayoutBankPayload,
+): Promise<{ message: string }> => {
+  return request<{ message: string }>(
+    "/api/providers/bank-accounts",
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bankName: payload.bankName.trim(),
+        clabe: payload.clabe,
+        accountHolder: payload.accountHolder.trim(),
+      }),
+    },
+    t("providerDashboard.paymentMethods.errors.bankUpdateFailed"),
+  );
+};
+
 // ========== EARNINGS ==========
 export type EarningsPeriod = "today" | "week" | "month" | "custom" | "all";
 export type EarningsTransactionStatus = "completed" | "pending" | "processing" | "refunded";

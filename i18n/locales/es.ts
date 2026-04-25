@@ -1876,6 +1876,10 @@ export default {
       nextPayout: "Próximo pago",
       earlyWithdrawal: "Retiro anticipado",
       bankAccountsSection: "Cuentas bancarias",
+      addBankTitle: "Cuenta bancaria para pagos",
+      addBankSubtitle: "Actualiza dónde recibes tus ganancias. Esto no reinicia la verificación.",
+      saveBank: "Guardar datos bancarios",
+      bankUpdated: "Tus datos bancarios para pagos se guardaron.",
       addAccount: "Agregar cuenta",
       primary: "Principal",
       payoutFrequency: "Frecuencia de pagos",
@@ -1890,6 +1894,7 @@ export default {
       currency: "MXN",
       errors: {
         bankAccountsFailed: "Error al cargar cuentas bancarias",
+        bankUpdateFailed: "No se pudieron guardar los datos bancarios. Intenta de nuevo.",
       },
     },
     inbox: {

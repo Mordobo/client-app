@@ -1874,6 +1874,10 @@ export default {
       nextPayout: "Next payout",
       earlyWithdrawal: "Early withdrawal",
       bankAccountsSection: "Bank accounts",
+      addBankTitle: "Payout bank account",
+      addBankSubtitle: "Update where you receive your earnings. This does not restart verification.",
+      saveBank: "Save bank details",
+      bankUpdated: "Your payout bank details were saved.",
       addAccount: "Add account",
       primary: "Primary",
       payoutFrequency: "Payout frequency",
@@ -1888,6 +1892,7 @@ export default {
       currency: "MXN",
       errors: {
         bankAccountsFailed: "Failed to load bank accounts",
+        bankUpdateFailed: "Could not save bank details. Please try again.",
       },
     },
     inbox: {
