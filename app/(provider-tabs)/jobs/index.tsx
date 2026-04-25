@@ -1,13 +1,15 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { loadRatedOrderIds } from "@/utils/providerClientRatedOrders";
 import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, type ProviderActiveJob, type ProviderActiveJobStatus } from "@/services/providerDashboard";
 import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, Linking, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -78,12 +80,30 @@ function JobStatusBadge({ status }: { status: ProviderActiveJobStatus }) {
   );
 }
 
-function JobCard({ job, onChat, onCall, onDetails, colors }: { job: ProviderActiveJob; onChat: (job: ProviderActiveJob) => void; onCall: (job: ProviderActiveJob) => void; onDetails: (job: ProviderActiveJob) => void; colors: ThemeColors }) {
+function JobCard({
+  job,
+  onChat,
+  onCall,
+  onDetails,
+  colors,
+  ratedOrderIds,
+}: {
+  job: ProviderActiveJob;
+  onChat: (job: ProviderActiveJob) => void;
+  onCall: (job: ProviderActiveJob) => void;
+  onDetails: (job: ProviderActiveJob) => void;
+  colors: ThemeColors;
+  ratedOrderIds: Set<string>;
+}) {
   const isScheduled = job.status === "scheduled";
   const isPendingReview = job.status === "pending_review";
   const isAwaitingProviderRating = job.status === "awaiting_provider_rating";
+  const locallyRated = ratedOrderIds.has(job.orderId);
+  const hideRatingStatusBadge = locallyRated && (isPendingReview || isAwaitingProviderRating);
   const timeLabel =
-    isAwaitingProviderRating
+    locallyRated && (isPendingReview || isAwaitingProviderRating)
+      ? t("providerDashboard.ratedClientLocally")
+      : isAwaitingProviderRating
       ? t("providerDashboard.invoice.continueToRate")
       : isPendingReview
       ? t("providerDashboard.completeJob.waitingForClientReview")
@@ -124,7 +144,7 @@ function JobCard({ job, onChat, onCall, onDetails, colors }: { job: ProviderActi
           </Text>
         </View>
         <View style={styles.statusRow}>
-          {job.status !== "scheduled" && <JobStatusBadge status={job.status} />}
+          {job.status !== "scheduled" && !hideRatingStatusBadge && <JobStatusBadge status={job.status} />}
           <Text style={[styles.timeLabel, { color: colors.textTertiary }]}>{timeLabel}</Text>
         </View>
       </View>
@@ -150,8 +170,24 @@ export default function ProviderJobsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const colors = useThemeColors();
+  const { user } = useAuth();
   const [filter, setFilter] = useState<FilterType>("pending");
   const [refreshing, setRefreshing] = useState(false);
+  const [ratedOrderIds, setRatedOrderIds] = useState<Set<string>>(new Set());
+
+  const reloadRatedIds = useCallback(() => {
+    if (!user?.id) {
+      setRatedOrderIds(new Set());
+      return;
+    }
+    loadRatedOrderIds(user.id).then(setRatedOrderIds);
+  }, [user?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      reloadRatedIds();
+    }, [reloadRatedIds]),
+  );
 
   const {
     data: rawJobs = [],
@@ -185,8 +221,9 @@ export default function ProviderJobsScreen() {
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await refetch();
+    reloadRatedIds();
     setRefreshing(false);
-  }, [refetch]);
+  }, [refetch, reloadRatedIds]);
 
   const handleCall = React.useCallback((job: ProviderActiveJob) => {
     const url =
@@ -259,7 +296,7 @@ export default function ProviderJobsScreen() {
         <View style={styles.centered}>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyActiveJobs")}</Text>
         </View>
-      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} colors={colors} />} style={styles.list} contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={true} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />} />}
+      : <FlatList data={filteredJobs} keyExtractor={(item) => item.id} renderItem={({ item }) => <JobCard job={item} onChat={handleChat} onCall={handleCall} onDetails={handleDetails} colors={colors} ratedOrderIds={ratedOrderIds} />} style={styles.list} contentContainerStyle={[styles.listContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={true} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor={colors.primary} />} />}
     </View>
   );
 }

@@ -1,5 +1,7 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { hasProviderRatedClient } from "@/utils/providerClientRatedOrders";
 import { ApiError } from "@/services/auth";
 import {
   completeJob,
@@ -90,6 +92,7 @@ async function uriToBase64(uri: string): Promise<string> {
 
 export default function CompleteJobScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
@@ -107,6 +110,8 @@ export default function CompleteJobScreen() {
   const [data, setData] = useState<JobCompletionData | null>(null);
   const [workSummary, setWorkSummary] = useState("");
   const [photos, setPhotos] = useState<{ uri: string; base64?: string }[]>([]);
+  /** When order is still `pending_review` from API but we already stored a local provider rating for this order. */
+  const [pendingReviewLocalRated, setPendingReviewLocalRated] = useState<boolean | null>(null);
 
   const sessionMergedRef = useRef(false);
 
@@ -161,11 +166,28 @@ export default function CompleteJobScreen() {
   }, [id, data]);
 
   useEffect(() => {
-    if (!id || !data) return;
-    if (data.order.status === "pending_review") {
-      router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
+    if (!id || !data || data.order.status !== "pending_review") {
+      setPendingReviewLocalRated(null);
+      return;
     }
-  }, [id, data, router]);
+    if (!user?.id) {
+      setPendingReviewLocalRated(false);
+      return;
+    }
+    let cancelled = false;
+    hasProviderRatedClient(user.id, id).then((rated) => {
+      if (!cancelled) setPendingReviewLocalRated(rated);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, data, user?.id]);
+
+  useEffect(() => {
+    if (!id || !data || data.order.status !== "pending_review") return;
+    if (pendingReviewLocalRated !== false) return;
+    router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
+  }, [id, data, pendingReviewLocalRated, router]);
 
   const durationLabel = useMemo(() => {
     if (!data) return "";
@@ -372,6 +394,27 @@ export default function CompleteJobScreen() {
   }
 
   if (data.order.status === "pending_review") {
+    if (pendingReviewLocalRated === true) {
+      return (
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+          <View style={styles.header}>
+            <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+              <Ionicons name="arrow-back" size={24} color={colors.icon} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
+          </View>
+          <View style={[styles.centered, styles.flexGrow]}>
+            <View style={styles.successCard}>
+              <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
+              <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.rateClient.errors.alreadyRated")}</Text>
+            </View>
+            <TouchableOpacity style={styles.submitBtn} onPress={() => router.replace("/(provider-tabs)/jobs")} activeOpacity={0.8}>
+              <Text style={styles.submitBtnText}>{t("providerDashboard.jobsScreenTitle")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
     return (
       <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={PURPLE_END} />

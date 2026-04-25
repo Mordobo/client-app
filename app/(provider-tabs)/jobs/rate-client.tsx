@@ -1,6 +1,8 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { rememberProviderRatedClient } from "@/utils/providerClientRatedOrders";
 import { ApiError } from "@/services/auth";
 import {
   rateClient,
@@ -47,6 +49,7 @@ function getRatingLabel(rating: number): string {
 
 export default function RateClientScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -86,7 +89,9 @@ export default function RateClientScreen() {
   }, [id]);
 
   const canRate =
-    orderStatus === "completed" || orderStatus === "pending_review";
+    orderStatus === "completed" ||
+    orderStatus === "pending_review" ||
+    orderStatus === "awaiting_provider_rating";
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((prev) =>
@@ -104,6 +109,8 @@ export default function RateClientScreen() {
         comment,
         privateNote,
       });
+
+      if (user?.id) await rememberProviderRatedClient(user.id, id);
 
       queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
       queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
@@ -125,6 +132,7 @@ export default function RateClientScreen() {
         else if (code === "already_rated") message = t("providerDashboard.rateClient.errors.alreadyRated");
       }
       if (isAlreadyRated) {
+        if (user?.id && id) await rememberProviderRatedClient(user.id, id);
         router.replace("/(provider-tabs)/jobs");
         Alert.alert(t("common.success"), message, [{ text: t("common.ok") }]);
       } else {
@@ -133,7 +141,7 @@ export default function RateClientScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [id, submitting, canRate, rating, selectedTags, comment, privateNote, queryClient, router]);
+  }, [id, submitting, canRate, rating, selectedTags, comment, privateNote, queryClient, router, user?.id]);
 
   const handleSkip = useCallback(() => {
     router.replace("/(provider-tabs)/jobs");

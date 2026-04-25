@@ -6,6 +6,7 @@ import { t } from "@/i18n";
 import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useRealtimeConversationMessages } from "@/hooks/useRealtimeConversationMessages";
 import { ConversationDetail, fetchConversation, fetchConversationActiveOrder, fetchConversationActiveQuote, fetchConversationMessages, Message, sendConversationMessage } from "@/services/conversations";
+import { hasProviderRatedClient } from "@/utils/providerClientRatedOrders";
 import { Order, OrderStatus, Quote } from "@/services/orders";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
@@ -473,6 +474,8 @@ export default function ChatScreen() {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  /** API may keep order in `pending_review` after the provider submitted a client rating. */
+  const [providerRatedActiveOrder, setProviderRatedActiveOrder] = useState(false);
   const [activeQuote, setActiveQuote] = useState<Quote | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -533,10 +536,16 @@ export default function ChatScreen() {
     try {
       const order = await fetchConversationActiveOrder(conversationId);
       setActiveOrder(order);
+      if (isProvider && user?.id && order?.id) {
+        setProviderRatedActiveOrder(await hasProviderRatedClient(user.id, order.id));
+      } else {
+        setProviderRatedActiveOrder(false);
+      }
     } catch {
       setActiveOrder(null);
+      setProviderRatedActiveOrder(false);
     }
-  }, [conversationId]);
+  }, [conversationId, isProvider, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -585,8 +594,14 @@ export default function ChatScreen() {
       try {
         const order = await fetchConversationActiveOrder(conversationId);
         setActiveOrder(order ?? null);
+        if (isProvider && user?.id && order?.id) {
+          setProviderRatedActiveOrder(await hasProviderRatedClient(user.id, order.id));
+        } else {
+          setProviderRatedActiveOrder(false);
+        }
       } catch {
         setActiveOrder(null);
+        setProviderRatedActiveOrder(false);
       }
       // Load active quote for this conversation
       try {
@@ -885,6 +900,7 @@ export default function ChatScreen() {
     if (activeOrder.status === "in_progress") return t("chat.jobBannerInProgress");
     if (activeOrder.status === "accepted") return t("chat.jobBannerScheduled");
     if (activeOrder.status === "pending_payment") return t("chat.jobBannerPendingPayment");
+    if (activeOrder.status === "pending_review" && isProvider && providerRatedActiveOrder) return t("chat.jobBannerYourReviewSent");
     if (activeOrder.status === "pending_review") return t("chat.jobBannerPendingReview");
     if (activeOrder.status === "pending_for_provider") {
       if (activeQuote?.status === "approved") return t("chat.jobBannerPaidConfirm");
