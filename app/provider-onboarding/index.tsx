@@ -1,21 +1,44 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { t } from '@/i18n';
 import { ProgressBar } from '@/components/onboarding/ProgressBar';
+import { useMode } from '@/contexts/ModeContext';
+import { t } from '@/i18n';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
+import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TOTAL_STEPS = 8;
 
 export default function ProviderOnboardingWelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { setMode } = useMode();
 
   const handleGetStarted = () => {
     router.push('/provider-onboarding/business');
   };
+
+  // Android hardware back: leave provider onboarding instead of popping to (provider-tabs), which
+  // would re-run gate logic and previously could open verification (step 7 submit) by mistake.
+  useFocusEffect(
+    useCallback(() => {
+      const onHardwareBack = () => {
+        void (async () => {
+          try {
+            await setMode('client');
+            router.replace('/(tabs)');
+          } catch (e) {
+            console.error('[ProviderOnboarding welcome] Exit on back failed:', e);
+            router.replace('/(tabs)');
+          }
+        })();
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
+      return () => sub.remove();
+    }, [router, setMode]),
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>

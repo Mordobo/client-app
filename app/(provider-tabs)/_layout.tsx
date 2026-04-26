@@ -27,14 +27,19 @@ export default function ProviderTabLayout() {
   const [providerStatusCheck, setProviderStatusCheck] = useState<{
     loading: boolean;
     status: string | null;
-  }>({ loading: true, status: null });
+    onboardingCompleted: boolean;
+  }>({ loading: true, status: null, onboardingCompleted: false });
 
   const refreshProviderStatus = useCallback(async () => {
     try {
       const res = await checkProviderStatus();
-      setProviderStatusCheck({ loading: false, status: res.status ?? null });
+      setProviderStatusCheck({
+        loading: false,
+        status: res.status ?? null,
+        onboardingCompleted: Boolean(res.onboardingCompleted),
+      });
     } catch {
-      setProviderStatusCheck({ loading: false, status: null });
+      setProviderStatusCheck({ loading: false, status: null, onboardingCompleted: false });
     }
   }, []);
 
@@ -43,13 +48,24 @@ export default function ProviderTabLayout() {
     refreshProviderStatus();
   }, [user, isFocused, refreshProviderStatus]);
 
-  // When provider is not active, redirect to Request Sent screen (provider-onboarding/verification).
+  // When provider is not active: send users who still need onboarding to the flow (not verification).
+  // Verification auto-submits step 7 on mount; sending incomplete onboarding there caused bogus
+  // "request sent" submissions when Android back popped to this layout under the welcome screen.
   useEffect(() => {
     if (providerStatusCheck.loading || !isFocused) return;
-    if (providerStatusCheck.status !== ACTIVE_STATUS) {
+    if (providerStatusCheck.status === ACTIVE_STATUS) return;
+    if (!providerStatusCheck.onboardingCompleted) {
+      router.replace("/provider-onboarding");
+    } else {
       router.replace("/provider-onboarding/verification");
     }
-  }, [providerStatusCheck.loading, providerStatusCheck.status, isFocused, router]);
+  }, [
+    providerStatusCheck.loading,
+    providerStatusCheck.status,
+    providerStatusCheck.onboardingCompleted,
+    isFocused,
+    router,
+  ]);
 
   // MDB-257: When Profile tab is pressed from a nested route (e.g. /profile/security), navigate to profile root.
   const isNestedProfileRoute =
