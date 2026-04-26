@@ -1,5 +1,6 @@
 import { t } from "@/i18n";
 import { request } from "./auth";
+import { getProviderServices } from "./providerServices";
 
 export interface ProviderDashboardStats {
   todayEarnings: number;
@@ -27,7 +28,26 @@ const DASHBOARD_REQUEST_AMOUNT_KEYS = [
   "service_price",
   "estimatedTotal",
   "estimated_total",
+  /** Catalog / direct-hire payloads often expose the listed service fee as `price`. */
+  "price",
+  "basePrice",
+  "base_price",
+  "requestedAmount",
+  "requested_amount",
 ] as const;
+
+/** Nested objects where the backend may attach totals for direct catalog requests (MDB-387). */
+const DASHBOARD_REQUEST_AMOUNT_NESTED = [
+  "metadata",
+  "service",
+  "order",
+  "quote",
+  "requestedService",
+  "catalogService",
+  "booking",
+] as const;
+
+const MAX_AMOUNT_NEST_DEPTH = 4;
 
 function coerceFiniteNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -38,22 +58,106 @@ function coerceFiniteNumber(value: unknown): number | null {
   return null;
 }
 
-function pickAmountFromRecord(raw: Record<string, unknown>): number | null {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function sumLineItemsTotal(raw: Record<string, unknown>): number | null {
+  const li = raw.line_items ?? raw.lineItems;
+  if (!Array.isArray(li) || li.length === 0) return null;
+  let sum = 0;
+  for (const row of li) {
+    if (!isPlainRecord(row)) return null;
+    const a = coerceFiniteNumber(row.amount ?? row.price);
+    if (a == null) return null;
+    sum += a;
+  }
+  return sum;
+}
+
+function pickAmountFromRecord(raw: Record<string, unknown>, depth = 0): number | null {
+  if (depth > MAX_AMOUNT_NEST_DEPTH) return null;
   for (const key of DASHBOARD_REQUEST_AMOUNT_KEYS) {
     const n = coerceFiniteNumber(raw[key]);
     if (n != null) return n;
   }
+  const lineSum = sumLineItemsTotal(raw);
+  if (lineSum != null) return lineSum;
+  if (depth >= MAX_AMOUNT_NEST_DEPTH) return null;
+  for (const key of DASHBOARD_REQUEST_AMOUNT_NESTED) {
+    const nested = raw[key];
+    if (!isPlainRecord(nested)) continue;
+    const inner = pickAmountFromRecord(nested, depth + 1);
+    if (inner != null) return inner;
+  }
   return null;
+}
+
+function resolveDashboardRequestServiceId(item: ProviderDashboardRequest, raw: Record<string, unknown>): string {
+  const a = typeof raw.serviceId === "string" ? raw.serviceId.trim() : "";
+  const b = typeof raw.service_id === "string" ? raw.service_id.trim() : "";
+  const c = typeof item.serviceId === "string" ? item.serviceId.trim() : "";
+  if (a || b || c) return a || b || c;
+  const meta = raw.metadata;
+  if (isPlainRecord(meta)) {
+    const m1 = typeof meta.serviceId === "string" ? meta.serviceId.trim() : "";
+    const m2 = typeof meta.service_id === "string" ? meta.service_id.trim() : "";
+    if (m1 || m2) return m1 || m2;
+  }
+  const svc = raw.service;
+  if (isPlainRecord(svc)) {
+    const sid = typeof svc.id === "string" ? svc.id.trim() : "";
+    if (sid) return sid;
+  }
+  return "";
+}
+
+function isMissingRequestAmount(quoteTotal: number | null | undefined): boolean {
+  return quoteTotal == null || !Number.isFinite(quoteTotal);
+}
+
+/** When the dashboard API omits totals for direct catalog hires, use the provider's listed service price. */
+async function enrichRequestsWithCatalogPrice(requests: ProviderDashboardRequest[]): Promise<ProviderDashboardRequest[]> {
+  const needsCatalog = requests.some((r) => {
+    if (!isMissingRequestAmount(r.quoteTotal)) return false;
+    const raw = r as unknown as Record<string, unknown>;
+    return !!resolveDashboardRequestServiceId(r, raw);
+  });
+  if (!needsCatalog) return requests;
+
+  try {
+    const { services } = await getProviderServices();
+    const priceByServiceId = new Map<string, number>();
+    for (const s of services) {
+      priceByServiceId.set(s.id, s.price);
+    }
+    return requests.map((r) => {
+      if (!isMissingRequestAmount(r.quoteTotal)) return r;
+      const raw = r as unknown as Record<string, unknown>;
+      const sid = resolveDashboardRequestServiceId(r, raw);
+      if (!sid) return r;
+      const listed = priceByServiceId.get(sid);
+      if (listed == null || !Number.isFinite(listed)) return r;
+      return { ...r, serviceId: sid, quoteTotal: listed };
+    });
+  } catch {
+    return requests;
+  }
 }
 
 /** Merge alternate API shapes (snake_case, direct-booking totals) into `quoteTotal` for list UIs. */
 function normalizeProviderDashboardRequest(item: ProviderDashboardRequest): ProviderDashboardRequest {
   const raw = item as unknown as Record<string, unknown>;
-  const existing = coerceFiniteNumber(raw.quoteTotal);
-  if (existing != null) return item;
+  const serviceId = resolveDashboardRequestServiceId(item, raw);
+  const base: ProviderDashboardRequest = { ...item, serviceId };
+
+  const existing = coerceFiniteNumber(raw.quoteTotal ?? raw.quote_total);
+  if (existing != null) return { ...base, quoteTotal: existing };
+
   const resolved = pickAmountFromRecord(raw);
-  if (resolved == null) return item;
-  return { ...item, quoteTotal: resolved };
+  if (resolved != null) return { ...base, quoteTotal: resolved };
+
+  return base;
 }
 
 export interface ProviderDashboardRequest {
@@ -184,7 +288,8 @@ export const getDashboardRequests = async (status?: ProviderRequestStatusFilter)
     },
     t("providerDashboard.errors.requestsFailed"),
   );
-  const requests = (res.requests ?? []).map(normalizeProviderDashboardRequest);
+  const normalized = (res.requests ?? []).map(normalizeProviderDashboardRequest);
+  const requests = await enrichRequestsWithCatalogPrice(normalized);
   return { ...res, requests, count: res.count ?? requests.length };
 };
 
