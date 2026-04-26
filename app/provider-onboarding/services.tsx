@@ -1,4 +1,6 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
@@ -50,6 +52,9 @@ function formatPriceWithThousands(price: string): string {
 export default function ProviderOnboardingServicesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const [services, setServices] = useState<Service[]>([]);
 
   const toggleService = useCallback((id: string) => {
@@ -111,28 +116,57 @@ export default function ProviderOnboardingServicesScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.screenBackground }]}>
       <ProgressBar currentStep={2} totalSteps={TOTAL_STEPS} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t("providerOnboarding.services.title")}</Text>
-        <Text style={styles.subtitle}>{t("providerOnboarding.services.subtitle")}</Text>
-        <Text style={styles.optionalNote}>{t("providerOnboarding.services.optionalNote")}</Text>
+      <ScrollView style={[styles.scrollView, { backgroundColor: theme.screenBackground }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("providerOnboarding.services.title")}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("providerOnboarding.services.subtitle")}</Text>
+        <Text style={[styles.optionalNote, { color: theme.textTertiary }]}>{t("providerOnboarding.services.optionalNote")}</Text>
 
         <View style={styles.servicesList}>
           {services.map((service) => (
-            <View key={service.id} style={[styles.serviceCard, service.active && styles.serviceCardActive]}>
+            <View
+              key={service.id}
+              style={[
+                styles.serviceCard,
+                {
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : theme.surfaceSecondary,
+                  borderColor: theme.border,
+                },
+                service.active && {
+                  backgroundColor: isDark ? "rgba(139, 92, 246, 0.15)" : `${theme.primary}22`,
+                  borderColor: `${theme.primary}55`,
+                },
+              ]}
+            >
               <View style={styles.serviceHeader}>
                 <View style={styles.serviceInfo}>
-                  <TextInput style={styles.serviceNameInput} value={service.name} onChangeText={(name) => updateServiceName(service.id, name)} placeholder={t("providerOnboarding.services.newServiceName")} placeholderTextColor="rgba(255, 255, 255, 0.35)" />
+                  <TextInput
+                    style={[styles.serviceNameInput, { color: theme.textPrimary }]}
+                    value={service.name}
+                    onChangeText={(name) => updateServiceName(service.id, name)}
+                    placeholder={t("providerOnboarding.services.newServiceName")}
+                    placeholderTextColor={theme.textTertiary}
+                  />
                   <View style={styles.durationRow}>
-                    <Text style={styles.durationLabel}>{t("providerOnboarding.services.duration")}</Text>
+                    <Text style={[styles.durationLabel, { color: theme.textTertiary }]}>{t("providerOnboarding.services.duration")}</Text>
                     <View style={styles.durationStepper}>
-                      <TouchableOpacity style={styles.durationBtn} onPress={() => durationStep(service.id, -DURATION_STEP)} activeOpacity={0.7}>
-                        <Ionicons name="remove" size={16} color="rgba(255, 255, 255, 0.8)" />
+                      <TouchableOpacity
+                        style={[styles.durationBtn, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : theme.surface }]}
+                        onPress={() => durationStep(service.id, -DURATION_STEP)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="remove" size={16} color={theme.textSecondary} />
                       </TouchableOpacity>
                       <TextInput
-                        style={styles.durationInput}
+                        style={[
+                          styles.durationInput,
+                          {
+                            color: theme.textPrimary,
+                            backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surface,
+                          },
+                        ]}
                         value={String(service.durationHours)}
                         onChangeText={(text) => {
                           const cleaned = text.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
@@ -141,11 +175,17 @@ export default function ProviderOnboardingServicesScreen() {
                         }}
                         keyboardType="decimal-pad"
                         placeholder="0"
-                        placeholderTextColor="rgba(255, 255, 255, 0.35)"
+                        placeholderTextColor={theme.textTertiary}
                       />
-                      <Text style={styles.durationUnit}>{service.durationHours === 1 ? t("providerOnboarding.services.durationUnit") : t("providerOnboarding.services.durationUnitPlural")}</Text>
-                      <TouchableOpacity style={styles.durationBtn} onPress={() => durationStep(service.id, DURATION_STEP)} activeOpacity={0.7}>
-                        <Ionicons name="add" size={16} color="rgba(255, 255, 255, 0.8)" />
+                      <Text style={[styles.durationUnit, { color: theme.textSecondary }]}>
+                        {service.durationHours === 1 ? t("providerOnboarding.services.durationUnit") : t("providerOnboarding.services.durationUnitPlural")}
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.durationBtn, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : theme.surface }]}
+                        onPress={() => durationStep(service.id, DURATION_STEP)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="add" size={16} color={theme.textSecondary} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -155,28 +195,39 @@ export default function ProviderOnboardingServicesScreen() {
                     <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.checkbox, styles.checkboxActive]}>
                       <Ionicons name="checkmark" size={12} color="#FFFFFF" />
                     </LinearGradient>
-                  : <View style={styles.checkbox} />}
+                  : <View style={[styles.checkbox, { backgroundColor: theme.surfaceSecondary, borderWidth: 1, borderColor: theme.border }]} />}
                 </TouchableOpacity>
               </View>
               <View style={styles.serviceFooter}>
                 <LinearGradient colors={["#6366F1", "#EC4899"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.priceGradient}>
                   <Text style={styles.currencySymbol}>{t("providerOnboarding.services.currencySymbol")}</Text>
-                  <TextInput style={styles.priceInput} value={formatPriceWithThousands(service.price)} onChangeText={(text) => updateServicePrice(service.id, text)} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor="rgba(255, 255, 255, 0.6)" />
+                  <TextInput
+                    style={styles.priceInput}
+                    value={formatPriceWithThousands(service.price)}
+                    onChangeText={(text) => updateServicePrice(service.id, text)}
+                    keyboardType="decimal-pad"
+                    placeholder="0.00"
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  />
                 </LinearGradient>
               </View>
             </View>
           ))}
 
-          <TouchableOpacity style={styles.addServiceButton} onPress={handleAddService} activeOpacity={0.7}>
-            <Ionicons name="add" size={16} color="rgba(255, 255, 255, 0.4)" />
-            <Text style={styles.addServiceText}>{t("providerOnboarding.services.addService")}</Text>
+          <TouchableOpacity
+            style={[styles.addServiceButton, { borderColor: theme.border }]}
+            onPress={handleAddService}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add" size={16} color={theme.iconSecondary} />
+            <Text style={[styles.addServiceText, { color: theme.textSecondary }]}>{t("providerOnboarding.services.addService")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{t("providerOnboarding.services.back")}</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surfaceSecondary }]} onPress={handleBack} activeOpacity={0.7}>
+          <Text style={[styles.backButtonText, { color: theme.textSecondary }]}>{t("providerOnboarding.services.back")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={saving}>
           <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
@@ -191,7 +242,6 @@ export default function ProviderOnboardingServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#12121A",
   },
   scrollView: {
     flex: 1,
@@ -203,18 +253,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     marginBottom: 4,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 8,
   },
   optionalNote: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.45)",
     fontStyle: "italic",
     marginBottom: 20,
   },
@@ -224,13 +271,7 @@ const styles = StyleSheet.create({
   serviceCard: {
     padding: 14,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
-  },
-  serviceCardActive: {
-    backgroundColor: "rgba(139, 92, 246, 0.15)",
-    borderColor: "rgba(139, 92, 246, 0.3)",
   },
   serviceHeader: {
     flexDirection: "row",
@@ -244,7 +285,6 @@ const styles = StyleSheet.create({
   serviceNameInput: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#FFFFFF",
     marginBottom: 6,
     paddingVertical: 2,
     paddingHorizontal: 0,
@@ -256,7 +296,6 @@ const styles = StyleSheet.create({
   },
   durationLabel: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.4)",
   },
   durationStepper: {
     flexDirection: "row",
@@ -267,7 +306,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -275,16 +313,13 @@ const styles = StyleSheet.create({
     width: 44,
     fontSize: 14,
     fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.9)",
     paddingVertical: 4,
     paddingHorizontal: 6,
     textAlign: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 8,
   },
   durationUnit: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     minWidth: 24,
   },
   checkboxTouchable: {
@@ -294,7 +329,6 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -336,11 +370,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   addServiceText: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.4)",
   },
   buttonContainer: {
     flexDirection: "row",
@@ -352,14 +384,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   backButtonText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
   },
   continueButton: {
     flex: 2,

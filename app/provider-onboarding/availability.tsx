@@ -1,4 +1,6 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
@@ -48,6 +50,9 @@ const RADIUS_OPTIONS_KM = [5, 10, 15, 20, 25, 30];
 export default function ProviderOnboardingAvailabilityScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const [activeDays, setActiveDays] = useState([0, 1, 2, 3, 4]);
   const [startTime, setStartTime] = useState("08:00 AM");
   const [endTime, setEndTime] = useState("06:00 PM");
@@ -124,65 +129,130 @@ export default function ProviderOnboardingAvailabilityScreen() {
     }
   };
 
+  const switchTrackOff = isDark ? "rgba(255, 255, 255, 0.15)" : theme.border;
+  const switchTrackOn = isDark ? "rgba(139, 92, 246, 0.5)" : `${theme.primary}99`;
+  const switchThumbOff = isDark ? "rgba(255, 255, 255, 0.5)" : theme.surfaceSecondary;
+  const switchThumbOn = isDark ? "#A78BFA" : theme.primary;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.screenBackground }]}>
       <ProgressBar currentStep={3} totalSteps={TOTAL_STEPS} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t("providerOnboarding.availability.title")}</Text>
-        <Text style={styles.subtitle}>{t("providerOnboarding.availability.subtitle")}</Text>
+      <ScrollView style={[styles.scrollView, { backgroundColor: theme.screenBackground }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("providerOnboarding.availability.title")}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("providerOnboarding.availability.subtitle")}</Text>
 
         <View style={styles.daysContainer}>
           {DAYS.map((day, index) => {
             const isActive = activeDays.includes(index);
             return (
-              <TouchableOpacity key={day} style={[styles.dayButton, isActive && styles.dayButtonActive]} onPress={() => toggleDay(index)} activeOpacity={0.7} accessibilityState={{ selected: isActive }} accessibilityLabel={`${day}, ${isActive ? t("providerOnboarding.availability.daySelected") : t("providerOnboarding.availability.dayNotSelected")}`}>
-                {isActive && <Ionicons name="checkmark-circle" size={14} color="#A78BFA" style={styles.dayCheck} />}
-                <Text style={[styles.dayText, isActive && styles.dayTextActive]}>{day}</Text>
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayButton,
+                  {
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surfaceSecondary,
+                    borderColor: "transparent",
+                  },
+                  isActive && {
+                    backgroundColor: isDark ? "rgba(139, 92, 246, 0.2)" : `${theme.primary}33`,
+                    borderColor: theme.primary,
+                  },
+                ]}
+                onPress={() => toggleDay(index)}
+                activeOpacity={0.7}
+                accessibilityState={{ selected: isActive }}
+                accessibilityLabel={`${day}, ${isActive ? t("providerOnboarding.availability.daySelected") : t("providerOnboarding.availability.dayNotSelected")}`}
+              >
+                {isActive && <Ionicons name="checkmark-circle" size={14} color={theme.primary} style={styles.dayCheck} />}
+                <Text style={[styles.dayText, { color: theme.textTertiary }, isActive && { color: theme.textPrimary, fontWeight: "600" }]}>{day}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <View style={styles.scheduleCard} collapsable={false}>
-          <Text style={styles.cardLabel}>{t("providerOnboarding.availability.schedule")}</Text>
+        <View
+          style={[
+            styles.scheduleCard,
+            {
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : theme.surfaceSecondary,
+              borderColor: theme.border,
+            },
+          ]}
+          collapsable={false}
+        >
+          <Text style={[styles.cardLabel, { color: theme.textSecondary }]}>{t("providerOnboarding.availability.schedule")}</Text>
           <View style={styles.timeRowWrapper}>
             <View style={styles.timeContainer}>
               <View style={styles.timeField}>
-                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.from")}</Text>
-                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("start")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.from")}>
-                  <Text style={styles.timeText}>{startTime}</Text>
+                <Text style={[styles.timeLabel, { color: theme.textTertiary }]}>{t("providerOnboarding.availability.from")}</Text>
+                <TouchableOpacity
+                  style={[styles.timeValue, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surface }]}
+                  onPress={() => openTimePicker("start")}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("providerOnboarding.availability.from")}
+                >
+                  <Text style={[styles.timeText, { color: theme.textPrimary }]}>{startTime}</Text>
                 </TouchableOpacity>
               </View>
               <View style={styles.arrowWrapper}>
-                <Text style={styles.arrow}>→</Text>
+                <Text style={[styles.arrow, { color: theme.textTertiary }]}>→</Text>
               </View>
               <View style={styles.timeField}>
-                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.to")}</Text>
-                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("end")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.to")}>
-                  <Text style={styles.timeText}>{endTime}</Text>
+                <Text style={[styles.timeLabel, { color: theme.textTertiary }]}>{t("providerOnboarding.availability.to")}</Text>
+                <TouchableOpacity
+                  style={[styles.timeValue, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surface }]}
+                  onPress={() => openTimePicker("end")}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("providerOnboarding.availability.to")}
+                >
+                  <Text style={[styles.timeText, { color: theme.textPrimary }]}>{endTime}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          <View style={styles.lunchToggleRow}>
-            <Text style={styles.lunchToggleLabel}>{t("providerOnboarding.availability.lunchBreak")}</Text>
-            <Switch value={hasLunchBreak} onValueChange={setHasLunchBreak} trackColor={{ false: "rgba(255, 255, 255, 0.15)", true: "rgba(139, 92, 246, 0.5)" }} thumbColor={hasLunchBreak ? "#A78BFA" : "rgba(255, 255, 255, 0.5)"} accessibilityLabel={t("providerOnboarding.availability.lunchBreak")} />
+          <View style={[styles.lunchToggleRow, { borderTopColor: theme.border }]}>
+            <Text style={[styles.lunchToggleLabel, { color: theme.textPrimary }]}>{t("providerOnboarding.availability.lunchBreak")}</Text>
+            <Switch
+              value={hasLunchBreak}
+              onValueChange={setHasLunchBreak}
+              trackColor={{ false: switchTrackOff, true: switchTrackOn }}
+              thumbColor={hasLunchBreak ? switchThumbOn : switchThumbOff}
+              accessibilityLabel={t("providerOnboarding.availability.lunchBreak")}
+            />
           </View>
           {hasLunchBreak && (
             <View style={styles.lunchTimeRow}>
               <View style={styles.timeField}>
-                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.lunchFrom")}</Text>
-                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("lunchStart")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.lunchFrom")}>
-                  <Text style={styles.timeText}>{lunchStart}</Text>
+                <Text style={[styles.timeLabel, { color: theme.textTertiary }]}>{t("providerOnboarding.availability.lunchFrom")}</Text>
+                <TouchableOpacity
+                  style={[styles.timeValue, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surface }]}
+                  onPress={() => openTimePicker("lunchStart")}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("providerOnboarding.availability.lunchFrom")}
+                >
+                  <Text style={[styles.timeText, { color: theme.textPrimary }]}>{lunchStart}</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={[styles.arrow, { color: theme.textTertiary }]}>→</Text>
               <View style={styles.timeField}>
-                <Text style={styles.timeLabel}>{t("providerOnboarding.availability.lunchTo")}</Text>
-                <TouchableOpacity style={styles.timeValue} onPress={() => openTimePicker("lunchEnd")} activeOpacity={0.7} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} accessibilityRole="button" accessibilityLabel={t("providerOnboarding.availability.lunchTo")}>
-                  <Text style={styles.timeText}>{lunchEnd}</Text>
+                <Text style={[styles.timeLabel, { color: theme.textTertiary }]}>{t("providerOnboarding.availability.lunchTo")}</Text>
+                <TouchableOpacity
+                  style={[styles.timeValue, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surface }]}
+                  onPress={() => openTimePicker("lunchEnd")}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("providerOnboarding.availability.lunchTo")}
+                >
+                  <Text style={[styles.timeText, { color: theme.textPrimary }]}>{lunchEnd}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -206,11 +276,19 @@ export default function ProviderOnboardingAvailabilityScreen() {
               />
               {Platform.OS === "ios" && (
                 <View style={styles.iosTimePickerActions}>
-                  <TouchableOpacity style={styles.iosTimePickerButton} onPress={() => setShowTimePicker(null)} activeOpacity={0.7}>
-                    <Text style={styles.iosTimePickerButtonText}>{t("common.cancel")}</Text>
+                  <TouchableOpacity
+                    style={[styles.iosTimePickerButton, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : theme.surfaceSecondary }]}
+                    onPress={() => setShowTimePicker(null)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.iosTimePickerButtonText, { color: theme.textPrimary }]}>{t("common.cancel")}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.iosTimePickerButton, styles.iosTimePickerButtonPrimary]} onPress={() => setShowTimePicker(null)} activeOpacity={0.7}>
-                    <Text style={[styles.iosTimePickerButtonText, styles.iosTimePickerButtonTextPrimary]}>{t("common.ok")}</Text>
+                  <TouchableOpacity
+                    style={[styles.iosTimePickerButton, { backgroundColor: isDark ? "rgba(139, 92, 246, 0.6)" : `${theme.primary}CC` }]}
+                    onPress={() => setShowTimePicker(null)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.iosTimePickerButtonText, { color: "#FFFFFF" }]}>{t("common.ok")}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -218,15 +296,44 @@ export default function ProviderOnboardingAvailabilityScreen() {
           )}
         </View>
 
-        <View style={styles.coverageCard}>
-          <Text style={styles.cardLabel}>{t("providerOnboarding.availability.coverage")}</Text>
-          <View style={styles.coverageContent}>
-            <Ionicons name="location" size={24} color="#A78BFA" />
-            <Text style={styles.radiusLabel}>{t("providerOnboarding.availability.radiusLabel")}</Text>
+        <View
+          style={[
+            styles.coverageCard,
+            {
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : theme.surfaceSecondary,
+              borderColor: theme.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardLabel, { color: theme.textSecondary }]}>{t("providerOnboarding.availability.coverage")}</Text>
+          <View style={[styles.coverageContent, { backgroundColor: isDark ? "rgba(139, 92, 246, 0.1)" : `${theme.primary}18` }]}>
+            <Ionicons name="location" size={24} color={theme.primary} />
+            <Text style={[styles.radiusLabel, { color: theme.textSecondary }]}>{t("providerOnboarding.availability.radiusLabel")}</Text>
             <View style={styles.radiusOptions}>
               {RADIUS_OPTIONS_KM.map((km) => (
-                <TouchableOpacity key={km} style={[styles.radiusChip, radiusKm === km && styles.radiusChipActive]} onPress={() => setRadiusKm(km)} activeOpacity={0.7}>
-                  <Text style={[styles.radiusChipText, radiusKm === km && styles.radiusChipTextActive]}>{km} km</Text>
+                <TouchableOpacity
+                  key={km}
+                  style={[
+                    styles.radiusChip,
+                    { backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : theme.surface },
+                    radiusKm === km && {
+                      backgroundColor: isDark ? "rgba(139, 92, 246, 0.4)" : `${theme.primary}44`,
+                      borderWidth: 1,
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                  onPress={() => setRadiusKm(km)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[
+                      styles.radiusChipText,
+                      { color: theme.textSecondary },
+                      radiusKm === km && { color: theme.textPrimary, fontWeight: "600" },
+                    ]}
+                  >
+                    {km} km
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -235,8 +342,8 @@ export default function ProviderOnboardingAvailabilityScreen() {
       </ScrollView>
 
       <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{t("providerOnboarding.availability.back")}</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surfaceSecondary }]} onPress={handleBack} activeOpacity={0.7}>
+          <Text style={[styles.backButtonText, { color: theme.textSecondary }]}>{t("providerOnboarding.availability.back")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={saving}>
           <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
@@ -251,7 +358,6 @@ export default function ProviderOnboardingAvailabilityScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#12121A",
   },
   scrollView: {
     flex: 1,
@@ -263,13 +369,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     marginBottom: 4,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 20,
   },
   daysContainer: {
@@ -281,15 +385,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderWidth: 2,
-    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
-  },
-  dayButtonActive: {
-    backgroundColor: "rgba(139, 92, 246, 0.2)",
-    borderColor: "#A78BFA",
   },
   dayCheck: {
     position: "absolute",
@@ -299,24 +397,16 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.4)",
-  },
-  dayTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "600",
   },
   scheduleCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
     marginBottom: 16,
   },
   cardLabel: {
     fontSize: 12,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -334,18 +424,15 @@ const styles = StyleSheet.create({
   },
   timeLabel: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.4)",
     marginBottom: 4,
   },
   timeValue: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
   timeText: {
     fontSize: 14,
-    color: "#FFFFFF",
   },
   arrowWrapper: {
     justifyContent: "center",
@@ -353,7 +440,6 @@ const styles = StyleSheet.create({
   },
   arrow: {
     fontSize: 16,
-    color: "rgba(255, 255, 255, 0.2)",
   },
   lunchToggleRow: {
     flexDirection: "row",
@@ -362,11 +448,9 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.06)",
   },
   lunchToggleLabel: {
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
   },
   lunchTimeRow: {
     flexDirection: "row",
@@ -377,9 +461,7 @@ const styles = StyleSheet.create({
   coverageCard: {
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
     flex: 1,
     minHeight: 96,
   },
@@ -387,13 +469,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(139, 92, 246, 0.1)",
     borderRadius: 8,
     padding: 16,
   },
   radiusLabel: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.6)",
     marginTop: 4,
     marginBottom: 12,
   },
@@ -407,20 +487,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-  },
-  radiusChipActive: {
-    backgroundColor: "rgba(139, 92, 246, 0.4)",
-    borderWidth: 1,
-    borderColor: "#A78BFA",
   },
   radiusChipText: {
     fontSize: 13,
-    color: "rgba(255, 255, 255, 0.6)",
-  },
-  radiusChipTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "600",
   },
   iosTimePickerActions: {
     flexDirection: "row",
@@ -432,18 +501,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-  },
-  iosTimePickerButtonPrimary: {
-    backgroundColor: "rgba(139, 92, 246, 0.6)",
   },
   iosTimePickerButtonText: {
-    color: "rgba(255, 255, 255, 0.9)",
     fontSize: 14,
     fontWeight: "600",
-  },
-  iosTimePickerButtonTextPrimary: {
-    color: "#FFFFFF",
   },
   buttonContainer: {
     flexDirection: "row",
@@ -455,14 +516,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   backButtonText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
   },
   continueButton: {
     flex: 2,

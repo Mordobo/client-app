@@ -1,4 +1,6 @@
 import { ProgressBar } from "@/components/onboarding/ProgressBar";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { getOnboardingDocuments, submitOnboardingStep, type OnboardingDocumentType, uploadOnboardingDocument } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
@@ -37,6 +39,9 @@ function buildInitialDocuments(): Document[] {
 export default function ProviderOnboardingDocumentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const [documents, setDocuments] = useState<Document[]>(buildInitialDocuments);
   const [loadingDocs, setLoadingDocs] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -130,53 +135,79 @@ export default function ProviderOnboardingDocumentsScreen() {
     }
   };
 
+  const securityBg = isDark ? "rgba(251, 191, 36, 0.1)" : "rgba(245, 158, 11, 0.12)";
+  const securityBorder = isDark ? "rgba(251, 191, 36, 0.2)" : "rgba(217, 119, 6, 0.35)";
+  const securityTextColor = isDark ? "rgba(253, 230, 138, 0.95)" : "#92400E";
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.screenBackground }]}>
       <ProgressBar currentStep={4} totalSteps={TOTAL_STEPS} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t("providerOnboarding.documents.title")}</Text>
-        <Text style={styles.subtitle}>{t("providerOnboarding.documents.subtitle")}</Text>
+      <ScrollView style={[styles.scrollView, { backgroundColor: theme.screenBackground }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>{t("providerOnboarding.documents.title")}</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t("providerOnboarding.documents.subtitle")}</Text>
 
         <View style={styles.documentsList}>
           {loadingDocs ?
             <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" color="#A78BFA" />
-              <Text style={styles.loadingText}>{t("providerOnboarding.documents.loading")}</Text>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <Text style={[styles.loadingText, { color: theme.textSecondary }]}>{t("providerOnboarding.documents.loading")}</Text>
             </View>
           : null}
           {documents.map((doc) => (
-            <View key={doc.id} style={[styles.documentCard, doc.status === "uploaded" && styles.documentCardUploaded]}>
-              <View style={styles.documentIcon}>
+            <View
+              key={doc.id}
+              style={[
+                styles.documentCard,
+                {
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : theme.surfaceSecondary,
+                  borderColor: theme.border,
+                },
+                doc.status === "uploaded" && {
+                  backgroundColor: isDark ? "rgba(34, 197, 94, 0.1)" : "rgba(34, 197, 94, 0.12)",
+                  borderColor: isDark ? "rgba(34, 197, 94, 0.3)" : "rgba(22, 163, 74, 0.45)",
+                },
+              ]}
+            >
+              <View style={[styles.documentIcon, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : theme.surface }]}>
                 <Text style={styles.documentIconText}>{doc.icon}</Text>
               </View>
               <View style={styles.documentInfo}>
-                <Text style={styles.documentName}>{doc.name}</Text>
-                <Text style={styles.documentDesc}>{doc.desc}</Text>
+                <Text style={[styles.documentName, { color: theme.textPrimary }]}>{doc.name}</Text>
+                <Text style={[styles.documentDesc, { color: theme.textTertiary }]}>{doc.desc}</Text>
               </View>
               {doc.status === "uploaded" ?
-                <View style={styles.uploadedIcon}>
+                <View style={[styles.uploadedIcon, { backgroundColor: isDark ? "rgba(34, 197, 94, 0.2)" : "rgba(34, 197, 94, 0.18)" }]}>
                   <Ionicons name="checkmark" size={14} color="#22C55E" />
                 </View>
-              : <TouchableOpacity style={[styles.uploadButton, uploadingId === doc.id && styles.uploadButtonDisabled]} onPress={() => handleUpload(doc.id)} activeOpacity={0.7} disabled={uploadingId !== null}>
+              : <TouchableOpacity
+                  style={[
+                    styles.uploadButton,
+                    { backgroundColor: isDark ? "rgba(139, 92, 246, 0.2)" : `${theme.primary}28` },
+                    uploadingId === doc.id && styles.uploadButtonDisabled,
+                  ]}
+                  onPress={() => handleUpload(doc.id)}
+                  activeOpacity={0.7}
+                  disabled={uploadingId !== null}
+                >
                   {uploadingId === doc.id ?
-                    <ActivityIndicator size="small" color="#A78BFA" />
-                  : <Text style={styles.uploadButtonText}>{t("providerOnboarding.documents.upload")}</Text>}
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  : <Text style={[styles.uploadButtonText, { color: theme.primary }]}>{t("providerOnboarding.documents.upload")}</Text>}
                 </TouchableOpacity>
               }
             </View>
           ))}
         </View>
 
-        <View style={styles.securityNote}>
+        <View style={[styles.securityNote, { backgroundColor: securityBg, borderColor: securityBorder }]}>
           <Text style={styles.securityIcon}>🔒</Text>
-          <Text style={styles.securityText}>{t("providerOnboarding.documents.securityNote")}</Text>
+          <Text style={[styles.securityText, { color: securityTextColor }]}>{t("providerOnboarding.documents.securityNote")}</Text>
         </View>
       </ScrollView>
 
       <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.7}>
-          <Text style={styles.backButtonText}>{t("providerOnboarding.documents.back")}</Text>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: theme.surfaceSecondary }]} onPress={handleBack} activeOpacity={0.7}>
+          <Text style={[styles.backButtonText, { color: theme.textSecondary }]}>{t("providerOnboarding.documents.back")}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.continueButton} onPress={handleContinue} activeOpacity={0.8} disabled={saving}>
           <LinearGradient colors={["#6366F1", "#8B5CF6"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.continueButtonGradient}>
@@ -191,7 +222,6 @@ export default function ProviderOnboardingDocumentsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#12121A",
   },
   scrollView: {
     flex: 1,
@@ -203,13 +233,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
     marginBottom: 4,
     marginTop: 8,
   },
   subtitle: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
     marginBottom: 20,
   },
   documentsList: {
@@ -224,7 +252,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.5)",
   },
   documentCard: {
     flexDirection: "row",
@@ -232,19 +259,12 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
-  },
-  documentCardUploaded: {
-    backgroundColor: "rgba(34, 197, 94, 0.1)",
-    borderColor: "rgba(34, 197, 94, 0.3)",
   },
   documentIcon: {
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -257,18 +277,15 @@ const styles = StyleSheet.create({
   documentName: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#FFFFFF",
     marginBottom: 4,
   },
   documentDesc: {
     fontSize: 12,
-    color: "rgba(255, 255, 255, 0.4)",
   },
   uploadedIcon: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "rgba(34, 197, 94, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -276,7 +293,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: "rgba(139, 92, 246, 0.2)",
     minWidth: 44,
     minHeight: 32,
     justifyContent: "center",
@@ -288,7 +304,6 @@ const styles = StyleSheet.create({
   uploadButtonText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#A78BFA",
   },
   securityNote: {
     flexDirection: "row",
@@ -296,9 +311,7 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(251, 191, 36, 0.1)",
     borderWidth: 1,
-    borderColor: "rgba(251, 191, 36, 0.2)",
   },
   securityIcon: {
     fontSize: 18,
@@ -306,7 +319,6 @@ const styles = StyleSheet.create({
   securityText: {
     flex: 1,
     fontSize: 12,
-    color: "rgba(251, 191, 36, 0.8)",
     lineHeight: 18,
   },
   buttonContainer: {
@@ -319,14 +331,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     alignItems: "center",
     justifyContent: "center",
   },
   backButtonText: {
     fontSize: 14,
     fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.7)",
   },
   continueButton: {
     flex: 2,

@@ -88,7 +88,7 @@ export default function ProviderOnboardingTermsScreen() {
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themed.screen }]}>
       <ProgressBar currentStep={6} totalSteps={TOTAL_STEPS} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: themed.screen }]} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={[styles.title, { color: themed.title }]}>{t("providerOnboarding.terms.title")}</Text>
         <Text style={[styles.subtitle, { color: themed.subtitle }]}>{t("providerOnboarding.terms.subtitle")}</Text>
 
