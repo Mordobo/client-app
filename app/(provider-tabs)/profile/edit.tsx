@@ -70,6 +70,7 @@ export default function ProviderEditProfileScreen() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -176,7 +177,10 @@ export default function ProviderEditProfileScreen() {
       phoneNumber: normalizePhoneInput(profile.phoneNumber || ""),
       yearsExperience: profile.yearsExperience ?? null,
     });
-    if (profile.avatarUrl) setAvatarUri(getProfileImageUrl(profile.avatarUrl) ?? profile.avatarUrl);
+    if (profile.avatarUrl) {
+      setAvatarUri(getProfileImageUrl(profile.avatarUrl) ?? profile.avatarUrl);
+      setAvatarError(false);
+    }
   }, [profile, resolvedCategoryId, reset]);
 
   const goToProfile = useCallback(() => {
@@ -239,6 +243,7 @@ export default function ProviderEditProfileScreen() {
       }
       const { avatarUrl } = await uploadProviderAvatar(base64, "avatar.jpg", "image/jpeg");
       setAvatarUri(getProfileImageUrl(avatarUrl) ?? avatarUrl);
+      setAvatarError(false);
       await queryClient.invalidateQueries({ queryKey: ["providerProfile"] });
     } catch (e) {
       console.error("[ProviderEditProfile] Avatar upload failed:", e);
@@ -325,14 +330,20 @@ export default function ProviderEditProfileScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity
               onPress={pickImage}
-              style={[styles.avatarWrap, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[styles.avatarWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
               activeOpacity={0.8}
               disabled={uploadingAvatar}
             >
-              {avatarUri ?
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="contain" />
+              {avatarUri && !avatarError ?
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                  onError={() => setAvatarError(true)}
+                />
               : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceSecondary }]}>
-                  <Text style={[styles.avatarInitials, { color: colors.textSecondary }]}>{getDisplayNameInitials(watch("displayName") || "")}</Text>
+                  <Text style={[styles.avatarInitials, { color: colors.textPrimary }]}>{getDisplayNameInitials(watch("displayName") || "")}</Text>
                 </View>
               }
               {uploadingAvatar ?
