@@ -196,6 +196,7 @@ export default {
     regenerateBackupCodesFailed: "Failed to regenerate backup codes. Please try again.",
     copiedToClipboard: "Copied to clipboard",
     copyFailed: "Failed to copy. Please try again.",
+    saveFileFailed: "Could not save the file. Please try again.",
     getSessionsFailed: "Failed to load sessions. Please try again.",
     revokeSessionFailed: "Failed to revoke session. Please try again.",
     deleteAccountFailed: "Failed to delete account. Please try again.",

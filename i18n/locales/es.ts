@@ -197,6 +197,7 @@ export default {
     regenerateBackupCodesFailed: "Error al regenerar los códigos de respaldo. Por favor intenta de nuevo.",
     copiedToClipboard: "Copiado al portapapeles",
     copyFailed: "No se pudo copiar. Inténtalo de nuevo.",
+    saveFileFailed: "No se pudo guardar el archivo. Inténtalo de nuevo.",
     getSessionsFailed: "Error al cargar sesiones. Por favor intenta de nuevo.",
     revokeSessionFailed: "Error al revocar sesión. Por favor intenta de nuevo.",
     deleteAccountFailed: "Error al eliminar cuenta. Por favor intenta de nuevo.",
