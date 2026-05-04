@@ -2111,6 +2111,13 @@ export default {
   complaints: {
     title: "Complaints & suggestions",
     subtitle: "Submit a formal complaint, claim, or suggestion. Our team will respond from the support center.",
+    submittingAsLabel: "You are submitting as",
+    submittingAsClient: "Client",
+    submittingAsProvider: "Provider",
+    contextHintClient:
+      "This submission is filed as a client. If you add an order, it must be one where you participated as the client.",
+    contextHintProvider:
+      "This submission is filed as a provider. If you add an order, it must be one where you were the assigned supplier.",
     typeLabel: "Type",
     typeComplaint: "Complaint",
     typeClaim: "Claim",
@@ -2120,7 +2127,9 @@ export default {
     descriptionLabel: "Description",
     descriptionPlaceholder: "Describe your case in detail",
     orderIdLabel: "Related order (optional)",
+    orderIdLabelProvider: "Related job order (optional)",
     orderIdPlaceholder: "Order ID if applicable",
+    orderIdPlaceholderProvider: "Order UUID where you were the provider",
     submit: "Submit",
     submitting: "Sending…",
     successTitle: "Received",
