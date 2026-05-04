@@ -1,5 +1,6 @@
 import { Toast } from '@/components/Toast';
 import { AddCardModal } from '@/components/payment/AddCardModal';
+import { CardBrandMark } from '@/components/payment/CardBrandMark';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import {
@@ -20,8 +21,8 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { ThemeColors } from '@/utils/themeStyles';
+import { paymentMethodTypeToMarkVariant } from '@/utils/cardNetwork';
 
 const SECONDARY_GREEN = '#10b981';
 const DANGER_RED = '#ef4444';
@@ -131,20 +132,6 @@ function createPaymentMethodsStyles(theme: ThemeColors) {
       shadowOpacity: 0.2,
       shadowRadius: 8,
       elevation: 3,
-    },
-    cardIcon: {
-      width: 56,
-      height: 40,
-      borderRadius: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    cardIconText: {
-      color: '#ffffff',
-      fontSize: 10,
-      fontWeight: '700',
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
     },
     cardInfo: {
       flex: 1,
@@ -368,62 +355,13 @@ function createPaymentMethodsStyles(theme: ThemeColors) {
   });
 }
 
-type PaymentMethodsScreenStyles = ReturnType<typeof createPaymentMethodsStyles>;
-
 interface PaymentMethod {
   id: string;
-  type: 'visa' | 'mastercard' | 'paypal';
+  type: string;
   last4?: string;
   expiry?: string;
   email?: string;
   isDefault: boolean;
-}
-
-function CardIcon({
-  type,
-  styles,
-}: {
-  type: 'visa' | 'mastercard' | 'paypal';
-  styles: PaymentMethodsScreenStyles;
-}) {
-  const getGradientColors = (): [string, string] => {
-    switch (type) {
-      case 'visa':
-        return ['#1A1F71', '#3b5998'];
-      case 'mastercard':
-        return ['#EB001B', '#F79E1B'];
-      case 'paypal':
-        return ['#003087', '#009cde'];
-      default:
-        return ['#374151', '#4B5563'];
-    }
-  };
-
-  const getText = () => {
-    switch (type) {
-      case 'visa':
-        return 'VISA';
-      case 'mastercard':
-        return 'MC';
-      case 'paypal':
-        return 'PP';
-      default:
-        return '';
-    }
-  };
-
-  return (
-    <View style={styles.cardIconContainer}>
-      <LinearGradient
-        colors={getGradientColors()}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.cardIcon}
-      >
-        <Text style={styles.cardIconText}>{getText()}</Text>
-      </LinearGradient>
-    </View>
-  );
 }
 
 export default function PaymentMethodsScreen() {
@@ -450,7 +388,7 @@ export default function PaymentMethodsScreen() {
 
     return {
       id: apiMethod.id,
-      type: apiMethod.type as 'visa' | 'mastercard' | 'paypal',
+      type: apiMethod.type,
       last4: apiMethod.last4,
       expiry,
       email: apiMethod.email,
@@ -572,7 +510,9 @@ export default function PaymentMethodsScreen() {
                 style={[styles.cardItem, selectedCardId === method.id && styles.cardItemSelected]}
                 activeOpacity={0.7}
               >
-                <CardIcon type={method.type} styles={styles} />
+                <View style={styles.cardIconContainer}>
+                  <CardBrandMark variant={paymentMethodTypeToMarkVariant(method.type)} width={78} />
+                </View>
                 <View style={styles.cardInfo}>
                   <View style={styles.cardHeader}>
                     <Text style={styles.cardNumber}>
