@@ -65,7 +65,8 @@ export async function createComplaint(
         subject: payload.subject.trim(),
         description: payload.description.trim(),
         order_id: payload.order_id?.trim() || undefined,
-        submitter_type: payload.submitter_type,
+        // Always send explicitly so the key is never dropped (JSON.stringify omits undefined).
+        submitter_type: payload.submitter_type ?? 'client',
       }),
     },
     t('complaints.submitError')

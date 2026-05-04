@@ -2138,6 +2138,13 @@ export default {
   complaints: {
     title: "Quejas y sugerencias",
     subtitle: "Envía una queja formal, reclamación o sugerencia. Nuestro equipo responderá desde el centro de soporte.",
+    submittingAsLabel: "Estás enviando como",
+    submittingAsClient: "Cliente",
+    submittingAsProvider: "Proveedor",
+    contextHintClient:
+      "Lo que envíes queda registrado como cliente. Si añades un pedido, debe ser uno donde participaste como cliente.",
+    contextHintProvider:
+      "Lo que envíes queda registrado como proveedor. Si añades un pedido, debe ser uno donde fuiste el proveedor asignado.",
     typeLabel: "Tipo",
     typeComplaint: "Queja",
     typeClaim: "Reclamación",
@@ -2147,7 +2154,9 @@ export default {
     descriptionLabel: "Descripción",
     descriptionPlaceholder: "Describe tu caso con detalle",
     orderIdLabel: "Pedido relacionado (opcional)",
+    orderIdLabelProvider: "Pedido de tu trabajo (opcional)",
     orderIdPlaceholder: "ID del pedido si aplica",
+    orderIdPlaceholderProvider: "UUID del pedido donde fuiste proveedor",
     submit: "Enviar",
     submitting: "Enviando…",
     successTitle: "Recibido",
