@@ -58,6 +58,7 @@ function syncHrefForNotification(notification: Notification, mode: UserMode): st
       case 'payment_processed':
       case 'payment_received':
       case 'provider_on_way':
+      case 'job_started':
       case 'refund_issued':
         return orderId ? `/orders/${orderId}` : null;
       case 'new_message':

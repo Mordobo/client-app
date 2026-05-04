@@ -56,6 +56,7 @@ function getClientEmoji(type: NotificationType): { icon: string; bg: string } {
     case 'new_paid_booking':
       return { icon: '💳', bg: '#10B981' };
     case 'provider_on_way':
+    case 'job_started':
       return { icon: '📍', bg: '#8B5CF6' };
     case 'quote_received':
     case 'quote_approved':
