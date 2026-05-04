@@ -1123,6 +1123,11 @@ export default {
       new_message: {
         title: "Nuevo mensaje",
       },
+      job_started: {
+        clientTitle: "Trabajo iniciado",
+        clientMessage: "%{supplierName} ha comenzado a trabajar en tu servicio",
+        clientMessageWithService: "%{supplierName} ha comenzado a trabajar en tu servicio de %{serviceName}",
+      },
       job_review: {
         clientTitle: "Valora tu experiencia",
         clientMessage: "Comparte tu opinión sobre tu reserva con %{supplierName}.",

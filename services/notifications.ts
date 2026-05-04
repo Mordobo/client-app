@@ -40,7 +40,8 @@ export type NotificationType =
   | 'new_review'
   | 'refund_issued'
   | 'job_pending_review'
-  | 'job_completed';
+  | 'job_completed'
+  | 'job_started';
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -144,6 +145,7 @@ export function getNotificationCategory(type: NotificationType): NotificationCat
     case 'booking_confirmed':
     case 'booking_cancelled':
     case 'provider_on_way':
+    case 'job_started':
     case 'new_booking_request':
     case 'quote_received':
     case 'quote_approved':

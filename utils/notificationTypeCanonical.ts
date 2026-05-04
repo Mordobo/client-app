@@ -9,6 +9,7 @@
 const KNOWN_NOTIFICATION_TYPES_DESC: string[] = [
   'new_booking_request',
   'job_pending_review',
+  'job_started',
   'booking_confirmed',
   'booking_cancelled',
   'payment_processed',

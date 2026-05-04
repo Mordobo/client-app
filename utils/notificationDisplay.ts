@@ -43,6 +43,51 @@ function pickNumber(m: Record<string, unknown>, ...keys: string[]): number | und
   return undefined;
 }
 
+/** When the API stores English copy in `message` but omits numeric metadata, recover fields for localized templates. */
+function parseProviderPaymentFromMessage(message: string | undefined): {
+  clientName: string;
+  amountStr: string;
+  serviceName: string;
+} | null {
+  if (!message?.trim()) return null;
+  const s = message.trim();
+  let m = /^(.+?)\s+has booked and paid\s+(\S+)\s+for\s+(.+?)\./i.exec(s);
+  if (m) {
+    return { clientName: m[1].trim(), amountStr: m[2].trim(), serviceName: m[3].trim() };
+  }
+  m = /^(.+?)\s+has paid\s+(\S+)\./i.exec(s);
+  if (m) {
+    return { clientName: m[1].trim(), amountStr: m[2].trim(), serviceName: '' };
+  }
+  m = /^(.+?)\s+reservó y pagó\s+(\S+)\s+por\s+(.+?)\./i.exec(s);
+  if (m) {
+    return { clientName: m[1].trim(), amountStr: m[2].trim(), serviceName: m[3].trim() };
+  }
+  m = /^(.+?)\s+reservo y pago\s+(\S+)\s+por\s+(.+?)\./i.exec(s);
+  if (m) {
+    return { clientName: m[1].trim(), amountStr: m[2].trim(), serviceName: m[3].trim() };
+  }
+  return null;
+}
+
+function parseStarsFromReviewMessage(message: string | undefined): number | undefined {
+  if (!message?.trim()) return undefined;
+  const starMatch =
+    /\bleft a (\d+)-star review\b/i.exec(message) ?? /\bdejó una reseña de (\d+) estrellas\b/i.exec(message);
+  if (!starMatch) return undefined;
+  const n = Number(starMatch[1]);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function parseClientNameFromReviewMessage(message: string | undefined): string | undefined {
+  if (!message?.trim()) return undefined;
+  const nameMatch =
+    /^(.+?)\s+left a \d+-star review\b/i.exec(message) ?? /^(.+?)\s+dejó una reseña de \d+ estrellas\b/i.exec(message);
+  if (!nameMatch) return undefined;
+  const name = nameMatch[1].trim();
+  return name.length > 0 ? name : undefined;
+}
+
 function formatRefundCurrency(amount: number): string {
   const locale = getLocale() === 'es' ? 'es-MX' : 'en-US';
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'MXN' }).format(amount);
@@ -84,6 +129,9 @@ function inferNotificationTypeFromEnglishTitle(title: string | undefined): strin
     'nueva cotización': 'quote_received',
     'new message': 'new_message',
     'nuevo mensaje': 'new_message',
+    'job started': 'job_started',
+    'trabajo iniciado': 'job_started',
+    'servicio iniciado': 'job_started',
     'new review': 'new_review',
     'nueva reseña': 'new_review',
     'rate your service': 'rate_service',
@@ -118,6 +166,13 @@ function inferNotificationTypeFromMessageBody(message: string | undefined): stri
     /\breservo y pago\b/.test(m)
   ) {
     return 'payment_received';
+  }
+  if (
+    /\bhas started working on your service\b/.test(m) ||
+    /\bha comenzado a trabajar en tu servicio\b/.test(m) ||
+    /\bcomenzó a trabajar en tu servicio\b/.test(m)
+  ) {
+    return 'job_started';
   }
   if (/\bhas paid\b/.test(m) && /\baccept the booking\b/.test(m)) {
     return 'payment_received';
@@ -184,8 +239,6 @@ function typedDisplay(
     t('notifications.fallbackClient');
   const serviceName = pickString(m, 'serviceName', 'service_name', 'service') ?? '';
   const amountStr = formatNotificationMoney(m);
-  const stars = pickNumber(m, 'stars', 'rating', 'starRating', 'reviewRating');
-  const starsLabel = stars != null && Number.isFinite(stars) ? String(Math.round(stars)) : '';
 
   switch (type) {
     case 'booking_confirmed': {
@@ -230,14 +283,26 @@ function typedDisplay(
     }
     case 'payment_received': {
       if (viewerRole === 'provider') {
-        const hasMeta = !!(pickString(m, 'clientName', 'client_name') && (amountStr || serviceName));
+        const parsed = parseProviderPaymentFromMessage(notification.message);
+        const effClientName =
+          pickString(m, 'clientName', 'client_name', 'customerName', 'customer_name', 'userName', 'user_name') ??
+          parsed?.clientName ??
+          '';
+        const effAmountStr = amountStr || parsed?.amountStr || '';
+        const effServiceName =
+          pickString(m, 'serviceName', 'service_name', 'service') ?? parsed?.serviceName ?? '';
+        const hasMeta = !!(effClientName.trim() && (effAmountStr || effServiceName.trim()));
+        const svc =
+          effServiceName.trim() ||
+          serviceName ||
+          t('notifications.fallbackServiceShort');
         return {
           title: t('notifications.types.payment_received.providerTitle'),
           message: hasMeta
             ? t('notifications.types.payment_received.providerMessage', {
-                clientName,
-                amount: amountStr,
-                serviceName,
+                clientName: effClientName.trim() || clientName,
+                amount: effAmountStr,
+                serviceName: svc,
               })
             : notification.message,
         };
@@ -298,16 +363,23 @@ function typedDisplay(
     case 'new_review': {
       if (viewerRole !== 'provider') return null;
       const serviceLabel = serviceName || t('notifications.fallbackServiceShort');
+      const clientFromMeta = pickString(m, 'clientName', 'client_name', 'customerName', 'customer_name', 'userName', 'user_name');
+      const clientLabel =
+        clientFromMeta ?? parseClientNameFromReviewMessage(notification.message) ?? clientName;
+      const starsFromMeta = pickNumber(m, 'stars', 'rating', 'starRating', 'reviewRating');
+      const starsResolved = starsFromMeta ?? parseStarsFromReviewMessage(notification.message);
+      const starsResolvedLabel =
+        starsResolved != null && Number.isFinite(starsResolved) ? String(Math.round(starsResolved)) : '';
       return {
         title: t('notifications.types.new_review.providerTitle'),
-        message: starsLabel
+        message: starsResolvedLabel
           ? t('notifications.types.new_review.providerMessage', {
-              clientName,
-              stars: starsLabel,
+              clientName: clientLabel,
+              stars: starsResolvedLabel,
               serviceName: serviceLabel,
             })
           : t('notifications.types.new_review.providerMessageNoStars', {
-              clientName,
+              clientName: clientLabel,
               serviceName: serviceLabel,
             }),
       };
@@ -336,6 +408,15 @@ function typedDisplay(
       return {
         title: t('notifications.types.new_message.title'),
         message: preview ?? notification.message,
+      };
+    }
+    case 'job_started': {
+      if (viewerRole !== 'client') return null;
+      return {
+        title: t('notifications.types.job_started.clientTitle'),
+        message: serviceName
+          ? t('notifications.types.job_started.clientMessageWithService', { supplierName, serviceName })
+          : t('notifications.types.job_started.clientMessage', { supplierName }),
       };
     }
     case 'job_pending_review':

@@ -51,6 +51,7 @@ function NotificationItem({ notification, onPress, colors, viewerRole }: Notific
       case 'payment_processed':
         return { icon: '💳', bgColor: '#10B981' };
       case 'provider_on_way':
+      case 'job_started':
         return { icon: '📍', bgColor: '#8B5CF6' };
       case 'quote_received':
         return { icon: '📋', bgColor: '#6366F1' };
