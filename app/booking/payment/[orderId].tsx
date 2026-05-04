@@ -22,6 +22,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
 import { AddCardModal } from '@/components/payment/AddCardModal';
+import { CardBrandMark } from '@/components/payment/CardBrandMark';
+import { paymentMethodTypeToMarkVariant } from '@/utils/cardNetwork';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -92,13 +94,12 @@ export default function PaymentScreen() {
         cardIconContainer: {
           width: 48,
           height: 48,
-          backgroundColor: colors.bgInput,
+          backgroundColor: 'transparent',
           borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: 14,
         },
-        cardIcon: { fontSize: 24 },
         paymentMethodInfo: { flex: 1 },
         paymentMethodLabel: {
           fontSize: 15,
@@ -233,15 +234,12 @@ export default function PaymentScreen() {
       const selectedMethod = paymentMethods.find((m) => m.id === selectedMethodId);
       if (!selectedMethod) throw new Error('Selected payment method not found');
 
-      const providerMap: Record<string, 'card' | 'apple_pay' | 'google_pay'> = {
-        visa: 'card',
-        mastercard: 'card',
-        amex: 'card',
-        paypal: 'card',
-        apple_pay: 'apple_pay',
-        google_pay: 'google_pay',
-      };
-      const provider = providerMap[selectedMethod.type] || 'card';
+      const provider: 'card' | 'apple_pay' | 'google_pay' =
+        selectedMethod.type === 'apple_pay'
+          ? 'apple_pay'
+          : selectedMethod.type === 'google_pay'
+            ? 'google_pay'
+            : 'card';
 
       if (isNewBooking) {
         if (!serviceId || !supplierId) {
@@ -300,21 +298,6 @@ export default function PaymentScreen() {
         // The new card will be selected if it's the only one or if it's set as default
       });
     }, 500);
-  };
-
-  const getCardIcon = (type: string) => {
-    switch (type) {
-      case 'visa':
-        return '💳';
-      case 'mastercard':
-        return '💳';
-      case 'amex':
-        return '💳';
-      case 'paypal':
-        return '🅿️';
-      default:
-        return '💳';
-    }
   };
 
   const formatExpiry = (month?: number, year?: number) => {
@@ -397,7 +380,7 @@ export default function PaymentScreen() {
                   onPress={() => setSelectedMethodId(method.id)}
                 >
                   <View style={styles.cardIconContainer}>
-                    <Text style={styles.cardIcon}>{getCardIcon(method.type)}</Text>
+                    <CardBrandMark variant={paymentMethodTypeToMarkVariant(method.type)} width={60} />
                   </View>
                   <View style={styles.paymentMethodInfo}>
                     <Text style={styles.paymentMethodLabel}>

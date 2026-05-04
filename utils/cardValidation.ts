@@ -1,6 +1,15 @@
 /**
- * Card validation utilities
+ * Card validation utilities (international PAN lengths + Luhn).
  */
+
+import {
+  detectCardNetwork,
+  formatPanInput,
+  getCvvLengthForNetwork,
+  type CardNetwork,
+} from '@/utils/cardNetwork';
+
+export type { CardNetwork } from '@/utils/cardNetwork';
 
 export interface CardValidationResult {
   isValid: boolean;
@@ -8,12 +17,11 @@ export interface CardValidationResult {
 }
 
 /**
- * Validates a credit card number using Luhn algorithm
+ * Validates a credit card number using Luhn algorithm (13–19 digits).
  */
 export const validateCardNumber = (cardNumber: string): CardValidationResult => {
-  // Remove spaces and non-digits
   const cleaned = cardNumber.replace(/\s+/g, '').replace(/\D/g, '');
-  
+
   if (!cleaned) {
     return { isValid: false, error: 'Card number is required' };
   }
@@ -22,7 +30,6 @@ export const validateCardNumber = (cardNumber: string): CardValidationResult => 
     return { isValid: false, error: 'Card number must be between 13 and 19 digits' };
   }
 
-  // Luhn algorithm
   let sum = 0;
   let isEven = false;
 
@@ -48,32 +55,17 @@ export const validateCardNumber = (cardNumber: string): CardValidationResult => 
 };
 
 /**
- * Formats card number with spaces every 4 digits
+ * Formats PAN for display (Amex 4-6-5, others in groups of 4).
  */
 export const formatCardNumber = (cardNumber: string): string => {
   const cleaned = cardNumber.replace(/\s+/g, '').replace(/\D/g, '');
-  const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
-  return formatted;
+  return formatPanInput('', cleaned);
 };
 
-/**
- * Detects card brand from number
- */
-export const detectCardBrand = (cardNumber: string): 'visa' | 'mastercard' | 'amex' | 'unknown' => {
-  const cleaned = cardNumber.replace(/\s+/g, '').replace(/\D/g, '');
-  
-  if (/^4/.test(cleaned)) {
-    return 'visa';
-  }
-  if (/^5[1-5]/.test(cleaned) || /^2[2-7]/.test(cleaned)) {
-    return 'mastercard';
-  }
-  if (/^3[47]/.test(cleaned)) {
-    return 'amex';
-  }
-  
-  return 'unknown';
-};
+/** @deprecated Use detectCardNetwork — alias kept for older imports. */
+export const detectCardBrand = (cardNumber: string): CardNetwork => detectCardNetwork(cardNumber);
+
+export { detectCardNetwork };
 
 /**
  * Validates expiry date (MM/YY format)
@@ -83,9 +75,8 @@ export const validateExpiry = (expiry: string): CardValidationResult => {
     return { isValid: false, error: 'Expiry date is required' };
   }
 
-  // Remove slashes and spaces
   const cleaned = expiry.replace(/\s+/g, '').replace(/\//g, '');
-  
+
   if (cleaned.length !== 4) {
     return { isValid: false, error: 'Expiry date must be MM/YY format' };
   }
@@ -97,19 +88,15 @@ export const validateExpiry = (expiry: string): CardValidationResult => {
     return { isValid: false, error: 'Invalid month' };
   }
 
-  // Get current year (last 2 digits)
-  const currentYear = new Date().getFullYear() % 100;
   const currentMonth = new Date().getMonth() + 1;
+  const thisCalendarYear = new Date().getFullYear();
+  const fullYear = 2000 + year;
 
-  // Convert 2-digit year to 4-digit
-  const fullYear = year < currentYear ? 2000 + year : 1900 + year;
-
-  // Check if card is expired
-  if (fullYear < new Date().getFullYear()) {
+  if (fullYear < thisCalendarYear) {
     return { isValid: false, error: 'Card has expired' };
   }
 
-  if (fullYear === new Date().getFullYear() && month < currentMonth) {
+  if (fullYear === thisCalendarYear && month < currentMonth) {
     return { isValid: false, error: 'Card has expired' };
   }
 
@@ -121,35 +108,33 @@ export const validateExpiry = (expiry: string): CardValidationResult => {
  */
 export const formatExpiry = (value: string): string => {
   const cleaned = value.replace(/\D/g, '');
-  
+
   if (cleaned.length === 0) {
     return '';
   }
-  
+
   if (cleaned.length <= 2) {
     return cleaned;
   }
-  
+
   return `${cleaned.substring(0, 2)}/${cleaned.substring(2, 4)}`;
 };
 
 /**
- * Validates CVV
+ * Validates CVV length for the detected card network (3 or 4 digits).
  */
-export const validateCVV = (cvv: string, cardBrand?: 'visa' | 'mastercard' | 'amex' | 'unknown'): CardValidationResult => {
+export const validateCVV = (cvv: string, network: CardNetwork = 'unknown'): CardValidationResult => {
   if (!cvv) {
     return { isValid: false, error: 'CVV is required' };
   }
 
   const cleaned = cvv.replace(/\D/g, '');
-  
-  // Amex has 4 digits, others have 3
-  const expectedLength = cardBrand === 'amex' ? 4 : 3;
-  
+  const expectedLength = getCvvLengthForNetwork(network === 'unknown' ? 'visa' : network);
+
   if (cleaned.length !== expectedLength) {
     return {
       isValid: false,
-      error: cardBrand === 'amex' ? 'CVV must be 4 digits' : 'CVV must be 3 digits',
+      error: expectedLength === 4 ? 'CVV must be 4 digits' : 'CVV must be 3 digits',
     };
   }
 

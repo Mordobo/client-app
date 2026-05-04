@@ -1,8 +1,18 @@
+import { CardBrandMark } from '@/components/payment/CardBrandMark';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { createPaymentMethod, ApiError as PaymentApiError } from '@/services/payments';
 import type { ThemeColors } from '@/utils/themeStyles';
+import {
+  detectCardNetwork,
+  formatPanInput,
+  getCvvLengthForNetwork,
+  getFormattedPanMaxLength,
+  getMaxPanDigits,
+  mapCardNetworkToApiType,
+} from '@/utils/cardNetwork';
+import { validateCardNumber as validatePanLuhn, validateCVV } from '@/utils/cardValidation';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -148,6 +158,15 @@ function createAddCardModalStyles(theme: ThemeColors) {
       color: theme.textSecondary,
       fontSize: 11,
     },
+    cardNumberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    cardNumberInputWrap: {
+      flex: 1,
+      minWidth: 0,
+    },
   });
 }
 
@@ -157,38 +176,6 @@ interface AddCardModalProps {
   onCardAdded: () => void;
   isDefault?: boolean;
 }
-
-const validateCardNumber = (cardNumber: string): boolean => {
-  const cleaned = cardNumber.replace(/\s+/g, '');
-  if (cleaned.length < 13 || cleaned.length > 19) return false;
-
-  let sum = 0;
-  let isEven = false;
-
-  for (let i = cleaned.length - 1; i >= 0; i--) {
-    let digit = parseInt(cleaned[i], 10);
-
-    if (isEven) {
-      digit *= 2;
-      if (digit > 9) {
-        digit -= 9;
-      }
-    }
-
-    sum += digit;
-    isEven = !isEven;
-  }
-
-  return sum % 10 === 0;
-};
-
-const detectCardBrand = (cardNumber: string): 'visa' | 'mastercard' | 'amex' => {
-  const cleaned = cardNumber.replace(/\s+/g, '');
-  if (cleaned.startsWith('4')) return 'visa';
-  if (cleaned.startsWith('5') || cleaned.startsWith('2')) return 'mastercard';
-  if (cleaned.startsWith('3')) return 'amex';
-  return 'visa';
-};
 
 export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false }: AddCardModalProps) {
   const insets = useSafeAreaInsets();
@@ -202,16 +189,18 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
   const [cardHolder, setCardHolder] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const formatCardNumber = (value: string): string => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || '';
-    const parts: string[] = [];
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    return parts.length ? parts.join(' ') : value;
-  };
+  const panDigits = useMemo(() => cardNumber.replace(/\D/g, ''), [cardNumber]);
+  const network = useMemo(() => detectCardNetwork(panDigits), [panDigits]);
+  const formattedPanMaxLen = useMemo(() => getFormattedPanMaxLength(network), [network]);
+  const cvvMaxLen = useMemo(() => getCvvLengthForNetwork(network === 'unknown' ? 'visa' : network), [network]);
+
+  const handleCardNumberChange = useCallback((text: string) => {
+    const rawDigits = text.replace(/\D/g, '');
+    const net = detectCardNetwork(rawDigits);
+    const maxDigits = getMaxPanDigits(net);
+    const clipped = rawDigits.slice(0, maxDigits);
+    setCardNumber(formatPanInput('', clipped));
+  }, []);
 
   const formatExpDate = (value: string): string => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
@@ -222,13 +211,14 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
   };
 
   const handleAddCard = async () => {
-    const cleanedCardNumber = cardNumber.replace(/\s+/g, '');
+    const cleanedCardNumber = panDigits;
     if (cleanedCardNumber.length < 13 || cleanedCardNumber.length > 19) {
       Alert.alert(t('common.error'), t('paymentMethods.invalidCardNumber'));
       return;
     }
 
-    if (!validateCardNumber(cleanedCardNumber)) {
+    const luhn = validatePanLuhn(cleanedCardNumber);
+    if (!luhn.isValid) {
       Alert.alert(t('common.error'), t('paymentMethods.invalidCardNumber'));
       return;
     }
@@ -252,7 +242,9 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
       return;
     }
 
-    if (cvv.length < 3 || cvv.length > 4) {
+    const detected = detectCardNetwork(cleanedCardNumber);
+    const cvvCheck = validateCVV(cvv, detected === 'unknown' ? 'visa' : detected);
+    if (!cvvCheck.isValid) {
       Alert.alert(t('common.error'), t('paymentMethods.invalidCVV'));
       return;
     }
@@ -265,17 +257,21 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
     try {
       setLoading(true);
 
-      const brand = detectCardBrand(cleanedCardNumber);
+      const apiType = mapCardNetworkToApiType(detected);
       const last4 = cleanedCardNumber.slice(-4);
       const expiryMonth = parseInt(month, 10);
       const expiryYear = parseInt('20' + year, 10);
+      const brandLabel =
+        detected === 'unknown'
+          ? t('payment.cardNetworks.other_card')
+          : t(`payment.cardNetworks.${detected}`);
 
       await createPaymentMethod({
-        type: brand === 'visa' ? 'visa' : brand === 'mastercard' ? 'mastercard' : 'visa',
+        type: apiType,
         last4,
         expiry_month: expiryMonth,
         expiry_year: expiryYear,
-        brand: brand === 'visa' ? 'Visa' : brand === 'mastercard' ? 'Mastercard' : 'Visa',
+        brand: brandLabel,
         card_holder_name: cardHolder.trim(),
         is_default: isDefault,
       });
@@ -318,16 +314,21 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>{t('paymentMethods.cardNumber')}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="1234 5678 9012 3456"
-                  placeholderTextColor={theme.textSecondary}
-                  maxLength={19}
-                  value={cardNumber}
-                  onChangeText={(text) => setCardNumber(formatCardNumber(text))}
-                  keyboardType="numeric"
-                  autoComplete="cc-number"
-                />
+                <View style={styles.cardNumberRow}>
+                  <CardBrandMark variant={network === 'unknown' ? 'other_card' : network} width={54} />
+                  <View style={styles.cardNumberInputWrap}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="1234 5678 9012 3456"
+                      placeholderTextColor={theme.textSecondary}
+                      maxLength={formattedPanMaxLen}
+                      value={cardNumber}
+                      onChangeText={handleCardNumberChange}
+                      keyboardType="numeric"
+                      autoComplete="cc-number"
+                    />
+                  </View>
+                </View>
               </View>
 
               <View style={styles.inputRow}>
@@ -348,11 +349,11 @@ export function AddCardModal({ visible, onClose, onCardAdded, isDefault = false 
                   <Text style={styles.inputLabel}>{t('paymentMethods.cvv')}</Text>
                   <TextInput
                     style={[styles.input, styles.inputCVV]}
-                    placeholder="•••"
+                    placeholder={cvvMaxLen === 4 ? '••••' : '•••'}
                     placeholderTextColor={theme.textSecondary}
-                    maxLength={4}
+                    maxLength={cvvMaxLen}
                     value={cvv}
-                    onChangeText={(text) => setCvv(text.replace(/\D/g, ''))}
+                    onChangeText={(text) => setCvv(text.replace(/\D/g, '').slice(0, cvvMaxLen))}
                     keyboardType="numeric"
                     secureTextEntry
                     autoComplete="cc-csc"
