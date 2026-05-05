@@ -180,6 +180,9 @@ export default function ProviderEditProfileScreen() {
     if (profile.avatarUrl) {
       setAvatarUri(getProfileImageUrl(profile.avatarUrl) ?? profile.avatarUrl);
       setAvatarError(false);
+    } else {
+      setAvatarUri(null);
+      setAvatarError(false);
     }
   }, [profile, resolvedCategoryId, reset]);
 
@@ -244,7 +247,7 @@ export default function ProviderEditProfileScreen() {
       const { avatarUrl } = await uploadProviderAvatar(base64, "avatar.jpg", "image/jpeg");
       setAvatarUri(getProfileImageUrl(avatarUrl) ?? avatarUrl);
       setAvatarError(false);
-      await queryClient.invalidateQueries({ queryKey: ["providerProfile"] });
+      await queryClient.invalidateQueries({ queryKey: providerProfileQueryKey(user?.id) });
     } catch (e) {
       console.error("[ProviderEditProfile] Avatar upload failed:", e);
       const message = e instanceof ApiError ? e.message : t("errors.uploadProviderAvatarFailed");
@@ -252,7 +255,7 @@ export default function ProviderEditProfileScreen() {
     } finally {
       setUploadingAvatar(false);
     }
-  }, [queryClient]);
+  }, [queryClient, user?.id]);
 
   const handleAddSpecialty = useCallback(() => {
     const trimmed = newSpecialtyText.trim();
@@ -285,7 +288,7 @@ export default function ProviderEditProfileScreen() {
           yearsExperience: data.yearsExperience ?? undefined,
         };
         await updateProviderProfile(payload);
-        await queryClient.invalidateQueries({ queryKey: ["providerProfile"] });
+        await queryClient.invalidateQueries({ queryKey: providerProfileQueryKey(user?.id) });
         setToastMessage(t("providerDashboard.providerEditProfile.saveSuccess"));
         setToastVisible(true);
         setTimeout(goToProfile, 1500);
@@ -294,7 +297,7 @@ export default function ProviderEditProfileScreen() {
         Alert.alert(t("common.error"), t("errors.updateProviderProfileFailed"));
       }
     },
-    [queryClient, goToProfile],
+    [queryClient, goToProfile, user?.id],
   );
 
   if (profileLoading && !profile) {
