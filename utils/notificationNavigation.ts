@@ -1,6 +1,17 @@
 import type { Notification } from '@/services/notifications';
-import { fetchOrderDetail } from '@/services/orders';
+import { fetchOrderDetail, type OrderStatus } from '@/services/orders';
 import type { UserMode } from '@/contexts/ModeContext';
+import { canonicalNotificationType } from '@/utils/notificationTypeCanonical';
+
+/** Order is past the “review quote on quote screen” phase for clients. */
+const CLIENT_ORDER_DETAIL_FOR_QUOTE_NOTIFICATION: OrderStatus[] = [
+  'pending_payment',
+  'pending_for_provider',
+  'accepted',
+  'in_progress',
+  'pending_review',
+  'completed',
+];
 
 /** API may send camelCase or snake_case; metadata may rarely arrive as a JSON string. */
 function coerceMetadata(notification: Notification): Record<string, unknown> {
@@ -23,7 +34,7 @@ function coerceMetadata(notification: Notification): Record<string, unknown> {
 }
 
 function metaOrderId(m: Record<string, unknown>): string | undefined {
-  const v = m.orderId ?? m.order_id;
+  const v = m.orderId ?? m.order_id ?? m.bookingId ?? m.booking_id;
   return typeof v === 'string' && v.length > 0 ? v : undefined;
 }
 
@@ -34,12 +45,12 @@ function metaConversationId(m: Record<string, unknown>): string | undefined {
 
 function syncHrefForNotification(notification: Notification, mode: UserMode): string | null {
   const metadata = coerceMetadata(notification);
-  const type = notification.type as string;
+  const typeKey = canonicalNotificationType(notification.type);
   const orderId = metaOrderId(metadata);
   const conversationId = metaConversationId(metadata);
 
   if (mode === 'client') {
-    switch (notification.type) {
+    switch (typeKey) {
       case 'quote_received':
         return orderId ? `/booking/quote/${orderId}` : null;
       case 'booking_confirmed':
@@ -47,6 +58,7 @@ function syncHrefForNotification(notification: Notification, mode: UserMode): st
       case 'payment_processed':
       case 'payment_received':
       case 'provider_on_way':
+      case 'job_started':
       case 'refund_issued':
         return orderId ? `/orders/${orderId}` : null;
       case 'new_message':
@@ -56,14 +68,14 @@ function syncHrefForNotification(notification: Notification, mode: UserMode): st
       case 'offer':
         return '/(tabs)/home';
       default:
-        if (type === 'job_pending_review' || type === 'job_completed') {
+        if (typeKey === 'job_pending_review' || typeKey === 'job_completed') {
           return orderId ? `/orders/rate/${orderId}` : null;
         }
         return null;
     }
   }
 
-  switch (notification.type) {
+  switch (typeKey) {
     case 'booking_confirmed':
     case 'booking_cancelled':
     case 'provider_on_way':
@@ -114,8 +126,9 @@ export async function resolveNotificationRelatedHref(
   const metadata = coerceMetadata(notification);
   const orderId = metaOrderId(metadata);
   const conversationId = metaConversationId(metadata);
+  const typeKey = canonicalNotificationType(notification.type);
 
-  if (notification.type === 'new_message' && !conversationId && orderId) {
+  if (typeKey === 'new_message' && !conversationId && orderId) {
     try {
       const detail = await fetchOrderDetail(orderId);
       if (detail.conversation_id) {
@@ -126,5 +139,24 @@ export async function resolveNotificationRelatedHref(
     }
     return null;
   }
+
+  // “Quote received” is often still the persisted type after pay/confirm; quote payload may be gone.
+  // Opening /booking/quote in that state shows a misleading “Quote not found” — order detail is correct.
+  if (mode === 'client' && typeKey === 'quote_received' && orderId) {
+    try {
+      const detail = await fetchOrderDetail(orderId);
+      const status = detail.order?.status;
+      const noQuote = detail.quote == null;
+      if (
+        noQuote ||
+        (status != null && CLIENT_ORDER_DETAIL_FOR_QUOTE_NOTIFICATION.includes(status))
+      ) {
+        return `/orders/${orderId}`;
+      }
+    } catch {
+      // Fall through to sync href (quote screen); user still gets a concrete screen.
+    }
+  }
+
   return syncHrefForNotification(notification, mode);
 }

@@ -3,6 +3,7 @@ import { ApiError, refreshTokens, setTokenUpdateCallback, clearTokenState } from
 import { getProfile } from '@/services/profile';
 import { queryClient } from '@/services/queryClient';
 import { authEvents } from '@/utils/authEvents';
+import { applyCachedUserLanguage } from '@/utils/userLanguagePreference';
 import { getTimeUntilExpiryMs, isTokenExpiringSoon } from '@/utils/tokenUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -102,7 +103,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const parsedUser = JSON.parse(userData);
         console.log('AuthContext - Parsed user:', parsedUser);
         setUser(parsedUser);
-        
+
+        if (parsedUser.authToken) {
+          await applyCachedUserLanguage();
+        }
+
         // If user has auth token, sync profile from backend to get latest data (including country)
         // Add timeout to prevent blocking if backend is unavailable
         if (parsedUser.authToken) {
@@ -187,6 +192,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       authEvents.reset();
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
+      await applyCachedUserLanguage();
       console.log('AuthContext - User set and saved to storage');
     } catch (error) {
       console.error('Error saving user to storage:', error);

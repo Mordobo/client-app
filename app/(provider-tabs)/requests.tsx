@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { ApiError } from "@/services/auth";
 import {
     acceptOrder,
     getDashboardRequestCounts,
@@ -14,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { PlatformFlashList } from "@/components/PlatformFlashList";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -144,6 +145,8 @@ export default function ProviderRequestsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [declineModalId, setDeclineModalId] = useState<string | null>(null);
+  /** Blocks duplicate accept/reject before React applies disabled state (double tap). */
+  const orderActionInFlightRef = useRef<Set<string>>(new Set());
 
   const loadRequests = useCallback(async () => {
     if (!isAuthenticated) {
@@ -207,6 +210,8 @@ export default function ProviderRequestsScreen() {
   }, [loadRequests, loadCounts]);
 
   const handleAccept = useCallback(async (id: string) => {
+    if (orderActionInFlightRef.current.has(id)) return;
+    orderActionInFlightRef.current.add(id);
     setActionId(id);
     try {
       await acceptOrder(id);
@@ -214,8 +219,15 @@ export default function ProviderRequestsScreen() {
       await loadCounts();
     } catch (e) {
       console.error("[ProviderRequests] accept error:", e);
-      Alert.alert(t("common.error"), t("providerDashboard.errors.acceptFailed"));
+      if (e instanceof ApiError && e.status === 409) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        await loadCounts();
+        return;
+      }
+      const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.acceptFailed");
+      Alert.alert(t("common.error"), message);
     } finally {
+      orderActionInFlightRef.current.delete(id);
       setActionId(null);
     }
   }, [loadCounts]);
@@ -228,6 +240,8 @@ export default function ProviderRequestsScreen() {
     const id = declineModalId;
     setDeclineModalId(null);
     if (!id) return;
+    if (orderActionInFlightRef.current.has(id)) return;
+    orderActionInFlightRef.current.add(id);
     setActionId(id);
     try {
       await rejectOrder(id);
@@ -235,8 +249,15 @@ export default function ProviderRequestsScreen() {
       await loadCounts();
     } catch (e) {
       console.error("[ProviderRequests] reject error:", e);
-      Alert.alert(t("common.error"), t("providerDashboard.errors.rejectFailed"));
+      if (e instanceof ApiError && e.status === 409) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        await loadCounts();
+        return;
+      }
+      const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.rejectFailed");
+      Alert.alert(t("common.error"), message);
     } finally {
+      orderActionInFlightRef.current.delete(id);
       setActionId(null);
     }
   }, [declineModalId, loadCounts]);

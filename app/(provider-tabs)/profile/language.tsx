@@ -2,6 +2,7 @@ import { Toast } from '@/components/Toast';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t, setLocale, getLocale } from '@/i18n';
 import { getSettings, updateSettings } from '@/services/settings';
+import { normalizeAppLanguage, persistUserLanguage } from '@/utils/userLanguagePreference';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -43,7 +44,14 @@ export default function ProviderLanguageScreen() {
     try {
       setLoading(true);
       const response = await getSettings();
-      setCurrentLanguage(response.settings.language);
+      const lang = normalizeAppLanguage(response.settings.language);
+      if (lang) {
+        setCurrentLanguage(lang);
+        setLocale(lang);
+        await persistUserLanguage(lang);
+      } else {
+        setCurrentLanguage(getLocale() as Language);
+      }
     } catch {
       // Fallback to local locale
     } finally {
@@ -64,6 +72,7 @@ export default function ProviderLanguageScreen() {
       setCurrentLanguage(lang);
       setLocale(lang);
       await updateSettings({ language: lang });
+      await persistUserLanguage(lang);
       setToast({ message: t(`${I18N}.languageUpdated`), type: 'success' });
     } catch {
       setCurrentLanguage(previous);

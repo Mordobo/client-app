@@ -9,13 +9,12 @@ import {
 } from '@/services/favorites';
 import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
+import { getTranslatedServiceCategory } from '@/utils/categoryDisplay';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -128,14 +127,9 @@ export default function FavoritesScreen() {
     }
   };
 
-  const formatPrice = (hourlyRate?: number): string => {
-    if (!hourlyRate) return '$0/hr';
-    return `$${hourlyRate}/hr`;
-  };
-
   const getServiceName = (supplier: FavoriteSupplier): string => {
-    // Try to get service category name, fallback to service_category field
-    return supplier.service_category || t('favorites.service');
+    const translated = getTranslatedServiceCategory(supplier.service_category, t);
+    return translated || t('favorites.service');
   };
 
   const formatRating = (rating: number | string | null | undefined): string => {
@@ -256,18 +250,15 @@ export default function FavoritesScreen() {
                   </View>
                 </View>
 
-                {/* Heart and price on the right - Exact match to JSX */}
                 <View style={styles.rightSection}>
                   <TouchableOpacity
                     onPress={() => handleRemoveFavorite(provider.id, provider.business_name?.trim() || provider.full_name)}
                     disabled={removingId === provider.id}
                     style={styles.heartButton}
+                    accessibilityLabel={t('favorites.removeTitle')}
                   >
                     <Text style={styles.heartIcon}>❤️</Text>
                   </TouchableOpacity>
-                  <Text style={[styles.price, { color: colors.textPrimary }]}>
-                    {formatPrice(provider.hourly_rate)}
-                  </Text>
                 </View>
               </View>
 
@@ -389,6 +380,7 @@ const styles = StyleSheet.create({
   },
   rightSection: {
     alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   heartButton: {
     padding: 4,
@@ -396,12 +388,6 @@ const styles = StyleSheet.create({
   // Heart - Exact match: fontSize: '20px', color: danger
   heartIcon: {
     fontSize: 20,
-  },
-  // Price - Exact match: fontSize: '14px', fontWeight: '600', marginTop: '8px'
-  price: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginTop: 8,
   },
   // Book Button - Exact match: width: '100%', padding: '12px', borderRadius: '10px'
   bookButton: {

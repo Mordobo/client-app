@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
+import { getSupplierServiceDisplayName } from '@/utils/categoryDisplay';
 
 // Get service duration in hours from service description or category
 const getServiceDurationHours = (service: SupplierService | null): number => {
@@ -290,7 +291,7 @@ export default function BookingDateTimeScreen() {
   const providerCardInfo: BookingDateTimePickerProviderCard | undefined = supplier && service
     ? {
         name: supplier.business_name?.trim() || supplier.full_name,
-        serviceInfo: `${service.name?.trim() || service.category_name || 'Service'} • $${service.price ?? 0}`,
+        serviceInfo: `${getSupplierServiceDisplayName(service, t)} • $${service.price ?? 0}`,
         profileImage: supplier.profile_image,
       }
     : undefined;

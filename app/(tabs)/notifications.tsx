@@ -1,5 +1,6 @@
+import { useMode } from '@/contexts/ModeContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import { t, getLocale } from '@/i18n';
+import { getLocaleSnapshot, t } from '@/i18n';
 import {
   Notification,
   NotificationType,
@@ -7,7 +8,11 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from '@/services/notifications';
-import { getLocalizedNotificationDisplay } from '@/utils/notificationDisplay';
+import {
+  formatNotificationRelativeTime,
+  formatNotificationSectionDateLabel,
+  getLocalizedNotificationDisplay,
+} from '@/utils/notificationDisplay';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -27,9 +32,10 @@ interface NotificationItemProps {
   notification: Notification;
   onPress: () => void;
   colors: ReturnType<typeof useThemeColors>;
+  viewerRole: 'client' | 'provider';
 }
 
-function NotificationItem({ notification, onPress, colors }: NotificationItemProps) {
+function NotificationItem({ notification, onPress, colors, viewerRole }: NotificationItemProps) {
   const getNotificationConfig = (type: NotificationType) => {
     switch (type) {
       case 'booking_confirmed':
@@ -45,6 +51,7 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
       case 'payment_processed':
         return { icon: '💳', bgColor: '#10B981' };
       case 'provider_on_way':
+      case 'job_started':
         return { icon: '📍', bgColor: '#8B5CF6' };
       case 'quote_received':
         return { icon: '📋', bgColor: '#6366F1' };
@@ -53,8 +60,11 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
       case 'quote_approved':
         return { icon: '✅', bgColor: '#10B981' };
       case 'payment_received':
+      case 'new_paid_booking':
         return { icon: '💰', bgColor: '#10B981' };
       case 'new_review':
+      case 'job_pending_review':
+      case 'job_completed':
         return { icon: '⭐', bgColor: '#F59E0B' };
       case 'refund_issued':
         return { icon: '↩️', bgColor: '#10B981' };
@@ -63,47 +73,8 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
     }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    const locale = getLocale();
-
-    if (diffMins < 1) {
-      return locale === 'es' ? 'Hace menos de 1 min' : 'Less than 1 min ago';
-    } else if (diffMins < 60) {
-      return locale === 'es' ? `Hace ${diffMins} min` : `${diffMins} min ago`;
-    } else if (diffHours < 24) {
-      return locale === 'es' ? `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}` : `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    } else if (diffDays === 1) {
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      const displayMinutes = minutes.toString().padStart(2, '0');
-      return locale === 'es' 
-        ? `Ayer, ${displayHours}:${displayMinutes} ${ampm}`
-        : `Yesterday, ${displayHours}:${displayMinutes} ${ampm}`;
-    } else {
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      const displayMinutes = minutes.toString().padStart(2, '0');
-      const day = date.getDate();
-      const month = date.getMonth() + 1;
-      return locale === 'es'
-        ? `${day}/${month}, ${displayHours}:${displayMinutes} ${ampm}`
-        : `${month}/${day}, ${displayHours}:${displayMinutes} ${ampm}`;
-    }
-  };
-
   const config = getNotificationConfig(notification.type);
-  const display = getLocalizedNotificationDisplay(notification, 'client');
+  const display = getLocalizedNotificationDisplay(notification, viewerRole);
 
   return (
     <TouchableOpacity
@@ -130,7 +101,7 @@ function NotificationItem({ notification, onPress, colors }: NotificationItemPro
           {display.message}
         </Text>
         <Text style={[styles.notificationTime, { color: colors.textTertiary }]}>
-          {formatTime(notification.created_at)}
+          {formatNotificationRelativeTime(notification.created_at, 'full')}
         </Text>
       </View>
       {!notification.read && (
@@ -149,6 +120,8 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { mode } = useMode();
+  const listViewerRole = mode === 'provider' ? 'provider' : 'client';
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,16 +213,15 @@ export default function NotificationsScreen() {
       }
     });
 
-    const locale = getLocale();
     if (todayNotifications.length > 0) {
       groups.push({
-        label: locale === 'es' ? 'HOY' : 'TODAY',
+        label: t('notifications.today'),
         notifications: todayNotifications,
       });
     }
     if (yesterdayNotifications.length > 0) {
       groups.push({
-        label: locale === 'es' ? 'AYER' : 'YESTERDAY',
+        label: t('notifications.yesterday'),
         notifications: yesterdayNotifications,
       });
     }
@@ -265,19 +237,15 @@ export default function NotificationsScreen() {
         olderGroups.get(dateKey)!.push(notification);
       });
 
-      olderGroups.forEach((notifs, dateKey) => {
+      olderGroups.forEach((notifs) => {
         const date = new Date(notifs[0].created_at);
-        const locale = getLocale();
-        const months = locale === 'es'
-          ? ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-          : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const label = `${date.getDate()} ${months[date.getMonth()]}`;
+        const label = formatNotificationSectionDateLabel(date);
         groups.push({ label, notifications: notifs });
       });
     }
 
     return groups;
-  }, [notifications]);
+  }, [notifications, getLocaleSnapshot()]);
 
   const hasUnread = useMemo(
     () => notifications.some((n) => !n.read),
@@ -346,6 +314,7 @@ export default function NotificationsScreen() {
                   notification={notification}
                   onPress={() => handleNotificationPress(notification)}
                   colors={colors}
+                  viewerRole={listViewerRole}
                 />
               ))}
             </View>

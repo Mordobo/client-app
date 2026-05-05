@@ -1,24 +1,52 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { t } from '@/i18n';
 import { ProgressBar } from '@/components/onboarding/ProgressBar';
+import { useMode } from '@/contexts/ModeContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { t } from '@/i18n';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback } from 'react';
+import { BackHandler, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const TOTAL_STEPS = 8;
 
 export default function ProviderOnboardingWelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { setMode } = useMode();
+  const theme = useThemeColors();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handleGetStarted = () => {
     router.push('/provider-onboarding/business');
   };
 
+  // Android hardware back: leave provider onboarding instead of popping to (provider-tabs), which
+  // would re-run gate logic and previously could open verification (step 7 submit) by mistake.
+  useFocusEffect(
+    useCallback(() => {
+      const onHardwareBack = () => {
+        void (async () => {
+          try {
+            await setMode('client');
+            router.replace('/(tabs)');
+          } catch (e) {
+            console.error('[ProviderOnboarding welcome] Exit on back failed:', e);
+            router.replace('/(tabs)');
+          }
+        })();
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
+      return () => sub.remove();
+    }, [router, setMode]),
+  );
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.screenBackground }]}>
       <ProgressBar currentStep={0} totalSteps={TOTAL_STEPS} />
       
       <View style={styles.content}>
@@ -35,12 +63,12 @@ export default function ProviderOnboardingWelcomeScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>
           {t('providerOnboarding.welcome.title')}
         </Text>
 
         {/* Subtitle */}
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
           {t('providerOnboarding.welcome.subtitle')}
         </Text>
 
@@ -51,9 +79,18 @@ export default function ProviderOnboardingWelcomeScreen() {
             { icon: '📅', text: t('providerOnboarding.welcome.benefit2') },
             { icon: '⭐', text: t('providerOnboarding.welcome.benefit3') },
           ].map((benefit, index) => (
-            <View key={index} style={styles.benefitCard}>
+            <View
+              key={index}
+              style={[
+                styles.benefitCard,
+                {
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : theme.surfaceSecondary,
+                  borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : theme.border,
+                },
+              ]}
+            >
               <Text style={styles.benefitIcon}>{benefit.icon}</Text>
-              <Text style={styles.benefitText}>{benefit.text}</Text>
+              <Text style={[styles.benefitText, { color: theme.textPrimary }]}>{benefit.text}</Text>
             </View>
           ))}
         </View>
@@ -85,7 +122,6 @@ export default function ProviderOnboardingWelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#12121A',
   },
   content: {
     flex: 1,
@@ -111,14 +147,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
     marginBottom: 12,
     textAlign: 'center',
     lineHeight: 32,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 24,
     textAlign: 'center',
     lineHeight: 20,
@@ -133,9 +167,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   benefitIcon: {
     fontSize: 20,
@@ -143,7 +175,6 @@ const styles = StyleSheet.create({
   benefitText: {
     flex: 1,
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   buttonContainer: {
     paddingHorizontal: 20,

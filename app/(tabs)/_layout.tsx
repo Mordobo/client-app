@@ -8,6 +8,7 @@ import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { t } from '@/i18n';
 import { fetchUnreadCount } from '@/services/conversations';
 import { fetchUnreadNotificationCount } from '@/services/notifications';
 
@@ -141,7 +142,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: t('clientTabs.home'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={20} color={color} />
           ),
@@ -150,7 +151,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="bookings"
         options={{
-          title: 'Reservas', // From JSX: 'Reservas'
+          title: t('clientTabs.bookings'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={20} color={color} />
           ),
@@ -159,14 +160,14 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'Chat',
+          title: t('clientTabs.chat'),
           tabBarIcon: ({ color, focused }) => <ChatTabIcon color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Alertas', // From JSX: 'Alertas'
+          title: t('clientTabs.notifications'),
           tabBarIcon: ({ color, focused }) => (
             <NotificationsTabIcon color={color} focused={focused} />
           ),
@@ -175,7 +176,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil', // From JSX: 'Perfil'
+          title: t('clientTabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} size={20} color={color} />
           ),

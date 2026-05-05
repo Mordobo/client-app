@@ -1,6 +1,7 @@
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { ApiError } from '@/services/auth';
+import { useMode, type UserMode } from '@/contexts/ModeContext';
 import {
   createComplaint,
   getComplaintMessages,
@@ -37,6 +38,10 @@ function typeLabel(type: ComplaintType): string {
   return t('complaints.typeSuggestion');
 }
 
+function submitterRoleLabel(m: UserMode): string {
+  return m === 'provider' ? t('complaints.submittingAsProvider') : t('complaints.submittingAsClient');
+}
+
 function statusLabel(status: string): string {
   switch (status) {
     case 'open':
@@ -62,6 +67,8 @@ export default function ComplaintsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const { mode, isLoading: isModeLoading } = useMode();
+  const isProviderContext = !isModeLoading && mode === 'provider';
   const queryClient = useQueryClient();
 
   const [type, setType] = useState<ComplaintType>('complaint');
@@ -89,6 +96,7 @@ export default function ComplaintsScreen() {
         subject: subject.trim(),
         description: description.trim(),
         order_id: orderId.trim() || undefined,
+        submitter_type: mode,
       }),
     onSuccess: () => {
       setSubject('');
@@ -200,6 +208,28 @@ export default function ComplaintsScreen() {
         >
           <Text style={[styles.subtitle, { color: colors.textTertiary }]}>{t('complaints.subtitle')}</Text>
 
+          {!isModeLoading ? (
+            <View
+              style={[
+                styles.roleBanner,
+                {
+                  backgroundColor: mode === 'provider' ? colors.primary + '22' : colors.card,
+                  borderColor: mode === 'provider' ? colors.primary + '55' : colors.cardBorder,
+                },
+              ]}
+            >
+              <Text style={[styles.roleBannerLabel, { color: colors.textSecondary }]}>
+                {t('complaints.submittingAsLabel')}
+              </Text>
+              <Text style={[styles.roleBannerValue, { color: colors.textPrimary }]}>
+                {submitterRoleLabel(mode)}
+              </Text>
+              <Text style={[styles.roleBannerHint, { color: colors.textTertiary }]}>
+                {mode === 'provider' ? t('complaints.contextHintProvider') : t('complaints.contextHintClient')}
+              </Text>
+            </View>
+          ) : null}
+
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>{t('complaints.typeLabel')}</Text>
           <View style={styles.typeRow}>
             {TYPES.map((tOption) => (
@@ -258,7 +288,7 @@ export default function ComplaintsScreen() {
           />
 
           <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-            {t('complaints.orderIdLabel')}
+            {isProviderContext ? t('complaints.orderIdLabelProvider') : t('complaints.orderIdLabel')}
           </Text>
           <TextInput
             style={[
@@ -267,7 +297,9 @@ export default function ComplaintsScreen() {
             ]}
             value={orderId}
             onChangeText={setOrderId}
-            placeholder={t('complaints.orderIdPlaceholder')}
+            placeholder={
+              isProviderContext ? t('complaints.orderIdPlaceholderProvider') : t('complaints.orderIdPlaceholder')
+            }
             placeholderTextColor={colors.textTertiary}
             autoCapitalize="none"
             autoCorrect={false}
@@ -279,13 +311,19 @@ export default function ComplaintsScreen() {
               {
                 backgroundColor: colors.primary,
                 opacity:
-                  submitMutation.isPending || subject.trim().length < 3 || description.trim().length < 10
+                  submitMutation.isPending ||
+                  isModeLoading ||
+                  subject.trim().length < 3 ||
+                  description.trim().length < 10
                     ? 0.5
                     : 1,
               },
             ]}
             disabled={
-              submitMutation.isPending || subject.trim().length < 3 || description.trim().length < 10
+              submitMutation.isPending ||
+              isModeLoading ||
+              subject.trim().length < 3 ||
+              description.trim().length < 10
             }
             onPress={() => {
               if (subject.trim().length < 3) {
@@ -332,7 +370,10 @@ export default function ComplaintsScreen() {
                     />
                   </View>
                   <Text style={[styles.cardMeta, { color: colors.textTertiary }]}>
-                    {typeLabel(item.type)} · {statusLabel(item.status)}
+                    {typeLabel(item.type)} · {statusLabel(item.status)} ·{' '}
+                    {item.submitterType === 'provider'
+                      ? t('complaints.submittingAsProvider')
+                      : t('complaints.submittingAsClient')}
                   </Text>
                   {expandedId !== item.id ? (
                     <Text style={[styles.cardPreview, { color: colors.textSecondary }]} numberOfLines={2}>
@@ -411,7 +452,16 @@ const styles = StyleSheet.create({
   headerPlaceholder: { width: 32 },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingTop: 16 },
-  subtitle: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
+  subtitle: { fontSize: 14, lineHeight: 20, marginBottom: 16 },
+  roleBanner: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 20,
+  },
+  roleBannerLabel: { fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  roleBannerValue: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
+  roleBannerHint: { fontSize: 13, lineHeight: 18 },
   fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginTop: 4 },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   typeChip: {

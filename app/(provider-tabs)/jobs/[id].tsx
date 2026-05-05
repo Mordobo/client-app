@@ -1,10 +1,12 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { hasProviderRatedClient } from "@/utils/providerClientRatedOrders";
 import { fetchOrderDetail } from "@/services/orders";
 import { getProviderActiveJobs, startJob, type ProviderActiveJobDetail } from "@/services/providerDashboard";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +22,7 @@ function formatCurrency(value: number): string {
 
 export default function ProviderJobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
@@ -41,6 +44,23 @@ export default function ProviderJobDetailScreen() {
 
   const [openingChat, setOpeningChat] = useState(false);
   const [startingJob, setStartingJob] = useState(false);
+  const [providerRatedClient, setProviderRatedClient] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!user?.id || !job?.orderId) {
+        setProviderRatedClient(false);
+        return;
+      }
+      let cancelled = false;
+      hasProviderRatedClient(user.id, job.orderId).then((v) => {
+        if (!cancelled) setProviderRatedClient(v);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [user?.id, job?.orderId]),
+  );
 
   const goBack = useCallback(() => router.back(), [router]);
 
@@ -231,7 +251,7 @@ export default function ProviderJobDetailScreen() {
             <Text style={styles.completeBtnText}>{t("providerDashboard.markAsCompleted")}</Text>
           </TouchableOpacity>
         )}
-        {(job.status === "pending_review" || job.status === "awaiting_provider_rating") && (
+        {(job.status === "pending_review" || job.status === "awaiting_provider_rating") && !providerRatedClient && (
           <TouchableOpacity style={[styles.completeBtn, { backgroundColor: colors.primary }]} onPress={handleRateClient} activeOpacity={0.8}>
             <Ionicons name="star-outline" size={20} color="#FFFFFF" />
             <Text style={styles.completeBtnText}>{t("providerDashboard.rateClient.title")}</Text>

@@ -156,9 +156,29 @@ export const fetchPayment = async (paymentId: string): Promise<Payment> => {
 // PAYMENT METHODS
 // ============================================
 
+/** Stored card / wallet discriminator (aligned with API `payment_methods.type`). */
+export type PaymentMethodType =
+  | 'visa'
+  | 'mastercard'
+  | 'amex'
+  | 'discover'
+  | 'diners'
+  | 'jcb'
+  | 'unionpay'
+  | 'maestro'
+  | 'mir'
+  | 'elo'
+  | 'hipercard'
+  | 'cartes_bancaires'
+  | 'interac'
+  | 'other_card'
+  | 'paypal'
+  | 'apple_pay'
+  | 'google_pay';
+
 export interface PaymentMethod {
   id: string;
-  type: 'visa' | 'mastercard' | 'amex' | 'paypal' | 'apple_pay' | 'google_pay';
+  type: PaymentMethodType;
   last4?: string;
   expiry_month?: number;
   expiry_year?: number;
@@ -179,7 +199,7 @@ export interface PaymentMethodResponse {
 }
 
 export interface CreatePaymentMethodData {
-  type: 'visa' | 'mastercard' | 'amex' | 'paypal' | 'apple_pay' | 'google_pay';
+  type: PaymentMethodType;
   last4?: string;
   expiry_month?: number;
   expiry_year?: number;

@@ -10,10 +10,10 @@ import { t } from "@/i18n";
 import { fetchOrders } from "@/services/orders";
 import { getClientReceivedReviews } from "@/services/reviews";
 import { Ionicons } from "@expo/vector-icons";
-import { useIsFocused } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -35,6 +35,7 @@ export default function ProfileScreen() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
+  const statsLoadedOnceRef = useRef(false);
   // Defer ModeSwitch mount to avoid Fabric "child already has a parent" when opening Profile tab (Reanimated + Fabric race).
   const [showModeSwitch, setShowModeSwitch] = useState(false);
   useEffect(() => {
@@ -44,26 +45,42 @@ export default function ProfileScreen() {
 
   const loadStats = useCallback(async () => {
     try {
+      if (!statsLoadedOnceRef.current) {
+        setLoadingStats(true);
+      }
       const [ordersData, reviewsData] = await Promise.all([
         fetchOrders(),
-        getClientReceivedReviews().catch(() => ({ count: 0, reviews: [] })),
+        getClientReceivedReviews().catch((err) => {
+          console.warn("[Profile] getClientReceivedReviews failed:", err);
+          return { count: 0, reviews: [] as const };
+        }),
       ]);
+
+      const reviewList = reviewsData.reviews ?? [];
+      const reviewCount =
+        typeof reviewsData.count === "number"
+          ? Math.max(reviewsData.count, reviewList.length)
+          : reviewList.length;
 
       setStats({
         services: Array.isArray(ordersData) ? ordersData.length : 0,
-        reviews: reviewsData.count ?? 0,
+        reviews: reviewCount,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
       setStats({ services: 0, reviews: 0 });
     } finally {
       setLoadingStats(false);
+      statsLoadedOnceRef.current = true;
     }
   }, []);
 
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+  useFocusEffect(
+    useCallback(() => {
+      if (mode !== "client") return;
+      void loadStats();
+    }, [mode, loadStats]),
+  );
 
   // When user is in provider mode, show provider profile instead of client profile.
   // Only redirect when this screen is actually focused to avoid background screens

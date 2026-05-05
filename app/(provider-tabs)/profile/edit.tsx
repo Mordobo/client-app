@@ -18,7 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray, useForm, type SubmitHandler } from "react-hook-form";
-import { ActivityIndicator, Alert, findNodeHandle, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, findNodeHandle, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 
@@ -70,6 +70,7 @@ export default function ProviderEditProfileScreen() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -77,6 +78,7 @@ export default function ProviderEditProfileScreen() {
   const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
   const [specialtyModalVisible, setSpecialtyModalVisible] = useState(false);
   const [newSpecialtyText, setNewSpecialtyText] = useState("");
+  const [specialtyModalKeyboardHeight, setSpecialtyModalKeyboardHeight] = useState(0);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const contactPhoneFieldRef = useRef<View>(null);
@@ -264,6 +266,17 @@ export default function ProviderEditProfileScreen() {
     }
   }, [newSpecialtyText, appendSpecialty]);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, (e) => setSpecialtyModalKeyboardHeight(e.endCoordinates.height));
+    const hideSub = Keyboard.addListener(hideEvent, () => setSpecialtyModalKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   const onSubmit: SubmitHandler<FormValues> = useCallback(
     async (data) => {
       try {
@@ -320,14 +333,20 @@ export default function ProviderEditProfileScreen() {
           <View style={styles.avatarSection}>
             <TouchableOpacity
               onPress={pickImage}
-              style={[styles.avatarWrap, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[styles.avatarWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
               activeOpacity={0.8}
               disabled={uploadingAvatar}
             >
-              {avatarUri ?
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="contain" />
+              {avatarUri && !avatarError ?
+                <Image
+                  source={{ uri: avatarUri }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                  onError={() => setAvatarError(true)}
+                />
               : <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceSecondary }]}>
-                  <Text style={[styles.avatarInitials, { color: colors.textSecondary }]}>{getDisplayNameInitials(watch("displayName") || "")}</Text>
+                  <Text style={[styles.avatarInitials, { color: colors.textPrimary }]}>{getDisplayNameInitials(watch("displayName") || "")}</Text>
                 </View>
               }
               {uploadingAvatar ?
@@ -447,35 +466,69 @@ export default function ProviderEditProfileScreen() {
                 onRequestClose={() => {
                   setSpecialtyModalVisible(false);
                   setNewSpecialtyText("");
+                  setSpecialtyModalKeyboardHeight(0);
                 }}
               >
-                <TouchableOpacity
-                  style={styles.modalOverlay}
-                  activeOpacity={1}
-                  onPress={() => {
-                    setSpecialtyModalVisible(false);
-                    setNewSpecialtyText("");
-                  }}
+                <View
+                  style={[
+                    styles.specialtyModalOverlay,
+                    {
+                      paddingLeft: 24 + insets.left,
+                      paddingRight: 24 + insets.right,
+                      paddingTop: Math.max(16, insets.top),
+                      paddingBottom:
+                        Platform.OS === "android" && specialtyModalKeyboardHeight > 0 ?
+                          specialtyModalKeyboardHeight + 16
+                        : Math.max(24, insets.bottom + 16),
+                    },
+                  ]}
                 >
-                  <TouchableOpacity style={[styles.specialtyModalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]} activeOpacity={1} onPress={() => {}}>
-                    <Text style={[styles.specialtyModalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerEditProfile.addSpecialtyModalTitle")}</Text>
-                    <TextInput style={[styles.specialtyModalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]} value={newSpecialtyText} onChangeText={setNewSpecialtyText} placeholder="ej. Emergencias" placeholderTextColor={colors.textSecondary} autoFocus />
-                    <View style={styles.specialtyModalActions}>
-                      <TouchableOpacity
-                        style={[styles.specialtyModalButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, borderWidth: 1 }]}
-                        onPress={() => {
-                          setSpecialtyModalVisible(false);
-                          setNewSpecialtyText("");
-                        }}
-                      >
-                        <Text style={[styles.specialtyModalButtonText, { color: colors.textSecondary }]}>{t("common.cancel")}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={[styles.specialtyModalButton, styles.specialtyModalButtonPrimary, { backgroundColor: colors.primary }]} onPress={handleAddSpecialty}>
-                        <Text style={[styles.specialtyModalButtonText, styles.specialtyModalButtonTextPrimary]}>{t("common.save")}</Text>
-                      </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.specialtyModalBackdrop}
+                    activeOpacity={1}
+                    onPress={() => {
+                      setSpecialtyModalVisible(false);
+                      setNewSpecialtyText("");
+                      setSpecialtyModalKeyboardHeight(0);
+                    }}
+                  />
+                  <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.specialtyModalKeyboardView} keyboardVerticalOffset={0}>
+                    <View
+                      style={[
+                        styles.specialtyModalContent,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.cardBorder,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.specialtyModalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.providerEditProfile.addSpecialtyModalTitle")}</Text>
+                      <TextInput
+                        style={[styles.specialtyModalInput, { backgroundColor: colors.background, borderColor: colors.cardBorder, color: colors.textPrimary }]}
+                        value={newSpecialtyText}
+                        onChangeText={setNewSpecialtyText}
+                        placeholder="ej. Emergencias"
+                        placeholderTextColor={colors.textSecondary}
+                        autoFocus
+                      />
+                      <View style={styles.specialtyModalActions}>
+                        <TouchableOpacity
+                          style={[styles.specialtyModalButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, borderWidth: 1 }]}
+                          onPress={() => {
+                            setSpecialtyModalVisible(false);
+                            setNewSpecialtyText("");
+                            setSpecialtyModalKeyboardHeight(0);
+                          }}
+                        >
+                          <Text style={[styles.specialtyModalButtonText, { color: colors.textSecondary }]}>{t("common.cancel")}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.specialtyModalButton, styles.specialtyModalButtonPrimary, { backgroundColor: colors.primary }]} onPress={handleAddSpecialty}>
+                          <Text style={[styles.specialtyModalButtonText, styles.specialtyModalButtonTextPrimary]}>{t("common.save")}</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </TouchableOpacity>
-                </TouchableOpacity>
+                  </KeyboardAvoidingView>
+                </View>
               </Modal>
             </View>
 
@@ -685,6 +738,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
+  specialtyModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "stretch",
+  },
+  specialtyModalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  specialtyModalKeyboardView: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "stretch",
+  },
   modalContent: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
@@ -734,7 +802,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   specialtyModalContent: {
-    marginHorizontal: 24,
+    alignSelf: "center",
+    width: "100%",
+    maxWidth: 400,
     padding: 20,
     borderRadius: 16,
     borderWidth: 1,

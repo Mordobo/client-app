@@ -17,7 +17,7 @@ import {
 } from '@/services/settings';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import * as FileSystem from 'expo-file-system';
+import { Directory } from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -254,15 +254,23 @@ export default function ClientSecurityScreen() {
   }, [buildBackupCodesBody, showToast]);
 
   const handleDownloadCodes = useCallback(async (codes: string[]) => {
+    const fileName = `mordobo-backup-codes-${Date.now()}.txt`;
+    const body = buildBackupCodesBody(codes);
+
+    let directory: Directory | undefined;
     try {
-      const fileName = `mordobo-backup-codes-${Date.now()}.txt`;
-      const dir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
-      const uri = `${dir}${fileName}`;
-      await FileSystem.writeAsStringAsync(uri, buildBackupCodesBody(codes), { encoding: FileSystem.EncodingType.UTF8 });
-      await Share.share({ url: uri, message: buildBackupCodesBody(codes), title: fileName });
+      directory = await Directory.pickDirectoryAsync();
+    } catch {
+      return;
+    }
+    if (!directory) return;
+
+    try {
+      const file = directory.createFile(fileName, 'text/plain');
+      file.write(body);
       showToast(t(`${I18N}.backupCodesSaved`, { file: fileName }), 'success');
     } catch {
-      showToast(t('errors.copyFailed'), 'error');
+      showToast(t('errors.saveFileFailed'), 'error');
     }
   }, [buildBackupCodesBody, showToast]);
 
