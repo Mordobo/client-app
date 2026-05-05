@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 import { API_BASE } from '@/utils/apiConfig';
 
 /**
@@ -7,6 +5,29 @@ import { API_BASE } from '@/utils/apiConfig';
  * Single source of truth so all screens show the same placeholder.
  */
 export const DEFAULT_AVATAR_URI = 'https://via.placeholder.com/96?text=👤';
+
+/**
+ * True when the URL host only works on a dev machine / emulator, not on a physical device
+ * or after the app points at another API (QA/prod).
+ */
+function isDevLoopbackHostname(hostname: string): boolean {
+  return /^(localhost|127\.0\.0\.1)$/i.test(hostname) || hostname === '10.0.2.2';
+}
+
+/**
+ * If the API stored an absolute URL with localhost / 127.0.0.1 / Android emulator host,
+ * rewrite it to the app's current API origin so images still load on real devices and after updates.
+ */
+function rewriteDevLoopbackAbsoluteUrl(trimmed: string): string {
+  try {
+    const parsed = new URL(trimmed);
+    if (!isDevLoopbackHostname(parsed.hostname)) return trimmed;
+    const origin = API_BASE.replace(/\/$/, '');
+    return `${origin}${parsed.pathname}${parsed.search}`;
+  } catch {
+    return trimmed;
+  }
+}
 
 /**
  * Normalizes a profile image URL from the API.
@@ -19,21 +40,11 @@ export function getProfileImageUrl(url: string | null | undefined): string | nul
   if (!url || typeof url !== 'string') return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
+  // Never treat local device paths as remote URLs (would produce invalid https://api/.../file://... URLs)
+  if (trimmed.startsWith('file:')) return null;
   if (trimmed.startsWith('data:')) return trimmed;
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    // Android emulator: API may store avatar as http://localhost/... which does not reach the host machine.
-    if (Platform.OS === 'android') {
-      try {
-        const parsed = new URL(trimmed);
-        if (/^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname)) {
-          const origin = API_BASE.replace(/\/$/, '');
-          return `${origin}${parsed.pathname}${parsed.search}`;
-        }
-      } catch {
-        /* ignore malformed URL */
-      }
-    }
-    return trimmed;
+    return rewriteDevLoopbackAbsoluteUrl(trimmed);
   }
   const base = API_BASE.replace(/\/$/, '');
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;

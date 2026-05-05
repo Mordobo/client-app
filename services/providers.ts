@@ -40,7 +40,7 @@ export interface UpdateProviderProfilePayload {
  * Get current provider profile (for edit form)
  */
 export const getProviderProfile = async (): Promise<ProviderProfile> => {
-  return request<ProviderProfile>(
+  const raw = await request<ProviderProfile & { avatar_url?: string | null }>(
     "/api/providers/profile",
     {
       method: "GET",
@@ -48,6 +48,13 @@ export const getProviderProfile = async (): Promise<ProviderProfile> => {
     },
     t("errors.getProviderProfileFailed"),
   );
+  const avatarUrl =
+    raw.avatarUrl != null && String(raw.avatarUrl).trim() !== ""
+      ? raw.avatarUrl
+      : raw.avatar_url != null && String(raw.avatar_url).trim() !== ""
+        ? raw.avatar_url
+        : null;
+  return { ...raw, avatarUrl };
 };
 
 export const getProviderProfileStats = async (): Promise<ProviderProfileStats> => {
