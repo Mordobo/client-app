@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
@@ -60,7 +61,7 @@ export default function RateClientScreen() {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [clientData, setClientData] = useState<{ fullName: string; serviceName: string } | null>(null);
+  const [clientData, setClientData] = useState<{ fullName: string; serviceName: string; profileImage?: string } | null>(null);
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [rating, setRating] = useState(5);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -77,6 +78,7 @@ export default function RateClientScreen() {
         setClientData({
           fullName: data.client.fullName,
           serviceName: data.order.serviceName,
+          profileImage: data.client.profile_image,
         });
         setOrderStatus(data.order.status ?? null);
       } catch (err) {
@@ -175,9 +177,12 @@ export default function RateClientScreen() {
       >
         {/* Client Avatar & Info */}
         <View style={styles.clientSection}>
-          <View style={[styles.clientAvatarLarge, { backgroundColor: colors.card }]}>
-            <Ionicons name="person" size={40} color={colors.textSecondary} />
-          </View>
+          <ProviderAvatar
+            profileImage={clientData?.profileImage}
+            size={80}
+            rounded
+            style={[styles.clientAvatarLarge, { backgroundColor: colors.card }]}
+          />
           <Text style={[styles.clientNameLarge, { color: colors.textPrimary }]}>{clientData?.fullName ?? "—"}</Text>
           <Text style={[styles.clientServiceLabel, { color: colors.textTertiary }]}>{clientData?.serviceName ?? ""}</Text>
         </View>

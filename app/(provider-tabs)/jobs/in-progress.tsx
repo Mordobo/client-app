@@ -1,6 +1,7 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import {
   getJobInProgressData,
   startJob,
@@ -349,9 +350,12 @@ export default function InProgressScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Client Info */}
         <View style={[styles.clientCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <View style={styles.clientAvatar}>
-            <Ionicons name="person" size={24} color={colors.icon} />
-          </View>
+          <ProviderAvatar
+            profileImage={data.client.profile_image}
+            size={44}
+            rounded
+            style={styles.clientAvatar}
+          />
           <View style={styles.clientInfo}>
             <Text style={[styles.clientName, { color: colors.textPrimary }]}>{data.client.fullName}</Text>
             <Text style={[styles.clientService, { color: colors.textSecondary }]}>{data.order.serviceName}</Text>

@@ -1,6 +1,7 @@
 import { t } from "@/i18n";
 import { request } from "./auth";
 import { getProviderServices } from "./providerServices";
+import { coerceSupplierProfileImage } from "./suppliers";
 
 export interface ProviderDashboardStats {
   todayEarnings: number;
@@ -206,6 +207,7 @@ export interface ProviderActiveJob {
   orderId: string;
   clientId: string;
   clientName: string;
+  clientProfileImage?: string;
   clientPhone?: string;
   serviceId: string;
   serviceName: string;
@@ -457,6 +459,7 @@ export interface JobCompletionData {
   client: {
     id: string;
     fullName: string;
+    profile_image?: string;
   };
   lineItems: JobCompletionLineItem[];
   subtotal: number;
@@ -490,7 +493,7 @@ export interface CompleteJobResponse {
 }
 
 export const getJobCompletionData = async (orderId: string): Promise<JobCompletionData> => {
-  return request<JobCompletionData>(
+  const data = await request<JobCompletionData>(
     `/api/providers/orders/${orderId}/completion-data`,
     {
       method: "GET",
@@ -498,6 +501,20 @@ export const getJobCompletionData = async (orderId: string): Promise<JobCompleti
     },
     t("providerDashboard.completeJob.errors.loadFailed"),
   );
+  const raw = data as unknown as Record<string, unknown>;
+  const rawClient =
+    raw.client && typeof raw.client === "object" && !Array.isArray(raw.client)
+      ? (raw.client as Record<string, unknown>)
+      : null;
+  const profileImage = coerceSupplierProfileImage(rawClient ?? raw);
+  if (!profileImage) return data;
+  return {
+    ...data,
+    client: {
+      ...data.client,
+      profile_image: profileImage,
+    },
+  };
 };
 
 export const completeJob = async (orderId: string, data: CompleteJobPayload): Promise<CompleteJobResponse> => {
@@ -537,6 +554,7 @@ export interface JobInProgressData {
     id: string;
     fullName: string;
     phone: string | null;
+    profile_image?: string;
   };
   tasks: JobTask[];
   agreedPrice: number;
@@ -544,7 +562,7 @@ export interface JobInProgressData {
 }
 
 export const getJobInProgressData = async (orderId: string): Promise<JobInProgressData> => {
-  return request<JobInProgressData>(
+  const data = await request<JobInProgressData>(
     `/api/providers/orders/${orderId}/in-progress`,
     {
       method: "GET",
@@ -552,6 +570,20 @@ export const getJobInProgressData = async (orderId: string): Promise<JobInProgre
     },
     t("providerDashboard.inProgress.errors.loadFailed"),
   );
+  const raw = data as unknown as Record<string, unknown>;
+  const rawClient =
+    raw.client && typeof raw.client === "object" && !Array.isArray(raw.client)
+      ? (raw.client as Record<string, unknown>)
+      : null;
+  const profileImage = coerceSupplierProfileImage(rawClient ?? raw);
+  if (!profileImage) return data;
+  return {
+    ...data,
+    client: {
+      ...data.client,
+      profile_image: profileImage,
+    },
+  };
 };
 
 export const updateJobTask = async (
@@ -695,7 +727,15 @@ export const getProviderActiveJobs = async (): Promise<ProviderActiveJob[]> => {
     },
     t("providerDashboard.errors.activeJobsFailed"),
   );
-  return res?.jobs ?? [];
+  const jobs = res?.jobs ?? [];
+  return jobs.map((job) => {
+    const profileImage = coerceSupplierProfileImage(job as unknown as Record<string, unknown>);
+    if (!profileImage) return job;
+    return {
+      ...job,
+      clientProfileImage: profileImage,
+    };
+  });
 };
 
 // ========== PAYMENT METHODS (BANK ACCOUNTS) ==========
