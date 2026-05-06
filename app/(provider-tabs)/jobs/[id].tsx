@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { hasProviderRatedClient } from "@/utils/providerClientRatedOrders";
@@ -158,9 +159,12 @@ export default function ProviderJobDetailScreen() {
         {/* Client card */}
         <View style={[styles.card, styles.section, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.clientRow}>
-            <View style={[styles.avatar, { backgroundColor: colors.background }]}>
-              <Ionicons name="person" size={28} color={colors.textSecondary} />
-            </View>
+            <ProviderAvatar
+              profileImage={job.clientProfileImage}
+              size={56}
+              rounded
+              style={[styles.avatar, { backgroundColor: colors.background }]}
+            />
             <View style={styles.clientInfo}>
               <Text style={[styles.clientName, { color: colors.textPrimary }]}>{job.clientName}</Text>
               {ratingLabel ?
