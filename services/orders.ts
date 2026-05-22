@@ -25,6 +25,7 @@ export interface Order {
   service_description?: string;
   supplier_name?: string;
   business_name?: string;
+  supplier_profile_image?: string;
 }
 
 export interface Quote {
@@ -165,7 +166,12 @@ export const fetchOrders = async (): Promise<Order[]> => {
       },
       t('errors.requestFailed')
     );
-    return data.orders || [];
+    const orders = data.orders ?? [];
+    return orders.map((order) => {
+      const profile_image = coerceSupplierProfileImage(order as unknown as Record<string, unknown>);
+      if (!profile_image) return order;
+      return { ...order, supplier_profile_image: profile_image };
+    });
   } catch (error) {
     if (error instanceof AuthApiError) {
       throw new ApiError(error.message, error.status, error.data);

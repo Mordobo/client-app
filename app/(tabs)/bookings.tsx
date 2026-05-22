@@ -1,4 +1,5 @@
 import { EmptyState } from '@/components/EmptyState';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
 import { t, getLocale } from '@/i18n';
 import { getOrCreateConversation } from '@/services/conversations';
 import { fetchOrders, Order, OrderStatus } from '@/services/orders';
@@ -8,7 +9,6 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -150,9 +150,12 @@ function BookingCard({ order, onPress, onMessagePress, onReviewQuote, onPayPress
       </View>
 
       <View style={styles.bookingContent}>
-        <View style={[styles.providerImage, { backgroundColor: themeColors.surfaceSecondary }]}>
-          <Ionicons name="person" size={24} color={themeColors.textSecondary} />
-        </View>
+        <ProviderAvatar
+          profileImage={order.supplier_profile_image}
+          size={48}
+          rounded
+          style={[styles.providerImage, { backgroundColor: themeColors.surfaceSecondary }]}
+        />
         
         <View style={styles.bookingInfo}>
           <Text style={[styles.providerName, { color: themeColors.textPrimary }]}>
