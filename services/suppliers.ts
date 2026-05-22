@@ -7,10 +7,27 @@ import { createApiHeaders } from '@/utils/apiHeaders';
  * (provider profile uses avatar_url; list/detail endpoints may use profile_image*).
  */
 export function coerceSupplierProfileImage(raw: Record<string, unknown>): string | undefined {
-  const keys = ['profile_image_url', 'profile_image', 'profileImage', 'avatar_url', 'avatarUrl'] as const;
+  // Prefer raw profile_image so the app resolves URLs with EXPO_PUBLIC_API_URL (avoids stale API_PUBLIC_URL absolutes).
+  const keys = [
+    'profile_image',
+    'profileImage',
+    'profile_image_url',
+    'avatar_url',
+    'avatarUrl',
+    'clientProfileImage',
+    'client_profile_image',
+    'client_avatar',
+    'clientAvatar',
+    'supplier_profile_image',
+    'supplierProfileImage',
+  ] as const;
   for (const key of keys) {
     const v = raw[key];
     if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  const nested = raw.client;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return coerceSupplierProfileImage(nested as Record<string, unknown>);
   }
   return undefined;
 }
@@ -169,10 +186,10 @@ export const fetchSuppliers = async (
     // Ensure suppliers is always an array and normalize profile_image (API may send snake_case;
     // accept profile_image_url / avatar_url when present so images stay in sync with provider avatars)
     const rawSuppliers = Array.isArray(jsonData.suppliers) ? jsonData.suppliers : [];
-    const suppliers = rawSuppliers.map((s: Record<string, unknown>) => ({
-      ...s,
-      profile_image: coerceSupplierProfileImage(s),
-    }));
+    const suppliers = rawSuppliers.map((s: Record<string, unknown>) => {
+      const profile_image = coerceSupplierProfileImage(s);
+      return profile_image ? { ...s, profile_image } : s;
+    }) as Supplier[];
     
     // Ensure total is always a number
     const total = typeof jsonData.total === 'number' ? jsonData.total : suppliers.length;

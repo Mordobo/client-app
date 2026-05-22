@@ -1,3 +1,4 @@
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
@@ -127,9 +128,12 @@ function JobCard({
       <View style={styles.cardBody}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={22} color={colors.textTertiary} />
-            </View>
+            <ProviderAvatar
+              profileImage={job.clientProfileImage}
+              size={44}
+              rounded
+              style={styles.avatar}
+            />
             <View>
               <Text style={[styles.clientName, { color: colors.textPrimary }]}>{job.clientName}</Text>
               <Text style={styles.serviceName}>{job.serviceName}</Text>
