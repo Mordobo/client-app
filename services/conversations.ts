@@ -1,6 +1,35 @@
 import { request, ApiError } from './auth';
 import { t } from '@/i18n';
 import type { OrderStatus } from './orders';
+import { coerceSupplierProfileImage } from './suppliers';
+
+function normalizeConversationDetail(conv: ConversationDetail): ConversationDetail {
+  const raw = conv as unknown as Record<string, unknown>;
+  const supplierImage = coerceSupplierProfileImage({
+    supplier_image: raw.supplier_image,
+    profile_image: raw.supplier_image,
+  });
+  const clientImage = coerceSupplierProfileImage({
+    client_image: raw.client_image,
+    profile_image: raw.client_image,
+  });
+  return {
+    ...conv,
+    supplier_image: supplierImage ?? conv.supplier_image ?? null,
+    client_image: clientImage ?? conv.client_image ?? null,
+  };
+}
+
+function normalizeConversationListItem(conv: Conversation): Conversation {
+  const image = coerceSupplierProfileImage({
+    other_user_image: conv.other_user_image,
+    profile_image: conv.other_user_image,
+  });
+  return {
+    ...conv,
+    other_user_image: image ?? conv.other_user_image ?? null,
+  };
+}
 
 export interface Conversation {
   id: string;
@@ -65,17 +94,19 @@ export const fetchConversations = async (role?: ConversationRole): Promise<Conve
     if (!data.conversations) {
       throw new ApiError('Invalid response format: missing conversations', 500);
     }
-    return data.conversations.map((conv) => ({
-      ...conv,
-      last_message_at: conv.last_message_at || null,
-      last_message: conv.last_message || null,
-      other_user_image: conv.other_user_image || null,
-      unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
-      active_order_status: conv.active_order_status ?? null,
-      active_order_has_client_payment: Boolean(
-        (conv as { active_order_has_client_payment?: boolean }).active_order_has_client_payment,
-      ),
-    }));
+    return data.conversations.map((conv) =>
+      normalizeConversationListItem({
+        ...conv,
+        last_message_at: conv.last_message_at || null,
+        last_message: conv.last_message || null,
+        other_user_image: conv.other_user_image || null,
+        unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
+        active_order_status: conv.active_order_status ?? null,
+        active_order_has_client_payment: Boolean(
+          (conv as { active_order_has_client_payment?: boolean }).active_order_has_client_payment,
+        ),
+      }),
+    );
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
@@ -102,7 +133,7 @@ export const getOrCreateConversation = async (
   orderId?: string
 ): Promise<{ conversation: ConversationDetail; created: boolean }> => {
   try {
-    return await request<{ conversation: ConversationDetail; created: boolean }>(
+    const result = await request<{ conversation: ConversationDetail; created: boolean }>(
       '/conversations',
       {
         method: 'POST',
@@ -110,6 +141,10 @@ export const getOrCreateConversation = async (
       },
       'Failed to create conversation'
     );
+    return {
+      ...result,
+      conversation: normalizeConversationDetail(result.conversation),
+    };
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
@@ -124,7 +159,7 @@ export const fetchConversation = async (conversationId: string): Promise<Convers
       { method: 'GET' },
       'Failed to fetch conversation'
     );
-    return data.conversation;
+    return normalizeConversationDetail(data.conversation);
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
