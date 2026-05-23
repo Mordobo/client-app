@@ -15,13 +15,15 @@ function isDevLoopbackHostname(hostname: string): boolean {
 }
 
 /**
- * If the API stored an absolute URL with localhost / 127.0.0.1 / Android emulator host,
- * rewrite it to the app's current API origin so images still load on real devices and after updates.
+ * Rewrites absolute profile image URLs that point at this app's API /uploads/ path
+ * (or loopback dev hosts) to the current API_BASE so avatars load on QA/prod and real devices.
  */
-function rewriteDevLoopbackAbsoluteUrl(trimmed: string): string {
+function rewriteAbsoluteProfileUrl(trimmed: string): string {
   try {
     const parsed = new URL(trimmed);
-    if (!isDevLoopbackHostname(parsed.hostname)) return trimmed;
+    const isLoopback = isDevLoopbackHostname(parsed.hostname);
+    const isApiUpload = parsed.pathname.includes('/uploads/');
+    if (!isLoopback && !isApiUpload) return trimmed;
     const origin = API_BASE.replace(/\/$/, '');
     return `${origin}${parsed.pathname}${parsed.search}`;
   } catch {
@@ -44,7 +46,7 @@ export function getProfileImageUrl(url: string | null | undefined): string | nul
   if (trimmed.startsWith('file:')) return null;
   if (trimmed.startsWith('data:')) return trimmed;
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return rewriteDevLoopbackAbsoluteUrl(trimmed);
+    return rewriteAbsoluteProfileUrl(trimmed);
   }
   const base = API_BASE.replace(/\/$/, '');
   const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
