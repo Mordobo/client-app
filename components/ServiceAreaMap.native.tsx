@@ -118,6 +118,17 @@ export const ServiceAreaMap = forwardRef<ServiceAreaMapHandle, ServiceAreaMapPro
   const isExpoGo = Constants.appOwnership === 'expo';
   const showAndroidKeyHint = Platform.OS === 'android' && googleMapsApiKey.length === 0 && !isExpoGo;
 
+  if (showAndroidKeyHint) {
+    return (
+      <View style={styles.mapBox} collapsable={false}>
+        <View style={styles.keyMissingFallback}>
+          <Text style={styles.keyMissingIcon}>🗺️</Text>
+          <Text style={styles.keyMissingText}>{t('providerDashboard.providerServiceArea.mapsAndroidKeyHint')}</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.mapBox} collapsable={false}>
       {!mapReady && (
@@ -125,11 +136,6 @@ export const ServiceAreaMap = forwardRef<ServiceAreaMapHandle, ServiceAreaMapPro
           <ActivityIndicator size="large" color={primaryColor} />
         </View>
       )}
-      {showAndroidKeyHint ? (
-        <View style={styles.keyMissingBanner}>
-          <Text style={styles.keyMissingText}>{t('providerDashboard.providerServiceArea.mapsAndroidKeyHint')}</Text>
-        </View>
-      ) : null}
       <MapView
         ref={mapRef}
         style={styles.mapFill}
@@ -184,20 +190,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.15)',
     zIndex: 2,
   },
-  keyMissingBanner: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 3,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(180,83,9,0.92)',
+  keyMissingFallback: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(180,83,9,0.12)',
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  keyMissingIcon: {
+    fontSize: 32,
   },
   keyMissingText: {
-    color: '#fff',
-    fontSize: 11,
+    color: '#92400e',
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 15,
+    lineHeight: 18,
   },
 });
