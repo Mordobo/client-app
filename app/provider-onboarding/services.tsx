@@ -3,11 +3,12 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { submitOnboardingStep } from "@/services/providers";
+import { createProviderService } from "@/services/providerServices";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
@@ -102,6 +103,42 @@ export default function ProviderOnboardingServicesScreen() {
   const handleContinue = async () => {
     setSaving(true);
     try {
+      const validServices = services.filter(
+        (s) => s.name.trim() && s.price && parseFloat(s.price) > 0
+      );
+
+      if (validServices.length > 0) {
+        const results = await Promise.allSettled(
+          validServices.map((s) =>
+            createProviderService({
+              name: s.name.trim(),
+              price: parseFloat(s.price),
+              durationMinutes: s.durationHours * 60,
+              isActive: s.active,
+            })
+          )
+        );
+
+        const failed = results.filter((r) => r.status === "rejected");
+        if (failed.length > 0) {
+          console.error("[Services] Some services failed to create:", failed);
+          if (failed.length === validServices.length) {
+            Alert.alert(
+              t("providerOnboarding.services.errorTitle"),
+              t("providerOnboarding.services.errorAllFailed")
+            );
+            setSaving(false);
+            return;
+          }
+          Alert.alert(
+            t("providerOnboarding.services.errorTitle"),
+            t("providerOnboarding.services.errorPartialFailed", {
+              count: failed.length,
+            })
+          );
+        }
+      }
+
       await submitOnboardingStep(2, {});
       router.push("/provider-onboarding/availability");
     } catch (e) {
