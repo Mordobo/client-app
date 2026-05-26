@@ -101,10 +101,21 @@ export default function ProviderOnboardingServicesScreen() {
   };
 
   const handleContinue = async () => {
+    const withName = services.filter((s) => s.name.trim().length > 0);
+    const missingPrice = withName.filter((s) => !s.price || parseFloat(s.price) <= 0);
+
+    if (missingPrice.length > 0) {
+      Alert.alert(
+        t("providerOnboarding.services.missingPriceTitle"),
+        t("providerOnboarding.services.missingPriceMessage"),
+      );
+      return;
+    }
+
     setSaving(true);
     try {
-      const validServices = services.filter(
-        (s) => s.name.trim() && s.price && parseFloat(s.price) > 0
+      const validServices = withName.filter(
+        (s) => s.price && parseFloat(s.price) > 0
       );
 
       if (validServices.length > 0) {

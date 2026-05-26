@@ -2,7 +2,7 @@ import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
-import { fetchCategories, type Category } from "@/services/categories";
+import { fetchCategoriesTree, type CategoryTreeItem, type Subcategory } from "@/services/categories";
 import { ApiError } from "@/services/auth";
 import { submitOnboardingStep } from "@/services/providers";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,7 +34,13 @@ export interface CategoryOption {
   icon: string;
 }
 
-/** Map API icon names (e.g. wrench, sparkles) to emoji for display */
+export interface SubcategoryOption {
+  id: string;
+  name: string;
+  icon: string;
+  parentId: string;
+}
+
 const ICON_NAME_TO_EMOJI: Record<string, string> = {
   wrench: "🔧",
   construct: "🔧",
@@ -63,15 +69,25 @@ function iconToEmoji(icon: string | undefined): string {
   return "📦";
 }
 
-function getCategoryOptions(apiCategories: Category[] | undefined): CategoryOption[] {
-  if (apiCategories && apiCategories.length > 0) {
-    return apiCategories.map((c) => ({
-      id: c.id,
-      name: c.name,
-      icon: iconToEmoji(c.icon),
-    }));
-  }
-  return [];
+function getCategoryOptions(tree: CategoryTreeItem[] | undefined): CategoryOption[] {
+  if (!tree || tree.length === 0) return [];
+  return tree.map((c) => ({
+    id: c.id,
+    name: c.name,
+    icon: iconToEmoji(c.icon),
+  }));
+}
+
+function getSubcategoryOptions(tree: CategoryTreeItem[] | undefined, parentId: string): SubcategoryOption[] {
+  if (!tree) return [];
+  const parent = tree.find((c) => c.id === parentId);
+  if (!parent?.subcategories) return [];
+  return parent.subcategories.map((s: Subcategory) => ({
+    id: s.id,
+    name: s.name,
+    icon: iconToEmoji(s.icon),
+    parentId: s.category_id,
+  }));
 }
 
 export default function ProviderOnboardingBusinessScreen() {
@@ -82,22 +98,33 @@ export default function ProviderOnboardingBusinessScreen() {
   const isDark = colorScheme === "dark";
   const [businessName, setBusinessName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<CategoryOption | null>(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<SubcategoryOption | null>(null);
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
   const [description, setDescription] = useState("");
 
-  const { data: apiCategories, isLoading: categoriesLoading } = useQuery({
-    queryKey: ["provider-onboarding-categories"],
-    queryFn: fetchCategories,
+  const { data: categoriesTree, isLoading: categoriesLoading } = useQuery({
+    queryKey: ["provider-onboarding-categories-tree"],
+    queryFn: fetchCategoriesTree,
     staleTime: 5 * 60 * 1000,
   });
 
-  const categoryOptions = useMemo(() => getCategoryOptions(apiCategories), [apiCategories]);
+  const categoryOptions = useMemo(() => getCategoryOptions(categoriesTree), [categoriesTree]);
+  const subcategoryOptions = useMemo(
+    () => (selectedCategory ? getSubcategoryOptions(categoriesTree, selectedCategory.id) : []),
+    [categoriesTree, selectedCategory],
+  );
 
   const handleBack = () => {
     router.back();
   };
 
-  const canContinue = businessName.trim().length > 0 && selectedCategory !== null && description.trim().length >= MIN_DESCRIPTION_LENGTH;
+  const hasSubcategories = subcategoryOptions.length > 0;
+  const canContinue =
+    businessName.trim().length > 0 &&
+    selectedCategory !== null &&
+    (!hasSubcategories || selectedSubcategory !== null) &&
+    description.trim().length >= MIN_DESCRIPTION_LENGTH;
 
   const [saving, setSaving] = useState(false);
 
@@ -113,7 +140,7 @@ export default function ProviderOnboardingBusinessScreen() {
     }
     setSaving(true);
     try {
-      const categoryId = selectedCategory.id.trim();
+      const categoryId = (selectedSubcategory?.id ?? selectedCategory.id).trim();
       await submitOnboardingStep(1, {
         businessName: businessName.trim(),
         ...(categoryId.length > 0 ? { categoryId } : {}),
@@ -127,11 +154,17 @@ export default function ProviderOnboardingBusinessScreen() {
     } finally {
       setSaving(false);
     }
-  }, [businessName, description, router, selectedCategory]);
+  }, [businessName, description, router, selectedCategory, selectedSubcategory]);
 
   const handleSelectCategory = (option: CategoryOption) => {
     setSelectedCategory(option);
+    setSelectedSubcategory(null);
     setCategoryModalVisible(false);
+  };
+
+  const handleSelectSubcategory = (option: SubcategoryOption) => {
+    setSelectedSubcategory(option);
+    setSubcategoryModalVisible(false);
   };
 
   return (
@@ -235,6 +268,75 @@ export default function ProviderOnboardingBusinessScreen() {
               </TouchableOpacity>
             </Modal>
           </View>
+
+          {/* Subcategory dropdown — visible only when parent category has subcategories */}
+          {selectedCategory && hasSubcategories && (
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>{t("providerOnboarding.business.subcategory")}</Text>
+              <TouchableOpacity
+                style={[styles.selectContainer, { backgroundColor: theme.surfaceSecondary, borderColor: theme.border }]}
+                onPress={() => setSubcategoryModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[styles.selectText, { color: selectedSubcategory ? theme.textPrimary : theme.textTertiary }]}
+                  numberOfLines={1}
+                >
+                  {selectedSubcategory ? `${selectedSubcategory.icon} ${selectedSubcategory.name}` : t("providerOnboarding.business.selectSubcategory")}
+                </Text>
+                <View style={styles.selectIconWrap}>
+                  <Ionicons name="chevron-down" size={16} color={theme.iconSecondary} />
+                </View>
+              </TouchableOpacity>
+
+              <Modal visible={subcategoryModalVisible} animationType="slide" transparent onRequestClose={() => setSubcategoryModalVisible(false)}>
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSubcategoryModalVisible(false)}>
+                  <View
+                    style={[styles.modalContent, { paddingBottom: insets.bottom + 16, backgroundColor: theme.card }]}
+                    onStartShouldSetResponder={() => true}
+                  >
+                    <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+                      <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>{t("providerOnboarding.business.subcategoryModalTitle")}</Text>
+                      <TouchableOpacity onPress={() => setSubcategoryModalVisible(false)} style={styles.modalCloseButton} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                        <Ionicons name="close" size={24} color={theme.textPrimary} />
+                      </TouchableOpacity>
+                    </View>
+                    <FlatList
+                      data={subcategoryOptions}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[
+                            styles.categoryItem,
+                            selectedSubcategory?.id === item.id && {
+                              backgroundColor: isDark ? "rgba(139, 92, 246, 0.15)" : `${theme.primary}22`,
+                            },
+                          ]}
+                          onPress={() => handleSelectSubcategory(item)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.categoryIcon}>{item.icon}</Text>
+                          <Text
+                            style={[
+                              styles.categoryName,
+                              { color: theme.textPrimary },
+                              selectedSubcategory?.id === item.id && styles.categoryNameSelected,
+                            ]}
+                          >
+                            {item.name}
+                          </Text>
+                          {selectedSubcategory?.id === item.id && <Ionicons name="checkmark-circle" size={22} color="#8B5CF6" />}
+                        </TouchableOpacity>
+                      )}
+                      style={styles.categoryList}
+                      contentContainerStyle={styles.categoryListContent}
+                      showsVerticalScrollIndicator
+                    />
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+            </View>
+          )}
 
           {/* Description */}
           <View style={styles.field}>
