@@ -37,11 +37,15 @@ export default {
     },
     android: {
       package: "com.mordobo.client",
-      config: {
-        googleMaps: {
-          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-        },
-      },
+      ...(process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+        ? {
+            config: {
+              googleMaps: {
+                apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+              },
+            },
+          }
+        : {}),
       softwareKeyboardLayoutMode: "resize",
       adaptiveIcon: {
         backgroundColor: "#E6F4FE",
