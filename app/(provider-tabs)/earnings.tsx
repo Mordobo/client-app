@@ -402,9 +402,11 @@ function TransactionItem({ transaction, colors }: { transaction: ProviderEarning
           { backgroundColor: isIncome ? STATUS_COMPLETED_BG : STATUS_REFUNDED_BG },
         ]}
       >
-        <Text style={[styles.txIconText, { color: isIncome ? STATUS_COMPLETED_TEXT : STATUS_REFUNDED_TEXT }]}>
-          {isIncome ? "↓" : "↑"}
-        </Text>
+        <Ionicons
+          name={isIncome ? "arrow-down" : "arrow-up"}
+          size={18}
+          color={isIncome ? STATUS_COMPLETED_TEXT : STATUS_REFUNDED_TEXT}
+        />
       </View>
       <View style={styles.txBody}>
         <Text style={[styles.txDesc, { color: colors.textPrimary }]}>{desc}</Text>
@@ -575,7 +577,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  txIconText: { fontSize: 16, color: "#22C55E" },
   txBody: { flex: 1, minWidth: 0 },
   txDesc: { fontSize: 14, fontWeight: "500" },
   txClient: { fontSize: 12, marginTop: 2 },

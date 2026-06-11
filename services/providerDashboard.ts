@@ -165,6 +165,7 @@ export interface ProviderDashboardRequest {
   id: string;
   clientId: string;
   clientName: string;
+  clientProfileImage?: string;
   serviceId: string;
   serviceName: string;
   scheduledAt: string | null;

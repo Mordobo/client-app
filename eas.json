@@ -96,9 +96,9 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_API_ENV": "qa",
-        "EXPO_PUBLIC_API_URL": "https://mordobo-api-qa.onrender.com",
-        "EXPO_PUBLIC_API_URL_PROD": "https://mordobo-api-qa.onrender.com"
+        "EXPO_PUBLIC_API_ENV": "production",
+        "EXPO_PUBLIC_API_URL_PROD": "https://mordobo-api-prod.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xxvjunhjerhlxhmarelr.supabase.co"
       },
       "channel": "production"
     }

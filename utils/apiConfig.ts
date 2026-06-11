@@ -5,7 +5,7 @@ const API_ENV_VALUES = ['localhost', 'qa', 'production'] as const;
 export type ApiEnv = (typeof API_ENV_VALUES)[number];
 
 const DEFAULT_QA_URL = 'https://mordobo-api-qa.onrender.com';
-const DEFAULT_PROD_URL = 'https://api.mordobo.com';
+const DEFAULT_PROD_URL = 'https://mordobo-api-prod.onrender.com';
 
 /**
  * Centralized API configuration.

@@ -41,7 +41,7 @@ export default function ProviderPortfolioScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const queryClient = useQueryClient();
-  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [detailProjectId, setDetailProjectId] = useState<string | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
@@ -114,9 +114,9 @@ export default function ProviderPortfolioScreen() {
                 await deletePortfolioProject(project.id);
                 setDetailProjectId(null);
                 await queryClient.invalidateQueries({ queryKey: ["providerPortfolio"] });
-                setToast({ message: t("providerDashboard.portfolio.deleteSuccess") });
+                setToast({ message: t("providerDashboard.portfolio.deleteSuccess"), type: 'success' });
               } catch {
-                setToast({ message: t("providerDashboard.portfolio.errors.deleteFailed") });
+                setToast({ message: t("providerDashboard.portfolio.errors.deleteFailed"), type: 'error' });
               }
             },
           },
@@ -413,6 +413,7 @@ export default function ProviderPortfolioScreen() {
       {toast && (
         <Toast
           message={toast.message}
+          type={toast.type}
           onHide={() => setToast(null)}
         />
       )}

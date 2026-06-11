@@ -13,6 +13,7 @@ import {
 import type { ThemeColors } from "@/utils/themeStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { PlatformFlashList } from "@/components/PlatformFlashList";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -81,9 +82,7 @@ function RequestCard({
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor }]}>
       <View style={styles.cardRow}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={22} color={colors.textTertiary} />
-        </View>
+        <ProviderAvatar profileImage={item.clientProfileImage} size={44} rounded style={styles.avatar} />
         <View style={styles.cardMain}>
           <View style={styles.cardTitleRow}>
             <Text style={[styles.clientName, { color: colors.textPrimary }]} numberOfLines={1}>
@@ -425,6 +424,7 @@ const styles = StyleSheet.create({
   cardRow: {
     flexDirection: "row",
     alignItems: "flex-start",
+    gap: 12,
     marginBottom: 12,
   },
   avatar: {
@@ -434,7 +434,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(61, 51, 112, 0.5)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   cardMain: {
     flex: 1,

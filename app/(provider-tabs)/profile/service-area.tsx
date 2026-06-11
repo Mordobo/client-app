@@ -500,8 +500,10 @@ export default function ProviderServiceAreaScreen() {
         </View>
       </ScrollView>
 
+      {/* Inside a transparent Modal Android ignores adjustResize, so both platforms need
+          KeyboardAvoidingView padding or the keyboard covers the bottom sheet (MDB-436/437). */}
       <Modal visible={locationModalVisible} animationType="slide" transparent onRequestClose={() => setLocationModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalBackdrop}>
           <TouchableOpacity style={styles.modalBackdropTouchable} activeOpacity={1} onPress={() => setLocationModalVisible(false)} />
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.setLocationTitle')}</Text>
@@ -542,7 +544,7 @@ export default function ProviderServiceAreaScreen() {
       </Modal>
 
       <Modal visible={addZoneModalVisible} animationType="fade" transparent onRequestClose={() => setAddZoneModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalBackdrop}>
           <TouchableOpacity style={styles.modalBackdropTouchable} activeOpacity={1} onPress={() => setAddZoneModalVisible(false)} />
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.addZone')}</Text>
@@ -566,7 +568,7 @@ export default function ProviderServiceAreaScreen() {
               <Text style={{ color: colors.textSecondary }}>{t('providerDashboard.providerServiceArea.addZoneCancel')}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {toast && (

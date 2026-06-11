@@ -73,7 +73,7 @@ export default function PortfolioAddScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const projectId = params.id;
   const isEdit = Boolean(projectId);
-  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [selectedUris, setSelectedUris] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const isMountedRef = useRef(true);
@@ -136,7 +136,7 @@ export default function PortfolioAddScreen() {
       const combined = [...current, ...newUris].slice(0, MAX_IMAGES);
       setSelectedUris(combined);
     } catch {
-      setToast({ message: t("providerDashboard.portfolio.errors.uploadFailed") });
+      setToast({ message: t("providerDashboard.portfolio.errors.uploadFailed"), type: 'error' });
     }
   }, [selectedUris]);
 
@@ -151,14 +151,14 @@ export default function PortfolioAddScreen() {
       const showError = (message: string) => {
         if (isMountedRef.current) {
           setUploading(false);
-          setToast({ message });
+          setToast({ message, type: 'error' });
         }
       };
 
       const showSuccessAndBack = (message: string) => {
         if (!isMountedRef.current) return;
         setUploading(false);
-        setToast({ message });
+        setToast({ message, type: 'success' });
         queryClient.invalidateQueries({ queryKey: ["providerPortfolio"] });
         setTimeout(() => {
           if (isMountedRef.current) router.back();
@@ -226,7 +226,7 @@ export default function PortfolioAddScreen() {
         } catch {
           if (isMountedRef.current) {
             setUploading(false);
-            setToast({ message: t("providerDashboard.portfolio.errors.createFailed") });
+            setToast({ message: t("providerDashboard.portfolio.errors.createFailed"), type: 'error' });
           }
         }
       }
@@ -425,7 +425,7 @@ export default function PortfolioAddScreen() {
       </KeyboardAvoidingView>
 
       {toast && (
-        <Toast message={toast.message} onHide={() => setToast(null)} />
+        <Toast message={toast.message} type={toast.type} onHide={() => setToast(null)} />
       )}
     </View>
   );
