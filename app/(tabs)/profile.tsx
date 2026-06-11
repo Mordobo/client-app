@@ -1,252 +1,352 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { t } from '@/i18n';
-import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { ModeSwitch } from "@/components/common/ModeSwitch";
+import { ProfileFooter } from "@/components/profile/ProfileFooter";
+import { Toast } from "@/components/Toast";
+import { CLIENT_TIERS, getTierBadgeForeground } from "@/constants/tiers";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMode } from "@/contexts/ModeContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { t } from "@/i18n";
+import { fetchOrders } from "@/services/orders";
+import { getClientReceivedReviews } from "@/services/reviews";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+interface UserStats {
+  services: number;
+  reviews: number;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { mode, setMode } = useMode();
+  const colors = useThemeColors();
+  const colorScheme = useColorScheme();
+  const isFocused = useIsFocused();
+  const insets = useSafeAreaInsets();
+  const [stats, setStats] = useState<UserStats>({ services: 0, reviews: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
+  const statsLoadedOnceRef = useRef(false);
+  // Defer ModeSwitch mount to avoid Fabric "child already has a parent" when opening Profile tab (Reanimated + Fabric race).
+  const [showModeSwitch, setShowModeSwitch] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setShowModeSwitch(true), 100);
+    return () => clearTimeout(id);
+  }, []);
 
-  const handleLogout = () => {
-    Alert.alert(
-      t('home.logout'),
-      'Are you sure you want to logout?',
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        { 
-          text: t('home.logout'), 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              Alert.alert(t('common.error'), 'Failed to logout');
-            }
-          }
-        }
-      ]
-    );
-  };
+  const loadStats = useCallback(async () => {
+    try {
+      if (!statsLoadedOnceRef.current) {
+        setLoadingStats(true);
+      }
+      const [ordersData, reviewsData] = await Promise.all([
+        fetchOrders(),
+        getClientReceivedReviews().catch((err) => {
+          console.warn("[Profile] getClientReceivedReviews failed:", err);
+          return { count: 0, reviews: [] as const };
+        }),
+      ]);
 
-  const menuSections = [
-    {
-      title: 'Account',
-      items: [
-        { icon: 'card-outline', label: 'Payment Methods', route: '/profile/payment-methods' },
-        { icon: 'calendar-outline', label: 'My Bookings', route: '/orders' },
-        { icon: 'chatbubble-outline', label: 'Chat History', route: '/profile/chat-history' },
-        { icon: 'document-text-outline', label: 'Invoices', route: '/profile/invoices' },
-      ],
-    },
-    {
-      title: 'Support',
-      items: [
-        { icon: 'help-circle-outline', label: 'Help Center', route: '/profile/support' },
-        { icon: 'settings-outline', label: 'Settings', route: '/profile/settings' },
-      ],
-    },
+      const reviewList = reviewsData.reviews ?? [];
+      const reviewCount =
+        typeof reviewsData.count === "number"
+          ? Math.max(reviewsData.count, reviewList.length)
+          : reviewList.length;
+
+      setStats({
+        services: Array.isArray(ordersData) ? ordersData.length : 0,
+        reviews: reviewCount,
+      });
+    } catch (error) {
+      console.error("Error loading stats:", error);
+      setStats({ services: 0, reviews: 0 });
+    } finally {
+      setLoadingStats(false);
+      statsLoadedOnceRef.current = true;
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (mode !== "client") return;
+      void loadStats();
+    }, [mode, loadStats]),
+  );
+
+  // When user is in provider mode, show provider profile instead of client profile.
+  // Only redirect when this screen is actually focused to avoid background screens
+  // interfering with navigation during mode switches.
+  useEffect(() => {
+    if (mode !== "provider" || !isFocused) return;
+    const id = setTimeout(() => {
+      router.replace("/(provider-tabs)/profile");
+    }, 0);
+    return () => clearTimeout(id);
+  }, [mode, isFocused, router]);
+
+  const menuItems = [
+    { icon: "👤", label: t("profile.editProfile"), route: "/account/edit" },
+    { icon: "⚙️", label: t("profile.configuration"), route: "/account/configuration" },
+    { icon: "📍", label: t("profile.myAddresses"), route: "/account/my-addresses" },
+    { icon: "💳", label: t("profile.paymentMethods"), route: "/account/payment-methods" },
+    { icon: "❤️", label: t("profile.favorites"), route: "/account/favorites" },
+    { icon: "🔔", label: t("profile.notifications"), route: "/account/notification-preferences" },
+    { icon: "❓", label: t("profile.helpCenter"), route: "/account/support" },
   ];
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('profile.title')}</Text>
-      </View>
-      
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* User Info Card */}
-        {user && (
-          <View style={styles.userInfoContainer}>
-            <View style={styles.avatarContainer}>
-              {user.avatar ? (
-                <Image
-                  source={{ uri: user.avatar }}
-                  style={styles.avatarImage}
-                  contentFit="cover"
-                />
-              ) : (
-                <Ionicons name="person" size={40} color="#10B981" />
-              )}
-            </View>
-            <Text style={styles.userName}>{user.firstName} {user.lastName}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            {user.phone && (
-              <Text style={styles.userPhone}>{user.phone}</Text>
-            )}
-            <TouchableOpacity
-              style={styles.editProfileChip}
-              onPress={() => router.push('/profile/edit')}
-            >
-              <Text style={styles.editProfileText}>{t('profile.editProfile')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+  const fullName = user ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "" : "";
 
-        {/* Menu Sections */}
-        {menuSections.map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.menuSection}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.menuContainer}>
-              {section.items.map((item, itemIndex) => (
-                <TouchableOpacity
-                  key={itemIndex}
-                  style={[
-                    styles.menuItem,
-                    itemIndex === section.items.length - 1 && styles.menuItemLast,
-                  ]}
-                  onPress={() => {
-                    if (item.route) {
-                      router.push(item.route as any);
+  return (
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]} collapsable={false}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: colors.background }]} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]} showsVerticalScrollIndicator={false}>
+        {/* Header - Exact match to JSX: padding: '50px 20px 30px', backgroundColor: colors.bgCard */}
+        <View style={[styles.header, { backgroundColor: colors.card }]}>
+          <View style={styles.profileHeader}>
+            {/* Avatar - Exact match: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' */}
+            <View style={[styles.avatarContainer, { borderColor: colors.primary, backgroundColor: colors.surface }]}>
+              {user?.avatar ?
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} contentFit="cover" />
+              : <Ionicons name="person" size={40} color={colors.primary} />}
+            </View>
+            <View style={styles.profileInfo}>
+              {/* Name - Exact match: fontSize: '22px', fontWeight: '700' */}
+              <Text style={[styles.userName, { color: colors.textPrimary }]}>{fullName || t("profile.guest")}</Text>
+              {/* Email - Exact match: fontSize: '14px', color: textSecondary */}
+              <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email || ""}</Text>
+              {(() => {
+                const tier = user?.tier ?? "bronze";
+                const cfg = CLIENT_TIERS[tier];
+                const badgeFg = getTierBadgeForeground(tier, colorScheme === "dark");
+                return (
+                  <View style={[styles.badge, { backgroundColor: `${cfg.color}28` }]}>
+                    <Text style={[styles.badgeText, { color: badgeFg }]}>
+                      {cfg.emoji ? `${cfg.emoji} ` : ""}
+                      {t(cfg.i18nKey)}
+                    </Text>
+                  </View>
+                );
+              })()}
+            </View>
+          </View>
+
+          {/* Mode Switch - deferred mount to avoid Fabric view attachment race on Android */}
+          {showModeSwitch && (
+            <View style={styles.modeSwitchContainer} collapsable={false}>
+              <Text style={[styles.modeSwitchLabel, { color: colors.textPrimary }]}>{t("mode.switchMode")}</Text>
+              <View style={{ alignItems: "center", width: "100%" }} collapsable={false}>
+                <ModeSwitch
+                  variant="pill"
+                  currentMode={mode}
+                  onModeChange={(newMode) => {
+                    if (newMode === "provider") {
+                      router.push({ pathname: "/switch-mode", params: { target: "provider" } });
                     }
                   }}
-                >
-                  <Ionicons name={item.icon as any} size={24} color="#374151" />
-                  <Text style={styles.menuText}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-              ))}
+                  size="medium"
+                  showLabels={true}
+                />
+              </View>
             </View>
-          </View>
-        ))}
+          )}
+        </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>{t('home.logout')}</Text>
-        </TouchableOpacity>
+        {/* Stats Cards - Exact match: display: 'flex', padding: '20px', gap: '12px', marginTop: '-10px' */}
+        <View style={[styles.statsContainer, { marginTop: -10 }]}>
+          {[
+            { value: loadingStats ? "..." : stats.services.toString(), label: t("profile.services") },
+            { value: loadingStats ? "..." : stats.reviews.toString(), label: t("profile.reviews") },
+          ].map((stat, i) => (
+            <View key={i} style={[styles.statCard, { backgroundColor: colors.card }]}>
+              {/* Value - Exact match: color: primary, fontSize: '20px', fontWeight: '700' */}
+              <Text style={[styles.statValue, { color: colors.primary }]}>{stat.value}</Text>
+              {/* Label - Exact match: color: textSecondary, fontSize: '12px' */}
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Menu Items - Exact match: padding: '0 20px' */}
+        <View style={styles.menuContainer}>
+          {menuItems.map((item, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.menuItem, { borderBottomColor: colors.cardBorder }, i === menuItems.length - 1 && styles.menuItemLast]}
+              onPress={() => {
+                if (item.route) {
+                  router.push(item.route as any);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              {/* Icon - Exact match: fontSize: '20px' */}
+              <Text style={styles.menuIcon}>{item.icon}</Text>
+              {/* Label - Exact match: fontSize: '15px', flex: 1 */}
+              <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>{item.label}</Text>
+              {/* Chevron - Exact match: color: textSecondary, fontSize: '16px' */}
+              <Text style={[styles.menuChevron, { color: colors.textSecondary }]}>›</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <ProfileFooter />
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Toast for mode change notifications */}
+      <Toast message={toastMessage} visible={toastVisible} onHide={() => setToastVisible(false)} type={toastType} duration={toastType === "error" ? 4000 : 3000} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#1a1a2e", // Hardcode dark background like Home
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-  },
-  content: {
+  scrollView: {
     flex: 1,
   },
-  userInfoContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 8,
+  scrollContent: {
+    paddingBottom: 100, // Space for bottom nav
   },
+  // Header: padding: '50px 20px 30px' from JSX (top padding from container safe area)
+  header: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    backgroundColor: "#252542", // Hardcode dark header
+    /** Stats row uses negative margin and would otherwise sit on top of the mode switch hit area. */
+    zIndex: 2,
+    elevation: 3,
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  // Avatar: width: '80px', height: '80px', borderRadius: '50%', border: '3px solid primary' from JSX
   avatarContainer: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#F0F9FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: "#3b82f6", // Hardcode primary color
+    backgroundColor: "#2d2d4a", // Hardcode dark input background
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   avatarImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 40,
+    width: "100%",
+    height: "100%",
   },
+  profileInfo: {
+    flex: 1,
+  },
+  // Name: fontSize: '22px', fontWeight: '700' from JSX
   userName: {
     fontSize: 22,
-    fontWeight: '600',
-    color: '#1F2937',
+    fontWeight: "700",
     marginBottom: 4,
+    color: "#FFFFFF", // Hardcode white text
   },
+  // Email: fontSize: '14px' from JSX
   userEmail: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 14,
+    marginBottom: 8,
+    color: "#9ca3af", // Hardcode secondary text
+  },
+  // Badge: padding: '4px 10px', borderRadius: '12px' from JSX
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    backgroundColor: "#10b98120", // Hardcode secondary20
+  },
+  badgeText: {
+    fontSize: 12,
+    color: "#10b981", // Hardcode secondary color
+  },
+  // Mode Switch Container
+  modeSwitchContainer: {
+    marginTop: 24,
+    alignItems: "center",
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  modeSwitchLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#FFFFFF", // Hardcode white text
+    textAlign: "center",
     marginBottom: 4,
   },
-  userPhone: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginBottom: 12,
-  },
-  editProfileChip: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 8,
-  },
-  editProfileText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#3B82F6',
-  },
-  menuSection: {
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
+  // Stats: display: 'flex', padding: '20px', gap: '12px' from JSX
+  statsContainer: {
+    flexDirection: "row",
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 20,
+    gap: 12,
   },
+  // Stat Card: flex: 1, backgroundColor: bgCard, borderRadius: '12px', padding: '16px', textAlign: 'center' from JSX
+  statCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    backgroundColor: "#252542", // Hardcode dark card background
+  },
+  // Value: color: primary, fontSize: '20px', fontWeight: '700' from JSX
+  statValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#3b82f6", // Hardcode primary color
+  },
+  // Label: fontSize: '12px' from JSX
+  statLabel: {
+    fontSize: 12,
+    color: "#9ca3af", // Hardcode secondary text
+  },
+  // Menu: padding: '0 20px' from JSX
   menuContainer: {
-    backgroundColor: '#FFFFFF',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 20,
+  },
+  // Menu Item: display: 'flex', gap: '14px', padding: '16px 0' from JSX
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: "#374151", // Hardcode dark border
   },
   menuItemLast: {
     borderBottomWidth: 0,
   },
-  menuText: {
+  menuIcon: {
+    fontSize: 20,
+  },
+  // Label: fontSize: '15px', flex: 1 from JSX
+  menuLabel: {
+    fontSize: 15,
     flex: 1,
-    fontSize: 16,
-    color: '#374151',
-    marginLeft: 16,
+    color: "#FFFFFF", // Hardcode white text
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
-    marginHorizontal: 20,
-    marginVertical: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  logoutText: {
-    color: '#EF4444',
-    marginLeft: 8,
-    fontWeight: '600',
+  // Chevron: fontSize: '16px' from JSX
+  menuChevron: {
     fontSize: 16,
+    color: "#9ca3af", // Hardcode secondary text
   },
 });
-

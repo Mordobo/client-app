@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 
 import { t } from '@/i18n';
+import { PLATFORM_STATUS_QUERY_KEY } from '@/services/platformStatus';
+import { queryClient } from '@/services/queryClient';
 import { API_BASE, getApiBaseUrl } from '@/utils/apiConfig';
 import { authEvents } from '@/utils/authEvents';
 
@@ -9,6 +11,29 @@ const buildUrl = (path: string) => {
   const sanitizedPath = path.replace(/^\/+/, '');
   return `${base}/${sanitizedPath}`;
 };
+
+/** Hint when on physical device and API URL is local: device cannot reach PC's localhost. */
+const getPhysicalDeviceHint = (): string => {
+  if (Platform.OS !== 'android' && Platform.OS !== 'ios') return '';
+  if (!/localhost|127\.0\.0\.1|10\.0\.2\.2/i.test(API_BASE)) return '';
+  return '\n\nSi usas un dispositivo físico (no emulador), en .env pon EXPO_PUBLIC_API_URL con la IP de tu PC, ej: http://192.168.1.x:3000 (misma Wi‑Fi).';
+};
+
+const SENSITIVE_HEADER_KEYS = ['authorization', 'cookie', 'x-api-key', 'x-auth-token'];
+
+/** Returns a copy of headers with sensitive values redacted for safe logging. */
+function sanitizeHeadersForLog(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const keyLower = key.toLowerCase();
+    if (SENSITIVE_HEADER_KEYS.some((s) => keyLower === s)) {
+      out[key] = value ? '[REDACTED]' : value;
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
 
 export interface RegisterPayload {
   fullName: string;
@@ -44,11 +69,14 @@ export interface AuthSuccessResponse extends RegisterResponse {
 export class ApiError extends Error {
   status: number;
   data?: unknown;
+  /** True when token expired and session expired was already emitted; UI should not show error overlay */
+  sessionExpired?: boolean;
 
-  constructor(message: string, status: number, data?: unknown) {
+  constructor(message: string, status: number, data?: unknown, sessionExpired?: boolean) {
     super(message);
     this.status = status;
     this.data = data;
+    this.sessionExpired = sessionExpired === true;
     Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
@@ -56,11 +84,24 @@ export class ApiError extends Error {
 // Token refresh management
 let refreshPromise: Promise<{ accessToken: string; refreshToken: string } | null> | null = null;
 let tokenUpdateCallback: ((tokens: { accessToken: string; refreshToken: string }) => Promise<void>) | null = null;
+let isLoggedOut = false; // Flag to prevent API calls after logout
 
 export const setTokenUpdateCallback = (
   callback: (tokens: { accessToken: string; refreshToken: string }) => Promise<void>
 ) => {
   tokenUpdateCallback = callback;
+};
+
+// Clear all token-related state (called on logout)
+export const clearTokenState = () => {
+  console.log('[API] Clearing token state...');
+  refreshPromise = null;
+  tokenUpdateCallback = null;
+  isLoggedOut = true;
+  // Reset flag after a short delay to allow logout to complete
+  setTimeout(() => {
+    isLoggedOut = false;
+  }, 1000);
 };
 
 export interface RefreshTokenResponse {
@@ -90,18 +131,19 @@ export const refreshTokens = async (
       t('errors.tokenRefreshFailed'),
       false // retryOn401 = false
     );
-  } catch (error: any) {
-    // If refresh token is invalid/expired, emit session expired event
-    if (error?.status === 401 || error?.status === 403) {
-      console.log('[API] Refresh token invalid/expired, emitting session expired event');
-      authEvents.emitSessionExpired();
-    }
+  } catch (error: unknown) {
     throw error;
   }
 };
 
 // Helper to get current tokens from storage (to avoid circular dependency)
 const getCurrentTokens = async (): Promise<{ accessToken?: string; refreshToken?: string } | null> => {
+  // If logout was just called, don't return tokens
+  if (isLoggedOut) {
+    console.log('[API] Logout in progress, returning null tokens');
+    return null;
+  }
+  
   try {
     const AsyncStorage = await import('@react-native-async-storage/async-storage');
     const userData = await AsyncStorage.default.getItem('user');
@@ -131,9 +173,7 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
     try {
       const tokens = await getCurrentTokens();
       if (!tokens?.refreshToken) {
-        console.log('[API] No refresh token available, session expired');
-        // No refresh token means session is expired
-        authEvents.emitSessionExpired();
+        console.log('[API] No refresh token available');
         return null;
       }
 
@@ -154,10 +194,14 @@ const attemptTokenRefresh = async (): Promise<{ accessToken: string; refreshToke
         refreshToken: refreshResponse.refreshToken,
       };
     } catch (error) {
-      console.error('[API] Token refresh failed:', error);
-      // If refresh token is invalid/expired, emit session expired event
-      // This will trigger logout and redirect to login
-      authEvents.emitSessionExpired();
+      const status = error && typeof error === 'object' && 'status' in error ? (error as { status: number }).status : undefined;
+      // Only emit session expired when refresh token is actually invalid/expired (401/403), not on network errors or timeouts
+      if (status === 401 || status === 403) {
+        console.log('[API] Refresh token invalid/expired, emitting session expired event');
+        authEvents.emitSessionExpired();
+      } else {
+        console.warn('[API] Token refresh failed (network or other), keeping session:', status ?? error);
+      }
       return null;
     } finally {
       refreshPromise = null;
@@ -173,6 +217,16 @@ export const request = async <T>(
   defaultErrorMessage: string,
   retryOn401 = true
 ): Promise<T> => {
+  // List of public endpoints that don't require authentication
+  const publicEndpoints = ['/auth/login', '/auth/register', '/auth/google', '/auth/apple', '/auth/refresh', '/auth/validate-email', '/auth/forgot-password', '/auth/reset-password', '/auth/authenticate', '/auth/resend-code', '/auth/2fa/validate', '/auth/2fa/request-email-recovery', '/auth/2fa/confirm-email-recovery'];
+  const isPublicEndpoint = publicEndpoints.some(endpoint => path.startsWith(endpoint));
+  
+  // If logout was just called and this is not a public endpoint, throw error
+  if (isLoggedOut && !isPublicEndpoint) {
+    console.log('[API] Request blocked - logout in progress:', path);
+    throw new ApiError('Session expired. Please log in again.', 401);
+  }
+  
   try {
     // Get current access token for authorization header
     const tokens = await getCurrentTokens();
@@ -183,8 +237,14 @@ export const request = async <T>(
       ...(init.headers as Record<string, string>),
     };
 
+    // Only add Authorization header if we have a token
+    // For public endpoints, we might not need a token
     if (tokens?.accessToken && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${tokens.accessToken}`;
+    } else if (!isPublicEndpoint && !tokens?.accessToken && !isLoggedOut) {
+      // If this is not a public endpoint and we don't have a token, it's an error
+      console.warn('[API] No token available for protected endpoint:', path);
+      throw new ApiError('Access token required', 401, { code: 'no_token', message: 'Access token required' });
     }
 
     const url = buildUrl(path);
@@ -209,14 +269,22 @@ export const request = async <T>(
     }
     console.log('[API] ========================================');
     
-    // Create AbortController for timeout (30 seconds)
+    // Endpoints that send email can take 25s+ (Brevo SMTP); use longer timeout so emulator/host round-trip doesn't hit limit
+    // QA on Render free tier cold-starts in 50–90s; use 90s when targeting Render
+    const isRender = url.includes('onrender.com');
+    const timeoutMs =
+      path.includes('validate-email') || path.includes('resend-code') || path.includes('2fa/request-email-recovery')
+        ? 70000
+        : isRender
+          ? 90000
+          : 45000;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     
     let response: Response;
     try {
       console.log('[API] Attempting fetch to:', url);
-      console.log('[API] Headers:', headers);
+      console.log('[API] Headers:', sanitizeHeadersForLog(headers));
       console.log('[API] Method:', init.method || 'GET');
       
       response = await fetch(url, { 
@@ -232,29 +300,56 @@ export const request = async <T>(
     } catch (fetchError) {
       clearTimeout(timeoutId);
       const isTimeout = fetchError instanceof Error && fetchError.name === 'AbortError';
-      const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
-      
-      console.error('[API] ❌ Fetch failed:', {
-        url,
-        error: errorMessage,
-        isTimeout,
-        errorType: fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError,
-        platform: Platform.OS,
-      });
-      
-      // Log more details for network errors
-      if (fetchError instanceof TypeError) {
-        console.error('[API] Network error - possible causes:');
-        console.error('[API] 1. Backend not running or not accessible');
-        console.error('[API] 2. Firewall blocking connection');
-        console.error('[API] 3. Wrong IP address (10.0.2.2 for Android emulator)');
-        console.error('[API] 4. Backend not listening on 0.0.0.0');
+      let errorMessage: string;
+      try {
+        errorMessage =
+          fetchError instanceof Error
+            ? (fetchError.message ?? 'Unknown error')
+            : String(fetchError ?? 'Unknown');
+      } catch {
+        errorMessage = 'Unknown error';
       }
-      
+      const errorType = fetchError instanceof Error ? fetchError.constructor.name : typeof fetchError;
+
+      // Single log to avoid multiple in-app error overlays (was 6+ console.error per failure)
+      const causes =
+        fetchError instanceof TypeError
+          ? ' Possible causes: (1) Backend not running or not accessible (2) Firewall (3) Wrong IP e.g. 10.0.2.2 for Android emulator (4) Backend not listening on 0.0.0.0'
+          : '';
+      try {
+        const logPayload = { url, error: errorMessage, isTimeout, errorType, platform: Platform.OS };
+        console.error('[API] Fetch failed:', JSON.stringify(logPayload) + causes);
+      } catch {
+        console.error('[API] Fetch failed:', errorMessage, causes);
+      }
+
+      // Handle timeout errors first - convert to ApiError with translated message
       if (isTimeout) {
-        throw new Error('Request timeout: The server took too long to respond. Please check your connection and try again.');
+        const renderHint = url.includes('onrender.com')
+          ? '\n\n' + t('errors.requestTimeoutRenderHint')
+          : '';
+        throw new ApiError(
+          t('errors.requestTimeout') + renderHint + getPhysicalDeviceHint(),
+          0,
+          { code: 'request_timeout', isTimeout: true, originalError: errorMessage }
+        );
       }
-      throw fetchError;
+
+      // Handle network errors (TypeError usually means connection failed)
+      if (fetchError instanceof TypeError) {
+        throw new ApiError(
+          t('errors.connectionFailed') + getPhysicalDeviceHint(),
+          0,
+          { code: 'network_error', errorType, originalError: errorMessage }
+        );
+      }
+
+      // For any other fetch errors, wrap them in ApiError
+      const genericMessage =
+        fetchError instanceof Error
+          ? (fetchError.message || t('errors.connectionFailed'))
+          : t('errors.connectionFailed');
+      throw new ApiError(genericMessage, 0, { code: 'fetch_error', originalError: errorMessage });
     }
 
     const responseText = await response.text();
@@ -267,9 +362,24 @@ export const request = async <T>(
       }
     }
 
-    // Handle 401 Unauthorized - attempt token refresh
-    if (response.status === 401 && retryOn401 && path !== '/auth/refresh') {
-      console.log('[API] Received 401, attempting token refresh...');
+    // Handle 401/403 Unauthorized/Forbidden - attempt token refresh
+    // 403 with invalid_token should be treated the same as 401
+    // Also check for "Invalid or expired token" message
+    const responseMessage = typeof responseData === 'object' && responseData && 'message' in responseData
+      ? String((responseData as { message: unknown }).message).toLowerCase()
+      : '';
+    const responseCode = typeof responseData === 'object' && responseData && 'code' in responseData
+      ? String(responseData.code)
+      : '';
+    
+    const isTokenExpiredMessage = responseMessage.includes('invalid') && 
+      (responseMessage.includes('expired') || responseMessage.includes('token'));
+    const isAuthError = response.status === 401 || 
+      (response.status === 403 && 
+       (responseCode === 'invalid_token' || isTokenExpiredMessage));
+    
+    if (isAuthError && retryOn401 && path !== '/auth/refresh') {
+      console.log(`[API] Received ${response.status} (auth error), attempting token refresh...`);
       const newTokens = await attemptTokenRefresh();
 
       if (newTokens) {
@@ -279,7 +389,47 @@ export const request = async <T>(
           ...(init.headers as Record<string, string>),
           Authorization: `Bearer ${newTokens.accessToken}`,
         };
-        const retryResponse = await fetch(url, { ...init, headers: retryHeaders, mode: 'cors' });
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeoutMs);
+        let retryResponse: Response;
+        try {
+          retryResponse = await fetch(url, {
+            ...init,
+            headers: retryHeaders,
+            mode: 'cors',
+            signal: retryController.signal,
+          });
+          clearTimeout(retryTimeoutId);
+        } catch (retryFetchError) {
+          clearTimeout(retryTimeoutId);
+          const isRetryTimeout =
+            retryFetchError instanceof Error && retryFetchError.name === 'AbortError';
+          if (isRetryTimeout) {
+            const renderHint = url.includes('onrender.com')
+              ? '\n\n' + t('errors.requestTimeoutRenderHint')
+              : '';
+            throw new ApiError(
+              t('errors.requestTimeout') + renderHint + getPhysicalDeviceHint(),
+              0,
+              { code: 'request_timeout', isTimeout: true },
+            );
+          }
+          if (retryFetchError instanceof TypeError) {
+            throw new ApiError(
+              t('errors.connectionFailed') + getPhysicalDeviceHint(),
+              0,
+              { code: 'network_error' },
+            );
+          }
+          throw new ApiError(
+            retryFetchError instanceof Error
+              ? retryFetchError.message || t('errors.connectionFailed')
+              : t('errors.connectionFailed'),
+            0,
+            { code: 'fetch_error' },
+          );
+        }
+
         const retryText = await retryResponse.text();
         let retryData: unknown = undefined;
         if (retryText) {
@@ -291,12 +441,30 @@ export const request = async <T>(
         }
 
         if (!retryResponse.ok) {
-          const message =
-            typeof retryData === 'object' && retryData && 'message' in retryData
-              ? String((retryData as { message: unknown }).message)
-              : t('errors.requestFailedStatus', { status: retryResponse.status });
-          console.error('[API] Retry error response body', retryData);
-          throw new ApiError(message, retryResponse.status, retryData);
+          const retryMessage = typeof retryData === 'object' && retryData && 'message' in retryData
+            ? String((retryData as { message: unknown }).message).toLowerCase()
+            : '';
+          const retryCode = typeof retryData === 'object' && retryData && 'code' in retryData
+            ? String(retryData.code)
+            : '';
+          if (retryResponse.status === 503 && retryCode === 'maintenance_mode') {
+            queryClient.setQueryData(PLATFORM_STATUS_QUERY_KEY, { maintenance_mode: true });
+            throw new ApiError(t('errors.maintenanceMode'), 503, retryData);
+          }
+          const isRetryTokenExpired = retryMessage.includes('invalid') && 
+            (retryMessage.includes('expired') || retryMessage.includes('token'));
+          const isRetryAuthError = retryResponse.status === 401 || 
+            (retryResponse.status === 403 && 
+             (retryCode === 'invalid_token' || isRetryTokenExpired));
+          const message = isRetryAuthError
+            ? t('errors.tokenRefreshFailed')
+            : (typeof retryData === 'object' && retryData && 'message' in retryData
+                ? String((retryData as { message: unknown }).message ?? '')
+                : t('errors.requestFailedStatus', { status: retryResponse.status }));
+          if (!isRetryAuthError) {
+            console.error('[API] Retry error response body', retryData);
+          }
+          throw new ApiError(message, retryResponse.status, retryData, isRetryAuthError);
         }
 
         if (!retryData || typeof retryData !== 'object') {
@@ -305,25 +473,65 @@ export const request = async <T>(
 
         return retryData as T;
       } else {
-        // Refresh failed - token expired, emit session expired event
-        console.log('[API] Token refresh failed, session expired');
-        authEvents.emitSessionExpired();
+        // Refresh failed (null). Session expired is only emitted inside attemptTokenRefresh
+        // when the refresh token is 401/403. Do not emit here so we don't log out on network errors.
+        console.log('[API] Token refresh failed (e.g. network or invalid refresh), not emitting session expired to avoid logout on transient errors');
+        const refreshFailedRaw = typeof responseData === 'object' && responseData && 'message' in responseData
+          ? (responseData as { message: unknown }).message
+          : undefined;
         const message =
-          typeof responseData === 'object' && responseData && 'message' in responseData
-            ? String((responseData as { message: unknown }).message)
+          refreshFailedRaw != null && refreshFailedRaw !== ''
+            ? String(refreshFailedRaw)
             : t('errors.tokenRefreshFailed');
-        console.error('[API] Error response body', responseData);
-        throw new ApiError(message, response.status, responseData);
+        const msgLower = message.toLowerCase();
+        const isTokenInvalidOrExpired = (msgLower.includes('invalid') && (msgLower.includes('expired') || msgLower.includes('token'))) || msgLower.includes('token');
+        throw new ApiError(message, response.status, responseData, isTokenInvalidOrExpired);
       }
     }
 
     if (!response.ok) {
+      const errCodeEarly =
+        typeof responseData === 'object' && responseData && 'code' in responseData
+          ? String((responseData as { code: unknown }).code)
+          : '';
+      if (response.status === 503 && errCodeEarly === 'maintenance_mode') {
+        queryClient.setQueryData(PLATFORM_STATUS_QUERY_KEY, { maintenance_mode: true });
+        throw new ApiError(t('errors.maintenanceMode'), 503, responseData);
+      }
+      const rawMessage = typeof responseData === 'object' && responseData && 'message' in responseData
+        ? (responseData as { message: unknown }).message
+        : undefined;
       const message =
-        typeof responseData === 'object' && responseData && 'message' in responseData
-          ? String((responseData as { message: unknown }).message)
+        rawMessage != null && rawMessage !== ''
+          ? String(rawMessage)
           : t('errors.requestFailedStatus', { status: response.status });
-      console.error('[API] Error response body', responseData);
-      throw new ApiError(message, response.status, responseData);
+      
+      // Only log non-auth errors to reduce noise (auth errors are handled above)
+      // Also skip logging for expected errors like 404, 409, etc.
+      const isExpectedError = response.status === 404 || response.status === 409;
+      
+      // Check for token expiration in message or code
+      const errorMessage = typeof responseData === 'object' && responseData && 'message' in responseData
+        ? String((responseData as { message: unknown }).message).toLowerCase()
+        : '';
+      const errorCode = typeof responseData === 'object' && responseData && 'code' in responseData
+        ? String(responseData.code)
+        : '';
+      const isTokenExpiredMessage = errorMessage.includes('invalid') && 
+        (errorMessage.includes('expired') || errorMessage.includes('token'));
+      const isAuthError = response.status === 401 || 
+        (response.status === 403 && 
+         (errorCode === 'invalid_token' || isTokenExpiredMessage));
+      
+      if (!isAuthError && !isExpectedError) {
+        console.error('[API] Error response body', responseData);
+      }
+      
+      throw new ApiError(message, response.status, responseData, false);
+    }
+
+    if (response.status === 204 || response.status === 205) {
+      return {} as T;
     }
 
     if (!responseData || typeof responseData !== 'object') {
@@ -360,7 +568,7 @@ export const request = async <T>(
         (error instanceof TypeError && errorMessage.includes('fetch'));
       
       if (isConnectionError) {
-        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}`;
+        const detailedMessage = `${t('errors.connectionFailed')}\n\nURL: ${API_BASE}\nPlatform: ${Platform.OS}${getPhysicalDeviceHint()}`;
         throw new ApiError(
           detailedMessage,
           0,
@@ -437,6 +645,12 @@ export interface LoginResponse {
   accessToken?: string;
   token?: string; // Alias for accessToken (backward compatibility)
   refreshToken?: string;
+  /** When 2FA is enabled, login returns this instead of tokens until code is validated */
+  requires_2fa?: boolean;
+  twoFaToken?: string;
+  email?: string;
+  /** Set when login completed via POST /auth/2fa/confirm-email-recovery */
+  two_factor_disabled_via_recovery?: boolean;
 }
 
 export const loginWithCredentials = async (
@@ -483,6 +697,29 @@ export const loginWithGoogle = async (
   );
 };
 
+export interface AppleLoginPayload {
+  identityToken: string;
+  authorizationCode?: string;
+  email?: string;
+  fullName?: string;
+}
+
+export const loginWithApple = async (
+  payload: AppleLoginPayload
+): Promise<AuthSuccessResponse> => {
+  return request<AuthSuccessResponse>(
+    '/auth/apple',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+    t('errors.appleLoginGeneric')
+  );
+};
+
 export interface ValidateEmailPayload {
   email: string;
   password: string;
@@ -502,7 +739,6 @@ export const validateEmail = async (
     email: payload.email.trim().toLowerCase(),
     password: payload.password.trim(), // Ensure password is trimmed
   };
-
   return request<ValidateEmailResponse>(
     '/auth/validate-email',
     {
@@ -525,7 +761,22 @@ export interface VerifyCodeResponse extends AuthSuccessResponse {
   user: RegisterResponseUser;
   accessToken?: string;
   refreshToken?: string;
+  requires_2fa?: boolean;
+  twoFaToken?: string;
+  email?: string;
 }
+
+/** Mark client onboarding as completed so it is not shown again. Requires authenticated client. */
+export const completeClientOnboarding = async (): Promise<void> => {
+  await request<{ message: string }>(
+    '/api/users/me/complete-client-onboarding',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    },
+    t('errors.requestFailed')
+  );
+};
 
 export const verifyCode = async (
   payload: VerifyCodePayload
@@ -548,6 +799,78 @@ export const verifyCode = async (
   );
 };
 
+export interface Validate2FAPayload {
+  twoFaToken: string;
+  code: string;
+}
+
+/** Complete login when 2FA is enabled. Call after login or verify returned requires_2fa. */
+export const validate2FACode = async (
+  payload: Validate2FAPayload
+): Promise<LoginResponse> => {
+  return request<LoginResponse>(
+    '/auth/2fa/validate',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        twoFaToken: payload.twoFaToken,
+        code: payload.code.trim(),
+      }),
+    },
+    t('errors.verify2FAFailed')
+  );
+};
+
+export interface Request2FAEmailRecoveryPayload {
+  twoFaToken: string;
+}
+
+export interface Request2FAEmailRecoveryResponse {
+  message: string;
+  email: string;
+}
+
+/** Send a 6-digit code to the account email to disable 2FA and complete login (lost authenticator). */
+export const request2FAEmailRecovery = async (
+  payload: Request2FAEmailRecoveryPayload
+): Promise<Request2FAEmailRecoveryResponse> => {
+  return request<Request2FAEmailRecoveryResponse>(
+    '/auth/2fa/request-email-recovery',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ twoFaToken: payload.twoFaToken }),
+    },
+    t('errors.twoFAEmailRecoveryFailed')
+  );
+};
+
+export interface Confirm2FAEmailRecoveryPayload {
+  twoFaToken: string;
+  code: string;
+}
+
+/** Confirm email code: disables 2FA and returns tokens (same shape as validate2FACode). */
+export const confirm2FAEmailRecovery = async (
+  payload: Confirm2FAEmailRecoveryPayload
+): Promise<LoginResponse> => {
+  return request<LoginResponse>(
+    '/auth/2fa/confirm-email-recovery',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        twoFaToken: payload.twoFaToken,
+        code: payload.code.trim(),
+      }),
+    },
+    t('errors.twoFAEmailRecoveryConfirmFailed')
+  );
+};
+
 export interface ResendCodePayload {
   email: string;
   password: string;
@@ -556,6 +879,7 @@ export interface ResendCodePayload {
 export interface ResendCodeResponse {
   message: string;
   email: string;
+  verificationCode?: string; // Only included when SMTP fails (for testing)
 }
 
 export const resendCode = async (
@@ -576,5 +900,63 @@ export const resendCode = async (
       body: JSON.stringify(body),
     },
     t('errors.verificationFailed')
+  );
+};
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export const forgotPassword = async (
+  payload: ForgotPasswordPayload
+): Promise<ForgotPasswordResponse> => {
+  const body = {
+    email: payload.email.trim().toLowerCase(),
+  };
+
+  return request<ForgotPasswordResponse>(
+    '/auth/forgot-password',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.forgotPasswordFailed')
+  );
+};
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+}
+
+export const resetPassword = async (
+  payload: ResetPasswordPayload
+): Promise<ResetPasswordResponse> => {
+  const body = {
+    token: payload.token,
+    newPassword: payload.newPassword.trim(),
+  };
+
+  return request<ResetPasswordResponse>(
+    '/auth/reset-password',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+    t('errors.resetPasswordFailed')
   );
 };

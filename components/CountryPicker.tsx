@@ -83,7 +83,14 @@ export function CountryPicker({
   return (
     <View style={styles.container}>
       <TouchableOpacity
-        style={[styles.pickerButton, error && styles.pickerButtonError]}
+        style={[
+          styles.pickerButton,
+          {
+            backgroundColor: '#FFFFFF',
+            borderColor: '#E5E7EB',
+          },
+          error && styles.pickerButtonError,
+        ]}
         onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
       >
@@ -93,10 +100,12 @@ export function CountryPicker({
               {selectedCountry.flag && (
                 <Text style={styles.flag}>{selectedCountry.flag}</Text>
               )}
-              <Text style={styles.selectedText}>{selectedCountry.name}</Text>
+              <Text style={[styles.selectedText, { color: '#1F2937' }]}>
+                {selectedCountry.name}
+              </Text>
             </View>
           ) : (
-            <Text style={styles.placeholderText}>
+            <Text style={[styles.placeholderText, { color: 'rgba(55, 65, 81, 0.45)' }]}>
               {placeholder || t('auth.selectCountry')}
             </Text>
           )}

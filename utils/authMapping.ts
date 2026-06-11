@@ -1,7 +1,25 @@
 import type { User } from '@/contexts/AuthContext';
+import type { ClientTier } from '@/constants/tiers';
 import type { AuthSuccessResponse, RegisterResponseUser } from '@/services/auth';
 
+const VALID_TIERS: ReadonlySet<string> = new Set(['bronze', 'silver', 'gold', 'platinum']);
+
+const extractTier = (raw: unknown): ClientTier | undefined => {
+  if (typeof raw === 'string' && VALID_TIERS.has(raw)) return raw as ClientTier;
+  return undefined;
+};
+
 export interface GoogleProfile {
+  id: string;
+  email: string;
+  name?: string | null;
+  givenName?: string | null;
+  familyName?: string | null;
+  photo?: string | null;
+}
+
+/** Same shape as GoogleProfile so mapAuthResponseToUser works for Apple */
+export interface AppleProfile {
   id: string;
   email: string;
   name?: string | null;
@@ -43,7 +61,7 @@ const extractNameParts = (fullName?: string | null) => {
 
 const resolveName = (
   apiUser: RegisterResponseUser,
-  googleUser: GoogleProfile
+  socialUser: GoogleProfile | AppleProfile
 ): { firstName: string; lastName: string } => {
   const apiFirst = stringOrUndefined((apiUser as Record<string, unknown>).first_name);
   const apiLast = stringOrUndefined((apiUser as Record<string, unknown>).last_name);
@@ -51,40 +69,108 @@ const resolveName = (
     stringOrUndefined(apiUser.full_name)
   );
 
-  const googleFirst = stringOrUndefined(googleUser?.givenName ?? undefined);
-  const googleLast = stringOrUndefined(googleUser?.familyName ?? undefined);
-
-  const googleName = stringOrUndefined(googleUser?.name);
+  const socialFirst = stringOrUndefined(socialUser?.givenName ?? undefined);
+  const socialLast = stringOrUndefined(socialUser?.familyName ?? undefined);
+  const socialName = stringOrUndefined(socialUser?.name);
 
   return {
-    firstName: apiFirst ?? splitFirst ?? googleFirst ?? googleName ?? '',
-    lastName: apiLast ?? splitLast ?? googleLast ?? '',
+    firstName: apiFirst ?? splitFirst ?? socialFirst ?? socialName ?? '',
+    lastName: apiLast ?? splitLast ?? socialLast ?? '',
   };
+};
+
+/**
+ * Map RegisterResponseUser to User (without Google profile)
+ * Used for email/phone login flows
+ */
+export const mapApiUserToUser = (
+  apiUser: RegisterResponseUser,
+  provider: User['provider'],
+  authToken?: string,
+  refreshToken?: string
+): User => {
+  const { firstName: splitFirst, lastName: splitLast } = extractNameParts(
+    stringOrUndefined(apiUser.full_name)
+  );
+  const apiFirst = stringOrUndefined((apiUser as Record<string, unknown>).first_name);
+  const apiLast = stringOrUndefined((apiUser as Record<string, unknown>).last_name);
+  
+  const firstName = apiFirst ?? splitFirst ?? '';
+  const lastName = apiLast ?? splitLast ?? '';
+  
+  // Extract gender and dateOfBirth from API response
+  const apiGender = (apiUser as Record<string, unknown>).gender;
+  const gender = apiGender === 'male' || apiGender === 'female' ? apiGender : undefined;
+  const dateOfBirth = stringOrUndefined((apiUser as Record<string, unknown>).date_of_birth);
+  
+  // Extract login_count from API response if available
+  const loginCount = (apiUser as Record<string, unknown>).login_count as number | undefined;
+
+  const raw = apiUser as Record<string, unknown>;
+  const tier = extractTier(raw.client_tier);
+  const completedOrdersCount = typeof raw.completed_orders_count === 'number' ? raw.completed_orders_count : undefined;
+
+  return {
+    id: stringOrUndefined(apiUser.id) ?? '',
+    email: stringOrUndefined(apiUser.email) ?? '',
+    firstName,
+    lastName,
+    phone:
+      stringOrUndefined(raw.phone_number) ??
+      stringOrUndefined(raw.phone),
+    avatar:
+      stringOrUndefined(raw.profile_image) ??
+      stringOrUndefined(raw.avatar),
+    country: stringOrUndefined(raw.country),
+    gender,
+    dateOfBirth,
+    provider,
+    authToken: authToken ? stringOrUndefined(authToken) : undefined,
+    refreshToken: refreshToken ? stringOrUndefined(refreshToken) : undefined,
+    tier,
+    completedOrdersCount,
+    loginCount,
+  } as User & { loginCount?: number };
 };
 
 export const mapAuthResponseToUser = (
   response: AuthSuccessResponse,
-  googleUser: GoogleProfile,
+  socialUser: GoogleProfile | AppleProfile,
   provider: User['provider']
 ): User => {
   const apiUser = response.user;
-  const { firstName, lastName } = resolveName(apiUser, googleUser);
+  const { firstName, lastName } = resolveName(apiUser, socialUser);
+  
+  const raw = apiUser as Record<string, unknown>;
+  const loginCount = raw.login_count as number | undefined;
+
+  const apiGender = raw.gender;
+  const gender = apiGender === 'male' || apiGender === 'female' ? apiGender : undefined;
+  const dateOfBirth = stringOrUndefined(raw.date_of_birth);
+
+  const tier = extractTier(raw.client_tier);
+  const completedOrdersCount = typeof raw.completed_orders_count === 'number' ? raw.completed_orders_count : undefined;
 
   return {
-    id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(googleUser?.id) ?? '',
-    email: stringOrUndefined(apiUser.email) ?? stringOrUndefined(googleUser?.email) ?? '',
+    id: stringOrUndefined(apiUser.id) ?? stringOrUndefined(socialUser?.id) ?? '',
+    email: stringOrUndefined(apiUser.email) ?? stringOrUndefined(socialUser?.email) ?? '',
     firstName,
     lastName,
     phone:
-      stringOrUndefined((apiUser as Record<string, unknown>).phone_number) ??
-      stringOrUndefined((apiUser as Record<string, unknown>).phone),
+      stringOrUndefined(raw.phone_number) ??
+      stringOrUndefined(raw.phone),
     avatar:
-      stringOrUndefined((apiUser as Record<string, unknown>).profile_image) ??
-      stringOrUndefined((apiUser as Record<string, unknown>).avatar) ??
-      stringOrUndefined(googleUser?.photo),
-    country: stringOrUndefined((apiUser as Record<string, unknown>).country),
+      stringOrUndefined(raw.profile_image) ??
+      stringOrUndefined(raw.avatar) ??
+      stringOrUndefined(socialUser?.photo),
+    country: stringOrUndefined(raw.country),
+    gender,
+    dateOfBirth,
     provider,
-    authToken: stringOrUndefined(response.token),
+    authToken: stringOrUndefined(response.token) ?? stringOrUndefined((response as { accessToken?: string }).accessToken),
     refreshToken: stringOrUndefined(response.refreshToken),
-  };
+    tier,
+    completedOrdersCount,
+    loginCount,
+  } as User & { loginCount?: number };
 };

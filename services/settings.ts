@@ -22,6 +22,7 @@ export interface UserSettings {
   location_services: boolean;
   biometric_enabled: boolean;
   two_factor_enabled: boolean;
+  user_mode?: 'client' | 'provider';
 }
 
 export interface UpdateSettingsPayload {
@@ -37,6 +38,7 @@ export interface UpdateSettingsPayload {
   theme?: 'light' | 'dark' | 'system';
   location_services?: boolean;
   biometric_enabled?: boolean;
+  user_mode?: 'client' | 'provider';
 }
 
 export interface ValidatePasswordPayload {
@@ -55,8 +57,24 @@ export interface Enable2FAPayload {
 export interface Enable2FAResponse {
   message: string;
   secret: string;
+  /** Same as secret when provided by API; prefer for manual entry UI. */
+  manualEntryKey?: string;
+  otpauthUrl?: string;
   qrCode: string;
   backupCodes: string[];
+}
+
+export interface BackupCodesResponse {
+  backupCodes: string[];
+}
+
+export interface RegenerateBackupCodesResponse {
+  message: string;
+  backupCodes: string[];
+}
+
+export interface RegenerateBackupCodesPayload {
+  password: string;
 }
 
 export interface Verify2FAPayload {
@@ -195,6 +213,33 @@ export const verify2FA = async (
       body: JSON.stringify({ token: payload.token }),
     },
     t('errors.verify2FAFailed')
+  );
+};
+
+// GET /api/users/me/2fa/backup-codes
+export const getBackupCodes = async (): Promise<BackupCodesResponse> => {
+  return request<BackupCodesResponse>(
+    '/api/users/me/2fa/backup-codes',
+    {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    },
+    t('errors.getBackupCodesFailed'),
+  );
+};
+
+// POST /api/users/me/2fa/backup-codes/regenerate
+export const regenerateBackupCodes = async (
+  payload: RegenerateBackupCodesPayload,
+): Promise<RegenerateBackupCodesResponse> => {
+  return request<RegenerateBackupCodesResponse>(
+    '/api/users/me/2fa/backup-codes/regenerate',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: payload.password }),
+    },
+    t('errors.regenerateBackupCodesFailed'),
   );
 };
 

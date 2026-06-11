@@ -1,189 +1,549 @@
-import { CategoryCard } from '@/components/CategoryCard';
-import { SearchBar } from '@/components/SearchBar';
-import { useAuth } from '@/contexts/AuthContext';
-import { t } from '@/i18n';
-import { Category, fetchCategories } from '@/services/categories';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { CategoryCard } from "@/components/CategoryCard";
+import { TopProviderCard } from "@/components/TopProviderCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { t, getLocale } from "@/i18n";
+import { ApiError } from "@/services/auth";
+import { getAddresses, type Address } from "@/services/addresses";
+import { Category, fetchCategories } from "@/services/categories";
+import { fetchPromotions, type Promotion } from "@/services/promotions";
+import { Supplier, fetchSuppliers } from "@/services/suppliers";
+import { useFavoritesStore } from "@/stores/favoritesStore";
+import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji, getTranslatedServiceCategory } from "@/utils/categoryDisplay";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, type ViewToken } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const CAROUSEL_PADDING = 20;
+const CAROUSEL_ITEM_WIDTH = SCREEN_WIDTH - CAROUSEL_PADDING * 2;
+const AUTO_SCROLL_INTERVAL = 5000;
 
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [topProviders, setTopProviders] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [location, setLocation] = useState(t("home.location"));
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [activePromoIndex, setActivePromoIndex] = useState(0);
+  const carouselRef = useRef<FlatList<Promotion>>(null);
+  const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (viewableItems.length > 0 && viewableItems[0].index != null) {
+        setActivePromoIndex(viewableItems[0].index);
+      }
+    },
+  ).current;
+
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      loadDefaultAddress();
+      // Refresh favorites when returning to home screen
+      // This ensures favorites are synced after changes in other screens
+      const { refreshFavorites } = useFavoritesStore.getState();
+      refreshFavorites().catch((error) => {
+        console.error("[Home] Error refreshing favorites:", error);
+      });
+    }, []),
+  );
+
+  // Format address for display (city, state or address_line1, city)
+  const formatAddressForDisplay = (address: Address): string => {
+    const parts: string[] = [];
+
+    // If we have city and state, show "City, State"
+    if (address.city) {
+      if (address.state) {
+        return `${address.city}, ${address.state}`;
+      }
+      // If only city, show "City"
+      return address.city;
+    }
+
+    // Fallback: show address_line1 if available
+    if (address.address_line1) {
+      return address.address_line1;
+    }
+
+    // Last resort: show name
+    return address.name;
+  };
+
+  const loadDefaultAddress = async () => {
+    try {
+      const addresses = await getAddresses();
+      const defaultAddress = addresses.find((addr) => addr.is_default);
+
+      if (defaultAddress) {
+        const formattedAddress = formatAddressForDisplay(defaultAddress);
+        setLocation(formattedAddress);
+      } else if (addresses.length > 0) {
+        // If no default, use the first address
+        const formattedAddress = formatAddressForDisplay(addresses[0]);
+        setLocation(formattedAddress);
+      }
+      // If no addresses, keep the default fallback
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.sessionExpired)) {
+        return;
+      }
+      console.error("[Home] Failed to load default address:", error);
+    }
+  };
 
   const loadCategories = async () => {
     try {
+      setLoading(true);
       const data = await fetchCategories();
-      setCategories(data.slice(0, 9)); // Show 9 categories in 3x3 grid
+      if (data && data.length > 0) {
+        // Use categories from API in DB order (sort_order); show only 8 on home grid
+        setCategories(data.slice(0, 8));
+      } else {
+        console.warn("[Home] No categories returned from API");
+        setCategories([]);
+      }
     } catch (error) {
-      console.error('Failed to load categories:', error);
+      console.error("[Home] Failed to load categories:", error);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadTopProviders = useCallback(async () => {
+    try {
+      setProvidersLoading(true);
+      const response = await fetchSuppliers({
+        limit: 10,
+        offset: 0,
+      });
+      const suppliers = Array.isArray(response?.suppliers) ? response.suppliers : [];
+      if (suppliers.length > 0) {
+        const sorted = [...suppliers].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5);
+        // Exclude current user's provider profile (same account as client cannot see self in list)
+        const filtered = user?.id ? sorted.filter((s) => s.id !== user.id) : sorted;
+        setTopProviders(filtered);
+      } else {
+        setTopProviders([]);
+      }
+    } catch (error) {
+      console.error("[Home] Failed to load top providers:", error);
+      setTopProviders([]);
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, [user?.id]);
+
+  const loadPromotions = useCallback(async () => {
+    const lang = getLocale();
+    const tier = user?.tier ?? "bronze";
+    const data = await fetchPromotions(lang, tier);
+    setPromotions(data);
+  }, [user?.tier]);
+
+  useEffect(() => {
+    loadCategories();
+    loadTopProviders();
+    loadPromotions();
+  }, [loadTopProviders, loadPromotions]);
+
+  useEffect(() => {
+    if (promotions.length <= 1) return;
+    autoScrollTimer.current = setInterval(() => {
+      setActivePromoIndex((prev) => {
+        const next = (prev + 1) % promotions.length;
+        carouselRef.current?.scrollToIndex({ index: next, animated: true });
+        return next;
+      });
+    }, AUTO_SCROLL_INTERVAL);
+    return () => {
+      if (autoScrollTimer.current) clearInterval(autoScrollTimer.current);
+    };
+  }, [promotions.length]);
+
   const handleCategoryPress = (categoryId: string) => {
-    router.push(`/services/${categoryId}`);
+    try {
+      if (!categoryId || typeof categoryId !== "string") {
+        console.error("[Home] Invalid category ID:", categoryId);
+        return;
+      }
+      router.push(`/services/${categoryId}`);
+    } catch (error) {
+      console.error("[Home] Error in handleCategoryPress:", error);
+    }
   };
 
-  const handleOtherServices = () => {
-    router.push('/services/categories');
+  const handleViewAllCategories = () => {
+    try {
+      router.push("/services/categories");
+    } catch (error) {
+      console.error("[Home] Error in handleViewAllCategories:", error);
+    }
   };
+
+  const handleSearchPress = () => {
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: "/services/search-results",
+        params: { query: searchQuery.trim() },
+      });
+    } else {
+      router.push("/services/categories");
+    }
+  };
+
+  const handleProviderPress = (supplierId: string) => {
+    router.push(`/services/suppliers/${supplierId}`);
+  };
+
+  const getCategoryConfig = (category: Category) => ({
+    emoji: getCategoryEmoji(category),
+    color: getCategoryColor(category),
+  });
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image
-            source={{ uri: user?.profileImage || 'https://via.placeholder.com/40' }}
-            style={styles.avatar}
-          />
-          <Text style={styles.greeting}>{t('home.hello', { name: user?.firstName || 'Guest' })}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="chatbubble-outline" size={24} color="#374151" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={colors.background === "#12121A" ? "light-content" : "dark-content"} backgroundColor={colors.card} translucent={Platform.OS === "android"} />
+
+      {/* Header with Location, Notifications and Search */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor: colors.card }]}>
+        <View style={styles.header}>
+          <View style={styles.locationSection}>
+            <Text style={[styles.locationLabel, { color: colors.textSecondary }]}>{t("home.locationLabel")}</Text>
+            <TouchableOpacity style={styles.locationButton} onPress={() => router.push("/account/my-addresses")}>
+              <Text style={[styles.locationText, { color: colors.textPrimary }]} numberOfLines={1} ellipsizeMode="tail">
+                {location}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color={colors.textTertiary} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.notificationButton} onPress={() => router.push("/(tabs)/notifications")}>
+            <View style={[styles.notificationIconContainer, { backgroundColor: colors.surface }]}>
+              <Ionicons name="notifications-outline" size={20} color={colors.textPrimary} />
+            </View>
           </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={[styles.searchBar, { backgroundColor: colors.surface }]}>
+          <Ionicons name="search" size={20} color={colors.textTertiary} style={styles.searchIcon} />
+          <TextInput style={[styles.searchInput, { color: colors.textPrimary }]} placeholder={t("home.searchPlaceholder")} placeholderTextColor={colors.textTertiary} value={searchQuery} onChangeText={setSearchQuery} onSubmitEditing={handleSearchPress} returnKeyType="search" />
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Search Bar */}
-        <View style={styles.searchSection}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="What do you need today?"
-          />
+      <ScrollView style={[styles.content, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={true} contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}>
+        {/* Categories Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t("home.categories")}</Text>
+            <TouchableOpacity onPress={handleViewAllCategories}>
+              <Text style={[styles.viewAllText, { color: colors.primary }]}>{t("home.viewAll")}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ?
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+          : categories.length > 0 ?
+            <View style={styles.categoriesGrid}>
+              {categories.map((category) => {
+                const config = getCategoryConfig(category);
+                return <CategoryCard key={category.id} name={getCategoryDisplayName(category, t)} emoji={config.emoji} color={config.color} onPress={() => handleCategoryPress(category.id)} />;
+              })}
+            </View>
+          : <View style={styles.emptyState}>
+              <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>{t("home.noCategories")}</Text>
+            </View>
+          }
         </View>
 
-        {/* Recommended Categories */}
-        <View style={styles.categoriesContainer}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
-          
-          {loading ? (
-            <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 20 }} />
-          ) : (
-            <View style={styles.categoriesGrid}>
-              {categories.map((category) => (
-                <CategoryCard
-                  key={category.id}
-                  name={category.name}
-                  icon={category.icon}
-                  color={category.color}
-                  onPress={() => handleCategoryPress(category.id)}
+        {/* Promotions Carousel */}
+        {promotions.length > 0 && (
+          <View style={styles.promoSection}>
+            <FlatList
+              ref={carouselRef}
+              data={promotions}
+              keyExtractor={(item) => item.id}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CAROUSEL_ITEM_WIDTH + 12}
+              decelerationRate="fast"
+              contentContainerStyle={{ paddingHorizontal: CAROUSEL_PADDING }}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
+              getItemLayout={(_, index) => ({
+                length: CAROUSEL_ITEM_WIDTH + 12,
+                offset: (CAROUSEL_ITEM_WIDTH + 12) * index,
+                index,
+              })}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={handleViewAllCategories}
+                  style={{ width: CAROUSEL_ITEM_WIDTH, marginRight: 12 }}
+                >
+                  <LinearGradient
+                    colors={[item.gradient_start, item.gradient_end]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.promoBanner}
+                  >
+                    {item.icon ? <Text style={styles.promoIcon}>{item.icon}</Text> : null}
+                    <Text style={styles.promoTitle}>{item.title}</Text>
+                    {item.subtitle ? (
+                      <Text style={styles.promoSubtitle}>{item.subtitle}</Text>
+                    ) : null}
+                    {item.description ? (
+                      <Text style={styles.promoDescription}>{item.description}</Text>
+                    ) : null}
+                    {item.cta_label ? (
+                      <TouchableOpacity
+                        style={styles.promoButton}
+                        onPress={handleViewAllCategories}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.promoButtonText}>{item.cta_label}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            />
+            {promotions.length > 1 && (
+              <View style={styles.paginationDots}>
+                {promotions.map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      i === activePromoIndex && styles.dotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Top Providers Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>{t("home.topProviders")}</Text>
+          </View>
+
+          {providersLoading ?
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+          : topProviders.length > 0 ?
+            <View style={styles.providersList}>
+              {topProviders.map((item) => (
+                <TopProviderCard
+                  key={item.id}
+                  id={item.id}
+                  name={item.business_name?.trim() || item.full_name}
+                  profileImage={item.profile_image}
+                  serviceCategory={getTranslatedServiceCategory(item.service_category, t)}
+                  rating={item.rating}
+                  reviewCount={item.total_reviews}
+                  hourlyRate={item.hourly_rate}
+                  onPress={() => handleProviderPress(item.id)}
                 />
               ))}
             </View>
-          )}
+          : <View style={styles.emptyState}>
+              <Text style={[styles.emptyStateText, { color: colors.textSecondary }]}>{t("home.noProviders")}</Text>
+            </View>
+          }
         </View>
-
-        {/* Other Services Button */}
-        <TouchableOpacity style={styles.otherServicesButton} onPress={handleOtherServices}>
-          <Text style={styles.otherServicesText}>OTHER SERVICES</Text>
-        </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#1a1a2e",
+  },
+  headerContainer: {
+    backgroundColor: "#252542",
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  locationSection: {
     flex: 1,
   },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  locationLabel: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginBottom: 4,
+  },
+  locationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  locationText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  notificationButton: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notificationIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#2d2d4a",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2d2d4a",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  searchIcon: {
     marginRight: 12,
   },
-  greeting: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  headerRight: {
-    flexDirection: 'row',
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#FFFFFF",
   },
   content: {
     flex: 1,
+    backgroundColor: "#1a1a2e",
   },
-  searchSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  scrollContent: {
+    paddingBottom: 100, // Space for bottom navbar
   },
-  categoriesContainer: {
+  section: {
+    marginBottom: 20,
     paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3B82F6",
   },
   categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
-  otherServicesButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3B82F6',
-    marginHorizontal: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 24,
+  promoSection: {
+    marginBottom: 20,
   },
-  otherServicesText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
+  promoBanner: {
+    borderRadius: 16,
+    padding: 20,
+    minHeight: 170,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  promoIcon: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  promoTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 4,
+    textAlign: "center",
+  },
+  promoSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 6,
+    textAlign: "center",
+    opacity: 0.95,
+  },
+  promoDescription: {
+    fontSize: 13,
+    color: "#FFFFFF",
+    marginBottom: 14,
+    textAlign: "center",
+    opacity: 0.85,
+    paddingHorizontal: 8,
+  },
+  promoButton: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  promoButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3B82F6",
+  },
+  paginationDots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#4B5563",
+    marginHorizontal: 3,
+  },
+  dotActive: {
+    width: 18,
+    backgroundColor: "#3B82F6",
+    borderRadius: 4,
+  },
+  providersList: {
+    gap: 0,
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
   },
 });

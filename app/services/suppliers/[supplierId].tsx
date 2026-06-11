@@ -1,37 +1,349 @@
+import { FavoriteButton } from '@/components/FavoriteButton';
+import { ProviderAvatar } from '@/components/ProviderAvatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getOrCreateConversation } from '@/services/conversations';
+import { getProfileImageUrl } from '@/utils/profileImage';
 import {
-    ApiError,
-    fetchSupplierProfile,
-    fetchSupplierReviews,
-    fetchSupplierServices,
-    Review,
-    Supplier,
-    SupplierService,
+  ApiError,
+  fetchSupplierProfile,
+  fetchSupplierServices,
+  Supplier,
+  SupplierService,
 } from '@/services/suppliers';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { getThemeColors, type ThemeColors } from '@/utils/themeStyles';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { t } from '@/i18n';
+import { getSupplierServiceDisplayName, getTranslatedServiceCategory } from '@/utils/categoryDisplay';
 
-export default function SupplierProfileScreen() {
+/** Brand accents (same in light/dark); surfaces and text come from `getThemeColors`. */
+const BRAND = {
+  primary: '#3b82f6',
+  secondary: '#10b981',
+  accent: '#f59e0b',
+  danger: '#ef4444',
+} as const;
+
+const ICON_ON_HEADER = '#ffffff';
+
+const HEADER_HEIGHT = 200;
+const PROFILE_IMAGE_SIZE = 90;
+const PROFILE_IMAGE_OFFSET = -40; // Negative margin to overlap header
+
+function createProviderDetailStyles(theme: ThemeColors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.screenBackground,
+    },
+    centerContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    headerImageContainer: {
+      height: HEADER_HEIGHT,
+      width: '100%',
+      position: 'relative',
+    },
+    headerImage: {
+      width: '100%',
+      height: '100%',
+    },
+    headerGradient: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: '100%',
+    },
+    headerButtons: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      zIndex: 10,
+    },
+    headerButtonsRight: {
+      flexDirection: 'row',
+      gap: 10,
+    },
+    headerButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    providerInfoSection: {
+      padding: 20,
+      marginTop: PROFILE_IMAGE_OFFSET,
+      backgroundColor: theme.screenBackground,
+    },
+    providerInfoRow: {
+      flexDirection: 'row',
+      gap: 16,
+      alignItems: 'flex-end',
+      marginBottom: 20,
+    },
+    profileImage: {
+      width: PROFILE_IMAGE_SIZE,
+      height: PROFILE_IMAGE_SIZE,
+      borderRadius: 20,
+      backgroundColor: theme.surfaceSecondary,
+      borderWidth: 4,
+      borderColor: theme.screenBackground,
+    },
+    providerInfoText: {
+      flex: 1,
+      paddingBottom: 8,
+    },
+    nameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 4,
+    },
+    providerName: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    profession: {
+      fontSize: 15,
+      color: BRAND.secondary,
+      marginBottom: 4,
+    },
+    locationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    location: {
+      fontSize: 14,
+      color: theme.textSecondary,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 24,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 14,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    statContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginBottom: 4,
+    },
+    statValue: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.textPrimary,
+    },
+    statLabel: {
+      fontSize: 12,
+      color: theme.textSecondary,
+    },
+    aboutSection: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.textPrimary,
+      marginBottom: 12,
+    },
+    aboutText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.textSecondary,
+    },
+    readMoreText: {
+      fontSize: 14,
+      color: BRAND.primary,
+      marginTop: 8,
+      fontWeight: '500',
+    },
+    servicesSection: {
+      marginBottom: 24,
+    },
+    serviceCard: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 14,
+      marginBottom: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    serviceCardSelected: {
+      borderColor: BRAND.primary,
+      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    },
+    serviceInfo: {
+      flex: 1,
+    },
+    serviceName: {
+      fontSize: 15,
+      fontWeight: '500',
+      color: theme.textPrimary,
+      marginBottom: 4,
+    },
+    serviceDurationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    serviceDuration: {
+      fontSize: 13,
+      color: theme.textSecondary,
+    },
+    serviceRightSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    servicePrice: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: BRAND.primary,
+    },
+    bottomBar: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      gap: 12,
+      padding: 20,
+      backgroundColor: theme.screenBackground,
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 8,
+        },
+      }),
+    },
+    messageButton: {
+      width: 56,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: theme.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    bookButton: {
+      flex: 1,
+      height: 56,
+      borderRadius: 14,
+      backgroundColor: BRAND.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bookButtonDisabled: {
+      backgroundColor: theme.surfaceSecondary,
+      opacity: 0.6,
+    },
+    bookButtonText: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: '#ffffff',
+    },
+    errorText: {
+      fontSize: 16,
+      color: BRAND.danger,
+      textAlign: 'center',
+      marginBottom: 16,
+    },
+    retryButton: {
+      backgroundColor: BRAND.primary,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 8,
+    },
+    retryText: {
+      color: '#ffffff',
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
+}
+
+export default function ProviderDetailScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { supplierId } = useLocalSearchParams<{ supplierId: string }>();
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const theme = useMemo(() => getThemeColors(colorScheme === 'dark'), [colorScheme]);
+  const styles = useMemo(() => createProviderDetailStyles(theme), [theme]);
+  const isSelfProvider = Boolean(supplierId && user?.id && supplierId === user.id);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [services, setServices] = useState<SupplierService[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingChat, setStartingChat] = useState(false);
+  const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
+
+  // Parallax effect for header image
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT],
+    outputRange: [0, -HEADER_HEIGHT / 2],
+    extrapolate: 'clamp',
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+    outputRange: [1, 0.5, 0],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     if (supplierId) {
@@ -44,20 +356,18 @@ export default function SupplierProfileScreen() {
       setLoading(true);
       setError(null);
 
-      const [supplierData, servicesData, reviewsData] = await Promise.all([
+      const [supplierData, servicesData] = await Promise.all([
         fetchSupplierProfile(supplierId),
         fetchSupplierServices(supplierId),
-        fetchSupplierReviews(supplierId),
       ]);
 
       setSupplier(supplierData);
       setServices(servicesData);
-      setReviews(reviewsData.reviews);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Failed to load supplier profile');
+        setError('Failed to load provider profile');
       }
     } finally {
       setLoading(false);
@@ -66,451 +376,318 @@ export default function SupplierProfileScreen() {
 
   const handleStartChat = async () => {
     if (!supplierId || startingChat) return;
-    
+    if (isSelfProvider) {
+      Alert.alert(t('common.error'), t('supplier.cannotChatWithSelf'));
+      return;
+    }
+
     setStartingChat(true);
     try {
       const { conversation } = await getOrCreateConversation(supplierId);
       router.push(`/chat/${conversation.id}`);
     } catch (err) {
       console.error('Error starting chat:', err);
-      Alert.alert('Error', 'Failed to start conversation. Please try again.');
+      const status = err && typeof err === 'object' && 'status' in err ? (err as { status: number }).status : 0;
+      const message = status === 403 ? t('supplier.cannotChatWithSelf') : t('errors.requestFailedStatus', { status: status || 0 });
+      Alert.alert(t('common.error'), message);
     } finally {
       setStartingChat(false);
     }
   };
 
+  const handleBookNow = async () => {
+    if (!supplierId || !selectedServiceId) {
+      console.log('[ProviderDetail] Cannot book - missing params:', { supplierId, selectedServiceId });
+      Alert.alert(t('common.error'), t('supplier.selectService'));
+      return;
+    }
+    
+    console.log('[ProviderDetail] Navigating to booking with params:', { 
+      supplierId, 
+      serviceId: selectedServiceId 
+    });
+    
+    try {
+      // Navigate to booking date/time screen with selected service
+      router.push({
+        pathname: '/booking/date-time',
+        params: {
+          supplierId,
+          serviceId: selectedServiceId,
+        },
+      });
+    } catch (error) {
+      console.error('[ProviderDetail] Navigation error:', error);
+      Alert.alert(t('common.error'), 'Failed to navigate to booking screen');
+    }
+  };
+
+  const toggleAboutExpanded = () => {
+    setAboutExpanded(!aboutExpanded);
+  };
+
+  // Format service duration - use API value, then description, then defaults
+  const getServiceDuration = (service: SupplierService): string => {
+    if (service.duration_minutes != null && service.duration_minutes > 0) {
+      const mins = service.duration_minutes;
+      if (mins < 60) return `${mins} min`;
+      const hrs = mins / 60;
+      return hrs % 1 === 0 ? `${hrs} hr` : `${(mins / 60).toFixed(1)} hr`;
+    }
+    // Try to extract duration from description (e.g., "2-3 hours", "1-2 hrs")
+    if (service.description) {
+      const durationMatch = service.description.match(/(\d+)[-\s](\d+)\s*(hr|hour|h)/i);
+      if (durationMatch) {
+        return `${durationMatch[1]}-${durationMatch[2]} hrs`;
+      }
+      const singleDurationMatch = service.description.match(/(\d+)\s*(hr|hour|h)/i);
+      if (singleDurationMatch) {
+        return `${singleDurationMatch[1]} hrs`;
+      }
+    }
+    
+    // Default durations based on service category
+    const defaultDurations: Record<string, string> = {
+      cleaning: '2-3 hrs',
+      'deep-cleaning': '4-5 hrs',
+      'office-cleaning': '3-4 hrs',
+      plumbing: '1-2 hrs',
+      electrical: '1-3 hrs',
+      painting: '4-6 hrs',
+    };
+    
+    return defaultDurations[service.category_key || ''] || '2-3 hrs';
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
+          <ActivityIndicator size="large" color={BRAND.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error || !supplier) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>{error || 'Supplier not found'}</Text>
+          <Text style={styles.errorText}>{error || 'Provider not found'}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={loadData}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t('common.ok')}</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
+  const headerImage = supplier.gallery && supplier.gallery.length > 0
+    ? supplier.gallery[0]
+    : getProfileImageUrl(supplier.profile_image) ?? 'https://via.placeholder.com/400x200';
+
+  const aboutText = supplier.bio || '';
+  const shouldShowReadMore = aboutText.length > 150;
+  const displayAboutText = aboutExpanded || !shouldShowReadMore 
+    ? aboutText 
+    : aboutText.substring(0, 150) + '...';
+
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.favoriteButton}>
-          <Ionicons name="star-outline" size={24} color="#1F2937" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Header */}
-        <View style={styles.profileSection}>
+    <View style={styles.container}>
+      <Animated.ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Header Image with Parallax */}
+        <Animated.View
+          style={[
+            styles.headerImageContainer,
+            {
+              transform: [{ translateY: headerTranslateY }],
+              opacity: headerOpacity,
+            },
+          ]}
+        >
           <Image
-            source={{ uri: supplier.profile_image || 'https://via.placeholder.com/150' }}
-            style={styles.profileImage}
+            source={{ uri: headerImage }}
+            style={styles.headerImage}
+            resizeMode="cover"
           />
-          <Text style={styles.name}>{supplier.full_name}</Text>
-          
-          <View style={styles.ratingContainer}>
-            <Ionicons name="star" size={20} color="#F59E0B" />
-            <Text style={styles.rating}>{Number(supplier.rating).toFixed(1)}</Text>
-          </View>
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.6)']}
+            style={styles.headerGradient}
+          />
+        </Animated.View>
 
-          {/* Badges */}
-          <View style={styles.badgesRow}>
-            {supplier.years_experience && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{supplier.years_experience}+ years of experience</Text>
-              </View>
-            )}
-            {supplier.location && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Available in {supplier.location}</Text>
-              </View>
-            )}
+        {/* Header Buttons (Back, Favorite, Share) */}
+        <View style={[styles.headerButtons, { top: insets.top + 10 }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.headerButton}
+          >
+            <Ionicons name="arrow-back" size={20} color={ICON_ON_HEADER} />
+          </TouchableOpacity>
+          <View style={styles.headerButtonsRight}>
+            <TouchableOpacity style={styles.headerButton}>
+              <FavoriteButton
+                supplierId={supplierId || ''}
+                size={18}
+                color={ICON_ON_HEADER}
+                activeColor={BRAND.danger}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton}>
+              <Ionicons name="share-outline" size={18} color={ICON_ON_HEADER} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Description */}
-        {supplier.bio && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{supplier.bio}</Text>
-          </View>
-        )}
-
-        {/* Services Offered */}
-        {services.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Services</Text>
-            <View style={styles.servicesContainer}>
-              {services.map((service) => (
-                <View key={service.id} style={styles.serviceTag}>
-                  <Text style={styles.serviceTagText}>{service.category_name || 'Service'}</Text>
-                  {service.price && (
-                    <Text style={styles.servicePrice}>${service.price}/hr</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Pricing */}
-        {supplier.hourly_rate && (
-          <View style={styles.pricingSection}>
-            <Text style={styles.pricingLabel}>From</Text>
-            <Text style={styles.pricingAmount}>${supplier.hourly_rate}/hr</Text>
-          </View>
-        )}
-
-        {/* Photo Gallery */}
-        {supplier.gallery && supplier.gallery.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Photo Gallery</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {supplier.gallery.map((photo, index) => (
-                <Image key={index} source={{ uri: photo }} style={styles.galleryImage} />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Reviews */}
-        {reviews.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reviews</Text>
-            {reviews.slice(0, 3).map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <View style={styles.reviewAvatar}>
-                    <Ionicons name="person" size={20} color="#6B7280" />
-                  </View>
-                  <View style={styles.reviewHeaderInfo}>
-                    <Text style={styles.reviewerName}>{review.client_name || 'Anonymous'}</Text>
-                    <View style={styles.reviewRating}>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Ionicons
-                          key={star}
-                          name={star <= review.rating ? 'star' : 'star-outline'}
-                          size={12}
-                          color={star <= review.rating ? '#F59E0B' : '#D1D5DB'}
-                        />
-                      ))}
-                    </View>
-                  </View>
-                  <Text style={styles.reviewDate}>
-                    {new Date(review.created_at).toLocaleDateString()}
-                  </Text>
-                </View>
-                {review.comment && (
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
+        {/* Provider Info Section */}
+        <View style={styles.providerInfoSection}>
+          <View style={styles.providerInfoRow}>
+            <ProviderAvatar
+              profileImage={supplier.profile_image}
+              size={90}
+              rounded={false}
+              style={styles.profileImage}
+            />
+            <View style={styles.providerInfoText}>
+              <View style={styles.nameRow}>
+                <Text style={styles.providerName}>
+                {supplier.business_name?.trim() || supplier.full_name}
+              </Text>
+                {supplier.verified && (
+                  <Ionicons name="checkmark-circle" size={20} color={BRAND.secondary} />
                 )}
               </View>
-            ))}
+              {supplier.service_category && (
+                <Text style={styles.profession}>
+                  {getTranslatedServiceCategory(supplier.service_category, t)}
+                </Text>
+              )}
+              {supplier.location && (
+                <View style={styles.locationRow}>
+                  <Ionicons name="location-outline" size={14} color={theme.textSecondary} />
+                  <Text style={styles.location}>{supplier.location}</Text>
+                </View>
+              )}
+            </View>
           </View>
-        )}
-      </ScrollView>
 
-      {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
-        <TouchableOpacity 
-          style={[styles.chatActionButton, startingChat && styles.chatActionButtonDisabled]}
-          onPress={handleStartChat}
-          disabled={startingChat}
-        >
-          {startingChat ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="chatbubble-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.chatActionText}>Message</Text>
-            </>
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <View style={styles.statContent}>
+                <Ionicons name="star" size={20} color={BRAND.accent} />
+                <Text style={styles.statValue}>{Number(supplier.rating).toFixed(1)}</Text>
+              </View>
+              <Text style={styles.statLabel}>{t('supplier.rating')}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statContent}>
+                <Ionicons name="chatbubble-outline" size={20} color={theme.icon} />
+                <Text style={styles.statValue}>{supplier.total_reviews}</Text>
+              </View>
+              <Text style={styles.statLabel}>{t('supplier.reviewsCount')}</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statContent}>
+                <Ionicons name="calendar-outline" size={20} color={theme.icon} />
+                <Text style={styles.statValue}>{supplier.years_experience || 0}</Text>
+              </View>
+              <Text style={styles.statLabel}>{t('supplier.years')}</Text>
+            </View>
+          </View>
+
+          {/* About Section */}
+          {aboutText && (
+            <View style={styles.aboutSection}>
+              <Text style={styles.sectionTitle}>{t('supplier.about')}</Text>
+              <Text style={styles.aboutText}>{displayAboutText}</Text>
+              {shouldShowReadMore && (
+                <TouchableOpacity onPress={toggleAboutExpanded}>
+                  <Text style={styles.readMoreText}>
+                    {aboutExpanded ? t('supplier.readLess') : t('supplier.readMore')}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.bookActionButton}>
-          <Text style={styles.bookActionText}>Book Service</Text>
+
+          {/* Services List */}
+          {services.length > 0 && (
+            <View style={styles.servicesSection}>
+              <Text style={styles.sectionTitle}>{t('supplier.services')}</Text>
+              {services.map((service) => {
+                const isSelected = selectedServiceId === service.id;
+                return (
+                  <TouchableOpacity
+                    key={service.id}
+                    style={[
+                      styles.serviceCard,
+                      isSelected && styles.serviceCardSelected,
+                    ]}
+                    onPress={() => setSelectedServiceId(service.id)}
+                  >
+                    <View style={styles.serviceInfo}>
+                      <Text style={styles.serviceName}>
+                        {getSupplierServiceDisplayName(service, t)}
+                      </Text>
+                      <View style={styles.serviceDurationRow}>
+                        <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
+                        <Text style={styles.serviceDuration}>{getServiceDuration(service)}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.serviceRightSection}>
+                      {service.price && (
+                        <Text style={styles.servicePrice}>
+                          ${service.price}{t('supplier.perHour')}
+                        </Text>
+                      )}
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={24} color={BRAND.primary} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      </Animated.ScrollView>
+
+      {/* Fixed CTA Bottom Bar */}
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 20 }]}>
+        {!isSelfProvider && (
+          <TouchableOpacity
+            style={styles.messageButton}
+            onPress={handleStartChat}
+            disabled={startingChat}
+          >
+            {startingChat ? (
+              <ActivityIndicator size="small" color={BRAND.primary} />
+            ) : (
+              <Ionicons name="chatbubble-outline" size={24} color={BRAND.primary} />
+            )}
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[
+            styles.bookButton,
+            !selectedServiceId && styles.bookButtonDisabled,
+          ]}
+          onPress={handleBookNow}
+          disabled={!selectedServiceId}
+        >
+          <Text style={styles.bookButtonText}>{t('supplier.bookNow')}</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'transparent',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  favoriteButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  content: {
-    flex: 1,
-  },
-  profileSection: {
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  rating: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginLeft: 4,
-  },
-  badgesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  badge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  badgeText: {
-    fontSize: 12,
-    color: '#4F46E5',
-    fontWeight: '500',
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-  },
-  servicesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  serviceTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  serviceTagText: {
-    fontSize: 12,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  servicePrice: {
-    fontSize: 12,
-    color: '#10B981',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  pricingSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginTop: 8,
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  pricingLabel: {
-    fontSize: 16,
-    color: '#6B7280',
-    marginRight: 8,
-  },
-  pricingAmount: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#10B981',
-  },
-  galleryImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 8,
-    marginRight: 12,
-  },
-  reviewCard: {
-    backgroundColor: '#F9FAFB',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  reviewAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  reviewHeaderInfo: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  reviewRating: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  reviewDate: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  reviewComment: {
-    fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    gap: 12,
-  },
-  chatActionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 8,
-  },
-  chatActionButtonDisabled: {
-    opacity: 0.7,
-  },
-  chatActionText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  bookActionButton: {
-    flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3B82F6',
-    paddingVertical: 14,
-    borderRadius: 8,
-  },
-  bookActionText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#EF4444',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
-
-
-
-

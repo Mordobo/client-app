@@ -1,28 +1,49 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
 export interface ToastProps {
   message: string;
-  visible: boolean;
-  onHide: () => void;
+  visible?: boolean;
+  onHide?: () => void;
+  onDismiss?: () => void;
   duration?: number;
   type?: 'success' | 'error' | 'info';
 }
 
 export function Toast({
   message,
-  visible,
+  visible = true,
   onHide,
+  onDismiss,
   duration = 3000,
   type = 'success',
 }: ToastProps) {
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(-50)).current;
+  const dismiss = onHide ?? onDismiss;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(-50)).current;
+  const dismissRef = useRef(dismiss);
+  dismissRef.current = dismiss;
+
+  const hideToast = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: -50,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      dismissRef.current?.();
+    });
+  }, [fadeAnim, slideAnim]);
 
   useEffect(() => {
     if (visible) {
-      // Show animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -37,35 +58,16 @@ export function Toast({
         }),
       ]).start();
 
-      // Auto hide after duration
       const timer = setTimeout(() => {
         hideToast();
       }, duration);
 
       return () => clearTimeout(timer);
-    } else {
-      hideToast();
     }
-  }, [visible, duration]);
+    hideToast();
+  }, [visible, duration, hideToast, fadeAnim, slideAnim]);
 
-  const hideToast = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: -50,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onHide();
-    });
-  };
-
-  if (!visible && fadeAnim._value === 0) {
+  if (!visible) {
     return null;
   }
 

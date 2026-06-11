@@ -1,31 +1,34 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
-import { ApiError, validateEmail } from '@/services/auth';
+import { ApiError, loginWithCredentials, validateEmail } from '@/services/auth';
+import { mapApiUserToUser } from '@/utils/authMapping';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
 import { type GoogleProfile } from '@/utils/authMapping';
 import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
 import {
-    consumePendingGoogleWebResult,
-    getGoogleStatusCodes,
-    isGoogleWebAvailable,
-    signInWithGoogleWeb,
-    signInWithGoogleMobile,
-    WEB_RESULT_STORAGE_KEY,
+  consumePendingGoogleWebResult,
+  isGoogleConfigured,
+  signInWithGoogleMobile,
+  signInWithGoogleWeb,
 } from '@/utils/googleSignIn';
+import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const valueHasContent = (text: string) => text.trim().length > 0;
@@ -34,135 +37,27 @@ export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [identifierFocused, setIdentifierFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
   const [consumedRegistrationParam, setConsumedRegistrationParam] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+  const [appleAvailable, setAppleAvailable] = useState(false);
   const { login } = useAuth();
+
+  useEffect(() => {
+    isAppleSignInAvailable().then(setAppleAvailable);
+  }, []);
   const params = useLocalSearchParams<{ registered?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const googleStatusCodes = getGoogleStatusCodes();
-  const webGoogleSupported = isGoogleWebAvailable();
-  const isGoogleSupported = webGoogleSupported;
 
   const trimmedIdentifier = identifier.trim();
   const canSubmit = valueHasContent(identifier) && password.length >= 8;
   const isButtonEnabled = canSubmit && !loading;
 
-  const handleGoogleError = useCallback((error: unknown) => {
-    if (error instanceof ApiError) {
-      const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
-      Alert.alert(t('common.error'), message);
-      return;
-    }
-
-    if (error instanceof Error) {
-      switch (error.message) {
-        case 'google-web-signin-cancelled':
-          return;
-        case 'google-web-missing-id-token':
-        case 'google-missing-id-token':
-          Alert.alert(t('common.error'), t('errors.googleMissingIdToken'));
-          return;
-        case 'google-web-state-mismatch':
-          Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-          return;
-        case 'google-missing-web-client-id':
-        case 'google-web-not-supported':
-          Alert.alert(t('common.error'), t('errors.googleUnavailable'));
-          return;
-        default:
-          Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-          return;
-      }
-    }
-
-    Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
-  }, []);
-
-  const finalizeGoogleLogin = useCallback(
-    async (profile: GoogleProfile, tokens: GoogleAuthTokens) => {
-      console.log('[GoogleLogin] Finalizing Google login', {
-        email: profile.email,
-        hasIdToken: !!tokens.idToken,
-        hasAccessToken: !!tokens.accessToken,
-      });
-      const userData = await registerGoogleAccountOrFallback(profile, tokens);
-      console.log('[GoogleLogin] registerGoogleAccountOrFallback resolved', {
-        userId: userData.id,
-        provider: userData.provider,
-      });
-      await login(userData);
-      router.replace('/(tabs)/home');
-    },
-    [login]
-  );
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') {
-      console.log('[GoogleLogin] Skipping pending web result because platform is', Platform.OS);
-      return;
-    }
-
-    let isMounted = true;
-
-    const maybeConsumePendingLogin = async () => {
-      try {
-        const pendingResult = await consumePendingGoogleWebResult();
-        console.log('[GoogleLogin] Pending result from redirect:', pendingResult);
-        if (!pendingResult || !isMounted) {
-          if (!pendingResult) {
-            console.log('[GoogleLogin] No pending Google result detected in URL hash.');
-          }
-          return;
-        }
-        setGoogleLoading(true);
-        const profile: GoogleProfile = {
-          id: pendingResult.user.id,
-          email: pendingResult.user.email,
-          name: pendingResult.user.name,
-          givenName: pendingResult.user.givenName,
-          familyName: pendingResult.user.familyName,
-          photo: pendingResult.user.photo,
-        };
-        const tokens: GoogleAuthTokens = {
-          idToken: pendingResult.idToken,
-          accessToken: pendingResult.accessToken,
-        };
-        await finalizeGoogleLogin(profile, tokens);
-      } catch (error) {
-        if (isMounted) {
-          handleGoogleError(error);
-        }
-      } finally {
-        if (isMounted) {
-          setGoogleLoading(false);
-        }
-      }
-    };
-
-    void maybeConsumePendingLogin();
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === WEB_RESULT_STORAGE_KEY && event.newValue) {
-        console.log('[GoogleLogin] Storage event detected for Google OAuth result. Retrying consumption.');
-        void maybeConsumePendingLogin();
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', handleStorage);
-    }
-
-    return () => {
-      isMounted = false;
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('storage', handleStorage);
-      }
-    };
-  }, [finalizeGoogleLogin, handleGoogleError]);
 
   useEffect(() => {
     if (!consumedRegistrationParam && params?.registered) {
@@ -189,7 +84,9 @@ export default function LoginScreen() {
   }, []);
 
   const handleCredentialsLogin = async () => {
-    if (!trimmedIdentifier || !password) {
+    const currentIdentifier = identifier.trim();
+    
+    if (!currentIdentifier || !password) {
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
@@ -202,41 +99,94 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      // Determine if identifier is email or phone
-      const isEmail = trimmedIdentifier.includes('@');
-      
-      if (isEmail) {
-        // For email login, use verification flow (same as registration)
-        // Call validate-email endpoint to generate and send verification code
-        const validateResponse = await validateEmail({
-          email: trimmedIdentifier,
-          password,
-        });
+      const isEmail = currentIdentifier.includes('@');
+      const loginPayload = isEmail
+        ? { email: currentIdentifier.trim().toLowerCase(), password }
+        : { phoneNumber: currentIdentifier, password };
 
-        // Store email and password temporarily for resend code and verification
-        await AsyncStorage.setItem('pending_verification_email', trimmedIdentifier.trim().toLowerCase());
-        await AsyncStorage.setItem('pending_verification_password', password);
+      const loginResponse = await loginWithCredentials(loginPayload);
 
-        // Redirect to verification screen
-        router.replace({
-          pathname: '/(auth)/verify',
-          params: { 
-            email: trimmedIdentifier.trim().toLowerCase(),
-          },
+      // If 2FA is enabled, go directly to 2FA code screen (no email verification step)
+      if (loginResponse.requires_2fa && loginResponse.twoFaToken) {
+        await AsyncStorage.setItem('pending_2fa_token', loginResponse.twoFaToken);
+        router.push({
+          pathname: '/(auth)/verify-2fa',
+          params: { email: loginResponse.email ?? (isEmail ? currentIdentifier : '') },
         });
-      } else {
-        // Phone login is not supported by backend /auth/login endpoint
-        // Backend only accepts email in login endpoint
-        setErrorMessage(t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
-        Alert.alert(t('common.error'), t('errors.loginWithPhoneNotSupported') || 'Phone login is not supported. Please use your email address.');
+        setErrorMessage(null);
+        return;
       }
-      
+
+      // Success: login with tokens
+      const userData = mapApiUserToUser(
+        loginResponse.user,
+        'email',
+        loginResponse.accessToken || loginResponse.token,
+        loginResponse.refreshToken
+      );
+      await login(userData);
       setErrorMessage(null);
     } catch (error) {
       console.error('Login error:', error);
       
       if (error instanceof ApiError) {
-        // Handle API errors
+        const errorData = error.data as Record<string, unknown> | undefined;
+        const errorCode = errorData?.code as string | undefined;
+        
+        // Handle timeout errors
+        if (errorCode === 'request_timeout' || errorData?.isTimeout === true) {
+          const timeoutMessage = error.message || t('errors.requestTimeout');
+          setErrorMessage(timeoutMessage);
+          Alert.alert(t('common.error'), timeoutMessage);
+          return;
+        }
+        
+        // Handle network/connection errors
+        if (errorCode === 'network_error' || error.status === 0) {
+          const connectionMessage = error.message || t('errors.connectionFailed');
+          setErrorMessage(connectionMessage);
+          Alert.alert(t('common.error'), connectionMessage);
+          return;
+        }
+        
+        // Email/send errors: show message only (no modal with code)
+        if (errorCode === 'smtp_not_configured' ||
+            errorCode === 'email_send_timeout' ||
+            errorCode === 'email_send_failed') {
+          const detailedMessage = errorData?.message ? String(errorData.message) : error.message;
+          setErrorMessage(detailedMessage || t('errors.emailSendFailed'));
+          Alert.alert(t('common.error'), detailedMessage || t('errors.emailSendFailed'));
+          return;
+        }
+        
+        // Email not verified: go to email verification flow (send code, then verify screen)
+        if (errorCode === 'email_not_verified') {
+          try {
+            await validateEmail({
+              email: identifier.trim().toLowerCase(),
+              password,
+            });
+            const emailToStore = identifier.trim().toLowerCase();
+            await AsyncStorage.setItem('pending_verification_email', emailToStore);
+            await AsyncStorage.setItem('pending_verification_password', password);
+            router.push({
+              pathname: '/verify',
+              params: { email: emailToStore },
+            });
+            setErrorMessage(null);
+          } catch (validateErr) {
+            setErrorMessage(t('errors.loginFailed'));
+          }
+          return;
+        }
+
+        const restrictionMessage = translatedAuthRestrictionMessage(error);
+        if (restrictionMessage) {
+          setErrorMessage(restrictionMessage);
+          return;
+        }
+
+        // Handle other API errors
         if (error.status === 401 || error.status === 404) {
           setErrorMessage(t('errors.loginFailed'));
         } else {
@@ -245,34 +195,33 @@ export default function LoginScreen() {
           Alert.alert(t('common.error'), errorMessage);
         }
       } else {
-        Alert.alert(t('common.error'), t('errors.loginGeneric'));
+        // Handle non-ApiError (e.g., network errors that weren't caught)
+        const errorMessage = error instanceof Error && error.message.includes('timeout')
+          ? t('errors.requestTimeout')
+          : error instanceof Error && error.message.includes('network')
+          ? t('errors.connectionFailed')
+          : t('errors.loginGeneric');
+        setErrorMessage(errorMessage);
+        Alert.alert(t('common.error'), errorMessage);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    console.log('[GoogleLogin] Platform:', Platform.OS, 'isGoogleWebAvailable:', webGoogleSupported);
-    
+  const handleGoogleLogin = useCallback(async () => {
     setGoogleLoading(true);
+    setErrorMessage(null);
     try {
       let result;
-      
       if (Platform.OS === 'web') {
-        result = await signInWithGoogleWeb();
-        console.log('[GoogleLogin] signInWithGoogleWeb result:', result);
-        if (!result) {
-          console.log('[GoogleLogin] Web flow initiated; waiting for storage event.');
-          return;
-        }
+        const pending = await consumePendingGoogleWebResult();
+        result = pending ?? (await signInWithGoogleWeb());
+        if (!result) return;
       } else {
-        // Móvil: usar expo-auth-session
         result = await signInWithGoogleMobile();
-        console.log('[GoogleLogin] signInWithGoogleMobile result:', result);
       }
-
-      const profile: GoogleProfile = {
+      const googleProfile: GoogleProfile = {
         id: result.user.id,
         email: result.user.email,
         name: result.user.name,
@@ -280,48 +229,79 @@ export default function LoginScreen() {
         familyName: result.user.familyName,
         photo: result.user.photo,
       };
-      const tokens: GoogleAuthTokens = {
-        idToken: result.idToken,
-        accessToken: result.accessToken,
-      };
-      await finalizeGoogleLogin(profile, tokens);
+      const tokens: GoogleAuthTokens = { idToken: result.idToken, accessToken: result.accessToken };
+      const userData = await registerGoogleAccountOrFallback(googleProfile, tokens);
+      await login(userData);
+      router.replace('/(tabs)/home');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('cancelled')) {
-        // Usuario canceló, no mostrar error
-        return;
-      }
-
+      if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('canceled'))) return;
       if (error instanceof ApiError) {
-        const message = error.message?.length ? error.message : t('errors.googleLoginGeneric');
-        Alert.alert(t('common.error'), message);
+        const restriction = translatedAuthRestrictionMessage(error);
+        const msg = restriction ?? (error.message || t('errors.googleLoginGeneric'));
+        setErrorMessage(msg);
+        Alert.alert(t('common.error'), msg);
         return;
       }
-
-      if (error instanceof Error && error.message === 'google-missing-id-token') {
-        Alert.alert(t('common.error'), t('errors.googleMissingIdToken'));
-        return;
-      }
-
-      console.error('Google login error:', error);
-      Alert.alert(t('common.error'), t('errors.googleLoginGeneric'));
+      const msg = t('errors.googleLoginGeneric');
+      setErrorMessage(msg);
+      Alert.alert(t('common.error'), msg);
     } finally {
       setGoogleLoading(false);
     }
-  };
+  }, [login]);
 
-  const handleAppleLogin = async () => {
-    Alert.alert(t('common.ok'), t('auth.soonApple'));
-  };
+  const handleAppleLogin = useCallback(async () => {
+    setAppleLoading(true);
+    setErrorMessage(null);
+    try {
+      const creds = await signInWithApple();
+      if (!creds) return;
+      const userData = await loginOrRegisterWithApple(creds);
+      await login(userData);
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const restriction = translatedAuthRestrictionMessage(error);
+        const msg = restriction ?? (error.message || t('errors.appleLoginGeneric'));
+        setErrorMessage(msg);
+        Alert.alert(t('common.error'), msg);
+        return;
+      }
+      const msg = t('errors.appleLoginGeneric');
+      setErrorMessage(msg);
+      Alert.alert(t('common.error'), msg);
+    } finally {
+      setAppleLoading(false);
+    }
+  }, [login]);
+
+  const isGoogleSupported = isGoogleConfigured();
 
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.content}>
+          {/* Back Button */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
           {/* Title */}
-          <Text style={styles.title}>{t('auth.loginTitle')}</Text>
+          <Text style={styles.title}>{t('auth.welcome')}</Text>
+          <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
 
           {showRegistrationSuccess && (
             <View style={styles.successToast}>
@@ -336,8 +316,8 @@ export default function LoginScreen() {
               <Text style={styles.inputLabel}>{t('auth.email')}</Text>
               <TextInput
                 style={[styles.input, errorMessage ? styles.inputError : undefined]}
-                placeholder=""
-                placeholderTextColor="rgba(55, 65, 81, 0.45)"
+                placeholder="tu@email.com"
+                placeholderTextColor="rgba(156, 163, 175, 0.5)"
                 value={identifier}
                 onChangeText={(value) => {
                   setIdentifier(value);
@@ -362,25 +342,40 @@ export default function LoginScreen() {
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>{t('auth.password')}</Text>
-              <TextInput
-                style={[styles.input, errorMessage ? styles.inputError : undefined]}
-                placeholder=""
-                placeholderTextColor="rgba(55, 65, 81, 0.45)"
-                value={password}
-                onChangeText={(value) => {
-                  setPassword(value);
-                  if (errorMessage) {
-                    setErrorMessage(null);
-                  }
-                }}
-                secureTextEntry
-                autoCapitalize="none"
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-              />
+              <View style={styles.passwordInputWrapper}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput, errorMessage ? styles.inputError : undefined]}
+                  placeholder="••••••••"
+                  placeholderTextColor="rgba(156, 163, 175, 0.5)"
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    if (errorMessage) {
+                      setErrorMessage(null);
+                    }
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity 
+              style={styles.forgotPassword}
+              onPress={() => router.push('/(auth)/forgot-password')}
+            >
               <Text style={styles.forgotPasswordText}>{t('auth.forgotPassword')}</Text>
             </TouchableOpacity>
 
@@ -392,35 +387,65 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.loginButtonText}>{t('auth.signIn')}</Text>
+                <Text style={styles.loginButtonText}>{t('auth.loginCta')}</Text>
               )}
             </TouchableOpacity>
           </View>
 
-          {/* Social Login Buttons */}
-          <View style={styles.socialContainer}>
-            <TouchableOpacity
-              style={styles.socialButton}
-              onPress={handleGoogleLogin}
-              disabled={googleLoading || !isGoogleSupported}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color="#DB4437" />
-              ) : (
-                <View style={styles.socialButtonContent}>
-                  <Ionicons name="logo-google" size={20} color="#4285F4" />
-                  <Text style={styles.socialButtonText}>{t('auth.continueWithGoogle')}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
-              <View style={styles.socialButtonContent}>
-                <Ionicons name="logo-apple" size={20} color="#000000" />
-                <Text style={styles.socialButtonText}>{t('auth.continueWithApple')}</Text>
+          {(isGoogleSupported || appleAvailable) && (
+            <View style={styles.socialSection} pointerEvents="box-none">
+              <View style={styles.dividerRow}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>{t('auth.orContinueWith')}</Text>
+                <View style={styles.dividerLine} />
               </View>
-            </TouchableOpacity>
-          </View>
+              {isGoogleSupported && (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.socialButton,
+                    googleLoading && styles.socialButtonDisabled,
+                    pressed && !googleLoading && styles.socialButtonPressed,
+                  ]}
+                  onPress={handleGoogleLogin}
+                  disabled={googleLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('auth.continueWithGoogle')}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={20} color="#FFFFFF" style={styles.socialIcon} />
+                      <Text style={styles.socialButtonText}>{t('auth.continueWithGoogle')}</Text>
+                    </>
+                  )}
+                </Pressable>
+              )}
+              {appleAvailable && (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.socialButton,
+                    styles.socialButtonApple,
+                    appleLoading && styles.socialButtonDisabled,
+                    pressed && !appleLoading && styles.socialButtonPressed,
+                  ]}
+                  onPress={handleAppleLogin}
+                  disabled={appleLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('auth.continueWithApple')}
+                >
+                  {appleLoading ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-apple" size={22} color="#FFFFFF" style={styles.socialIcon} />
+                      <Text style={styles.socialButtonText}>{t('auth.continueWithApple')}</Text>
+                    </>
+                  )}
+                </Pressable>
+              )}
+            </View>
+          )}
 
           {/* Register Link */}
           <View style={styles.registerContainer}>
@@ -430,6 +455,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -438,34 +464,47 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1a1a2e',
   },
   keyboardView: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 60,
   },
+  backButton: {
+    marginBottom: 40,
+  },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000000',
-    textAlign: 'center',
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#9CA3AF',
     marginBottom: 40,
   },
   form: {
     marginBottom: 32,
   },
   successToast: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#10B981',
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
@@ -474,7 +513,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   successText: {
-    color: '#047857',
+    color: '#10B981',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -482,25 +521,37 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#000000',
+    color: '#FFFFFF',
     marginBottom: 8,
-    marginLeft: 4,
   },
   input: {
-    backgroundColor: 'white',
+    backgroundColor: '#252542',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    color: '#000000',
+    borderColor: '#374151',
+    color: '#FFFFFF',
+  },
+  passwordInputWrapper: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    padding: 4,
   },
   inputError: {
     borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#2d1a1a',
   },
   errorContainer: {
     flexDirection: 'row',
@@ -515,12 +566,12 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: 13,
     fontWeight: '500',
+    marginLeft: 4,
   },
   forgotPassword: {
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     marginTop: 8,
-    marginBottom: 24,
-    marginLeft: 4,
+    marginBottom: 32,
   },
   forgotPasswordText: {
     color: '#3B82F6',
@@ -529,55 +580,81 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 18,
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   loginButtonDisabled: {
     opacity: 0.5,
   },
   loginButtonText: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  socialContainer: {
-    gap: 12,
-    marginBottom: 32,
-  },
-  socialButton: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  socialButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: '#000000',
+    fontWeight: '700',
   },
   registerContainer: {
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
     gap: 4,
   },
   registerText: {
-    color: '#000000',
+    color: '#9CA3AF',
     fontSize: 14,
   },
   registerLink: {
     color: '#3B82F6',
     fontSize: 14,
     fontWeight: '400',
+  },
+  socialSection: {
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    gap: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#374151',
+  },
+  dividerText: {
+    color: '#9CA3AF',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#252542',
+    borderRadius: 14,
+    paddingVertical: 16,
+    minHeight: 52,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  socialButtonApple: {
+    marginBottom: 0,
+  },
+  socialButtonPressed: {
+    opacity: 0.7,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
+  },
+  socialIcon: {
+    marginRight: 10,
+  },
+  socialButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

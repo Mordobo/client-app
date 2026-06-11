@@ -103,6 +103,30 @@ Mordobo es una aplicación móvil multiplataforma (iOS, Android, Web) que permit
 - **Documentación solo cuando sea esencial** – Crear archivos .md únicamente cuando sean absolutamente necesarios para el funcionamiento del proyecto (ej: README.md, CLAUDE.md, documentación de API crítica)
 - **Preferir código sobre documentación** – Implementar la solución directamente en lugar de crear guías extensas
 
+### Git Workflow Policy
+
+**CRITICAL: NEVER execute Git commands automatically**
+
+- ❌ **NEVER run `git add`** – No agregar archivos al staging area automáticamente
+- ❌ **NEVER run `git commit`** – No crear commits sin autorización explícita del usuario
+- ❌ **NEVER run `git push`** – No subir cambios al repositorio remoto bajo ninguna circunstancia
+- ❌ **NEVER run `git pull`, `git merge`, `git rebase`** – No modificar el historial de Git
+
+**Razón:**
+- El usuario prefiere tener control total sobre cuándo y cómo se crean commits
+- Los commits deben ser decisión consciente del usuario, no automatizados
+- El usuario ejecutará los comandos git manualmente cuando lo considere apropiado
+
+**Qué hacer en su lugar:**
+- ✅ Hacer las modificaciones de código necesarias
+- ✅ Informar al usuario sobre los cambios realizados
+- ✅ El usuario decidirá si y cuándo hacer commit/push
+- ✅ Si se sugieren o redactan mensajes de commit o descripciones de PR: **siempre en inglés, detallados**, explicando qué se cambió y por qué (ver sección "Commit and Pull Request Descriptions")
+
+**Única excepción:**
+- Si el usuario EXPLÍCITAMENTE dice "haz commit" o "haz push", solo entonces ejecutar el comando solicitado
+- Pero por defecto, asumir que NO se deben ejecutar comandos git
+
 ### Priority Order (Context Hierarchy)
 
 1. **CLAUDE.md rules** (highest priority) – Este documento tiene precedencia absoluta
@@ -398,7 +422,8 @@ mobile/
 │   ├── _layout.tsx              # Root layout con AuthProvider
 │   ├── (auth)/                  # Grupo de rutas de autenticación
 │   │   ├── _layout.tsx
-│   │   ├── index.tsx            # Landing/auth selector
+│   │   ├── index.tsx            # Redirects to welcome screen
+│   │   ├── welcome.tsx           # Welcome screen (first screen)
 │   │   ├── login.tsx            # Login screen
 │   │   ├── register.tsx         # Register screen
 │   │   └── verify.tsx           # Email verification
@@ -412,7 +437,6 @@ mobile/
 │
 ├── components/                   # 🧩 Componentes UI reutilizables
 │   ├── ui/                      # Componentes UI base (collapsible, icons)
-│   ├── SplashScreen.tsx         # Splash screen personalizado
 │   ├── MordoboLogo.tsx          # Logo component
 │   └── ...                      # Otros componentes genéricos
 │
@@ -686,6 +710,27 @@ style(theme): update color palette
 - `perf`: Mejora de performance
 - `test`: Tests
 - `chore`: Tareas de mantenimiento
+
+### Commit and Pull Request Descriptions (English, Detailed)
+
+- **Language**: All commit messages and Pull Request titles/descriptions **must be written in English** (subject line and body).
+- **Detail**: Descriptions must be **detailed** and clearly explain:
+  - **What** was changed (files, components, behavior).
+  - **Why** it was changed when not obvious (bug fixed, UX improvement, requirement).
+  - **How** it was addressed briefly when useful (e.g. "filter non-numeric input in onChangeText", "reduced keyboardVerticalOffset to fix gap").
+- **PR description**: Use the PR description to summarize the change, link the ticket (e.g. MDB-195), and list main changes or testing notes. Avoid one-line or Spanish-only descriptions.
+- **No tool/editor attribution**: Never add text to commit messages or PR descriptions stating that changes were made, uploaded, or committed using Cursor (or any other editor/tool). Describe only what was changed and why.
+
+**Example – good commit body (English, detailed):**
+```
+fix(profile): restrict years-of-experience to digits and fix keyboard gap
+
+- Years of experience: allow only numeric input via onChangeText filter and
+  set maxLength={3}; keeps number-pad and prevents pasted/invalid chars.
+- Keyboard: set KeyboardAvoidingView behavior to undefined on Android to
+  remove double offset and reduce keyboardVerticalOffset on iOS to avoid
+  large empty space between input and keyboard.
+```
 
 ⸻
 

@@ -1,31 +1,294 @@
+import { useThemeColors } from '@/hooks/useThemeColors';
+import { t } from '@/i18n';
+import { getOrCreateConversation } from '@/services/conversations';
+import { ApiError, fetchOrderDetail } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    SafeAreaView,
+    ActivityIndicator,
+    Alert,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+function formatScheduledAt(scheduledAt: string | undefined): string {
+  if (!scheduledAt) return '';
+  const d = new Date(scheduledAt);
+  return d.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    pending: t('orders.status.pending'),
+    accepted: t('orders.status.confirmed'),
+    in_progress: t('orders.status.inProgress'),
+    completed: t('orders.status.completed'),
+    cancelled: t('orders.status.cancelled'),
+  };
+  return map[status] ?? status;
+}
 
 export default function ScheduledBookingScreen() {
   const router = useRouter();
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const insets = useSafeAreaInsets();
+  const themeColors = useThemeColors();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: themeColors.background },
+        header: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 20,
+          paddingBottom: 16,
+          backgroundColor: themeColors.card,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors.border,
+        },
+        backButton: {
+          width: 40,
+          height: 40,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        headerTitle: {
+          fontSize: 18,
+          fontWeight: '600',
+          color: themeColors.textPrimary,
+        },
+        content: { flex: 1 },
+        centerContainer: {
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
+        },
+        errorText: {
+          fontSize: 16,
+          color: '#EF4444',
+          textAlign: 'center',
+          marginBottom: 16,
+        },
+        retryButton: {
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          borderRadius: 8,
+          backgroundColor: themeColors.primary,
+        },
+        retryText: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: '#FFFFFF',
+        },
+        iconContainer: {
+          alignItems: 'center',
+          paddingVertical: 40,
+        },
+        calendarCircle: {
+          width: 120,
+          height: 120,
+          borderRadius: 60,
+          backgroundColor: themeColors.surfaceSecondary,
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        },
+        checkmarkBadge: {
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          backgroundColor: '#10B981',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 3,
+          borderColor: themeColors.background,
+        },
+        infoCard: {
+          backgroundColor: themeColors.card,
+          padding: 20,
+          marginHorizontal: 20,
+          borderRadius: 12,
+          marginBottom: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        serviceTitle: {
+          fontSize: 20,
+          fontWeight: '600',
+          color: themeColors.textPrimary,
+          marginBottom: 4,
+        },
+        providerName: {
+          fontSize: 14,
+          color: themeColors.textSecondary,
+          marginBottom: 16,
+        },
+        infoRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          marginBottom: 12,
+        },
+        infoText: {
+          fontSize: 14,
+          color: themeColors.textSecondary,
+          marginLeft: 12,
+        },
+        statusBadge: {
+          marginTop: 12,
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          backgroundColor: themeColors.surfaceSecondary,
+          borderRadius: 8,
+          alignSelf: 'flex-start',
+        },
+        statusText: {
+          fontSize: 12,
+          fontWeight: '600',
+          color: '#059669',
+        },
+        actionsSection: {
+          backgroundColor: themeColors.card,
+          padding: 20,
+          marginHorizontal: 20,
+          borderRadius: 12,
+          marginBottom: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        actionButton: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: themeColors.borderLight,
+        },
+        actionButtonText: {
+          flex: 1,
+          fontSize: 16,
+          color: themeColors.textPrimary,
+          marginLeft: 12,
+        },
+        reminderCard: {
+          flexDirection: 'row',
+          backgroundColor: themeColors.surfaceSecondary,
+          padding: 16,
+          marginHorizontal: 20,
+          borderRadius: 12,
+          marginBottom: 24,
+        },
+        reminderText: {
+          flex: 1,
+          fontSize: 14,
+          color: themeColors.primary,
+          marginLeft: 12,
+          lineHeight: 20,
+        },
+      }),
+    [themeColors]
+  );
+  const [orderDetail, setOrderDetail] = useState<Awaited<ReturnType<typeof fetchOrderDetail>> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadOrder = useCallback(async () => {
+    if (!orderId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchOrderDetail(orderId);
+      setOrderDetail(data);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t('errors.requestFailed'));
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    loadOrder();
+  }, [loadOrder]);
+
+  const order = orderDetail?.order;
+  const providerName = order?.supplier_name ?? order?.business_name ?? orderDetail?.supplier?.business_name?.trim() ?? orderDetail?.supplier?.full_name ?? t('orders.provider');
+  const serviceName = order?.service_name ?? t('orders.service');
+  const scheduledLabel = formatScheduledAt(order?.scheduled_at);
+  const statusLabel = order?.status ? getStatusLabel(order.status) : t('orders.status.confirmed');
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('booking.bookingScheduled')}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      </View>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('booking.bookingScheduled')}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>{error ?? t('errors.requestFailed')}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadOrder}>
+            <Text style={styles.retryText}>{t('chat.retry')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking Scheduled</Text>
+        <Text style={styles.headerTitle}>{t('booking.bookingScheduled')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Calendar Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.calendarCircle}>
@@ -38,21 +301,23 @@ export default function ScheduledBookingScreen() {
 
         {/* Booking Info */}
         <View style={styles.infoCard}>
-          <Text style={styles.serviceTitle}>House Cleaning</Text>
-          <Text style={styles.providerName}>John Smith</Text>
+          <Text style={styles.serviceTitle}>{serviceName}</Text>
+          <Text style={styles.providerName}>{providerName}</Text>
           
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={20} color="#6B7280" />
-            <Text style={styles.infoText}>March 25, 2024 • 2:00 PM</Text>
-          </View>
+          {scheduledLabel ? (
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+              <Text style={styles.infoText}>{scheduledLabel}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.infoRow}>
             <Ionicons name="location-outline" size={20} color="#6B7280" />
-            <Text style={styles.infoText}>Confirmed</Text>
+            <Text style={styles.infoText}>{statusLabel}</Text>
           </View>
 
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>Status: Confirmed</Text>
+            <Text style={styles.statusText}>{statusLabel}</Text>
           </View>
         </View>
 
@@ -66,7 +331,21 @@ export default function ScheduledBookingScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push(`/booking/chat/${orderId}`)}
+            onPress={async () => {
+              if (orderDetail?.conversation_id) {
+                router.push(`/chat/${orderDetail.conversation_id}`);
+                return;
+              }
+              const supplierId = order?.supplier_id;
+              if (!supplierId || !orderId) return;
+              try {
+                const { conversation } = await getOrCreateConversation(supplierId, orderId);
+                router.push(`/chat/${conversation.id}`);
+              } catch (err) {
+                console.error('[ScheduledBooking] Failed to open chat:', err);
+                Alert.alert(t('common.error'), t('errors.requestFailed'));
+              }
+            }}
           >
             <Ionicons name="chatbubble-outline" size={24} color="#3B82F6" />
             <Text style={styles.actionButtonText}>Chat with Provider</Text>
@@ -82,158 +361,15 @@ export default function ScheduledBookingScreen() {
 
         {/* Reminder */}
         <View style={styles.reminderCard}>
-          <Ionicons name="information-circle-outline" size={24} color="#3B82F6" />
+          <Ionicons name="information-circle-outline" size={24} color={themeColors.primary} />
           <Text style={styles.reminderText}>
             You'll receive a reminder 24 hours before your scheduled service.
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  content: {
-    flex: 1,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  calendarCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  checkmarkBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#F9FAFB',
-  },
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  serviceTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 4,
-  },
-  providerName: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginBottom: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#374151',
-    marginLeft: 12,
-  },
-  statusBadge: {
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#059669',
-  },
-  actionsSection: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    marginHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },
-  actionButtonText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-    marginLeft: 12,
-  },
-  reminderCard: {
-    flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
-    padding: 16,
-    marginHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  reminderText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1E40AF',
-    marginLeft: 12,
-    lineHeight: 20,
-  },
-});
 
 
 

@@ -10,6 +10,8 @@ export interface UpdateProfilePayload {
   address?: string;
   profileImage?: string;
   country?: string;
+  gender?: 'male' | 'female';
+  dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
 }
 
 export interface UpdateProfileResponse {
@@ -51,6 +53,12 @@ export const updateProfile = async (
   }
   if (payload.country !== undefined) {
     body.country = payload.country;
+  }
+  if (payload.gender !== undefined) {
+    body.gender = payload.gender;
+  }
+  if (payload.dateOfBirth !== undefined) {
+    body.date_of_birth = payload.dateOfBirth;
   }
 
   return request<UpdateProfileResponse>(

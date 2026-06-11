@@ -1,0 +1,984 @@
+import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { t } from "@/i18n";
+import { hasProviderRatedClient } from "@/utils/providerClientRatedOrders";
+import { ApiError } from "@/services/auth";
+import {
+  completeJob,
+  getJobCompletionData,
+  type JobCompletionData,
+  type JobCompletionLineItem,
+} from "@/services/providerDashboard";
+import { clearSession, getSessionOrderId } from "@/utils/jobWorkSession";
+import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
+import * as FileSystem from "expo-file-system/legacy";
+import { Image } from "expo-image";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const GREEN = "#22C55E";
+const PURPLE_START = "#6366F1";
+const PURPLE_END = "#8B5CF6";
+const YELLOW_TEXT = "#FACC15";
+const YELLOW_BG = "rgba(234, 179, 8, 0.15)";
+const GREEN_TEXT = "#4ADE80";
+const GREEN_BADGE_BG = "rgba(34, 197, 94, 0.15)";
+const SUCCESS_BG = "rgba(34, 197, 94, 0.1)";
+const SUCCESS_BORDER = "rgba(34, 197, 94, 0.3)";
+
+/** Matches `scrollContent` horizontal padding (20 * 2). */
+const COMPLETE_JOB_SCROLL_PAD_X = 40;
+const COMPLETE_JOB_PHOTO_GRID_GAP = 8;
+
+function formatCurrency(value: number): string {
+  const str = value % 1 === 0 ? String(value) : value.toFixed(2);
+  return "$" + str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Display percent for commission labels (e.g. 15, 12.5). */
+function formatCommissionPercent(percent: number): string {
+  if (!Number.isFinite(percent)) return "0";
+  const rounded = Math.round(percent * 10) / 10;
+  if (Number.isInteger(rounded)) return String(rounded);
+  return rounded.toFixed(1).replace(/\.0$/, "");
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return t("providerDashboard.completeJob.durationMinutes", { minutes: String(minutes) });
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return t("providerDashboard.completeJob.durationHours", {
+    hours: String(hours),
+    minutes: String(mins),
+  });
+}
+
+async function uriToBase64(uri: string): Promise<string> {
+  if (Platform.OS === "web") {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        resolve(dataUrl.split(",")[1] || dataUrl);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  return FileSystem.readAsStringAsync(uri, {
+    encoding: "base64",
+  } as { encoding: "base64" });
+}
+
+export default function CompleteJobScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const colors = useThemeColors();
+  const queryClient = useQueryClient();
+
+  const photoSlotSize = useMemo(() => {
+    const contentWidth = Math.max(0, windowWidth - COMPLETE_JOB_SCROLL_PAD_X);
+    const slot = (contentWidth - COMPLETE_JOB_PHOTO_GRID_GAP * 2) / 3;
+    return Math.max(1, Math.floor(slot));
+  }, [windowWidth]);
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [data, setData] = useState<JobCompletionData | null>(null);
+  const [workSummary, setWorkSummary] = useState("");
+  const [photos, setPhotos] = useState<{ uri: string; base64?: string }[]>([]);
+  /** When order is still `pending_review` from API but we already stored a local provider rating for this order. */
+  const [pendingReviewLocalRated, setPendingReviewLocalRated] = useState<boolean | null>(null);
+
+  const sessionMergedRef = useRef(false);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await getJobCompletionData(id);
+        if (cancelled) return;
+        setData(result);
+        if (result.order.workSummary) {
+          setWorkSummary(result.order.workSummary);
+        }
+      } catch (err) {
+        console.error("[CompleteJob] Failed to load data:", err);
+        if (!cancelled) {
+          Alert.alert(t("common.error"), t("providerDashboard.completeJob.errors.loadFailed"));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  useEffect(() => {
+    if (!id || !data || sessionMergedRef.current) return;
+    const { photos: sessionPhotos, notes: sessionNotes } = getSessionOrderId(id);
+    sessionMergedRef.current = true;
+    if (sessionNotes.length) {
+      const noteBlock = sessionNotes.join("\n\n");
+      setWorkSummary((prev) => (prev ? `${noteBlock}\n\n${prev}` : noteBlock));
+    }
+    if (sessionPhotos.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const withBase64: { uri: string; base64?: string }[] = [];
+      for (const uri of sessionPhotos) {
+        if (cancelled) return;
+        try {
+          const base64 = await uriToBase64(uri);
+          if (cancelled) return;
+          withBase64.push({ uri, base64 });
+        } catch {
+          withBase64.push({ uri });
+        }
+      }
+      if (!cancelled) setPhotos((prev) => [...withBase64, ...prev].slice(0, 10));
+    })();
+    return () => { cancelled = true; };
+  }, [id, data]);
+
+  useEffect(() => {
+    if (!id || !data || data.order.status !== "pending_review") {
+      setPendingReviewLocalRated(null);
+      return;
+    }
+    if (!user?.id) {
+      setPendingReviewLocalRated(false);
+      return;
+    }
+    let cancelled = false;
+    hasProviderRatedClient(user.id, id).then((rated) => {
+      if (!cancelled) setPendingReviewLocalRated(rated);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, data, user?.id]);
+
+  useEffect(() => {
+    if (!id || !data || data.order.status !== "pending_review") return;
+    if (pendingReviewLocalRated !== false) return;
+    router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
+  }, [id, data, pendingReviewLocalRated, router]);
+
+  const durationLabel = useMemo(() => {
+    if (!data) return "";
+    let minutes = data.durationMinutes;
+    if (minutes === 0 && data.order.startedAt) {
+      const ms = Date.now() - new Date(data.order.startedAt).getTime();
+      if (ms > 0) {
+        minutes = Math.max(1, Math.ceil(ms / 60000));
+      }
+    }
+    if (minutes === 0) {
+      return t("providerDashboard.completeJob.durationLessThanMinute");
+    }
+    return formatDuration(minutes);
+  }, [data]);
+
+  const subtotal = useMemo(() => {
+    if (!data) return 0;
+    return data.lineItems.reduce((sum, item) => sum + item.amount, 0);
+  }, [data]);
+
+  const commissionBreakdown = useMemo(() => {
+    if (!data) return null;
+    const rate =
+      Number.isFinite(data.commissionRate) && data.commissionRate >= 0 && data.commissionRate <= 1
+        ? data.commissionRate
+        : 0;
+    const pct =
+      data.commissionPercent != null && Number.isFinite(data.commissionPercent)
+        ? data.commissionPercent
+        : Math.round(rate * 1000) / 10;
+    const fee =
+      data.estimatedPlatformFee != null && Number.isFinite(data.estimatedPlatformFee)
+        ? data.estimatedPlatformFee
+        : Math.round(data.total * rate * 100) / 100;
+    const net = Math.round((data.total - fee) * 100) / 100;
+    return { pct, fee, net };
+  }, [data]);
+
+  const pickPhoto = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(t("common.error"), t("providerDashboard.completeJob.errors.galleryPermissionRequired"));
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        selectionLimit: 10 - photos.length,
+      });
+      if (result.canceled || !result.assets.length) return;
+
+      const newPhotos: { uri: string; base64?: string }[] = [];
+      for (const asset of result.assets) {
+        try {
+          const manipulated = await ImageManipulator.manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 1200 } }],
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          const base64 = await uriToBase64(manipulated.uri);
+          newPhotos.push({ uri: manipulated.uri, base64 });
+        } catch {
+          newPhotos.push({ uri: asset.uri });
+        }
+      }
+      setPhotos((prev) => [...prev, ...newPhotos].slice(0, 10));
+    } catch (err) {
+      console.error("[CompleteJob] Photo pick error:", err);
+    }
+  }, [photos.length]);
+
+  const takePhoto = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(t("common.error"), t("providerDashboard.inProgress.errors.cameraPermission"));
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets.length) return;
+
+      const asset = result.assets[0];
+      try {
+        const manipulated = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 1200 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        const base64 = await uriToBase64(manipulated.uri);
+        setPhotos((prev) => [...prev, { uri: manipulated.uri, base64 }].slice(0, 10));
+      } catch {
+        setPhotos((prev) => [...prev, { uri: asset.uri }].slice(0, 10));
+      }
+    } catch (err) {
+      console.error("[CompleteJob] Camera error:", err);
+    }
+  }, []);
+
+  const removePhoto = useCallback((index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const handlePhotoAction = useCallback(() => {
+    Alert.alert(t("providerDashboard.completeJob.addPhoto"), t("providerDashboard.completeJob.addPhotoMessage"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("providerDashboard.inProgress.takePhoto"), onPress: takePhoto },
+      { text: t("providerDashboard.completeJob.chooseFromGallery"), onPress: pickPhoto },
+    ]);
+  }, [takePhoto, pickPhoto]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!id || submitting) return;
+    setSubmitting(true);
+    try {
+      const base64Photos = photos
+        .map((p) => p.base64)
+        .filter((b): b is string => !!b);
+
+      await completeJob(id, {
+        work_summary: workSummary,
+        work_photos: base64Photos,
+      });
+
+      clearSession(id);
+      queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
+      queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-earnings-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-earnings-transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["provider-earnings-chart"] });
+      router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
+    } catch (err) {
+      const apiData = err instanceof ApiError ? err.data : undefined;
+      const code = apiData && typeof apiData === "object" && "code" in apiData ? (apiData as { code: string }).code : undefined;
+      if (code === "invalid_status") {
+        queryClient.invalidateQueries({ queryKey: ["providerActiveJobs"] });
+        queryClient.invalidateQueries({ queryKey: ["providerDashboardStats"] });
+        queryClient.invalidateQueries({ queryKey: ["providerProfileStats"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-statistics"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-earnings-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-earnings-transactions"] });
+        queryClient.invalidateQueries({ queryKey: ["provider-earnings-chart"] });
+        router.replace({ pathname: "/(provider-tabs)/jobs/rate-client", params: { id } });
+        return;
+      }
+      console.error("[CompleteJob] Submit error:", err);
+      Alert.alert(t("common.error"), t("providerDashboard.completeJob.errors.completeFailed"));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [id, submitting, photos, workSummary, queryClient, router]);
+
+  const goBack = useCallback(() => router.back(), [router]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={PURPLE_END} />
+      </View>
+    );
+  }
+
+  if (!data) {
+    return (
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>{t("providerDashboard.completeJob.errors.loadFailed")}</Text>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={20} color={colors.icon} />
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (data.order.status === "completed") {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
+        </View>
+        <View style={[styles.centered, styles.flexGrow]}>
+          <View style={styles.successCard}>
+            <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.alreadyCompleted")}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={() => router.push({ pathname: "/(provider-tabs)/jobs/invoice", params: { id: id! } })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitBtnText}>{t("providerDashboard.completeJob.viewInvoice")}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (data.order.status === "pending_review") {
+    if (pendingReviewLocalRated === true) {
+      return (
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+          <View style={styles.header}>
+            <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+              <Ionicons name="arrow-back" size={24} color={colors.icon} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
+          </View>
+          <View style={[styles.centered, styles.flexGrow]}>
+            <View style={styles.successCard}>
+              <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
+              <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.rateClient.errors.alreadyRated")}</Text>
+            </View>
+            <TouchableOpacity style={styles.submitBtn} onPress={() => router.replace("/(provider-tabs)/jobs")} activeOpacity={0.8}>
+              <Text style={styles.submitBtnText}>{t("providerDashboard.jobsScreenTitle")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+    return (
+      <View style={[styles.container, styles.centered, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={PURPLE_END} />
+      </View>
+    );
+  }
+
+  if (data.order.status !== "in_progress") {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+        <View style={styles.header}>
+          <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+            <Ionicons name="arrow-back" size={24} color={colors.icon} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
+        </View>
+        <View style={[styles.centered, styles.flexGrow]}>
+          <View style={styles.successCard}>
+            <Ionicons name="play-circle" size={48} color={PURPLE_END} style={styles.successIcon} />
+            <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.startJobFirst")}</Text>
+            <Text style={[styles.successSubtitle, { color: colors.textSecondary }]}>{t("providerDashboard.completeJob.startJobFirstDesc")}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.submitBtn}
+            onPress={goBack}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.submitBtnText}>{t("common.back")}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  const footerBottom = Math.max(insets.bottom, 12);
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={goBack} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={24} color={colors.icon} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.title")}</Text>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Success Card */}
+        <View style={styles.successCard}>
+          <Ionicons name="checkmark-circle" size={48} color={GREEN} style={styles.successIcon} />
+          <Text style={[styles.successTitle, { color: colors.textPrimary }]}>{t("providerDashboard.completeJob.jobCompleted")}</Text>
+          <Text style={[styles.successDuration, { color: colors.textSecondary }]}>
+            {t("providerDashboard.completeJob.totalDuration", { duration: durationLabel })}
+          </Text>
+        </View>
+
+        {/* Work Photos Section */}
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          {t("providerDashboard.completeJob.workPhotos")}
+        </Text>
+        <View style={[styles.photosGrid, { gap: COMPLETE_JOB_PHOTO_GRID_GAP }]}>
+          {photos.length === 0 ? (
+            <TouchableOpacity
+              style={[
+                styles.addPhotosEmpty,
+                { borderColor: colors.border, backgroundColor: colors.surfaceSecondary },
+              ]}
+              onPress={handlePhotoAction}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t("providerDashboard.completeJob.addPhotosCta")}
+              accessibilityHint={t("providerDashboard.completeJob.noPhotosHint")}
+            >
+              <Ionicons name="images-outline" size={36} color={colors.iconSecondary} />
+              <Text style={[styles.addPhotosEmptyTitle, { color: colors.textPrimary }]}>
+                {t("providerDashboard.completeJob.addPhotosCta")}
+              </Text>
+              <Text style={[styles.addPhotosEmptyHint, { color: colors.textSecondary }]}>
+                {t("providerDashboard.completeJob.noPhotosHint")}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              {photos.map((photo, idx) => (
+                <View
+                  key={`photo-${idx}`}
+                  style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}
+                >
+                  <View style={styles.photoWrapper}>
+                    <Image source={{ uri: photo.uri }} style={styles.photoImage} contentFit="cover" />
+                    <TouchableOpacity
+                      style={styles.photoDeleteBtn}
+                      onPress={() => removePhoto(idx)}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("providerDashboard.completeJob.removePhotoA11y")}
+                    >
+                      <Ionicons name="close-circle" size={22} color="#FF4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              {photos.length < 10 && (
+                <View style={[styles.photoCell, { width: photoSlotSize, height: photoSlotSize }]}>
+                  <TouchableOpacity
+                    style={[styles.addPhotoBtn, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
+                    onPress={handlePhotoAction}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={t("providerDashboard.completeJob.addPhoto")}
+                  >
+                    <Ionicons name="add" size={28} color={colors.iconSecondary} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+
+        {/* Work Summary */}
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          {t("providerDashboard.completeJob.workSummary")}
+        </Text>
+        <TextInput
+          style={[styles.textArea, { backgroundColor: colors.card, borderColor: colors.cardBorder, color: colors.textPrimary }]}
+          placeholder={t("providerDashboard.completeJob.workSummaryPlaceholder")}
+          placeholderTextColor={colors.textTertiary}
+          value={workSummary}
+          onChangeText={setWorkSummary}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
+
+        {/* Final Breakdown */}
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          {t("providerDashboard.completeJob.finalBreakdown")}
+        </Text>
+        {commissionBreakdown && (
+          <BreakdownCard
+            lineItems={data.lineItems}
+            subtotal={subtotal}
+            total={data.total}
+            discount={data.total < subtotal ? { amount: subtotal - data.total } : undefined}
+            commissionPercentLabel={formatCommissionPercent(commissionBreakdown.pct)}
+            platformFee={commissionBreakdown.fee}
+            estimatedNetToProvider={commissionBreakdown.net}
+          />
+        )}
+      </ScrollView>
+
+      {/* Action Buttons */}
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+        <TouchableOpacity
+          style={[styles.submitBtn, submitting && styles.submitBtnDisabled]}
+          onPress={handleSubmit}
+          activeOpacity={0.8}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>
+              {t("providerDashboard.completeJob.generateInvoice")}
+            </Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.cashBtn, { backgroundColor: colors.surfaceSecondary }]} activeOpacity={0.7}>
+          <Text style={[styles.cashBtnText, { color: colors.primary }]}>
+            {t("providerDashboard.completeJob.requestCashPayment")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+interface BreakdownCardProps {
+  lineItems: JobCompletionLineItem[];
+  subtotal: number;
+  total: number;
+  discount?: { amount: number };
+  commissionPercentLabel: string;
+  platformFee: number;
+  estimatedNetToProvider: number;
+}
+
+const BreakdownCard = React.memo(function BreakdownCard({
+  lineItems,
+  subtotal,
+  total,
+  discount,
+  commissionPercentLabel,
+  platformFee,
+  estimatedNetToProvider,
+}: BreakdownCardProps) {
+  const colors = useThemeColors();
+  return (
+    <View style={[styles.breakdownCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+      <View style={styles.breakdownItems}>
+        {lineItems.map((item, idx) => (
+          <View key={`item-${idx}`} style={styles.breakdownRow}>
+            <View style={styles.breakdownLabelRow}>
+              <Text style={[styles.breakdownItemName, { color: colors.textSecondary }]}>{item.description}</Text>
+              {item.isExtra && (
+                <View style={styles.extraBadge}>
+                  <Text style={styles.extraBadgeText}>
+                    {t("providerDashboard.completeJob.extra")}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.breakdownItemPrice, { color: colors.textPrimary }]}>{formatCurrency(item.amount)}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={[styles.breakdownDivider, { backgroundColor: colors.border }]} />
+
+      <View style={styles.breakdownRow}>
+        <Text style={[styles.breakdownSubLabel, { color: colors.textSecondary }]}>
+          {t("providerDashboard.completeJob.subtotal")}
+        </Text>
+        <Text style={[styles.breakdownSubValue, { color: colors.textPrimary }]}>{formatCurrency(subtotal)}</Text>
+      </View>
+
+      {discount && discount.amount > 0 && (
+        <View style={styles.breakdownRow}>
+          <View style={styles.breakdownLabelRow}>
+            <Text style={[styles.breakdownSubLabel, { color: colors.textSecondary }]}>
+              {t("providerDashboard.completeJob.discount")}
+            </Text>
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountBadgeText}>
+                -{Math.round((discount.amount / subtotal) * 100)}%
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.discountAmount}>-{formatCurrency(discount.amount)}</Text>
+        </View>
+      )}
+
+      <View style={styles.breakdownRow}>
+        <Text style={[styles.breakdownSubLabel, { flex: 1, paddingRight: 8, color: colors.textSecondary }]}>
+          {t("providerDashboard.commission.mordoboServiceFee", { percent: commissionPercentLabel })}
+        </Text>
+        <Text style={styles.discountAmount}>-{formatCurrency(platformFee)}</Text>
+      </View>
+      <Text style={[styles.breakdownFeeNote, { color: colors.textTertiary }]}>
+        {t("providerDashboard.commission.withdrawalNote")}
+      </Text>
+
+      <View style={[styles.totalDivider, { backgroundColor: colors.border }]} />
+
+      <View style={styles.breakdownRow}>
+        <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>
+          {t("providerDashboard.completeJob.total")}
+        </Text>
+        <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+      </View>
+
+      <View style={[styles.breakdownDivider, { backgroundColor: colors.border, marginTop: 12 }]} />
+
+      <View style={styles.breakdownRow}>
+        <Text style={[styles.breakdownSubLabel, { color: colors.textSecondary }]}>
+          {t("providerDashboard.commission.estimatedYourEarnings")}
+        </Text>
+        <Text style={styles.breakdownNetValue}>{formatCurrency(estimatedNetToProvider)}</Text>
+      </View>
+    </View>
+  );
+});
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  flexGrow: {
+    flex: 1,
+  },
+  errorText: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    marginBottom: 16,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 24,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+
+  // Success card
+  successCard: {
+    backgroundColor: SUCCESS_BG,
+    borderWidth: 1,
+    borderColor: SUCCESS_BORDER,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  successIcon: {
+    marginBottom: 8,
+  },
+  successTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  successSubtitle: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 16,
+  },
+  successDuration: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginTop: 4,
+    color: "rgba(255,255,255,0.5)",
+  },
+
+  // Section label
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+
+  // Photos grid — slot size from window width so % + gap matches native/web; outer cell fixes row alignment.
+  photosGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "flex-start",
+    marginBottom: 20,
+  },
+  photoCell: {
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  photoWrapper: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  photoImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+  },
+  photoDeleteBtn: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 11,
+  },
+  addPhotosEmpty: {
+    width: "100%",
+    minHeight: 132,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 6,
+  },
+  addPhotosEmptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  addPhotosEmptyHint: {
+    fontSize: 13,
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
+  addPhotoBtn: {
+    flex: 1,
+    width: "100%",
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.1)",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Text area
+  textArea: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    minHeight: 90,
+    marginBottom: 20,
+  },
+
+  // Breakdown card
+  breakdownCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  breakdownItems: {
+    gap: 8,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  breakdownLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  breakdownItemName: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
+  },
+  breakdownItemPrice: {
+    fontSize: 14,
+    color: "#FFFFFF",
+  },
+  extraBadge: {
+    backgroundColor: YELLOW_BG,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  extraBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: YELLOW_TEXT,
+  },
+  breakdownDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    marginVertical: 12,
+  },
+  breakdownSubLabel: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.5)",
+  },
+  breakdownSubValue: {
+    fontSize: 14,
+    color: "#FFFFFF",
+  },
+  discountBadge: {
+    backgroundColor: GREEN_BADGE_BG,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  discountBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: GREEN_TEXT,
+  },
+  discountAmount: {
+    fontSize: 14,
+    color: GREEN_TEXT,
+  },
+  breakdownFeeNote: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  breakdownNetValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: GREEN_TEXT,
+  },
+  totalDivider: {
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    marginVertical: 12,
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  totalValue: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: GREEN,
+  },
+
+  // Footer
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 8,
+  },
+  submitBtn: {
+    backgroundColor: PURPLE_START,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  submitBtnDisabled: {
+    opacity: 0.6,
+  },
+  submitBtnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  cashBtn: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cashBtnText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.6)",
+  },
+});

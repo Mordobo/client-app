@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { t } from '@/i18n';
 import { ApiError, resendCode, verifyCode } from '@/services/auth';
+import { mapApiUserToUser } from '@/utils/authMapping';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -11,29 +12,51 @@ import {
     Dimensions,
     KeyboardAvoidingView,
     Platform,
-    SafeAreaView,
+    Pressable,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const CODE_LENGTH = 4;
-const RESEND_COOLDOWN_SECONDS = 120; // 2 minutes
+const CODE_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 60; // 60 seconds (sync with backend rate limit: 3 attempts per 2 minutes)
 const CODE_INPUT_GAP = 12;
 const CODE_INPUT_PADDING = 24 * 2; // padding horizontal del contenedor
 
 export default function VerifyScreen() {
   const params = useLocalSearchParams<{ email?: string }>();
   const { login } = useAuth();
+  const insets = useSafeAreaInsets();
+  // Email that is doing login/register — from params or AsyncStorage so the code is always sent to this address
+  const [emailForVerification, setEmailForVerification] = useState<string | null>(params.email ?? null);
   const [code, setCode] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(RESEND_COOLDOWN_SECONDS);
   const [canResend, setCanResend] = useState(false);
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Resolve email from params or AsyncStorage (login/register always set pending_verification_email)
+  useEffect(() => {
+    if (params.email?.trim()) {
+      setEmailForVerification(params.email.trim().toLowerCase());
+      return;
+    }
+    AsyncStorage.getItem('pending_verification_email').then((stored) => {
+      if (stored?.trim()) setEmailForVerification(stored.trim().toLowerCase());
+    });
+  }, [params.email]);
+
+  const handleBack = () => {
+    // Since we use router.replace() to get here, there's no history
+    // Navigate explicitly to login screen
+    router.replace('/(auth)/login');
+  };
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -45,22 +68,55 @@ export default function VerifyScreen() {
     };
   }, []);
 
+  // Debug effect to monitor state changes
+  useEffect(() => {
+    console.log('[Verify] State changed', { canResend, resendCooldown });
+  }, [canResend, resendCooldown]);
+
   // Calculate code input width dynamically
+  // Each input should be 48x56px according to specs, but we'll make it responsive
   const CODE_INPUT_TOTAL_GAP = CODE_INPUT_GAP * (CODE_LENGTH - 1);
   const CODE_INPUT_WIDTH = Math.max(
-    50,
-    Math.min(80, (screenWidth - CODE_INPUT_PADDING - CODE_INPUT_TOTAL_GAP) / CODE_LENGTH)
+    48,
+    Math.min(56, (screenWidth - CODE_INPUT_PADDING - CODE_INPUT_TOTAL_GAP) / CODE_LENGTH)
   );
+  const CODE_INPUT_HEIGHT = 56; // Fixed height as per specs
 
   useEffect(() => {
-    // Start cooldown timer
+    // Clear any existing interval first
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current);
+      cooldownIntervalRef.current = null;
+    }
+
+    // If cooldown is 0, enable resend immediately
+    if (resendCooldown === 0) {
+      setCanResend(true);
+      console.log('[Verify] Cooldown is 0, canResend set to true');
+      return;
+    }
+
+    // Start cooldown timer if cooldown is greater than 0
     if (resendCooldown > 0) {
+      setCanResend(false); // Ensure canResend is false when cooldown is active
+      console.log('[Verify] Starting cooldown timer', { resendCooldown });
+      
       cooldownIntervalRef.current = setInterval(() => {
         setResendCooldown((prev) => {
           if (prev <= 1) {
+            // Clear interval when cooldown reaches 0
+            if (cooldownIntervalRef.current) {
+              clearInterval(cooldownIntervalRef.current);
+              cooldownIntervalRef.current = null;
+            }
+            
+            // Enable resend
             setCanResend(true);
+            console.log('[Verify] Cooldown finished, canResend set to true');
+            
             return 0;
           }
+          
           return prev - 1;
         });
       }, 1000);
@@ -69,6 +125,7 @@ export default function VerifyScreen() {
     return () => {
       if (cooldownIntervalRef.current) {
         clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
       }
     };
   }, [resendCooldown]);
@@ -119,14 +176,16 @@ export default function VerifyScreen() {
   };
 
   const handleVerify = async () => {
+    
     const verificationCode = code.join('');
+    
     
     if (verificationCode.length !== CODE_LENGTH) {
       Alert.alert(t('common.error'), t('errors.fillAllFields'));
       return;
     }
 
-    const email = params.email;
+    const email = emailForVerification;
     if (!email) {
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       router.back();
@@ -135,44 +194,48 @@ export default function VerifyScreen() {
 
     setLoading(true);
     try {
-      // Call API to verify code
+      // Call API to verify code (same email that received the code from login/register)
       const apiResponse = await verifyCode({
         email,
         code: verificationCode,
       });
 
-      // Map API response to user data
-      const apiUser = apiResponse.user;
-      const fullName = apiUser.full_name || '';
-      const nameParts = fullName.split(/\s+/).filter(Boolean);
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
+      // If 2FA is enabled, redirect to 2FA code screen
+      if (apiResponse.requires_2fa && apiResponse.twoFaToken) {
+        await AsyncStorage.setItem('pending_2fa_token', apiResponse.twoFaToken);
+        router.replace({
+          pathname: '/(auth)/verify-2fa',
+          params: { email: apiResponse.email ?? email },
+        });
+        return;
+      }
 
-      const userData = {
-        id: apiUser.id,
-        email: apiUser.email,
-        firstName,
-        lastName,
-        phone: (apiUser as Record<string, unknown>).phone_number as string | undefined,
-        avatar: (apiUser as Record<string, unknown>).profile_image as string | undefined,
-        country: (apiUser as Record<string, unknown>).country as string | undefined,
-        provider: 'email' as const,
-        authToken: apiResponse.accessToken || apiResponse.token,
-        refreshToken: apiResponse.refreshToken,
-      };
+      // Map API response to user data using helper function
+      const userData = mapApiUserToUser(
+        apiResponse.user,
+        'email',
+        apiResponse.accessToken || apiResponse.token,
+        apiResponse.refreshToken
+      );
 
       // Login user
       await login(userData);
 
       // Clear temporary verification data
       await AsyncStorage.multiRemove([
-        'pending_verification_email', 
+        'pending_verification_email',
         'pending_verification_password',
       ]);
 
-      // Navigate to home on success
-      router.replace('/(tabs)/home');
+      // Use DB flag: show client onboarding only if not yet completed
+      const clientOnboardingCompleted = (apiResponse.user as Record<string, unknown>).client_onboarding_completed === true;
+      if (clientOnboardingCompleted) {
+        router.replace('/(tabs)/home');
+      } else {
+        router.replace('/(auth)/onboarding');
+      }
     } catch (error) {
+      
       console.error('Verification error:', error);
       console.error('Error details:', {
         message: error instanceof Error ? error.message : String(error),
@@ -223,21 +286,30 @@ export default function VerifyScreen() {
   };
 
   const handleResend = async () => {
-    if (!canResend) {
+    console.log('[Verify] handleResend called', { canResend, resendCooldown });
+    
+    // Double check: verify both canResend state and cooldown value
+    if (!canResend || resendCooldown > 0) {
+      console.log('[Verify] Resend blocked', { canResend, resendCooldown });
       return;
     }
 
-    const email = params.email;
+    const email = emailForVerification;
     if (!email) {
+      console.log('[Verify] Resend blocked - no email (params or AsyncStorage)');
       Alert.alert(t('common.error'), t('errors.verificationFailed'));
       return;
     }
 
+    setResendLoading(true);
     try {
+      console.log('[Verify] Starting resend process for:', email);
+      
       // Get stored password from AsyncStorage
       const password = await AsyncStorage.getItem('pending_verification_password');
       
       if (!password) {
+        console.log('[Verify] Resend blocked - no password in storage');
         Alert.alert(
           t('common.error'),
           t('errors.unableToResendCode')
@@ -246,11 +318,15 @@ export default function VerifyScreen() {
         return;
       }
 
+      console.log('[Verify] Calling resendCode API...');
+      
       // Call API to resend code
       await resendCode({
         email,
         password,
       });
+      
+      console.log('[Verify] Resend API call successful');
       
       // Reset cooldown
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
@@ -265,44 +341,83 @@ export default function VerifyScreen() {
       console.error('Resend error:', error);
       
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
+        const errorCode = errorData?.code as string | undefined;
+        const errorMessage = error.message || t('errors.resendCodeFailed');
+        
+        // Handle rate limiting (429 Too Many Requests)
+        if (error.status === 429) {
+          Alert.alert(
+            t('common.error'),
+            t('errors.rateLimitExceeded')
+          );
+          // Reset cooldown to prevent immediate retry
+          setResendCooldown(RESEND_COOLDOWN_SECONDS);
+          setCanResend(false);
+          return;
+        }
+        
+        // Email/send errors: show message only (no modal with code)
+        if (errorCode === 'smtp_not_configured' ||
+            errorCode === 'email_send_timeout' ||
+            errorCode === 'email_send_failed') {
+          const detailedMessage = errorData?.message ? String(errorData.message) : errorMessage;
+          Alert.alert(t('common.error'), `${t('errors.emailSendFailed')}\n\n${detailedMessage}`);
+          return;
+        }
+        
+        // Handle authentication errors
         if (error.status === 401) {
           Alert.alert(t('common.error'), t('errors.loginFailed'));
-        } else {
-          Alert.alert(t('common.error'), error.message || t('errors.resendCodeFailed'));
+          return;
         }
+        
+        // For other errors, show the error message
+        Alert.alert(t('common.error'), errorMessage);
       } else {
         Alert.alert(t('common.error'), t('errors.resendCodeFailed'));
       }
+    } finally {
+      setResendLoading(false);
     }
   };
 
   const isCodeComplete = code.every((digit) => digit !== '');
 
+  useEffect(() => {
+  }, [isCodeComplete, code, loading]);
+
+  // Email that is doing login/register (where the verification code was sent)
+  const displayEmail = emailForVerification || params.email || '';
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.content}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.content, { paddingTop: insets.top + 20 }]}>
+          {/* Back Button */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.backButton,
+              pressed && styles.backButtonPressed,
+            ]}
+            onPress={handleBack}
+            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </Pressable>
 
-          {/* Title and Subtitle */}
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>{t('auth.enterVerificationCode')}</Text>
+          {/* Icon and Title Section */}
+          <View style={styles.iconTitleContainer}>
+            <View style={styles.iconContainer}>
+              <Text style={styles.iconEmoji}>📱</Text>
+            </View>
+            <Text style={styles.title}>{t('auth.verificationTitle')}</Text>
             <Text style={styles.subtitle}>
-              {params.email 
-                ? `${t('auth.verificationCodeSent')} ${params.email}`
-                : t('auth.verificationCodeSent')
-              }
+              {t('auth.verificationSubtitle')}{'\n'}
+              <Text style={styles.emailText}>{displayEmail}</Text>
             </Text>
           </View>
 
@@ -318,8 +433,8 @@ export default function VerifyScreen() {
                   styles.codeInput,
                   {
                     width: CODE_INPUT_WIDTH,
-                    height: CODE_INPUT_WIDTH,
-                    fontSize: Math.min(24, CODE_INPUT_WIDTH * 0.35),
+                    height: CODE_INPUT_HEIGHT,
+                    fontSize: Math.min(24, CODE_INPUT_WIDTH * 0.4),
                   },
                   digit ? styles.codeInputFilled : null,
                 ]}
@@ -337,43 +452,60 @@ export default function VerifyScreen() {
           {/* Verify Button */}
           <TouchableOpacity
             style={[styles.verifyButton, (!isCodeComplete || loading) && styles.verifyButtonDisabled]}
-            onPress={handleVerify}
+            onPress={() => {
+              handleVerify();
+            }}
             disabled={!isCodeComplete || loading}
           >
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.verifyButtonText}>{t('auth.verifyAccount')}</Text>
+              <Text style={styles.verifyButtonText}>{t('auth.verify')}</Text>
             )}
           </TouchableOpacity>
 
           {/* Resend Code */}
           <View style={styles.resendContainer}>
+            <Text style={styles.resendQuestion}>{t('auth.didntReceiveCode')}</Text>
             <TouchableOpacity
-              onPress={handleResend}
-              disabled={!canResend}
+              onPress={() => {
+                console.log('[Verify] Resend button pressed', { canResend, resendCooldown, resendLoading });
+                if (canResend && resendCooldown === 0 && !resendLoading) {
+                  handleResend();
+                } else {
+                  console.log('[Verify] Resend blocked by button check', { canResend, resendCooldown, resendLoading });
+                }
+              }}
+              disabled={!canResend || resendCooldown > 0 || resendLoading}
               style={styles.resendButton}
+              activeOpacity={canResend && resendCooldown === 0 && !resendLoading ? 0.7 : 1}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={[styles.resendText, canResend && styles.resendTextActive]}>
-                {t('auth.resendCode')}
-              </Text>
+              {resendLoading ? (
+                <View style={styles.resendLoadingContainer}>
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <Text style={[styles.resendLink, { marginLeft: 8 }]}>Enviando...</Text>
+                </View>
+              ) : (
+                <Text style={[styles.resendLink, !canResend && styles.resendLinkDisabled]}>
+                  {canResend 
+                    ? t('auth.resendCode')
+                    : `${t('auth.resendCode')} (${formatTime(resendCooldown)})`
+                  }
+                </Text>
+              )}
             </TouchableOpacity>
-            {!canResend && (
-              <Text style={styles.resendCooldown}>
-                {t('auth.resendIn')} {formatTime(resendCooldown)}
-              </Text>
-            )}
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1a1a2e', // Dark background from preview
   },
   keyboardView: {
     flex: 1,
@@ -381,56 +513,80 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 20,
-  },
-  header: {
-    marginBottom: 40,
+    paddingBottom: 40,
   },
   backButton: {
     alignSelf: 'flex-start',
-    padding: 8,
-  },
-  titleContainer: {
+    marginBottom: 40,
+    minWidth: 40,
+    minHeight: 40,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 48,
+  },
+  backButtonPressed: {
+    opacity: 0.6,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontSize: 24,
+  },
+  iconTitleContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(59, 130, 246, 0.2)', // primary color with 20% opacity
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  iconEmoji: {
+    fontSize: 36,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: '#fff',
     marginBottom: 12,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6B7280',
+    fontSize: 15,
+    color: '#9ca3af', // textSecondary from preview
     textAlign: 'center',
+    lineHeight: 22.5, // 1.5 line height
+  },
+  emailText: {
+    color: '#fff',
   },
   codeContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginBottom: 32,
     gap: CODE_INPUT_GAP,
-    width: '100%',
   },
   codeInput: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#252542', // bgCard from preview
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#374151', // border from preview
     fontWeight: '600',
     textAlign: 'center',
-    color: '#1F2937',
+    color: '#fff',
     padding: 0,
   },
   codeInputFilled: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#3b82f6', // primary from preview
+    backgroundColor: 'rgba(59, 130, 246, 0.2)', // primary with 20% opacity
   },
   verifyButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: '#3b82f6', // primary from preview
+    borderRadius: 14,
+    paddingVertical: 18,
     alignItems: 'center',
     marginBottom: 24,
   },
@@ -438,30 +594,34 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   verifyButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   resendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+  },
+  resendQuestion: {
+    textAlign: 'center',
+    color: '#9ca3af', // textSecondary from preview
+    fontSize: 14,
+    marginBottom: 8,
   },
   resendButton: {
     padding: 4,
   },
-  resendText: {
-    color: '#3B82F6',
+  resendLink: {
+    textAlign: 'center',
+    color: '#3b82f6', // primary from preview
     fontSize: 14,
-    fontWeight: '500',
   },
-  resendTextActive: {
-    color: '#3B82F6',
+  resendLinkDisabled: {
+    color: '#3b82f6', // Still primary color even when disabled (shows timer)
   },
-  resendCooldown: {
-    color: '#9CA3AF',
-    fontSize: 14,
+  resendLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

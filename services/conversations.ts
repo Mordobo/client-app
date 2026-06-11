@@ -1,23 +1,46 @@
-import { API_BASE } from '@/utils/apiConfig';
-import { handleUnauthorizedError } from '../utils/authEvents';
-import { getToken } from '../utils/userStorage';
-import { createApiHeaders } from '../utils/apiHeaders';
+import { request, ApiError } from './auth';
+import { t } from '@/i18n';
+import type { OrderStatus } from './orders';
+import { coerceSupplierProfileImage } from './suppliers';
 
-// Helper to handle API responses and detect auth errors
-const handleApiResponse = async (response: Response): Promise<Response> => {
-  if (response.status === 401) {
-    handleUnauthorizedError();
-    throw new ApiError('Session expired. Please log in again.', 401);
-  }
-  return response;
-};
+function normalizeConversationDetail(conv: ConversationDetail): ConversationDetail {
+  const raw = conv as unknown as Record<string, unknown>;
+  const supplierImage = coerceSupplierProfileImage({
+    supplier_image: raw.supplier_image,
+    profile_image: raw.supplier_image,
+  });
+  const clientImage = coerceSupplierProfileImage({
+    client_image: raw.client_image,
+    profile_image: raw.client_image,
+  });
+  return {
+    ...conv,
+    supplier_image: supplierImage ?? conv.supplier_image ?? null,
+    client_image: clientImage ?? conv.client_image ?? null,
+  };
+}
+
+function normalizeConversationListItem(conv: Conversation): Conversation {
+  const image = coerceSupplierProfileImage({
+    other_user_image: conv.other_user_image,
+    profile_image: conv.other_user_image,
+  });
+  return {
+    ...conv,
+    other_user_image: image ?? conv.other_user_image ?? null,
+  };
+}
 
 export interface Conversation {
   id: string;
   client_id: string;
   supplier_id: string;
   order_id: string | null;
-  last_message_at: string;
+  /** Real active order status for this client-supplier pair; null when no active order. */
+  active_order_status: OrderStatus | null;
+  /** True when the current active order has a completed client payment (same order as active_order_status). */
+  active_order_has_client_payment?: boolean;
+  last_message_at: string | null;
   created_at: string;
   other_user_name: string;
   other_user_image: string | null;
@@ -35,6 +58,8 @@ export interface ConversationDetail {
   client_name: string;
   supplier_name: string;
   supplier_image: string | null;
+  client_image?: string | null;
+  supplier_phone_number?: string;
 }
 
 export interface Message {
@@ -50,76 +75,54 @@ export interface Message {
   created_at: string;
 }
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number = 0,
-    public originalError?: unknown
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-}
 
-// GET /conversations - Fetch all conversations
-export const fetchConversations = async (): Promise<Conversation[]> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:74',message:'fetchConversations called',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-  // #endregion
+/** Role for inbox: 'client' = conversations where user is client; 'provider' = where user is supplier */
+export type ConversationRole = 'client' | 'provider';
+
+/** Role to use when fetching messages / marking as read. Pass when opening chat so unread count updates correctly for provider inbox. */
+export type MessageViewRole = ConversationRole;
+
+// GET /conversations - Fetch conversations (optional role to separate client vs provider inbox)
+export const fetchConversations = async (role?: ConversationRole): Promise<Conversation[]> => {
   try {
-    const token = await getToken();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:77',message:'Token retrieved for conversations',data:{hasToken:!!token,tokenLength:token?.length||0,apiBase:API_BASE},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
-    
-    if (!token) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:80',message:'No token for conversations',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
+    const asParam = role === 'provider' ? 'supplier' : 'client';
+    const data = await request<{ conversations: Conversation[] }>(
+      `/conversations?as=${asParam}`,
+      { method: 'GET' },
+      t('errors.requestFailedStatus', { status: 0 })
+    );
+    if (!data.conversations) {
+      throw new ApiError('Invalid response format: missing conversations', 500);
     }
-    
-    const url = `${API_BASE}/conversations`;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:84',message:'Making fetch request for conversations',data:{url,method:'GET'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:93',message:'Response received for conversations',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:99',message:'Response not OK for conversations',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-      // #endregion
-      throw new ApiError(
-        errorData.message || 'Failed to fetch conversations',
-        response.status
-      );
-    }
-
-    const data = await response.json();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:107',message:'Success, returning conversations',data:{conversationsCount:data.conversations?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-    // #endregion
-    return data.conversations;
+    return data.conversations.map((conv) =>
+      normalizeConversationListItem({
+        ...conv,
+        last_message_at: conv.last_message_at || null,
+        last_message: conv.last_message || null,
+        other_user_image: conv.other_user_image || null,
+        unread_count: typeof conv.unread_count === 'number' ? conv.unread_count : 0,
+        active_order_status: conv.active_order_status ?? null,
+        active_order_has_client_payment: Boolean(
+          (conv as { active_order_has_client_payment?: boolean }).active_order_has_client_payment,
+        ),
+      }),
+    );
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:110',message:'Error caught in fetchConversations',data:{errorMessage:error instanceof Error?error.message:String(error),errorType:error instanceof ApiError?'ApiError':error instanceof Error?'Error':'Unknown',statusCode:error instanceof ApiError?error.statusCode:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'K'})}).catch(()=>{});
-    // #endregion
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
+// DELETE /conversations/:id - Remove conversation and its messages
+export const deleteConversation = async (conversationId: string): Promise<void> => {
+  try {
+    await request<Record<string, never>>(
+      `/conversations/${conversationId}`,
+      { method: 'DELETE' },
+      t('chat.deleteFailed')
+    );
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
@@ -130,36 +133,20 @@ export const getOrCreateConversation = async (
   orderId?: string
 ): Promise<{ conversation: ConversationDetail; created: boolean }> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations`, {
-      method: 'POST',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-      body: JSON.stringify({ supplierId, orderId }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to create conversation',
-        response.status
-      );
-    }
-
-    return await response.json();
+    const result = await request<{ conversation: ConversationDetail; created: boolean }>(
+      '/conversations',
+      {
+        method: 'POST',
+        body: JSON.stringify({ supplierId, orderId }),
+      },
+      'Failed to create conversation'
+    );
+    return {
+      ...result,
+      conversation: normalizeConversationDetail(result.conversation),
+    };
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
@@ -167,73 +154,85 @@ export const getOrCreateConversation = async (
 // GET /conversations/:id - Fetch conversation details
 export const fetchConversation = async (conversationId: string): Promise<ConversationDetail> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}`, {
-      method: 'GET',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch conversation',
-        response.status
-      );
-    }
-
-    const data = await response.json();
-    return data.conversation;
+    const data = await request<{ conversation: ConversationDetail }>(
+      `/conversations/${conversationId}`,
+      { method: 'GET' },
+      'Failed to fetch conversation'
+    );
+    return normalizeConversationDetail(data.conversation);
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
+// GET /conversations/:id/client-address - Get client's default address for this conversation
+export const fetchConversationClientAddress = async (
+  conversationId: string
+): Promise<import('@/services/orders').ClientAddress | null> => {
+  try {
+    const data = await request<{ address: import('@/services/orders').ClientAddress | null }>(
+      `/conversations/${conversationId}/client-address`,
+      { method: 'GET' },
+      'Failed to fetch client address'
+    );
+    return data.address;
+  } catch {
+    return null;
+  }
+};
+
+// GET /conversations/:id/active-order - Get the current active order for this conversation (client-supplier pair).
+export const fetchConversationActiveOrder = async (
+  conversationId: string
+): Promise<import('@/services/orders').Order | null> => {
+  try {
+    const data = await request<{ order: import('@/services/orders').Order | null }>(
+      `/conversations/${conversationId}/active-order`,
+      { method: 'GET' },
+      'Failed to fetch active order'
+    );
+    return data.order ?? null;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
+// GET /conversations/:id/active-quote - Get active quote for conversation (if any)
+export const fetchConversationActiveQuote = async (
+  conversationId: string
+): Promise<{ quote: import('@/services/orders').Quote | null; order: import('@/services/orders').Order | null }> => {
+  try {
+    return await request<{ quote: import('@/services/orders').Quote | null; order: import('@/services/orders').Order | null }>(
+      `/conversations/${conversationId}/active-quote`,
+      { method: 'GET' },
+      'Failed to fetch active quote'
+    );
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
 
 // GET /conversations/:id/messages - Fetch messages
-export const fetchConversationMessages = async (conversationId: string): Promise<Message[]> => {
+export const fetchConversationMessages = async (
+  conversationId: string,
+  viewAs?: MessageViewRole
+): Promise<Message[]> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
-      method: 'GET',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to fetch messages',
-        response.status
-      );
-    }
-
-    const data = await response.json();
+    const asParam = viewAs === 'provider' ? 'supplier' : viewAs === 'client' ? 'client' : undefined;
+    const url = asParam
+      ? `/conversations/${conversationId}/messages?as=${asParam}`
+      : `/conversations/${conversationId}/messages`;
+    const data = await request<{ messages: Message[] }>(
+      url,
+      { method: 'GET' },
+      'Failed to fetch messages'
+    );
     return data.messages;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
@@ -244,106 +243,31 @@ export const sendConversationMessage = async (
   content: string
 ): Promise<Message> => {
   try {
-    const token = await getToken();
-    
-    if (!token) {
-      handleUnauthorizedError();
-      throw new ApiError('Not authenticated. Please log in.', 401);
-    }
-    
-    const response = await fetch(`${API_BASE}/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-      body: JSON.stringify({ content }),
-    });
-
-    await handleApiResponse(response);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        errorData.message || 'Failed to send message',
-        response.status
-      );
-    }
-
-    const data = await response.json();
+    const data = await request<{ message: Message }>(
+      `/conversations/${conversationId}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ content }),
+      },
+      'Failed to send message'
+    );
     return data.message;
   } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
+    if (error instanceof ApiError) throw error;
     throw new ApiError('Network error. Please check your connection.', 0, error);
   }
 };
 
 // GET /conversations/unread-count - Fetch unread count
 export const fetchUnreadCount = async (): Promise<number> => {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:271',message:'fetchUnreadCount called',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   try {
-    const token = await getToken();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:274',message:'Token retrieved',data:{hasToken:!!token,tokenLength:token?.length||0,apiBase:API_BASE},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
-    // For unread count, silently return 0 if not authenticated (don't redirect)
-    if (!token) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:277',message:'No token, returning 0',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      return 0;
-    }
-    
-    const url = `${API_BASE}/conversations/unread-count`;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:280',message:'Making fetch request',data:{url,method:'GET'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: createApiHeaders({
-        'Authorization': `Bearer ${token}`,
-      }),
-    });
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:288',message:'Response received',data:{status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-
-    // For unread count, silently return 0 on 401 (polling shouldn't cause logout)
-    if (response.status === 401) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:290',message:'401 Unauthorized, returning 0',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      return 0;
-    }
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:294',message:'Response not OK',data:{status:response.status,errorData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      throw new ApiError(
-        errorData.message || 'Failed to fetch unread count',
-        response.status
-      );
-    }
-
-    const data = await response.json();
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:302',message:'Success, returning unreadCount',data:{unreadCount:data.unreadCount},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
+    const data = await request<{ unreadCount: number }>(
+      '/conversations/unread-count',
+      { method: 'GET' },
+      'Failed to fetch unread count'
+    );
     return data.unreadCount;
-  } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0bf175bf-b05a-422e-87c8-7c4bfaecaeeb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'conversations.ts:304',message:'Error caught',data:{errorMessage:error instanceof Error?error.message:String(error),errorType:error instanceof ApiError?'ApiError':error instanceof Error?'Error':'Unknown',statusCode:error instanceof ApiError?error.statusCode:undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError('Network error. Please check your connection.', 0, error);
+  } catch {
+    return 0;
   }
 };
-

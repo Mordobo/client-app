@@ -1,0 +1,574 @@
+import { useAuth } from "@/contexts/AuthContext";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { t } from "@/i18n";
+import { ApiError } from "@/services/auth";
+import {
+    acceptOrder,
+    getDashboardRequestCounts,
+    getDashboardRequests,
+    rejectOrder,
+    type ProviderDashboardRequest,
+    type ProviderRequestStatusFilter,
+} from "@/services/providerDashboard";
+import type { ThemeColors } from "@/utils/themeStyles";
+import { Ionicons } from "@expo/vector-icons";
+import { PlatformFlashList } from "@/components/PlatformFlashList";
+import { ProviderAvatar } from "@/components/ProviderAvatar";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Modal,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const CARD_BORDER_URGENT = "rgba(251, 146, 60, 0.3)";
+const TAB_ACTIVE_GRADIENT = { start: "#6366F1", end: "#8B5CF6" };
+const TAB_INACTIVE_BG = "rgba(255,255,255,0.05)";
+
+function formatCurrency(value: number | null | undefined): string {
+  const num = typeof value === "number" && !Number.isNaN(value) ? value : 0;
+  const str = num % 1 === 0 ? String(num) : num.toFixed(2);
+  return "$" + str.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function formatTimeAgo(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH = Math.floor(diffMin / 60);
+  const diffD = Math.floor(diffH / 24);
+  if (diffMin < 1) return "—";
+  if (diffMin < 60) return t("providerDashboard.timeAgoMinutes", { count: diffMin });
+  if (diffH < 24) return t("providerDashboard.timeAgoHours", { count: diffH });
+  return t("providerDashboard.timeAgoDays", { count: diffD });
+}
+
+type TabKey = ProviderRequestStatusFilter;
+
+const TABS: { key: TabKey; labelKey: string; labelWithCountKey?: string }[] = [
+  { key: "new", labelKey: "providerDashboard.tabNew", labelWithCountKey: "providerDashboard.tabNewWithCount" },
+  { key: "pending", labelKey: "providerDashboard.tabPending" },
+  { key: "all", labelKey: "providerDashboard.tabAll" },
+];
+
+function RequestCard({
+  item,
+  onAccept,
+  onDecline,
+  loading,
+  colors,
+}: {
+  item: ProviderDashboardRequest;
+  onAccept: (id: string) => void;
+  onDecline: (id: string) => void;
+  loading: boolean;
+  colors: ThemeColors;
+}) {
+  const canAcceptDecline = item.status === "pending_for_provider";
+  const showActions = canAcceptDecline && item.id;
+  const borderColor = item.isUrgent ? CARD_BORDER_URGENT : colors.cardBorder;
+  const distanceText = item.address ? `${item.address.slice(0, 25)}${item.address.length > 25 ? "…" : ""}` : "—";
+
+  return (
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor }]}>
+      <View style={styles.cardRow}>
+        <ProviderAvatar profileImage={item.clientProfileImage} size={44} rounded style={styles.avatar} />
+        <View style={styles.cardMain}>
+          <View style={styles.cardTitleRow}>
+            <Text style={[styles.clientName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {item.clientName || "—"}
+            </Text>
+            {item.isUrgent && (
+              <View style={styles.urgentBadge}>
+                <Text style={styles.urgentText}>{t("providerDashboard.urgent")}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.serviceName}>{item.serviceName || "—"}</Text>
+          <View style={styles.metaRow}>
+            <Text style={[styles.metaText, { color: colors.textTertiary }]}>📍 {distanceText}</Text>
+            <Text style={[styles.metaText, { color: colors.textTertiary }]}>{formatTimeAgo(item.createdAt)}</Text>
+          </View>
+        </View>
+        <Text style={styles.price}>{item.quoteTotal != null ? formatCurrency(item.quoteTotal) : "—"}</Text>
+      </View>
+      {showActions && (
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.declineBtn}
+            onPress={() => onDecline(item.id)}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#F87171" />
+            ) : (
+              <Text style={styles.declineBtnText}>{t("providerDashboard.reject")}</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.acceptBtn}
+            onPress={() => onAccept(item.id)}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.acceptBtnText}>{t("providerDashboard.accept")}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+}
+
+export default function ProviderRequestsScreen() {
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
+  const isAuthenticated = !!user;
+  const [activeTab, setActiveTab] = useState<TabKey>("new");
+  const [requests, setRequests] = useState<ProviderDashboardRequest[]>([]);
+  const [counts, setCounts] = useState({ newCount: 0, pendingCount: 0 });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [declineModalId, setDeclineModalId] = useState<string | null>(null);
+  /** Blocks duplicate accept/reject before React applies disabled state (double tap). */
+  const orderActionInFlightRef = useRef<Set<string>>(new Set());
+
+  const loadRequests = useCallback(async () => {
+    if (!isAuthenticated) {
+      setRequests([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    try {
+      const res = await getDashboardRequests(activeTab);
+      setRequests(res.requests);
+    } catch (e) {
+      console.error("[ProviderRequests] loadRequests error:", e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [activeTab, isAuthenticated]);
+
+  const loadCounts = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const c = await getDashboardRequestCounts();
+      setCounts(c);
+    } catch (e) {
+      console.error("[ProviderRequests] loadCounts error:", e);
+    }
+  }, [isAuthenticated]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        setLoading(true);
+        loadRequests();
+        loadCounts();
+      } else {
+        setRequests([]);
+        setCounts({ newCount: 0, pendingCount: 0 });
+        setLoading(false);
+      }
+    }, [loadRequests, loadCounts, isAuthenticated]),
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => {
+      loadCounts();
+      if (activeTab === "new") loadRequests();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [activeTab, loadCounts, loadRequests, isAuthenticated]);
+
+  useEffect(() => {
+    loadRequests();
+  }, [activeTab]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadRequests();
+    loadCounts();
+  }, [loadRequests, loadCounts]);
+
+  const handleAccept = useCallback(async (id: string) => {
+    if (orderActionInFlightRef.current.has(id)) return;
+    orderActionInFlightRef.current.add(id);
+    setActionId(id);
+    try {
+      await acceptOrder(id);
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      await loadCounts();
+    } catch (e) {
+      console.error("[ProviderRequests] accept error:", e);
+      if (e instanceof ApiError && e.status === 409) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        await loadCounts();
+        return;
+      }
+      const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.acceptFailed");
+      Alert.alert(t("common.error"), message);
+    } finally {
+      orderActionInFlightRef.current.delete(id);
+      setActionId(null);
+    }
+  }, [loadCounts]);
+
+  const handleDeclinePress = useCallback((id: string) => {
+    setDeclineModalId(id);
+  }, []);
+
+  const handleDeclineConfirm = useCallback(async () => {
+    const id = declineModalId;
+    setDeclineModalId(null);
+    if (!id) return;
+    if (orderActionInFlightRef.current.has(id)) return;
+    orderActionInFlightRef.current.add(id);
+    setActionId(id);
+    try {
+      await rejectOrder(id);
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      await loadCounts();
+    } catch (e) {
+      console.error("[ProviderRequests] reject error:", e);
+      if (e instanceof ApiError && e.status === 409) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+        await loadCounts();
+        return;
+      }
+      const message = e instanceof ApiError ? e.message : t("providerDashboard.errors.rejectFailed");
+      Alert.alert(t("common.error"), message);
+    } finally {
+      orderActionInFlightRef.current.delete(id);
+      setActionId(null);
+    }
+  }, [declineModalId, loadCounts]);
+
+  const handleDeclineCancel = useCallback(() => {
+    setDeclineModalId(null);
+  }, []);
+
+  const newCount = counts.newCount;
+  const listContentContainerStyle = useMemo(
+    () => [styles.listContent, { paddingBottom: insets.bottom + 80 }],
+    [insets.bottom],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: ProviderDashboardRequest }) => (
+      <RequestCard
+        item={item}
+        onAccept={handleAccept}
+        onDecline={handleDeclinePress}
+        loading={actionId === item.id}
+        colors={colors}
+      />
+    ),
+    [handleAccept, handleDeclinePress, actionId, colors],
+  );
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{t("providerDashboard.requestsScreenTitle")}</Text>
+        <View style={styles.tabs}>
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            const label =
+              tab.key === "new" && newCount > 0 && tab.labelWithCountKey
+                ? t(tab.labelWithCountKey, { count: newCount })
+                : t(tab.labelKey);
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tab, isActive && styles.tabActive]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.8}
+              >
+                {isActive ? (
+                  <LinearGradient
+                    colors={[TAB_ACTIVE_GRADIENT.start, TAB_ACTIVE_GRADIENT.end]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[StyleSheet.absoluteFill, styles.tabGradient]}
+                  />
+                ) : null}
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive, { color: isActive ? colors.textPrimary : colors.textTertiary }]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {loading && requests.length === 0 ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
+        <PlatformFlashList
+          data={requests}
+          renderItem={renderItem}
+          estimatedItemSize={140}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={listContentContainerStyle}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("providerDashboard.emptyRequests")}</Text>
+            </View>
+          }
+        />
+      )}
+
+      <Modal
+        visible={!!declineModalId}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDeclineCancel}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleDeclineCancel}
+        >
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t("providerDashboard.confirmDeclineTitle")}</Text>
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>{t("providerDashboard.confirmDeclineMessage")}</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={handleDeclineCancel}>
+                <Text style={styles.modalCancelText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalConfirmBtn} onPress={handleDeclineConfirm}>
+                <Text style={styles.modalConfirmText}>{t("providerDashboard.reject")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  tabs: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: TAB_INACTIVE_BG,
+    overflow: "hidden",
+  },
+  tabActive: {
+    backgroundColor: "transparent",
+  },
+  tabGradient: {
+    borderRadius: 999,
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  tabLabelActive: {},
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  card: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(61, 51, 112, 0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardMain: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: "500",
+    flex: 1,
+  },
+  urgentBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: "rgba(251, 146, 60, 0.15)",
+  },
+  urgentText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#FB923C",
+  },
+  serviceName: {
+    fontSize: 14,
+    color: "#22C55E",
+    marginTop: 2,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  metaText: {
+    fontSize: 12,
+  },
+  price: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FACC15",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  declineBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 40,
+  },
+  declineBtnText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#F87171",
+  },
+  acceptBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#22C55E",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 40,
+  },
+  acceptBtnText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#FFFFFF",
+  },
+  emptyWrap: {
+    paddingVertical: 48,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  modalContent: {
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: TAB_INACTIVE_BG,
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.7)",
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    alignItems: "center",
+  },
+  modalConfirmText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#F87171",
+  },
+});

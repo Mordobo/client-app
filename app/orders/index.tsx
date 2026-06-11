@@ -1,20 +1,22 @@
 import { EmptyState } from '@/components/EmptyState';
+import { t } from '@/i18n';
 import { fetchOrders, Order } from '@/services/orders';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function OrdersScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,17 +51,17 @@ export default function OrdersScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#10B981" />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
@@ -67,7 +69,11 @@ export default function OrdersScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+      >
         {orders.length === 0 ? (
           <EmptyState
             icon="calendar-outline"
@@ -82,9 +88,9 @@ export default function OrdersScreen() {
               onPress={() => router.push(`/orders/${order.id}`)}
             >
               <View style={styles.orderHeader}>
-                <Ionicons name="broom" size={24} color="#3B82F6" />
+                <Ionicons name="brush-outline" size={24} color="#3B82F6" />
                 <View style={styles.orderInfo}>
-                  <Text style={styles.orderTitle}>House Cleaning</Text>
+                  <Text style={styles.orderTitle}>{order.service_name || t('orders.service')}</Text>
                   <Text style={styles.orderDate}>
                     {order.scheduled_at
                       ? new Date(order.scheduled_at).toLocaleDateString()
@@ -104,7 +110,7 @@ export default function OrdersScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -123,7 +129,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',

@@ -1,0 +1,14 @@
+  const loadSessions = async () => {
+    try {
+      const response = await getSessions();
+      setSessions(response.sessions);
+    } catch (error: any) {
+      // Silently handle token expiration errors - sessions are not critical
+      // Only log non-authentication errors
+      if (error?.status !== 401 && error?.status !== 403) {
+        console.error('[Settings] Failed to load sessions:', error);
+      }
+      // Set empty sessions array on any error to prevent UI issues
+      setSessions([]);
+    }
+  };

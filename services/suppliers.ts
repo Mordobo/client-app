@@ -1,4 +1,36 @@
 import { API_BASE } from '@/utils/apiConfig';
+import { getToken } from '@/utils/userStorage';
+import { createApiHeaders } from '@/utils/apiHeaders';
+
+/**
+ * Picks the first non-empty image URL from shapes the API may use after migrations
+ * (provider profile uses avatar_url; list/detail endpoints may use profile_image*).
+ */
+export function coerceSupplierProfileImage(raw: Record<string, unknown>): string | undefined {
+  // Prefer raw profile_image so the app resolves URLs with EXPO_PUBLIC_API_URL (avoids stale API_PUBLIC_URL absolutes).
+  const keys = [
+    'profile_image',
+    'profileImage',
+    'profile_image_url',
+    'avatar_url',
+    'avatarUrl',
+    'clientProfileImage',
+    'client_profile_image',
+    'client_avatar',
+    'clientAvatar',
+    'supplier_profile_image',
+    'supplierProfileImage',
+  ] as const;
+  for (const key of keys) {
+    const v = raw[key];
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  const nested = raw.client;
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return coerceSupplierProfileImage(nested as Record<string, unknown>);
+  }
+  return undefined;
+}
 
 export interface Supplier {
   id: string;
@@ -22,16 +54,21 @@ export interface Supplier {
   response_time_hours?: number;
   status: string;
   created_at: string;
+  distance_km?: number; // Distance in kilometers (when near_me filter is used)
 }
 
 export interface SupplierService {
   id: string;
   supplier_id: string;
+  /** Provider-defined specific name (e.g. "Electricidad cocina"). Shown to clients. */
+  name?: string;
   category_id: string;
   category_name?: string;
   category_key?: string;
   price?: number;
   description?: string;
+  /** Duration in minutes. Used for display (e.g. "45 min", "1-3 hrs"). */
+  duration_minutes?: number | null;
   active: boolean;
 }
 
@@ -83,6 +120,12 @@ export interface FetchSuppliersParams {
   category?: string;
   location?: string;
   rating?: number;
+  query?: string; // Text search
+  sort_by?: 'rating' | 'price' | 'distance' | 'reviews'; // Sort options
+  available_today?: boolean; // Filter by availability
+  near_me?: boolean; // Filter by proximity
+  user_lat?: number; // User latitude for distance calculation
+  user_lng?: number; // User longitude for distance calculation
   limit?: number;
   offset?: number;
 }
@@ -91,34 +134,75 @@ export interface FetchSuppliersParams {
 export const fetchSuppliers = async (
   params: FetchSuppliersParams = {}
 ): Promise<SuppliersResponse> => {
+  // #region agent log
+  // #endregion
   try {
     const queryParams = new URLSearchParams();
     
     if (params.category) queryParams.append('category', params.category);
     if (params.location) queryParams.append('location', params.location);
     if (params.rating) queryParams.append('rating', params.rating.toString());
+    if (params.query) queryParams.append('query', params.query);
+    if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+    if (params.available_today) queryParams.append('available_today', 'true');
+    if (params.near_me) queryParams.append('near_me', 'true');
+    if (params.user_lat !== undefined) queryParams.append('user_lat', params.user_lat.toString());
+    if (params.user_lng !== undefined) queryParams.append('user_lng', params.user_lng.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.offset) queryParams.append('offset', params.offset.toString());
 
     const url = `${API_BASE}/suppliers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const token = await getToken();
+    const headers = createApiHeaders(
+      token ? { Authorization: `Bearer ${token}` } : {}
+    );
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     });
+    // #region agent log
+    // #endregion
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      // #region agent log
+      // #endregion
       throw new ApiError(
         errorData.message || 'Failed to fetch suppliers',
         response.status
       );
     }
 
-    return await response.json();
+    const jsonData = await response.json();
+    // #region agent log
+    // #endregion
+
+    // Validate response structure to prevent crashes
+    if (!jsonData || typeof jsonData !== 'object') {
+      throw new ApiError('Invalid response format from server', 500);
+    }
+
+    // Ensure suppliers is always an array and normalize profile_image (API may send snake_case;
+    // accept profile_image_url / avatar_url when present so images stay in sync with provider avatars)
+    const rawSuppliers = Array.isArray(jsonData.suppliers) ? jsonData.suppliers : [];
+    const suppliers = rawSuppliers.map((s: Record<string, unknown>) => {
+      const profile_image = coerceSupplierProfileImage(s);
+      return profile_image ? { ...s, profile_image } : s;
+    }) as Supplier[];
+    
+    // Ensure total is always a number
+    const total = typeof jsonData.total === 'number' ? jsonData.total : suppliers.length;
+    
+    return {
+      suppliers,
+      total,
+      limit: typeof jsonData.limit === 'number' ? jsonData.limit : suppliers.length,
+      offset: typeof jsonData.offset === 'number' ? jsonData.offset : 0,
+    };
   } catch (error) {
+    // #region agent log
+    // #endregion
     if (error instanceof ApiError) {
       throw error;
     }
@@ -151,7 +235,9 @@ export const fetchSupplierProfile = async (
     }
 
     const data: SupplierProfileResponse = await response.json();
-    return data.supplier;
+    const raw = data.supplier as Record<string, unknown>;
+    const profileImage = coerceSupplierProfileImage(raw);
+    return { ...raw, profile_image: profileImage } as Supplier;
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;
@@ -231,8 +317,57 @@ export const fetchSupplierReviews = async (
   }
 };
 
+// GET /suppliers/:id/availability - Get supplier availability
+export interface AvailabilitySlot {
+  date: string; // ISO date string (YYYY-MM-DD)
+  time: string; // Time in HH:MM format
+  available: boolean;
+}
 
+export interface SupplierAvailabilityResponse {
+  slots: AvailabilitySlot[];
+  unavailable_dates: string[]; // Array of ISO date strings
+}
 
+export const fetchSupplierAvailability = async (
+  supplierId: string,
+  startDate?: string, // ISO date string
+  endDate?: string // ISO date string
+): Promise<SupplierAvailabilityResponse> => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (startDate) queryParams.append('start_date', startDate);
+    if (endDate) queryParams.append('end_date', endDate);
+
+    const url = `${API_BASE}/suppliers/${supplierId}/availability${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        errorData.message || 'Failed to fetch supplier availability',
+        response.status
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError(
+      'Network error. Please check your connection.',
+      0,
+      error
+    );
+  }
+};
 
 
 
