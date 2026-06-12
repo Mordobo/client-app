@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npx expo export --platform web"
+  command = "npm ci && npm run build:web"
   publish = "dist"
 
 [build.environment]
