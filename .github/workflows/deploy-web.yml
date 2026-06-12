@@ -18,6 +18,8 @@ jobs:
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
       EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
       EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,20 +37,11 @@ jobs:
         run: npm run build:web
 
       - name: Deploy to Netlify
-        if: secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != ''
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: dist
-          production-deploy: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions (${{ github.sha }})"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-
-      - name: Netlify secrets not configured
-        if: secrets.NETLIFY_AUTH_TOKEN == '' || secrets.NETLIFY_SITE_ID == ''
         run: |
-          echo "::warning::Web build succeeded but Netlify deploy was skipped."
-          echo "Add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID in GitHub → Settings → Secrets."
-          echo "Or trigger deploy manually in the Netlify dashboard."
+          if [ -n "$NETLIFY_AUTH_TOKEN" ] && [ -n "$NETLIFY_SITE_ID" ]; then
+            npx --yes netlify-cli deploy --prod --dir=dist --message "Deploy from GitHub Actions (${{ github.sha }})"
+          else
+            echo "::warning::Web build succeeded but Netlify deploy was skipped."
+            echo "Add NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID in GitHub → Settings → Secrets."
+            echo "Or trigger deploy manually in the Netlify dashboard."
+          fi

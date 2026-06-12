@@ -3,7 +3,6 @@ name: Build and Distribute
 on:
   push:
     branches:
-      - main
       - develop
   pull_request:
     branches:
@@ -38,12 +37,8 @@ jobs:
     name: Build Android
     runs-on: ubuntu-latest
     if: |
-      secrets.EXPO_TOKEN != '' &&
-      (
-        (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all'))
-      )
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -131,12 +126,8 @@ jobs:
     name: Build iOS
     runs-on: macos-latest
     if: |
-      secrets.EXPO_TOKEN != '' &&
-      (
-        (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all'))
-      )
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
