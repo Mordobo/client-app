@@ -5,6 +5,14 @@
 [build.environment]
   NODE_VERSION = "20.19.4"
   CI = "true"
+  # Production API + Supabase (same as eas.json production profile)
+  EXPO_PUBLIC_ENV = "production"
+  EXPO_PUBLIC_API_ENV = "production"
+  EXPO_PUBLIC_API_URL_PROD = "https://mordobo-api-prod.onrender.com"
+  EXPO_PUBLIC_SUPABASE_URL = "https://xxvjunhjerhlxhmarelr.supabase.co"
+  # Set in Netlify UI (Site settings → Environment variables):
+  # EXPO_PUBLIC_SUPABASE_ANON_KEY
+  # EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (Google Sign-In on web)
 
 [[redirects]]
   from = "/*"

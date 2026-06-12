@@ -11,6 +11,7 @@
     "android:logs": "bash scripts/android-logs.sh",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:web": "expo export --platform web",
     "lint": "expo lint",
     "build:android:debug": "eas build --platform android --profile development",
     "build:android:preview": "eas build --platform android --profile preview",
