@@ -38,9 +38,12 @@ jobs:
     name: Build Android
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all'))
+      secrets.EXPO_TOKEN != '' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'android' || github.event.inputs.platform == 'all'))
+      )
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -128,9 +131,12 @@ jobs:
     name: Build iOS
     runs-on: macos-latest
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all'))
+      secrets.EXPO_TOKEN != '' &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'all'))
+      )
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -216,7 +222,9 @@ jobs:
     name: Notify Team
     runs-on: ubuntu-latest
     needs: [build-android, build-ios]
-    if: always()
+    if: |
+      always() &&
+      (needs.build-android.result != 'skipped' || needs.build-ios.result != 'skipped')
     steps:
       - name: Send Slack notification
         if: env.SLACK_WEBHOOK_URL != ''
