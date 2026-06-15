@@ -1281,6 +1281,8 @@ export default {
       businessNamePlaceholder: "e.g., John's Plumbing Pro",
       category: "Main category",
       selectCategory: "Select a category",
+      categoryLoadError: "Couldn't load categories. Tap to retry.",
+      categoryEmpty: "No categories available. Tap to retry.",
       categoryModalTitle: "Select a category",
       subcategory: "Specialty",
       selectSubcategory: "Select a specialty",
@@ -1784,6 +1786,7 @@ export default {
       createSuccess: "Project created",
       updateSuccess: "Project updated",
       deleteSuccess: "Project deleted",
+      savedImagesFailed: "Project saved, but some photos couldn't be uploaded.",
       errors: {
         listFailed: "Failed to load portfolio",
         loadFailed: "Failed to load project",

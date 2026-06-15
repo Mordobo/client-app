@@ -103,13 +103,25 @@ export default function ProviderOnboardingBusinessScreen() {
   const [subcategoryModalVisible, setSubcategoryModalVisible] = useState(false);
   const [description, setDescription] = useState("");
 
-  const { data: categoriesTree, isLoading: categoriesLoading } = useQuery({
+  const {
+    data: categoriesTree,
+    isLoading: categoriesLoading,
+    isError: categoriesError,
+    refetch: refetchCategories,
+  } = useQuery({
     queryKey: ["provider-onboarding-categories-tree"],
     queryFn: fetchCategoriesTree,
     staleTime: 5 * 60 * 1000,
+    // QA API runs on Render free tier (cold start ~30-60s); keep retrying so the
+    // category selector eventually populates instead of staying empty (MDB-442).
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 15000),
   });
 
   const categoryOptions = useMemo(() => getCategoryOptions(categoriesTree), [categoriesTree]);
+  // Loaded but no rows, or failed to load: both leave the picker unusable, so we
+  // surface a tappable retry instead of an empty/disabled control (MDB-442).
+  const categoriesUnavailable = !categoriesLoading && (categoriesError || categoryOptions.length === 0);
   const subcategoryOptions = useMemo(
     () => (selectedCategory ? getSubcategoryOptions(categoriesTree, selectedCategory.id) : []),
     [categoriesTree, selectedCategory],
@@ -198,7 +210,14 @@ export default function ProviderOnboardingBusinessScreen() {
             <Text style={[styles.label, { color: theme.textSecondary }]}>{t("providerOnboarding.business.category")}</Text>
             <TouchableOpacity
               style={[styles.selectContainer, { backgroundColor: theme.surfaceSecondary, borderColor: theme.border }]}
-              onPress={() => !categoriesLoading && setCategoryModalVisible(true)}
+              onPress={() => {
+                if (categoriesLoading) return;
+                if (categoriesUnavailable) {
+                  void refetchCategories();
+                  return;
+                }
+                setCategoryModalVisible(true);
+              }}
               activeOpacity={0.7}
               disabled={categoriesLoading}
             >
@@ -207,6 +226,17 @@ export default function ProviderOnboardingBusinessScreen() {
                   <ActivityIndicator size="small" color={theme.primary} />
                   <Text style={{ fontSize: 14, color: theme.textTertiary }}>{t("providerOnboarding.business.selectCategory")}</Text>
                 </View>
+              : categoriesUnavailable ?
+                <>
+                  <Text style={[styles.selectText, { color: theme.textTertiary }]} numberOfLines={2}>
+                    {categoriesError
+                      ? t("providerOnboarding.business.categoryLoadError")
+                      : t("providerOnboarding.business.categoryEmpty")}
+                  </Text>
+                  <View style={styles.selectIconWrap}>
+                    <Ionicons name="refresh" size={16} color={theme.iconSecondary} />
+                  </View>
+                </>
               : <>
                   <Text
                     style={[styles.selectText, { color: selectedCategory ? theme.textPrimary : theme.textTertiary }]}

@@ -1282,6 +1282,8 @@ export default {
       businessNamePlaceholder: "Ej: Juan's Plumbing Pro",
       category: "Categoría principal",
       selectCategory: "Selecciona una categoría",
+      categoryLoadError: "No se pudieron cargar las categorías. Toca para reintentar.",
+      categoryEmpty: "No hay categorías disponibles. Toca para reintentar.",
       categoryModalTitle: "Selecciona una categoría",
       subcategory: "Especialidad",
       selectSubcategory: "Selecciona una especialidad",
@@ -1786,6 +1788,7 @@ export default {
       createSuccess: "Proyecto creado",
       updateSuccess: "Proyecto actualizado",
       deleteSuccess: "Proyecto eliminado",
+      savedImagesFailed: "Proyecto guardado, pero algunas fotos no se pudieron subir.",
       errors: {
         listFailed: "Error al cargar portafolio",
         loadFailed: "Error al cargar proyecto",
