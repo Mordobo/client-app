@@ -16,7 +16,7 @@ import {
 } from '@/utils/googleSignIn';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -140,6 +140,9 @@ const resolveApiErrorMessage = (error: ApiError, translate: typeof t): string =>
 
 export default function RegisterScreen() {
   const { login } = useAuth();
+  // Account type chosen on the previous screen (MDB-444); default "client" if entered directly.
+  const params = useLocalSearchParams<{ accountType?: string }>();
+  const accountType: 'client' | 'provider' = params.accountType === 'provider' ? 'provider' : 'client';
   // Initialize with a default country (Dominican Republic - +1)
   const defaultCountry = COUNTRIES.find(c => c.phoneExtension === '+1') || COUNTRIES[0];
   const [formData, setFormData] = useState({
@@ -434,6 +437,7 @@ export default function RegisterScreen() {
         phoneNumberOnly: trimmedPhoneNumber,
         password,
         country: country?.name || 'Unknown',
+        accountType,
       });
 
       // After successful registration, send verification code
@@ -449,13 +453,17 @@ export default function RegisterScreen() {
         // Store email and password temporarily for resend code and verification
         await AsyncStorage.setItem('pending_verification_email', trimmedEmail.toLowerCase());
         await AsyncStorage.setItem('pending_verification_password', password);
+        // Persist the chosen account type so verify.tsx can route after verification
+        // (provider → onboarding, client → home). Survives router.replace. (MDB-444)
+        await AsyncStorage.setItem('pending_account_type', accountType);
 
         setApiErrorMessage(null);
         // Navigate directly to verification screen
         router.replace({
           pathname: '/(auth)/verify',
-          params: { 
+          params: {
             email: trimmedEmail.toLowerCase(),
+            accountType,
           },
         });
       } catch (validateError) {

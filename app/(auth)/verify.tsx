@@ -221,13 +221,24 @@ export default function VerifyScreen() {
       // Login user
       await login(userData);
 
+      // Read the account type chosen at sign-up (MDB-444) before clearing temp data.
+      const pendingAccountType = await AsyncStorage.getItem('pending_account_type');
+
       // Clear temporary verification data
       await AsyncStorage.multiRemove([
         'pending_verification_email',
         'pending_verification_password',
+        'pending_account_type',
       ]);
 
-      // Use DB flag: show client onboarding only if not yet completed
+      // Provider sign-up → continue into Provider Onboarding (which creates the supplier).
+      // The user keeps their client account too and can switch roles later. (MDB-444)
+      if (pendingAccountType === 'provider') {
+        router.replace('/provider-onboarding');
+        return;
+      }
+
+      // Client sign-up: show client onboarding only if not yet completed.
       const clientOnboardingCompleted = (apiResponse.user as Record<string, unknown>).client_onboarding_completed === true;
       if (clientOnboardingCompleted) {
         router.replace('/(tabs)/home');

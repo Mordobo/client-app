@@ -52,8 +52,8 @@ export default function WelcomeScreen() {
   };
 
   const handleCreateAccount = () => {
-    console.log('[WelcomeScreen] handleCreateAccount - navigating to register, isAuthenticated:', isAuthenticated);
-    router.push('/(auth)/register');
+    // Sign-up now starts with the account-type selection (provider/client) — MDB-444.
+    router.push('/(auth)/account-type');
   };
 
 

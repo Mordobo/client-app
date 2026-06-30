@@ -27,6 +27,7 @@
     },
     "preview": {
       "extends": "base",
+      "environment": "preview",
       "distribution": "internal",
       "ios": {
         "simulator": false,
@@ -65,6 +66,7 @@
     },
     "qa": {
       "extends": "base",
+      "environment": "preview",
       "distribution": "internal",
       "ios": {
         "simulator": false,
@@ -85,6 +87,7 @@
     },
     "production": {
       "extends": "base",
+      "environment": "production",
       "distribution": "store",
       "ios": {
         "simulator": false,
