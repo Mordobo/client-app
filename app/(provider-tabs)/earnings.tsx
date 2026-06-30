@@ -5,6 +5,7 @@ import {
   getEarningsChart,
   getEarningsSummary,
   getEarningsTransactions,
+  requestWithdrawal,
   type EarningsPeriod,
   type ProviderEarningsTransaction,
 } from "@/services/providerDashboard";
@@ -19,11 +20,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -85,6 +88,9 @@ export default function ProviderEarningsScreen() {
   const [txPage, setTxPage] = useState(1);
   const [txStatusFilter, setTxStatusFilter] = useState<"all" | "completed" | "pending" | "processing" | "refunded">("all");
   const [accumulatedTx, setAccumulatedTx] = useState<ProviderEarningsTransaction[]>([]);
+  const [withdrawVisible, setWithdrawVisible] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const summaryQuery = useQuery({
     queryKey: ["provider-earnings-summary", period],
@@ -158,6 +164,34 @@ export default function ProviderEarningsScreen() {
     }
   }, [period]);
 
+  const availableBalance = summary?.balance ?? 0;
+  const handleWithdraw = useCallback(async () => {
+    const amount = parseFloat(withdrawAmount.replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      Alert.alert(t("providerDashboard.earnings.withdraw"), t("providerDashboard.earnings.withdrawInvalidAmount"));
+      return;
+    }
+    if (amount > availableBalance) {
+      Alert.alert(t("providerDashboard.earnings.withdraw"), t("providerDashboard.earnings.withdrawExceeds"));
+      return;
+    }
+    setWithdrawing(true);
+    try {
+      await requestWithdrawal(amount);
+      setWithdrawing(false);
+      setWithdrawVisible(false);
+      setWithdrawAmount("");
+      summaryQuery.refetch();
+      Alert.alert(t("providerDashboard.earnings.withdraw"), t("providerDashboard.earnings.withdrawSuccess"));
+    } catch (e) {
+      setWithdrawing(false);
+      Alert.alert(
+        t("providerDashboard.earnings.withdraw"),
+        e instanceof Error ? e.message : t("providerDashboard.earnings.errors.withdrawFailed"),
+      );
+    }
+  }, [withdrawAmount, availableBalance, summaryQuery]);
+
   const maxChartValue = useMemo(() => {
     const max = Math.max(...chartData.map((p) => p.total), 1);
     return max;
@@ -207,7 +241,7 @@ export default function ProviderEarningsScreen() {
           <View style={styles.balanceActions}>
             <TouchableOpacity
               style={styles.balanceButton}
-              onPress={() => Alert.alert(t("providerDashboard.earnings.withdraw"), "Coming soon")}
+              onPress={() => setWithdrawVisible(true)}
             >
               <Text style={styles.balanceButtonText}>{t("providerDashboard.earnings.withdraw")}</Text>
             </TouchableOpacity>
@@ -362,6 +396,52 @@ export default function ProviderEarningsScreen() {
           <Text style={[styles.exportButtonText, { color: colors.primary }]}>{t("providerDashboard.earnings.exportData")}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Withdrawal request modal (MDB-452) */}
+      <Modal visible={withdrawVisible} transparent animationType="fade" onRequestClose={() => setWithdrawVisible(false)}>
+        <View style={styles.withdrawBackdrop}>
+          <View style={[styles.withdrawCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.withdrawTitle, { color: colors.textPrimary }]}>
+              {t("providerDashboard.earnings.withdrawTitle")}
+            </Text>
+            <Text style={[styles.withdrawHint, { color: colors.textSecondary }]}>
+              {t("providerDashboard.earnings.balanceAvailable")}: {formatCurrency(availableBalance)}
+            </Text>
+            <TextInput
+              style={[styles.withdrawInput, { color: colors.textPrimary, borderColor: colors.border }]}
+              value={withdrawAmount}
+              onChangeText={setWithdrawAmount}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor={colors.textTertiary}
+              editable={!withdrawing}
+            />
+            <Text style={[styles.withdrawNote, { color: colors.textTertiary }]}>
+              {t("providerDashboard.earnings.withdrawCommissionNote")}
+            </Text>
+            <View style={styles.withdrawActions}>
+              <TouchableOpacity
+                style={styles.withdrawCancel}
+                onPress={() => setWithdrawVisible(false)}
+                disabled={withdrawing}
+              >
+                <Text style={{ color: colors.textSecondary, fontWeight: "600" }}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.withdrawConfirm, { backgroundColor: colors.primary }]}
+                onPress={handleWithdraw}
+                disabled={withdrawing}
+              >
+                {withdrawing ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.withdrawConfirmText}>{t("providerDashboard.earnings.withdrawConfirm")}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -610,4 +690,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  withdrawBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  withdrawCard: {
+    borderRadius: 18,
+    padding: 22,
+  },
+  withdrawTitle: { fontSize: 18, fontWeight: "700", marginBottom: 6 },
+  withdrawHint: { fontSize: 13, marginBottom: 16 },
+  withdrawInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  withdrawNote: { fontSize: 12, marginTop: 8, lineHeight: 16 },
+  withdrawActions: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 8, marginTop: 20 },
+  withdrawCancel: { paddingVertical: 12, paddingHorizontal: 16 },
+  withdrawConfirm: {
+    paddingVertical: 12,
+    paddingHorizontal: 22,
+    borderRadius: 12,
+    minWidth: 110,
+    alignItems: "center",
+  },
+  withdrawConfirmText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 });

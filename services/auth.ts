@@ -43,6 +43,9 @@ export interface RegisterPayload {
   phoneNumberOnly?: string; // New format: phone number without extension
   password: string;
   country: string;
+  // Account type chosen at sign-up. The clients row is created either way; "provider"
+  // routes the user into Provider Onboarding after verification. Defaults to "client". (MDB-444/445)
+  accountType?: 'client' | 'provider';
 }
 
 export interface RegisterResponseUser {
@@ -57,6 +60,7 @@ export interface RegisterResponseUser {
 
 export interface RegisterResponse {
   userType: string;
+  accountType?: string; // "client" | "provider" — echoes the sign-up choice (MDB-445)
   user: RegisterResponseUser;
   [key: string]: unknown;
 }
@@ -594,6 +598,7 @@ export const registerUser = async (
     email: payload.email,
     password: payload.password,
     country: payload.country,
+    account_type: payload.accountType ?? 'client',
   };
 
   // New format: send phoneExtension and phoneNumber separately
