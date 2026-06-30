@@ -118,7 +118,7 @@ export default function ProviderNotificationsScreen() {
       return;
     }
     try {
-      const data = await fetchNotifications();
+      const data = await fetchNotifications('supplier');
       setNotifications(data);
     } catch (e) {
       console.error("[ProviderNotifications] Load failed:", e);
@@ -183,7 +183,7 @@ export default function ProviderNotificationsScreen() {
 
   const handleMarkAllRead = useCallback(async () => {
     try {
-      await markAllNotificationsAsRead();
+      await markAllNotificationsAsRead('supplier');
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (e) {
       console.error("[ProviderNotifications] Mark all read failed:", e);
@@ -219,7 +219,7 @@ export default function ProviderNotificationsScreen() {
     setClearAllModalVisible(false);
     (async () => {
       try {
-        await deleteAllNotifications();
+        await deleteAllNotifications('supplier');
         setNotifications([]);
       } catch (e) {
         console.error("[ProviderNotifications] Clear all failed:", e);

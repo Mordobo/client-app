@@ -171,7 +171,10 @@ export function PhoneInput({
         }}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          // Android uses softwareKeyboardLayoutMode "resize" (the window already lifts the
+          // bottom sheet above the keyboard); adding behavior="height" double-compensated and
+          // pushed the sheet up too far. Disable it on Android, keep padding on iOS. (MDB-453)
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalKeyboardView}
         >
           <View style={styles.modalOverlay}>

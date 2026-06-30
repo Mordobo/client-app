@@ -57,7 +57,9 @@ export default function ProviderTabLayout() {
     if (!providerStatusCheck.onboardingCompleted) {
       router.replace("/provider-onboarding");
     } else {
-      router.replace("/provider-onboarding/verification");
+      // Already submitted and awaiting approval: show the "in review" status without
+      // resubmitting step 7 (status=1 puts verification in read-only mode). (MDB-453)
+      router.replace({ pathname: "/provider-onboarding/verification", params: { status: "1" } });
     }
   }, [
     providerStatusCheck.loading,

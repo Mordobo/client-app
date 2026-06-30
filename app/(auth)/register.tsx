@@ -456,6 +456,11 @@ export default function RegisterScreen() {
         // Persist the chosen account type so verify.tsx can route after verification
         // (provider → onboarding, client → home). Survives router.replace. (MDB-444)
         await AsyncStorage.setItem('pending_account_type', accountType);
+        // Durable record of how the user signed up. A "provider"-only sign-up must be
+        // gated on the "in review" screen until approved (no client fallback), whereas a
+        // user who signed up as client and later applies as provider keeps client access
+        // (dual-role preserved). Read by provider-onboarding/verification. (MDB-453)
+        await AsyncStorage.setItem('signup_account_type', accountType);
 
         setApiErrorMessage(null);
         // Navigate directly to verification screen
@@ -546,6 +551,28 @@ export default function RegisterScreen() {
       console.error('Register error:', error);
 
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
+        const errorCode = errorData?.code as string | undefined;
+        // Existing account trying to sign up as provider: don't show a raw "email taken" error.
+        // Guide them to log in as client and become a provider via switch-mode (dual-role). (MDB-453)
+        if (errorCode === 'email_taken' && accountType === 'provider') {
+          Alert.alert(
+            t('auth.existingProviderTitle'),
+            t('auth.existingProviderMessage'),
+            [
+              { text: t('common.cancel'), style: 'cancel' },
+              {
+                text: t('auth.signIn'),
+                onPress: () =>
+                  router.replace({
+                    pathname: '/(auth)/login',
+                    params: { prefillEmail: trimmedEmail.toLowerCase() },
+                  }),
+              },
+            ],
+          );
+          return;
+        }
         const message = resolveApiErrorMessage(error, t);
         setApiErrorMessage(message);
         Alert.alert(t('common.error'), message);

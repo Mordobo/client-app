@@ -60,7 +60,7 @@ function NotificationsTabIcon({ color, focused }: { color: string; focused: bool
 
   const loadUnreadCount = useCallback(async () => {
     try {
-      const count = await fetchUnreadNotificationCount();
+      const count = await fetchUnreadNotificationCount('client');
       setUnreadCount(count);
     } catch {
       // Silently fail

@@ -125,6 +125,9 @@ export default {
     passwordRequirements: "Mínimo 8 caracteres",
     alreadyHaveAccount: "¿Ya tienes cuenta?",
     signIn: "Inicia sesión",
+    existingProviderTitle: "Ya tienes una cuenta",
+    existingProviderMessage:
+      "Este correo ya está asociado a una cuenta. Si deseas ser proveedor, inicia sesión como cliente y conviértete en proveedor desde tu perfil.",
     welcomeTitle: "Mordobo",
     welcomeSubtitle: "Servicios del hogar a tu alcance",
     getStarted: "Comenzar",
@@ -1412,6 +1415,7 @@ export default {
       step3: "Aprobación final",
       notification: "📬 Te notificaremos cuando tu cuenta esté aprobada.",
       backToHome: "Volver al inicio",
+      logout: "Cerrar sesión",
       submitting: "Guardando y enviando a aprobación…",
       submitError: "No se pudo enviar. Intenta de nuevo.",
       retry: "Reintentar",

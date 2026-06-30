@@ -124,6 +124,9 @@ export default {
     passwordRequirements: "Minimum 8 characters",
     alreadyHaveAccount: "Already have an account?",
     signIn: "Sign in",
+    existingProviderTitle: "You already have an account",
+    existingProviderMessage:
+      "This email is already associated with an account. If you want to become a provider, sign in as a client and switch to provider from your profile.",
     welcomeTitle: "Mordobo",
     welcomeSubtitle: "Home services at your fingertips",
     getStarted: "Get Started",
@@ -1411,6 +1414,7 @@ export default {
       step3: "Final approval",
       notification: "📬 We will notify you when your account is approved.",
       backToHome: "Back to home",
+      logout: "Log out",
       submitting: "Saving and submitting for approval…",
       submitError: "Could not submit. Please try again.",
       retry: "Retry",
