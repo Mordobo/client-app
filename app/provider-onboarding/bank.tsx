@@ -2,7 +2,8 @@ import { ProgressBar } from "@/components/onboarding/ProgressBar";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { t } from "@/i18n";
 import { submitOnboardingStep } from "@/services/providers";
-import { formatClabeDisplay, normalizeClabe, validateClabe } from "@/utils/clabeValidation";
+import { DOMINICAN_BANKS } from "@/constants/dominicanBanks";
+import { formatAccountNumberDisplay, normalizeAccountNumber, validateAccountNumber } from "@/utils/accountNumberValidation";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -12,43 +13,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TOTAL_STEPS = 8;
 
-/** Local banks (Mexico) for dropdown - step 6 of onboarding */
-const LOCAL_BANKS: { id: string; name: string }[] = [
-  { id: "002", name: "Banamex" },
-  { id: "006", name: "Bancomext" },
-  { id: "009", name: "Banobras" },
-  { id: "012", name: "BBVA México" },
-  { id: "014", name: "Santander" },
-  { id: "019", name: "Banco Nacional de México" },
-  { id: "021", name: "HSBC" },
-  { id: "030", name: "Banco del Bajío" },
-  { id: "032", name: "IXE" },
-  { id: "036", name: "Banamex (Inbursa)" },
-  { id: "037", name: "Banco Interacciones" },
-  { id: "042", name: "Mifel" },
-  { id: "044", name: "Scotiabank" },
-  { id: "058", name: "Banregio" },
-  { id: "059", name: "Banco Invex" },
-  { id: "062", name: "Banorte" },
-  { id: "072", name: "Banco Banorte" },
-  { id: "102", name: "Bancoppel" },
-  { id: "601", name: "Coppel" },
-  { id: "646", name: "STP" },
-  { id: "901", name: "CLABE (other)" },
-];
+/** Dominican Republic banks for the dropdown - step 6 of onboarding */
+const LOCAL_BANKS = DOMINICAN_BANKS;
 
 type BankErrorKey = "errorClabeRequired" | "errorClabeLength" | "errorClabeInvalid";
 
 function getClabeErrorKey(error: string | undefined): BankErrorKey | null {
   if (!error) return null;
   switch (error) {
-    case "clabeRequired":
+    case "accountRequired":
       return "errorClabeRequired";
-    case "clabeLength":
+    case "accountLength":
       return "errorClabeLength";
-    case "clabeInvalidChars":
-    case "clabeChecksum":
-      return "errorClabeInvalid";
     default:
       return null;
   }
@@ -64,8 +40,8 @@ export default function ProviderOnboardingBankScreen() {
   const [accountHolder, setAccountHolder] = useState("");
   const [touched, setTouched] = useState({ clabe: false, accountHolder: false });
 
-  const clabeDisplay = formatClabeDisplay(clabeRaw);
-  const clabeValidation = validateClabe(normalizeClabe(clabeRaw));
+  const clabeDisplay = formatAccountNumberDisplay(clabeRaw);
+  const clabeValidation = validateAccountNumber(normalizeAccountNumber(clabeRaw));
   const clabeErrorKey = getClabeErrorKey(clabeValidation.error);
   const clabeError = touched.clabe && !clabeValidation.isValid && clabeErrorKey ? t(`providerOnboarding.bank.${clabeErrorKey}`) : null;
 
@@ -76,7 +52,7 @@ export default function ProviderOnboardingBankScreen() {
   const canContinue = true;
 
   const handleClabeChange = useCallback((text: string) => {
-    const digits = text.replace(/\D/g, "").slice(0, 18);
+    const digits = text.replace(/\D/g, "").slice(0, 20);
     setClabeRaw(digits);
   }, []);
 
@@ -96,7 +72,7 @@ export default function ProviderOnboardingBankScreen() {
     setSaving(true);
     try {
       if (hasValidBankData) {
-        const clabe = normalizeClabe(clabeRaw);
+        const clabe = normalizeAccountNumber(clabeRaw);
         await submitOnboardingStep(5, {
           bankName: selectedBank!.name,
           clabe,

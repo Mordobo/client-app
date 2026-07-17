@@ -14,16 +14,6 @@
         "@smithery/mcp-chrome-devtools"
       ]
     },
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref=uhrqekrzzpmrmwcoxdqj"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_c43d0ea70a0a4239fc8a3e3068531706eb31a0fc"
-      }
-    },
     "github": {
       "command": "npx",
       "args": [

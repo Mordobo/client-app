@@ -24,7 +24,25 @@ export interface PhoneInputProps {
   error?: string;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Force a fixed dark appearance regardless of the app theme. Use on screens that are
+   * hardcoded dark (e.g. the auth/register screen) so the phone field stays consistent with
+   * them instead of turning white when the light theme is active. (MDB-454)
+   */
+  forceDarkTheme?: boolean;
 }
+
+/** Fixed dark palette used when forceDarkTheme is set (matches the hardcoded-dark auth screens). */
+const DARK_PALETTE = {
+  card: '#252542',
+  cardBorder: '#374151',
+  surfaceSecondary: '#1a1a2e',
+  border: '#374151',
+  textPrimary: '#FFFFFF',
+  textSecondary: '#9CA3AF',
+  textTertiary: '#9CA3AF',
+  primary: '#3B82F6',
+};
 
 // Common phone extensions for manual selection
 const COMMON_EXTENSIONS = [
@@ -60,8 +78,11 @@ export function PhoneInput({
   error,
   placeholder,
   disabled = false,
+  forceDarkTheme = false,
 }: PhoneInputProps) {
-  const colors = useThemeColors();
+  const themeColors = useThemeColors();
+  // On hardcoded-dark screens, force the dark palette so the field doesn't turn white in light theme.
+  const colors = forceDarkTheme ? { ...themeColors, ...DARK_PALETTE } : themeColors;
   const [extensionModalVisible, setExtensionModalVisible] = useState(false);
   const [extensionSearchQuery, setExtensionSearchQuery] = useState('');
 

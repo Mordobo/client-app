@@ -1,7 +1,9 @@
 import { CategoryCard } from "@/components/CategoryCard";
+import { PaymentComplianceBadges } from "@/components/payment/PaymentComplianceBadges";
 import { TopProviderCard } from "@/components/TopProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useThemeColors } from "@/hooks/useThemeColors";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { t, getLocale } from "@/i18n";
 import { ApiError } from "@/services/auth";
 import { getAddresses, type Address } from "@/services/addresses";
@@ -27,6 +29,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
+  const colorScheme = useColorScheme();
   const [categories, setCategories] = useState<Category[]>([]);
   const [topProviders, setTopProviders] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -367,6 +370,14 @@ export default function HomeScreen() {
             </View>
           }
         </View>
+
+        <View style={[styles.complianceSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <PaymentComplianceBadges
+            appearance={colorScheme === "dark" ? "dark" : "light"}
+            showContact
+            compact
+          />
+        </View>
       </ScrollView>
     </View>
   );
@@ -545,5 +556,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9CA3AF",
     textAlign: "center",
+  },
+  complianceSection: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
   },
 });

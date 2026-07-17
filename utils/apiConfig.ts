@@ -6,6 +6,8 @@ export type ApiEnv = (typeof API_ENV_VALUES)[number];
 
 const DEFAULT_QA_URL = 'https://mordobo-api-qa.onrender.com';
 const DEFAULT_PROD_URL = 'https://mordobo-api-prod.onrender.com';
+/** Production API host — must not be used from local dev (__DEV__). */
+const PROD_API_HOST = 'mordobo-api-prod.onrender.com';
 
 /**
  * Centralized API configuration.
@@ -25,6 +27,23 @@ function getApiEnv(): ApiEnv {
     return raw;
   }
   return 'qa';
+}
+
+/** Local dev must never hit production API — override misconfigured .env. */
+function enforceLocalNotProduction(env: ApiEnv, resolvedUrl: string): ApiEnv {
+  if (typeof __DEV__ === 'undefined' || !__DEV__) {
+    return env;
+  }
+  const pointsToProd =
+    env === 'production' || resolvedUrl.includes(PROD_API_HOST);
+  if (pointsToProd) {
+    console.error(
+      '[API Config] Local dev must not use production API. Overriding to QA. ' +
+        'Fix .env: EXPO_PUBLIC_API_ENV=qa (see .cursor/rules/localenvironment.mdc)',
+    );
+    return 'qa';
+  }
+  return env;
 }
 
 function resolveUrlForEnv(env: ApiEnv): string {
@@ -50,7 +69,9 @@ function resolveUrlForEnv(env: ApiEnv): string {
 }
 
 const getHost = (): string => {
-  const env = getApiEnv();
+  const configuredEnv = getApiEnv();
+  const urlForConfiguredEnv = resolveUrlForEnv(configuredEnv);
+  const env = enforceLocalNotProduction(configuredEnv, urlForConfiguredEnv);
   let url = resolveUrlForEnv(env);
   if (Platform.OS === 'android' && /localhost|127\.0\.0\.1/i.test(url)) {
     url = url.replace(/(localhost|127\.0\.0\.1)/gi, '10.0.2.2');
@@ -58,8 +79,8 @@ const getHost = (): string => {
   return url;
 };
 
-/** Current API environment (localhost | qa | production). */
-export const API_ENV = getApiEnv();
+/** Current API environment (localhost | qa | production). Overridden to qa in __DEV__ if misconfigured. */
+export const API_ENV = enforceLocalNotProduction(getApiEnv(), resolveUrlForEnv(getApiEnv()));
 
 export const API_BASE = sanitizeBaseUrl(getHost());
 

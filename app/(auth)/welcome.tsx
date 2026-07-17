@@ -20,6 +20,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -27,6 +28,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MordoboLogo from '@/components/MordoboLogo';
+import { PaymentComplianceBadges } from '@/components/payment/PaymentComplianceBadges';
 
 export default function WelcomeScreen() {
   const { login, isAuthenticated } = useAuth();
@@ -261,7 +263,11 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Centered section with logo, title and subtitle */}
         <View style={styles.centeredSection}>
           {/* Logo with gradient */}
@@ -338,8 +344,40 @@ export default function WelcomeScreen() {
               )}
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.businessDescription}>
+            {t('compliance.businessDescription')}
+          </Text>
+          <View style={styles.legalLinks}>
+            <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
+              {t('compliance.linkTerms')}
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
+            <Text style={styles.legalLink} onPress={() => router.push('/privacy')}>
+              {t('compliance.linkPrivacy')}
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
+            <Text style={styles.legalLink} onPress={() => router.push('/refunds')}>
+              {t('compliance.linkRefunds')}
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
+            <Text style={styles.legalLink} onPress={() => router.push('/delivery')}>
+              {t('compliance.linkDelivery')}
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
+            <Text style={styles.legalLink} onPress={() => router.push('/payment-security')}>
+              {t('compliance.linkSecurity')}
+            </Text>
+          </View>
+          <View style={styles.complianceBlock}>
+            <PaymentComplianceBadges
+              appearance="dark"
+              showContact
+              compact
+            />
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -350,14 +388,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a2e',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 30,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 48,
+    paddingBottom: 32,
     flexDirection: 'column',
   },
   centeredSection: {
-    flex: 1,
+    minHeight: 220,
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
@@ -466,5 +504,33 @@ const styles = StyleSheet.create({
   },
   socialButtonDisabled: {
     opacity: 0.6,
+  },
+  businessDescription: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
+    marginTop: 18,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 9,
+  },
+  legalLink: {
+    color: '#60A5FA',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  legalSeparator: {
+    color: '#6B7280',
+    fontSize: 10,
+  },
+  complianceBlock: {
+    marginTop: 14,
+    width: '100%',
   },
 });

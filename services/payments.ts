@@ -10,6 +10,11 @@ export interface Payment {
   provider_ref?: string;
   status: string;
   created_at: string;
+  card_type?: string | null;
+  card_brand?: string | null;
+  card_last4?: string | null;
+  terms_accepted_at?: string | null;
+  legal_terms_version?: string | null;
 }
 
 export interface PaymentResponse {
@@ -32,6 +37,7 @@ interface CreatePaymentData {
   amount: number;
   provider: 'card' | 'apple_pay' | 'google_pay';
   payment_method_id?: string;
+  terms_accepted: true;
 }
 
 export interface BookAndPayData {
@@ -44,6 +50,7 @@ export interface BookAndPayData {
   amount: number;
   provider: 'card' | 'apple_pay' | 'google_pay';
   payment_method_id?: string;
+  terms_accepted: true;
 }
 
 interface BookAndPayResponse {
@@ -347,8 +354,6 @@ export const deletePaymentMethod = async (id: string): Promise<void> => {
     );
   }
 };
-
-
 
 
 

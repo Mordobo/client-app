@@ -758,6 +758,7 @@ export default function RegisterScreen() {
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>{t('auth.phone')}</Text>
                 <PhoneInput
+                  forceDarkTheme
                   selectedCountry={formData.country}
                   phoneExtension={formData.phoneExtension}
                   phoneNumber={formData.phoneNumber}
