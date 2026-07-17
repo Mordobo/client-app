@@ -23,7 +23,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t } from '@/i18n';
 import { AddCardModal } from '@/components/payment/AddCardModal';
 import { CardBrandMark } from '@/components/payment/CardBrandMark';
+import { PaymentComplianceBadges } from '@/components/payment/PaymentComplianceBadges';
 import { paymentMethodTypeToMarkVariant } from '@/utils/cardNetwork';
+import { formatDop } from '@/constants/merchant';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -134,6 +136,47 @@ export default function PaymentScreen() {
           gap: 10,
         },
         securityText: { fontSize: 12, color: colors.textSecondary },
+        complianceBlock: {
+          paddingHorizontal: 20,
+          paddingBottom: 8,
+        },
+        consentRow: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 10,
+          paddingHorizontal: 20,
+          paddingVertical: 14,
+          marginHorizontal: 20,
+          marginBottom: 8,
+          borderRadius: 12,
+          backgroundColor: colors.bgCard,
+          borderWidth: 1,
+          borderColor: colors.border,
+        },
+        checkbox: {
+          width: 24,
+          height: 24,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: colors.primary,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 1,
+        },
+        checkboxChecked: { backgroundColor: colors.primary },
+        consentText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 18 },
+        consentLink: { color: colors.primary, fontWeight: '700' },
+        extraPolicyLinks: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 8,
+          paddingHorizontal: 20,
+          paddingBottom: 12,
+        },
+        policyDot: { color: colors.textSecondary, fontSize: 12 },
+        currencyNote: { color: colors.textSecondary, fontSize: 12, marginTop: 6 },
         footer: {
           paddingHorizontal: 20,
           paddingTop: 20,
@@ -194,6 +237,7 @@ export default function PaymentScreen() {
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const total = totalAmount ? parseFloat(totalAmount) : 125.0;
 
@@ -256,20 +300,28 @@ export default function PaymentScreen() {
           amount: total,
           provider,
           payment_method_id: selectedMethodId,
+          terms_accepted: true,
         });
-        router.push(`/booking/success/${result.order.id}`);
+        router.push({
+          pathname: '/booking/success/[orderId]',
+          params: { orderId: result.order.id, paymentId: result.payment.id },
+        });
       } else {
         if (!orderId) {
           Alert.alert(t('common.error'), t('booking.missingBookingData'));
           return;
         }
-        await createPayment({
+        const payment = await createPayment({
           order_id: orderId,
           amount: total,
           provider,
           payment_method_id: selectedMethodId,
+          terms_accepted: true,
         });
-        router.push(`/booking/success/${orderId}`);
+        router.push({
+          pathname: '/booking/success/[orderId]',
+          params: { orderId, paymentId: payment.id },
+        });
       }
     } catch (err) {
       if (err instanceof PaymentApiError) {
@@ -356,7 +408,8 @@ export default function PaymentScreen() {
         {/* Total Amount */}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>{t('payment.totalToPay')}</Text>
-          <Text style={styles.totalAmount}>${total.toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>{formatDop(total)}</Text>
+          <Text style={styles.currencyNote}>{t('payment.currencyProcessedInDop')}</Text>
         </View>
 
         {/* Payment Methods */}
@@ -417,20 +470,62 @@ export default function PaymentScreen() {
           <Ionicons name="lock-closed" size={16} color={colors.textSecondary} />
           <Text style={styles.securityText}>{t('payment.securePayment')}</Text>
         </View>
+
+        <View style={styles.complianceBlock}>
+          <PaymentComplianceBadges appearance="light" showContact={false} />
+        </View>
+
+        <TouchableOpacity
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: termsAccepted }}
+          style={styles.consentRow}
+          onPress={() => setTermsAccepted((value) => !value)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+            {termsAccepted ? <Ionicons name="checkmark" size={17} color="#FFFFFF" /> : null}
+          </View>
+          <Text style={styles.consentText}>
+            {t('payment.acceptLegalPrefix')}{' '}
+            <Text style={styles.consentLink} onPress={() => router.push('/terms')}>
+              {t('payment.termsAndConditions')}
+            </Text>
+            {', '}
+            <Text style={styles.consentLink} onPress={() => router.push('/privacy')}>
+              {t('payment.privacyPolicy')}
+            </Text>
+            {' '}
+            <Text>{t('common.and')}</Text>
+            {' '}
+            <Text style={styles.consentLink} onPress={() => router.push('/refunds')}>
+              {t('payment.refundPolicy')}
+            </Text>
+            .
+          </Text>
+        </TouchableOpacity>
+        <View style={styles.extraPolicyLinks}>
+          <Text style={styles.consentLink} onPress={() => router.push('/delivery')}>
+            {t('compliance.linkDelivery')}
+          </Text>
+          <Text style={styles.policyDot}>·</Text>
+          <Text style={styles.consentLink} onPress={() => router.push('/payment-security')}>
+            {t('compliance.linkSecurity')}
+          </Text>
+        </View>
       </ScrollView>
 
       {/* Confirm Button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
-          style={[styles.confirmButton, processing && styles.confirmButtonDisabled]}
+          style={[styles.confirmButton, (processing || !selectedMethodId || !termsAccepted) && styles.confirmButtonDisabled]}
           onPress={handlePayment}
-          disabled={processing || !selectedMethodId}
+          disabled={processing || !selectedMethodId || !termsAccepted}
         >
           {processing ? (
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <Text style={styles.confirmButtonText}>
-              {t('payment.confirmAndPay', { amount: total.toFixed(2) })}
+              {t('payment.confirmAndPayAmount', { amount: formatDop(total) })}
             </Text>
           )}
         </TouchableOpacity>

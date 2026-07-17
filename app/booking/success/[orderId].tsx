@@ -75,7 +75,7 @@ const generateReservationCode = (orderId: string, createdAt: string): string => 
 
 export default function BookingSuccessScreen() {
   const router = useRouter();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId, paymentId } = useLocalSearchParams<{ orderId: string; paymentId?: string }>();
   const insets = useSafeAreaInsets();
   const themeColors = useThemeColors();
   const colors = useMemo(
@@ -254,6 +254,24 @@ export default function BookingSuccessScreen() {
           fontSize: 16,
           fontWeight: '500',
           textAlign: 'center',
+        },
+        receiptButton: {
+          width: '100%',
+          paddingVertical: 16,
+          paddingHorizontal: 16,
+          backgroundColor: `${colors.secondary}18`,
+          borderWidth: 1,
+          borderColor: colors.secondary,
+          borderRadius: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+        },
+        receiptButtonText: {
+          color: colors.secondary,
+          fontSize: 15,
+          fontWeight: '700',
         },
         errorText: {
           color: colors.textSecondary,
@@ -459,6 +477,18 @@ export default function BookingSuccessScreen() {
 
           {/* Action Buttons */}
           <View style={styles.actions}>
+            {paymentId ? (
+              <TouchableOpacity
+                style={styles.receiptButton}
+                onPress={() => router.push({
+                  pathname: '/booking/receipt/[paymentId]',
+                  params: { paymentId, orderId },
+                })}
+              >
+                <Ionicons name="receipt-outline" size={20} color={colors.secondary} />
+                <Text style={styles.receiptButtonText}>Ver comprobante de pago</Text>
+              </TouchableOpacity>
+            ) : null}
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={handleViewBookings}

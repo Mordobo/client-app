@@ -886,3 +886,45 @@ export const exportEarnings = async (params?: { format?: "csv"; period?: Earning
     t("providerDashboard.earnings.errors.exportFailed"),
   );
 };
+
+// ===== Payouts / withdrawals (MDB-452) =====
+export type PayoutStatus = "requested" | "processing" | "paid" | "failed";
+
+export interface ProviderPayout {
+  id: string;
+  amountGross: number;
+  commissionRate: number;
+  commissionAmount: number;
+  amountNet: number;
+  currency: string;
+  status: PayoutStatus;
+  reference: string | null;
+  failureReason: string | null;
+  requestedAt: string;
+  processedAt: string | null;
+}
+
+/** Request a withdrawal of (part of) the available balance. Net = gross - commission. */
+export const requestWithdrawal = async (amount: number): Promise<{ payout: ProviderPayout }> => {
+  return request<{ payout: ProviderPayout }>(
+    "/api/providers/dashboard/earnings/withdraw",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount }),
+    },
+    t("providerDashboard.earnings.errors.withdrawFailed"),
+  );
+};
+
+/** Provider's payout history. */
+export const getProviderPayouts = async (): Promise<{ payouts: ProviderPayout[] }> => {
+  return request<{ payouts: ProviderPayout[] }>(
+    "/api/providers/dashboard/earnings/payouts",
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    },
+    t("providerDashboard.earnings.errors.payoutsFailed"),
+  );
+};

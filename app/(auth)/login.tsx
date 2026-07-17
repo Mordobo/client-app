@@ -51,13 +51,22 @@ export default function LoginScreen() {
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
   }, []);
-  const params = useLocalSearchParams<{ registered?: string }>();
+  const params = useLocalSearchParams<{ registered?: string; prefillEmail?: string }>();
   const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefilledEmail = useRef(false);
 
   const trimmedIdentifier = identifier.trim();
   const canSubmit = valueHasContent(identifier) && password.length >= 8;
   const isButtonEnabled = canSubmit && !loading;
 
+
+  // Prefill the email when redirected here from an existing-account sign-up attempt (MDB-453).
+  useEffect(() => {
+    if (!prefilledEmail.current && params?.prefillEmail) {
+      prefilledEmail.current = true;
+      setIdentifier(params.prefillEmail);
+    }
+  }, [params]);
 
   useEffect(() => {
     if (!consumedRegistrationParam && params?.registered) {
@@ -450,7 +459,7 @@ export default function LoginScreen() {
           {/* Register Link */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>{t('auth.noAccount')}</Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/account-type')}>
               <Text style={styles.registerLink}>{t('auth.signUp')}</Text>
             </TouchableOpacity>
           </View>

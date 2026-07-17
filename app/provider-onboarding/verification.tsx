@@ -1,10 +1,12 @@
+import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { t } from '@/i18n';
 import { ApiError } from '@/services/auth';
 import { submitOnboardingStep } from '@/services/providers';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,8 +15,12 @@ type SubmitState = 'idle' | 'submitting' | 'submitted' | 'error';
 
 export default function ProviderOnboardingVerificationScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ status?: string }>();
+  // Re-entry from the provider gate (already submitted): show status only, do NOT resubmit step 7.
+  const isStatusView = Boolean(params.status);
   const insets = useSafeAreaInsets();
   const { setMode } = useMode();
+  const { logout } = useAuth();
   const colors = useThemeColors();
   const themed = useMemo(
     () => ({
@@ -37,6 +43,15 @@ export default function ProviderOnboardingVerificationScreen() {
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const step7Sent = useRef(false);
 
+  // A "provider"-only sign-up stays gated on this "in review" screen (log out only) until
+  // approved; a dual-role user (signed up as client) keeps the client fallback. (MDB-453)
+  const [isProviderOnly, setIsProviderOnly] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem('signup_account_type')
+      .then((v) => setIsProviderOnly(v === 'provider'))
+      .catch(() => {});
+  }, []);
+
   const sendStep7 = useCallback(async () => {
     setSubmitState('submitting');
     setErrorDetail(null);
@@ -57,18 +72,41 @@ export default function ProviderOnboardingVerificationScreen() {
   useEffect(() => {
     if (step7Sent.current) return;
     step7Sent.current = true;
-    sendStep7();
-  }, [sendStep7]);
+    if (isStatusView) {
+      // Onboarding already submitted; gate just shows the "in review" status.
+      setSubmitState('submitted');
+    } else {
+      sendStep7();
+    }
+  }, [sendStep7, isStatusView]);
 
-  const handleBackToHome = async () => {
+  // When a provider-only sign-up finishes submitting, persist provider mode so the gate keeps
+  // them on this "in review" screen on the next login (no client fallback). (MDB-453)
+  useEffect(() => {
+    if (submitState === 'submitted' && isProviderOnly && !isStatusView) {
+      setMode('provider').catch((e) =>
+        console.warn('[Verification] Failed to persist provider mode:', e),
+      );
+    }
+  }, [submitState, isProviderOnly, isStatusView, setMode]);
+
+  const handleExit = async () => {
+    // Provider-only sign-up: blocked until approval — log out (no client fallback). (MDB-453)
+    if (isProviderOnly) {
+      try {
+        await logout();
+      } catch (error) {
+        console.error('[Verification] Logout failed:', error);
+      }
+      router.replace('/(auth)/welcome');
+      return;
+    }
+    // Dual-role (signed up as client): keep client access while the provider app is pending.
     try {
-      // Change mode back to client since provider is not yet verified
       await setMode('client');
-      // Navigate to home
       router.replace('/(tabs)/home');
     } catch (error) {
       console.error('[Verification] Failed to change mode to client:', error);
-      // Navigate anyway even if mode change fails
       router.replace('/(tabs)/home');
     }
   };
@@ -179,11 +217,13 @@ export default function ProviderOnboardingVerificationScreen() {
         <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 24 }]}>
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: themed.backBtnBg }]}
-            onPress={handleBackToHome}
+            onPress={handleExit}
             activeOpacity={0.7}
           >
             <Text style={[styles.backButtonText, { color: themed.backBtnText }]}>
-              {t('providerOnboarding.verification.backToHome')}
+              {isProviderOnly
+                ? t('providerOnboarding.verification.logout')
+                : t('providerOnboarding.verification.backToHome')}
             </Text>
           </TouchableOpacity>
         </View>

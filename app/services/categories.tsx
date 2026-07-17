@@ -1,6 +1,6 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { t } from "@/i18n";
-import { ApiError, Category, fetchCategories } from "@/services/categories";
+import { ApiError, Category, CategoryTreeItem, fetchCategoriesTree } from "@/services/categories";
 import { fetchSuppliers } from "@/services/suppliers";
 import { getCategoryColor, getCategoryDisplayName, getCategoryEmoji } from "@/utils/categoryDisplay";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,11 +18,15 @@ const hexToRgba = (hex: string, opacity: number): string => {
   return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
+/** Lowercase + strip accents so "jardineria" matches "Jardinería". */
+const normalizeForSearch = (s: string): string =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+
 export default function CategoriesScreen() {
   const router = useRouter();
   const { colorScheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryTreeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,16 +51,25 @@ export default function CategoriesScreen() {
 
   // Filter categories by search; full list in API order (sort_order)
   const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) return categories;
-    const q = searchQuery.toLowerCase();
-    return categories.filter((cat) => cat.name.toLowerCase().includes(q) || (cat.name_key && cat.name_key.toLowerCase().includes(q)));
+    const q = normalizeForSearch(searchQuery);
+    if (!q) return categories;
+    // Match against the SAME label shown to the user (getCategoryDisplayName, which is the
+    // translated name_key) plus the raw name/name_key, and also against subcategory names so
+    // searching a subcategory surfaces its parent category. Accent-insensitive. (MDB-453)
+    const matchesQuery = (cat: Category): boolean =>
+      normalizeForSearch(getCategoryDisplayName(cat, t)).includes(q) ||
+      normalizeForSearch(cat.name).includes(q) ||
+      (cat.name_key ? normalizeForSearch(cat.name_key).includes(q) : false);
+    return categories.filter(
+      (cat) => matchesQuery(cat) || (cat.subcategories ?? []).some((sub) => matchesQuery(sub)),
+    );
   }, [searchQuery, categories]);
 
   const loadCategories = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchCategories();
+      const data = await fetchCategoriesTree();
       setCategories(data);
 
       // Load provider counts for each category in parallel

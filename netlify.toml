@@ -13,6 +13,7 @@
   # Set in Netlify UI (Site settings → Environment variables):
   # EXPO_PUBLIC_SUPABASE_ANON_KEY
   # EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (Google Sign-In on web)
+  # EXPO_PUBLIC_COMPANY_ADDRESS (complete registered address of MORDOBO EIRL)
 
 [[redirects]]
   from = "/*"

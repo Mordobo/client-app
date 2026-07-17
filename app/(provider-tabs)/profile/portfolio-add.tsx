@@ -200,21 +200,40 @@ export default function PortfolioAddScreen() {
             showError(t("providerDashboard.portfolio.errors.createFailed"));
             return;
           }
+          // The project row is already persisted. Upload images in a separate
+          // try/catch so a storage failure doesn't make the user think nothing
+          // was saved (and re-create duplicates on retry) — MDB-441.
+          let imagesFailed = false;
           if (selectedUris.length > 0 && isMountedRef.current) {
             setUploading(true);
-            for (let i = 0; i < selectedUris.length; i++) {
-              if (!isMountedRef.current) break;
-              const uri = selectedUris[i];
-              const manipulated = await ImageManipulator.manipulateAsync(
-                uri,
-                [{ resize: { width: 1200 } }],
-                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-              );
-              const base64 = await uriToBase64(manipulated.uri);
-              await uploadPortfolioImage(created.id, base64, "image.jpg", "image/jpeg");
+            try {
+              for (let i = 0; i < selectedUris.length; i++) {
+                if (!isMountedRef.current) break;
+                const uri = selectedUris[i];
+                const manipulated = await ImageManipulator.manipulateAsync(
+                  uri,
+                  [{ resize: { width: 1200 } }],
+                  { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+                );
+                const base64 = await uriToBase64(manipulated.uri);
+                await uploadPortfolioImage(created.id, base64, "image.jpg", "image/jpeg");
+              }
+            } catch {
+              imagesFailed = true;
             }
           }
-          showSuccessAndBack(t("providerDashboard.portfolio.createSuccess"));
+          if (imagesFailed) {
+            if (isMountedRef.current) {
+              setUploading(false);
+              setToast({ message: t("providerDashboard.portfolio.savedImagesFailed"), type: 'error' });
+              queryClient.invalidateQueries({ queryKey: ["providerPortfolio"] });
+              setTimeout(() => {
+                if (isMountedRef.current) router.back();
+              }, 1200);
+            }
+          } else {
+            showSuccessAndBack(t("providerDashboard.portfolio.createSuccess"));
+          }
         }
       } catch {
         try {

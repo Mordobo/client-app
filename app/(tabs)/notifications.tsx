@@ -129,7 +129,7 @@ export default function NotificationsScreen() {
 
   const loadNotifications = useCallback(async () => {
     try {
-      const data = await fetchNotifications();
+      const data = await fetchNotifications('client');
       setNotifications(data);
     } catch (error) {
       console.error('[Notifications] Failed to load notifications:', error);
@@ -153,7 +153,7 @@ export default function NotificationsScreen() {
 
   const handleMarkAllAsRead = useCallback(async () => {
     try {
-      await markAllNotificationsAsRead();
+      await markAllNotificationsAsRead('client');
       // Update local state
       setNotifications((prev) =>
         prev.map((n) => ({ ...n, read: true }))

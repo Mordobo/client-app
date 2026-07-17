@@ -1,7 +1,22 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+/** Production Supabase project ref — must not be used from local dev. */
+const PROD_SUPABASE_PROJECT_REF = 'xxvjunhjerhlxhmarelr';
+
+function resolveSupabaseUrl(): string {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() || '';
+  if (typeof __DEV__ !== 'undefined' && __DEV__ && url.includes(PROD_SUPABASE_PROJECT_REF)) {
+    console.error(
+      '[Supabase] Local dev must not use the production Supabase project. ' +
+        'Set EXPO_PUBLIC_SUPABASE_URL to the QA project (see .cursor/rules/localenvironment.mdc)',
+    );
+    return '';
+  }
+  return url;
+}
+
 /** Must match the Supabase project used by the API env you target (e.g. QA project when API is QA). */
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() || '';
+const SUPABASE_URL = resolveSupabaseUrl();
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() || '';
 
 /** Table name for Realtime Postgres Changes (conversations). Default "messages". */

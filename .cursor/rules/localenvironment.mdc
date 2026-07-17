@@ -1,0 +1,54 @@
+---
+description: Local dev must use QA API — never production URLs in .env or local config
+alwaysApply: true
+---
+
+# Local environment — QA only, never production
+
+## Rule
+
+When developing locally (`expo start`, web on localhost, simulators, Expo Go):
+
+- **API:** `EXPO_PUBLIC_API_ENV` must be `qa` or `localhost` — **never** `production`.
+- **REST URL:** use `EXPO_PUBLIC_API_URL=https://mordobo-api-qa.onrender.com` or `http://localhost:3000`.
+- **Do not** set `EXPO_PUBLIC_API_URL_PROD` or prod Render URLs in `.env`.
+- **Supabase:** use the project tied to the **QA** API backend — not the production Supabase project (`xxvjunhjerhlxhmarelr`).
+
+Production URLs belong only in:
+
+- `eas.json` → `production` profile
+- Netlify / GitHub Actions for deployed web builds
+- EAS Secrets (not committed `.env`)
+
+## Correct local `.env`
+
+```env
+EXPO_PUBLIC_ENV=development
+EXPO_PUBLIC_API_ENV=qa
+EXPO_PUBLIC_API_URL=https://mordobo-api-qa.onrender.com
+```
+
+## Forbidden in local `.env`
+
+```env
+# ❌ NEVER for local development
+EXPO_PUBLIC_API_ENV=production
+EXPO_PUBLIC_API_URL_PROD=https://mordobo-api-prod.onrender.com
+EXPO_PUBLIC_SUPABASE_URL=https://xxvjunhjerhlxhmarelr.supabase.co
+```
+
+## Code safety net
+
+`utils/apiConfig.ts` forces QA in `__DEV__` if production is detected.
+`utils/supabase.ts` blocks the production Supabase project ref in `__DEV__`.
+
+## After editing `.env`
+
+Restart Expo with cache clear: `npm run start -- -c`
+
+Verify in Metro logs:
+
+```
+[API Config] API_ENV: qa
+[API Config] API_BASE: https://mordobo-api-qa.onrender.com
+```

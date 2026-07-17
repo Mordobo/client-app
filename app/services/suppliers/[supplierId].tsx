@@ -293,6 +293,11 @@ function createProviderDetailStyles(theme: ThemeColors) {
       fontWeight: '700',
       color: '#ffffff',
     },
+    // Disabled state uses a light surface background, so white text is illegible in light
+    // theme. Use a theme-aware muted color so "Reservar ahora" stays readable. (MDB-453)
+    bookButtonTextDisabled: {
+      color: theme.textSecondary,
+    },
     errorText: {
       fontSize: 16,
       color: BRAND.danger,
@@ -685,7 +690,9 @@ export default function ProviderDetailScreen() {
           onPress={handleBookNow}
           disabled={!selectedServiceId}
         >
-          <Text style={styles.bookButtonText}>{t('supplier.bookNow')}</Text>
+          <Text style={[styles.bookButtonText, !selectedServiceId && styles.bookButtonTextDisabled]}>
+            {t('supplier.bookNow')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

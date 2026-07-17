@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
   LayoutChangeEvent,
   Modal,
   PanResponder,
@@ -68,8 +68,26 @@ export default function ProviderServiceAreaScreen() {
   const [zoneNameInput, setZoneNameInput] = useState('');
   const [locationBusy, setLocationBusy] = useState(false);
   const [showUserOnMap, setShowUserOnMap] = useState(false);
+  // Manual keyboard height: a transparent Modal on Android does not inherit the
+  // window's adjustResize, so we lift the sheet by the keyboard height and reset
+  // to 0 on hide. This avoids both the keyboard covering the inputs (MDB-436/437)
+  // and the residual bottom gap that KeyboardAvoidingView + adjustResize left (MDB-443).
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const sliderWidthRef = useRef(0);
   const sliderStartXRef = useRef(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -500,10 +518,8 @@ export default function ProviderServiceAreaScreen() {
         </View>
       </ScrollView>
 
-      {/* Inside a transparent Modal Android ignores adjustResize, so both platforms need
-          KeyboardAvoidingView padding or the keyboard covers the bottom sheet (MDB-436/437). */}
       <Modal visible={locationModalVisible} animationType="slide" transparent onRequestClose={() => setLocationModalVisible(false)}>
-        <KeyboardAvoidingView behavior="padding" style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight }]}>
           <TouchableOpacity style={styles.modalBackdropTouchable} activeOpacity={1} onPress={() => setLocationModalVisible(false)} />
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.setLocationTitle')}</Text>
@@ -540,11 +556,11 @@ export default function ProviderServiceAreaScreen() {
               <Text style={{ color: colors.textSecondary }}>{t('providerDashboard.providerServiceArea.addZoneCancel')}</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       <Modal visible={addZoneModalVisible} animationType="fade" transparent onRequestClose={() => setAddZoneModalVisible(false)}>
-        <KeyboardAvoidingView behavior="padding" style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { paddingBottom: keyboardHeight }]}>
           <TouchableOpacity style={styles.modalBackdropTouchable} activeOpacity={1} onPress={() => setAddZoneModalVisible(false)} />
           <View style={[styles.modalSheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>{t('providerDashboard.providerServiceArea.addZone')}</Text>
@@ -568,7 +584,7 @@ export default function ProviderServiceAreaScreen() {
               <Text style={{ color: colors.textSecondary }}>{t('providerDashboard.providerServiceArea.addZoneCancel')}</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {toast && (

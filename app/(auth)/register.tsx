@@ -16,7 +16,7 @@ import {
 } from '@/utils/googleSignIn';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -140,6 +140,9 @@ const resolveApiErrorMessage = (error: ApiError, translate: typeof t): string =>
 
 export default function RegisterScreen() {
   const { login } = useAuth();
+  // Account type chosen on the previous screen (MDB-444); default "client" if entered directly.
+  const params = useLocalSearchParams<{ accountType?: string }>();
+  const accountType: 'client' | 'provider' = params.accountType === 'provider' ? 'provider' : 'client';
   // Initialize with a default country (Dominican Republic - +1)
   const defaultCountry = COUNTRIES.find(c => c.phoneExtension === '+1') || COUNTRIES[0];
   const [formData, setFormData] = useState({
@@ -434,6 +437,7 @@ export default function RegisterScreen() {
         phoneNumberOnly: trimmedPhoneNumber,
         password,
         country: country?.name || 'Unknown',
+        accountType,
       });
 
       // After successful registration, send verification code
@@ -449,13 +453,22 @@ export default function RegisterScreen() {
         // Store email and password temporarily for resend code and verification
         await AsyncStorage.setItem('pending_verification_email', trimmedEmail.toLowerCase());
         await AsyncStorage.setItem('pending_verification_password', password);
+        // Persist the chosen account type so verify.tsx can route after verification
+        // (provider → onboarding, client → home). Survives router.replace. (MDB-444)
+        await AsyncStorage.setItem('pending_account_type', accountType);
+        // Durable record of how the user signed up. A "provider"-only sign-up must be
+        // gated on the "in review" screen until approved (no client fallback), whereas a
+        // user who signed up as client and later applies as provider keeps client access
+        // (dual-role preserved). Read by provider-onboarding/verification. (MDB-453)
+        await AsyncStorage.setItem('signup_account_type', accountType);
 
         setApiErrorMessage(null);
         // Navigate directly to verification screen
         router.replace({
           pathname: '/(auth)/verify',
-          params: { 
+          params: {
             email: trimmedEmail.toLowerCase(),
+            accountType,
           },
         });
       } catch (validateError) {
@@ -538,6 +551,28 @@ export default function RegisterScreen() {
       console.error('Register error:', error);
 
       if (error instanceof ApiError) {
+        const errorData = error.data as Record<string, unknown> | undefined;
+        const errorCode = errorData?.code as string | undefined;
+        // Existing account trying to sign up as provider: don't show a raw "email taken" error.
+        // Guide them to log in as client and become a provider via switch-mode (dual-role). (MDB-453)
+        if (errorCode === 'email_taken' && accountType === 'provider') {
+          Alert.alert(
+            t('auth.existingProviderTitle'),
+            t('auth.existingProviderMessage'),
+            [
+              { text: t('common.cancel'), style: 'cancel' },
+              {
+                text: t('auth.signIn'),
+                onPress: () =>
+                  router.replace({
+                    pathname: '/(auth)/login',
+                    params: { prefillEmail: trimmedEmail.toLowerCase() },
+                  }),
+              },
+            ],
+          );
+          return;
+        }
         const message = resolveApiErrorMessage(error, t);
         setApiErrorMessage(message);
         Alert.alert(t('common.error'), message);
@@ -723,6 +758,7 @@ export default function RegisterScreen() {
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>{t('auth.phone')}</Text>
                 <PhoneInput
+                  forceDarkTheme
                   selectedCountry={formData.country}
                   phoneExtension={formData.phoneExtension}
                   phoneNumber={formData.phoneNumber}

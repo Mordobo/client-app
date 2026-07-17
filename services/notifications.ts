@@ -41,7 +41,8 @@ export type NotificationType =
   | 'refund_issued'
   | 'job_pending_review'
   | 'job_completed'
-  | 'job_started';
+  | 'job_started'
+  | 'complaint_reply';
 
 export interface NotificationsResponse {
   notifications: Notification[];
@@ -58,11 +59,14 @@ export class ApiError extends Error {
   }
 }
 
+/** Active-mode scope so dual-role users see only the active side's notifications. (MDB-453) */
+export type NotificationScope = 'client' | 'supplier';
+
 // GET /notifications - Fetch all notifications
-export const fetchNotifications = async (): Promise<Notification[]> => {
+export const fetchNotifications = async (scope?: NotificationScope): Promise<Notification[]> => {
   try {
     const data = await request<NotificationsResponse>(
-      '/notifications',
+      `/notifications${scope ? `?scope=${scope}` : ''}`,
       {
         method: 'GET',
       },
@@ -99,10 +103,10 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
 };
 
 // PATCH /notifications/read-all - Mark all notifications as read
-export const markAllNotificationsAsRead = async (): Promise<void> => {
+export const markAllNotificationsAsRead = async (scope?: NotificationScope): Promise<void> => {
   try {
     await request<void>(
-      '/notifications/read-all',
+      `/notifications/read-all${scope ? `?scope=${scope}` : ''}`,
       {
         method: 'PATCH',
       },
@@ -117,10 +121,10 @@ export const markAllNotificationsAsRead = async (): Promise<void> => {
 };
 
 // GET /notifications/unread-count - Fetch unread count
-export const fetchUnreadNotificationCount = async (): Promise<number> => {
+export const fetchUnreadNotificationCount = async (scope?: NotificationScope): Promise<number> => {
   try {
     const data = await request<{ unreadCount: number }>(
-      '/notifications/unread-count',
+      `/notifications/unread-count${scope ? `?scope=${scope}` : ''}`,
       {
         method: 'GET',
       },
@@ -184,10 +188,10 @@ export const deleteNotification = async (notificationId: string): Promise<void> 
 };
 
 // DELETE /notifications/clear-all - Delete all notifications
-export const deleteAllNotifications = async (): Promise<void> => {
+export const deleteAllNotifications = async (scope?: NotificationScope): Promise<void> => {
   try {
     await request<void>(
-      '/notifications/clear-all',
+      `/notifications/clear-all${scope ? `?scope=${scope}` : ''}`,
       { method: 'DELETE' },
       t('errors.requestFailedStatus', { status: 0 })
     );
