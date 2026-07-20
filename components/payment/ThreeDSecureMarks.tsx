@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -10,7 +11,7 @@ interface ThreeDSecureMarkProps {
 
 /**
  * Visual 3-D Secure marks required by Azul on home, security policy, and checkout.
- * Styled to match Verified by Visa / Visa Secure and Mastercard Identity Check branding.
+ * Mastercard uses the official ID Check mark provided for merchant review.
  */
 export function ThreeDSecureMark({ variant, width = 148 }: ThreeDSecureMarkProps) {
   if (variant === "visa_secure") {
@@ -32,28 +33,19 @@ export function ThreeDSecureMark({ variant, width = 148 }: ThreeDSecureMarkProps
     );
   }
 
-  const height = Math.round(width * 0.42);
-  const circle = Math.round(height * 0.42);
+  // Official Mastercard ID Check mark (square asset from Azul / Mastercard).
+  const size = Math.round(width * 0.72);
   return (
     <View
-      style={[styles.mcShell, { width, height, borderRadius: Math.round(height * 0.18) }]}
+      style={[styles.mcOfficialShell, { width: size, height: size }]}
       accessibilityRole="image"
-      accessibilityLabel="Mastercard Identity Check"
+      accessibilityLabel="Mastercard ID Check"
     >
-      <View style={[styles.mcCircles, { width: circle * 1.55, height: circle }]}>
-        <View style={[styles.mcCircle, styles.mcRed, { width: circle, height: circle, borderRadius: circle / 2 }]} />
-        <View
-          style={[
-            styles.mcCircle,
-            styles.mcOrange,
-            { width: circle, height: circle, borderRadius: circle / 2, left: circle * 0.55 },
-          ]}
-        />
-      </View>
-      <View style={styles.mcCopy}>
-        <Text style={styles.mcTitle}>Mastercard</Text>
-        <Text style={styles.mcSubtitle}>Identity Check</Text>
-      </View>
+      <Image
+        source={require("@/assets/images/payment/mastercard-id-check.png")}
+        style={{ width: size, height: size }}
+        contentFit="contain"
+      />
     </View>
   );
 }
@@ -95,39 +87,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginTop: 1,
   },
-  mcShell: {
-    backgroundColor: "#111827",
-    flexDirection: "row",
+  mcOfficialShell: {
+    backgroundColor: "#000000",
+    borderRadius: 8,
+    overflow: "hidden",
     alignItems: "center",
-    paddingHorizontal: 10,
-    gap: 8,
-  },
-  mcCircles: {
-    position: "relative",
-  },
-  mcCircle: {
-    position: "absolute",
-    top: 0,
-  },
-  mcRed: {
-    backgroundColor: "#EB001B",
-    left: 0,
-  },
-  mcOrange: {
-    backgroundColor: "#F79E1B",
-  },
-  mcCopy: {
-    flexShrink: 1,
-  },
-  mcTitle: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  mcSubtitle: {
-    color: "#D1D5DB",
-    fontSize: 10,
-    fontWeight: "600",
-    marginTop: 1,
+    justifyContent: "center",
   },
 });
