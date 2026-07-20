@@ -160,33 +160,33 @@ export const DELIVERY_POLICY: PublicPolicy = {
 };
 
 export const SECURITY_POLICY: PublicPolicy = {
-  title: "Seguridad de Pagos",
-  updated,
+  title: "Políticas de Seguridad",
+  updated: "20 de julio de 2026",
   intro:
-    "Mordobo protege la transmisión de información y reduce al mínimo el tratamiento directo de datos sensibles de tarjetas.",
+    "Mordobo toma medidas razonables para proteger tu información personal y de pago, siguiendo prácticas de la industria y los estándares exigidos por nuestro procesador de pagos.",
   sections: [
     {
-      heading: "1. Transmisión segura",
+      heading: "Website",
       paragraphs: [
-        "Las comunicaciones con nuestros servicios utilizan conexiones cifradas mediante HTTPS/TLS. El acceso a información operativa está limitado a personal autorizado.",
+        "Tomamos todas las medidas y precauciones razonables para proteger tu información personal y seguimos las mejores prácticas de la industria para asegurar que tu información no sea utilizada de manera inapropiada, alterada o destruida. Ciframos la información de tu tarjeta de crédito utilizando la tecnología de capa de puertos seguros o Secure Sockets Layer (SSL), y la almacenamos con el cifrado AES-256. También, seguimos todos los requerimientos del PCI-DSS.",
       ],
     },
     {
-      heading: "2. Datos de tarjetas",
+      heading: "Pagos",
       paragraphs: [
-        "Los datos sensibles son procesados directamente por nuestro proveedor de pagos autorizado. Mordobo no almacena el número completo de tarjeta, su código CVV ni credenciales de autenticación bancaria.",
+        "Los métodos de pago utilizados por Mordobo son servicios de terceros. Estos servicios de terceros (AZUL) cumplen con todos los estándares de seguridad y cifrado para mantener tu información segura. Solo utilizarán la información necesaria para completar el proceso requerido. También recomendamos leer las Políticas de Privacidad de estos proveedores, para entender mejor cómo manejan la información suministrada.",
       ],
     },
     {
-      heading: "3. Autenticación y monitoreo",
+      heading: "Autenticación 3-D Secure",
       paragraphs: [
-        "Las transacciones pueden estar sujetas a controles antifraude y autenticación 3D Secure, incluyendo Verified by Visa / Visa Secure y Mastercard Identity Check, cuando corresponda.",
+        "Las transacciones pueden estar sujetas a autenticación 3-D Secure, incluyendo Verified by Visa / Visa Secure y Mastercard ID Check, cuando corresponda.",
       ],
     },
     {
-      heading: "4. Reporte de incidentes",
+      heading: "Reporte de incidentes",
       paragraphs: [
-        `Si detectas un cargo o actividad que no reconoces, comunícate inmediatamente con tu banco y notifícanos en ${MERCHANT.supportEmail}.`,
+        `Si detectas un cargo o actividad que no reconoces, comunícate inmediatamente con tu banco y notifícanos en ${MERCHANT.supportEmail} o al ${MERCHANT.supportPhoneDisplay}.`,
       ],
     },
   ],
