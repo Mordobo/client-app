@@ -99,10 +99,10 @@ export const PRIVACY_POLICY: PublicPolicy = {
 };
 
 export const REFUND_POLICY: PublicPolicy = {
-  title: "Cancelaciones y Reembolsos",
-  updated,
+  title: "Política de Devoluciones, Cancelaciones y Reembolsos",
+  updated: "21 de julio de 2026",
   intro:
-    "Esta política explica cómo cancelar una reserva, cuándo corresponde un reembolso y cómo presentar una reclamación.",
+    "Esta política informa al tarjetahabiente, antes de comprar, sobre sus derechos y responsabilidades en materia de devoluciones, cancelaciones y reembolsos de servicios contratados a través de Mordobo.",
   sections: [
     {
       heading: "1. Antes de comenzar el servicio",

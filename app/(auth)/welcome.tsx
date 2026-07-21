@@ -287,6 +287,21 @@ export default function WelcomeScreen() {
           <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
         </View>
 
+        {/* Azul merchant review entry — Spanish, prominent, above login */}
+        <TouchableOpacity
+          style={styles.merchantInfoButton}
+          onPress={() => router.push('/informacion-comercio')}
+          accessibilityRole="button"
+        >
+          <Text style={styles.merchantInfoButtonTitle}>Información del comercio</Text>
+          <Text style={styles.merchantInfoButtonSubtitle}>
+            Servicios · Políticas · Moneda RD$/DOP · Recibo · Seguridad
+          </Text>
+        </TouchableOpacity>
+        <Text style={styles.currencyBannerTop}>
+          Moneda de compra: RD$ / DOP$ (pesos dominicanos)
+        </Text>
+
         {/* Action buttons section */}
         <View style={styles.actionsSection}>
           {/* Primary Button - Sign In */}
@@ -346,36 +361,39 @@ export default function WelcomeScreen() {
           </View>
 
           <Text style={styles.businessDescription}>
-            {t('compliance.businessDescription')}
+            Plataforma dominicana para buscar, reservar y pagar servicios de proveedores independientes.
           </Text>
-          <Text style={styles.currencyBanner}>{t('compliance.currencyBanner')}</Text>
           <View style={styles.legalLinks}>
+            <Text style={styles.legalLink} onPress={() => router.push('/informacion-comercio')}>
+              Información del comercio
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/service-catalog')}>
-              {t('compliance.linkServices')}
+              Servicios
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
-              {t('compliance.linkTerms')}
+              Términos
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/privacy')}>
-              {t('compliance.linkPrivacy')}
+              Privacidad
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/refunds')}>
-              {t('compliance.linkRefunds')}
+              Reembolsos
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/delivery')}>
-              {t('compliance.linkDelivery')}
+              Política de entrega
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/payment-security')}>
-              {t('compliance.linkSecurity')}
+              Seguridad
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/receipt-sample')}>
-              {t('compliance.linkReceiptSample')}
+              Modelo de recibo
             </Text>
           </View>
           <View style={styles.complianceBlock}>
@@ -439,6 +457,36 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     margin: 0,
+  },
+  merchantInfoButton: {
+    width: '100%',
+    backgroundColor: '#064E3B',
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  merchantInfoButtonTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  merchantInfoButtonSubtitle: {
+    color: '#A7F3D0',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  currencyBannerTop: {
+    color: '#6EE7B7',
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 18,
   },
   actionsSection: {
     width: '100%',
@@ -520,14 +568,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     textAlign: 'center',
     marginTop: 18,
-  },
-  currencyBanner: {
-    color: '#6EE7B7',
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 10,
   },
   legalLinks: {
     flexDirection: 'row',
