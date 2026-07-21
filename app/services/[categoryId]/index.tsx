@@ -230,6 +230,18 @@ export default function CategoryDetailScreen() {
           ListEmptyComponent={() => (
             <View style={styles.emptyState}>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{t("categories.noResultsForCategory")}</Text>
+              <Text style={[styles.emptyHint, { color: colors.textSecondary }]}>
+                Consulte el catálogo público de servicios con descripciones y precios en RD$.
+              </Text>
+              <TouchableOpacity
+                style={styles.catalogButton}
+                onPress={() => router.push("/service-catalog")}
+              >
+                <Text style={styles.catalogButtonText}>Ver catálogo de servicios</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/informacion-comercio")}>
+                <Text style={styles.catalogLink}>Información del comercio</Text>
+              </TouchableOpacity>
             </View>
           )}
           showsVerticalScrollIndicator={false}
@@ -338,10 +350,35 @@ const styles = StyleSheet.create({
   emptyState: {
     padding: 40,
     alignItems: "center",
+    gap: 12,
   },
   emptyText: {
     fontSize: 16,
     textAlign: "center",
+  },
+  emptyHint: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 19,
+    marginTop: 4,
+  },
+  catalogButton: {
+    marginTop: 8,
+    backgroundColor: "#10B981",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  catalogButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  catalogLink: {
+    color: "#3B82F6",
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 4,
   },
   errorText: {
     fontSize: 16,
