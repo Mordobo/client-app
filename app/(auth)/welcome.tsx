@@ -348,7 +348,12 @@ export default function WelcomeScreen() {
           <Text style={styles.businessDescription}>
             {t('compliance.businessDescription')}
           </Text>
+          <Text style={styles.currencyBanner}>{t('compliance.currencyBanner')}</Text>
           <View style={styles.legalLinks}>
+            <Text style={styles.legalLink} onPress={() => router.push('/service-catalog')}>
+              {t('compliance.linkServices')}
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
               {t('compliance.linkTerms')}
             </Text>
@@ -367,6 +372,10 @@ export default function WelcomeScreen() {
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/payment-security')}>
               {t('compliance.linkSecurity')}
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
+            <Text style={styles.legalLink} onPress={() => router.push('/receipt-sample')}>
+              {t('compliance.linkReceiptSample')}
             </Text>
           </View>
           <View style={styles.complianceBlock}>
@@ -511,6 +520,14 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     textAlign: 'center',
     marginTop: 18,
+  },
+  currencyBanner: {
+    color: '#6EE7B7',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 10,
   },
   legalLinks: {
     flexDirection: 'row',
