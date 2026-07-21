@@ -133,27 +133,42 @@ export const REFUND_POLICY: PublicPolicy = {
 };
 
 export const DELIVERY_POLICY: PublicPolicy = {
-  title: "Política de Prestación del Servicio",
-  updated,
+  title: "Política de Entrega / Prestación del Servicio",
+  updated: "21 de julio de 2026",
   intro:
-    "Mordobo facilita servicios presenciales y, cuando corresponda, remotos. No realizamos envíos de productos físicos.",
+    "Mordobo no vende productos físicos ni realiza envíos de mercancía. La “entrega” consiste en la prestación del servicio contratado por un proveedor independiente, en la fecha, hora y lugar acordados con el cliente.",
   sections: [
     {
-      heading: "1. Coordinación",
+      heading: "1. Qué se entrega",
       paragraphs: [
-        "El servicio será prestado por el proveedor seleccionado en la dirección, fecha y horario indicados en la reserva y confirmados dentro de la aplicación.",
+        "Al completar el pago, el cliente adquiere el derecho a recibir el servicio descrito en su reserva (por ejemplo: limpieza, lavado de vehículos, reparaciones, belleza a domicilio u otros servicios del catálogo).",
+        "No se realizan entregas de paquetes, productos ni mercancía física. El valor del servicio se expresa y cobra en pesos dominicanos (RD$ / DOP).",
       ],
     },
     {
-      heading: "2. Confirmación",
+      heading: "2. Lugar y momento de la prestación",
       paragraphs: [
-        "El cliente recibe electrónicamente el estado de la reserva, los detalles del proveedor, el lugar acordado y el comprobante del pago.",
+        "El servicio se presta en la dirección indicada por el cliente al reservar (domicilio, local u otra ubicación acordada), o de forma remota cuando el tipo de servicio lo permita.",
+        "La fecha y el horario quedan confirmados en la aplicación antes del pago. El proveedor debe presentarse o iniciar el servicio en el intervalo acordado.",
       ],
     },
     {
-      heading: "3. Cambios o imposibilidad de prestación",
+      heading: "3. Confirmación al cliente",
       paragraphs: [
-        "Si el proveedor no puede cumplir el horario o lugar acordado, deberá comunicarlo mediante la plataforma. El cliente podrá aceptar una reprogramación o solicitar revisión conforme a la política de cancelaciones.",
+        "Tras el pago exitoso, el cliente recibe electrónicamente: estado de la reserva, datos del proveedor, lugar y fecha del servicio, y un comprobante de pago con monto en RD$/DOP, referencia y tarjeta enmascarada.",
+      ],
+    },
+    {
+      heading: "4. Plazos y cambios",
+      paragraphs: [
+        "Si el proveedor no puede cumplir el horario o lugar acordado, debe comunicarlo por la plataforma. El cliente podrá aceptar una reprogramación o solicitar cancelación/reembolso conforme a la Política de Cancelaciones y Reembolsos.",
+        "Si el cliente no está disponible en el lugar y hora acordados sin aviso razonable, el proveedor podrá reportarlo y aplicarse las reglas de cancelación publicadas.",
+      ],
+    },
+    {
+      heading: "5. Contacto sobre la entrega del servicio",
+      paragraphs: [
+        `Para dudas sobre una reserva o la prestación del servicio: ${MERCHANT.supportEmail} / ${MERCHANT.supportPhoneDisplay}. Domicilio comercial: ${MERCHANT.address}.`,
       ],
     },
   ],
