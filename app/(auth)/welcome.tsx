@@ -385,6 +385,7 @@ export default function WelcomeScreen() {
             >
               <Text style={styles.supportLink}>{MERCHANT.supportPhoneDisplay}</Text>
             </TouchableOpacity>
+            <Text style={styles.supportAddress}>{MERCHANT.address}</Text>
           </View>
         </View>
       </ScrollView>
@@ -547,5 +548,13 @@ const styles = StyleSheet.create({
     color: '#93C5FD',
     fontSize: 13,
     fontWeight: '600',
+  },
+  supportAddress: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 12,
   },
 });
