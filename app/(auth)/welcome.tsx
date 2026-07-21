@@ -1,18 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { t } from '@/i18n';
-import { ApiError as AuthApiError } from '@/services/auth';
-import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
-// Note: We no longer use markWelcomeScreenAsSeen - login_count is managed by backend
-import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
-import { type GoogleProfile } from '@/utils/authMapping';
-import {
-  consumePendingGoogleWebResult,
-  isGoogleConfigured,
-  signInWithGoogleWeb,
-  signInWithGoogleMobile,
-  WEB_RESULT_STORAGE_KEY,
-} from '@/utils/googleSignIn';
-import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
+import MordoboLogo from '@/components/MordoboLogo';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -27,8 +13,20 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MordoboLogo from '@/components/MordoboLogo';
-import { PaymentComplianceBadges } from '@/components/payment/PaymentComplianceBadges';
+import { useAuth } from '@/contexts/AuthContext';
+import { t } from '@/i18n';
+import { ApiError as AuthApiError } from '@/services/auth';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
+import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
+import { type GoogleProfile } from '@/utils/authMapping';
+import {
+  consumePendingGoogleWebResult,
+  isGoogleConfigured,
+  signInWithGoogleWeb,
+  signInWithGoogleMobile,
+  WEB_RESULT_STORAGE_KEY,
+} from '@/utils/googleSignIn';
+import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
 
 export default function WelcomeScreen() {
   const { login, isAuthenticated } = useAuth();
@@ -287,21 +285,6 @@ export default function WelcomeScreen() {
           <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
         </View>
 
-        {/* Azul merchant review entry — Spanish, prominent, above login */}
-        <TouchableOpacity
-          style={styles.merchantInfoButton}
-          onPress={() => router.push('/informacion-comercio')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.merchantInfoButtonTitle}>Información del comercio</Text>
-          <Text style={styles.merchantInfoButtonSubtitle}>
-            Servicios · Políticas · Moneda RD$/DOP · Recibo · Seguridad
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.currencyBannerTop}>
-          Moneda de compra: RD$ / DOP$ (pesos dominicanos)
-        </Text>
-
         {/* Action buttons section */}
         <View style={styles.actionsSection}>
           {/* Primary Button - Sign In */}
@@ -360,18 +343,7 @@ export default function WelcomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.businessDescription}>
-            Plataforma dominicana para buscar, reservar y pagar servicios de proveedores independientes.
-          </Text>
           <View style={styles.legalLinks}>
-            <Text style={styles.legalLink} onPress={() => router.push('/informacion-comercio')}>
-              Información del comercio
-            </Text>
-            <Text style={styles.legalSeparator}>•</Text>
-            <Text style={styles.legalLink} onPress={() => router.push('/service-catalog')}>
-              Servicios
-            </Text>
-            <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
               Términos
             </Text>
@@ -385,23 +357,12 @@ export default function WelcomeScreen() {
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/delivery')}>
-              Política de entrega
+              Entrega
             </Text>
             <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/payment-security')}>
               Seguridad
             </Text>
-            <Text style={styles.legalSeparator}>•</Text>
-            <Text style={styles.legalLink} onPress={() => router.push('/receipt-sample')}>
-              Modelo de recibo
-            </Text>
-          </View>
-          <View style={styles.complianceBlock}>
-            <PaymentComplianceBadges
-              appearance="dark"
-              showContact
-              compact
-            />
           </View>
         </View>
       </ScrollView>
@@ -457,36 +418,6 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     textAlign: 'center',
     margin: 0,
-  },
-  merchantInfoButton: {
-    width: '100%',
-    backgroundColor: '#064E3B',
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#10B981',
-  },
-  merchantInfoButtonTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  merchantInfoButtonSubtitle: {
-    color: '#A7F3D0',
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 17,
-  },
-  currencyBannerTop: {
-    color: '#6EE7B7',
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 18,
   },
   actionsSection: {
     width: '100%',
@@ -562,32 +493,21 @@ const styles = StyleSheet.create({
   socialButtonDisabled: {
     opacity: 0.6,
   },
-  businessDescription: {
-    color: '#9CA3AF',
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: 'center',
-    marginTop: 18,
-  },
   legalLinks: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 7,
-    marginTop: 9,
+    marginTop: 28,
   },
   legalLink: {
     color: '#60A5FA',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   legalSeparator: {
     color: '#6B7280',
     fontSize: 10,
-  },
-  complianceBlock: {
-    marginTop: 14,
-    width: '100%',
   },
 });
