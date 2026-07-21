@@ -1,10 +1,26 @@
 import MordoboLogo from '@/components/MordoboLogo';
+import { MERCHANT } from '@/constants/merchant';
+import { useAuth } from '@/contexts/AuthContext';
+import { t } from '@/i18n';
+import { ApiError as AuthApiError } from '@/services/auth';
+import { type GoogleProfile } from '@/utils/authMapping';
+import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
+import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
+import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
+import {
+  consumePendingGoogleWebResult,
+  isGoogleConfigured,
+  signInWithGoogleWeb,
+  signInWithGoogleMobile,
+  WEB_RESULT_STORAGE_KEY,
+} from '@/utils/googleSignIn';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,20 +29,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext';
-import { t } from '@/i18n';
-import { ApiError as AuthApiError } from '@/services/auth';
-import { translatedAuthRestrictionMessage } from '@/utils/authRestrictionMessage';
-import { registerGoogleAccountOrFallback, type GoogleAuthTokens } from '@/utils/googleAuth';
-import { type GoogleProfile } from '@/utils/authMapping';
-import {
-  consumePendingGoogleWebResult,
-  isGoogleConfigured,
-  signInWithGoogleWeb,
-  signInWithGoogleMobile,
-  WEB_RESULT_STORAGE_KEY,
-} from '@/utils/googleSignIn';
-import { isAppleSignInAvailable, loginOrRegisterWithApple, signInWithApple } from '@/utils/appleAuth';
 
 export default function WelcomeScreen() {
   const { login, isAuthenticated } = useAuth();
@@ -344,6 +346,10 @@ export default function WelcomeScreen() {
           </View>
 
           <View style={styles.legalLinks}>
+            <Text style={styles.legalLink} onPress={() => router.push('/service-catalog')}>
+              Servicios
+            </Text>
+            <Text style={styles.legalSeparator}>•</Text>
             <Text style={styles.legalLink} onPress={() => router.push('/terms')}>
               Términos
             </Text>
@@ -363,6 +369,22 @@ export default function WelcomeScreen() {
             <Text style={styles.legalLink} onPress={() => router.push('/payment-security')}>
               Seguridad
             </Text>
+          </View>
+
+          <View style={styles.supportBlock}>
+            <Text style={styles.supportTitle}>Atención al cliente</Text>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`mailto:${MERCHANT.supportEmail}`)}
+              accessibilityRole="link"
+            >
+              <Text style={styles.supportLink}>{MERCHANT.supportEmail}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`https://wa.me/${MERCHANT.supportPhoneE164}`)}
+              accessibilityRole="link"
+            >
+              <Text style={styles.supportLink}>{MERCHANT.supportPhoneDisplay}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -509,5 +531,21 @@ const styles = StyleSheet.create({
   legalSeparator: {
     color: '#6B7280',
     fontSize: 10,
+  },
+  supportBlock: {
+    marginTop: 22,
+    alignItems: 'center',
+    gap: 6,
+  },
+  supportTitle: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  supportLink: {
+    color: '#93C5FD',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
