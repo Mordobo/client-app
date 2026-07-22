@@ -1,4 +1,5 @@
 import { CategoryCard } from "@/components/CategoryCard";
+import { MerchantPolicyLinks } from "@/components/legal/MerchantPolicyLinks";
 import { PaymentComplianceBadges } from "@/components/payment/PaymentComplianceBadges";
 import { TopProviderCard } from "@/components/TopProviderCard";
 import { useAuth } from "@/contexts/AuthContext";
@@ -372,6 +373,11 @@ export default function HomeScreen() {
         </View>
 
         <View style={[styles.complianceSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <MerchantPolicyLinks
+            appearance={colorScheme === "dark" ? "dark" : "light"}
+            showTitle
+          />
+          <View style={styles.complianceDivider} />
           <PaymentComplianceBadges
             appearance={colorScheme === "dark" ? "dark" : "light"}
             showContact
@@ -564,5 +570,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
+    gap: 14,
+  },
+  complianceDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    opacity: 0.8,
   },
 });
