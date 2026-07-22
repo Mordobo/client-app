@@ -9,8 +9,7 @@ type PolicyHref =
   | "/refunds"
   | "/delivery"
   | "/payment-security"
-  | "/receipt-sample"
-  | "/informacion-comercio";
+  | "/receipt-sample";
 
 type PolicyLink = { label: string; href: PolicyHref };
 
@@ -67,13 +66,6 @@ export function MerchantPolicyLinks({
           </React.Fragment>
         ))}
       </View>
-      <Text
-        style={[styles.hubLink, { color: linkColor }]}
-        onPress={() => router.push("/informacion-comercio")}
-        accessibilityRole="link"
-      >
-        Ver toda la información del comercio
-      </Text>
     </View>
   );
 }
@@ -102,11 +94,5 @@ const styles = StyleSheet.create({
   },
   separator: {
     fontSize: 11,
-  },
-  hubLink: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 2,
-    textAlign: "center",
   },
 });

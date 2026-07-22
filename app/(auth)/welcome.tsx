@@ -375,14 +375,6 @@ export default function WelcomeScreen() {
             </Text>
           </View>
 
-          <Text
-            style={styles.hubLink}
-            onPress={() => router.push('/informacion-comercio')}
-            accessibilityRole="link"
-          >
-            Ver toda la información del comercio
-          </Text>
-
           <View style={styles.supportBlock}>
             <Text style={styles.supportTitle}>Atención al cliente</Text>
             <TouchableOpacity
@@ -544,13 +536,6 @@ const styles = StyleSheet.create({
   legalSeparator: {
     color: '#6B7280',
     fontSize: 10,
-  },
-  hubLink: {
-    color: '#93C5FD',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 10,
   },
   supportBlock: {
     marginTop: 22,
