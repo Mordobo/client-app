@@ -472,7 +472,7 @@ export default function PaymentScreen() {
         </View>
 
         <View style={styles.complianceBlock}>
-          <PaymentComplianceBadges appearance="light" showContact={false} />
+          <PaymentComplianceBadges appearance="light" showContact />
         </View>
 
         <TouchableOpacity
@@ -504,12 +504,20 @@ export default function PaymentScreen() {
           </Text>
         </TouchableOpacity>
         <View style={styles.extraPolicyLinks}>
+          <Text style={styles.consentLink} onPress={() => router.push('/service-catalog')}>
+            {t('compliance.linkServices')}
+          </Text>
+          <Text style={styles.policyDot}>·</Text>
           <Text style={styles.consentLink} onPress={() => router.push('/delivery')}>
             {t('compliance.linkDelivery')}
           </Text>
           <Text style={styles.policyDot}>·</Text>
           <Text style={styles.consentLink} onPress={() => router.push('/payment-security')}>
             {t('compliance.linkSecurity')}
+          </Text>
+          <Text style={styles.policyDot}>·</Text>
+          <Text style={styles.consentLink} onPress={() => router.push('/receipt-sample')}>
+            {t('compliance.linkReceiptSample')}
           </Text>
         </View>
       </ScrollView>
