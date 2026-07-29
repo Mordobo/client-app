@@ -643,6 +643,24 @@ export default {
     privacyPolicy: "Política de Privacidad",
     refundPolicy: "Política de Cancelaciones y Reembolsos",
     confirmAndPayAmount: "Confirmar y pagar {{amount}}",
+    azulRedirectTitle: "Pago con tarjeta vía AZUL",
+    azulRedirectInfo:
+      "Al confirmar, serás redirigido a la página segura de pagos de AZUL para ingresar los datos de tu tarjeta. Mordobo nunca almacena el número completo de tu tarjeta.",
+    azulPaymentPending:
+      "El pago aún no se ha completado. Si finalizaste el pago en la página de AZUL, espera unos segundos y revisa tus reservas.",
+    azulPaymentDeclined: "El pago fue declinado por el banco. Intenta con otra tarjeta.",
+  },
+  paymentResult: {
+    declinedTitle: "Pago declinado",
+    declinedMessage:
+      "Tu banco declinó la transacción. No se realizó ningún cargo. Puedes intentar de nuevo con otra tarjeta.",
+    cancelledTitle: "Pago cancelado",
+    cancelledMessage: "Cancelaste el pago antes de completarlo. No se realizó ningún cargo.",
+    errorTitle: "No pudimos verificar el pago",
+    errorMessage:
+      "Ocurrió un problema al verificar el resultado del pago. Si el cargo aparece en tu tarjeta, contáctanos en soporte@mordobo.com.",
+    viewBookings: "Ver mis reservas",
+    goHome: "Ir al inicio",
   },
   compliance: {
     paymentMarksA11y: "Marcas de tarjetas aceptadas y autenticación 3-D Secure",

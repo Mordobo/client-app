@@ -160,6 +160,91 @@ export const fetchPayment = async (paymentId: string): Promise<Payment> => {
 };
 
 // ============================================
+// AZUL PAYMENT PAGE (hosted checkout)
+// ============================================
+
+export interface AzulConfig {
+  enabled: boolean;
+  environment?: 'test' | 'live';
+}
+
+export interface AzulSessionData {
+  /** Existing order (quote flow). */
+  order_id?: string;
+  /** New booking flow (order does not exist yet). */
+  service_id?: string;
+  category_id?: string;
+  supplier_id?: string;
+  scheduled_at?: string;
+  address?: string;
+  notes?: string;
+  amount: number;
+  terms_accepted: true;
+  /**
+   * Native only: deep link (e.g. mordobo://booking/payment-result) where the API
+   * redirects the browser after AZUL returns, so the in-app browser closes and
+   * control comes back to the app.
+   */
+  return_deep_link?: string;
+}
+
+export interface AzulSession {
+  payment_id: string;
+  order_id: string;
+  order_number: string;
+  /** Bridge URL that redirects the browser to AZUL's secure Payment Page. */
+  checkout_url: string;
+}
+
+// GET /payments/azul/config - Whether the AZUL redirect flow is active on the API
+export const getAzulConfig = async (): Promise<AzulConfig> => {
+  try {
+    const token = await getToken();
+    const response = await fetch(`${API_BASE}/payments/azul/config`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) return { enabled: false };
+    return await response.json();
+  } catch {
+    // If the check fails we fall back to the standard (mock) flow.
+    return { enabled: false };
+  }
+};
+
+// POST /payments/azul/session - Create a pending payment and get the AZUL checkout URL
+export const createAzulSession = async (data: AzulSessionData): Promise<AzulSession> => {
+  try {
+    const token = await getToken();
+    const response = await fetch(`${API_BASE}/payments/azul/session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as { message?: string; code?: string };
+      throw new ApiError(
+        errorData.message || 'Failed to start AZUL checkout',
+        response.status,
+        errorData
+      );
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError('Network error. Please check your connection.', 0, error);
+  }
+};
+
+// ============================================
 // PAYMENT METHODS
 // ============================================
 

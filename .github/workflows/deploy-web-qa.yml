@@ -1,0 +1,50 @@
+name: Deploy Web QA
+
+# QA web environment: same Netlify site as production but published as an
+# "alias deploy" (https://qa--<site-name>.netlify.app), built against the QA
+# API (mordobo-api-qa.onrender.com). Used for payment/AZUL testing without
+# touching mordobo.com or the production API.
+
+on:
+  push:
+    branches:
+      - qa
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-qa:
+    name: Build and deploy QA web to Netlify (alias qa)
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_ENV: staging
+      EXPO_PUBLIC_API_ENV: qa
+      EXPO_PUBLIC_API_URL: https://mordobo-api-qa.onrender.com
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY }}
+      EXPO_PUBLIC_COMPANY_ADDRESS: ${{ vars.EXPO_PUBLIC_COMPANY_ADDRESS }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.4"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static web export (QA API)
+        run: npm run build:web
+
+      - name: Deploy to Netlify (alias qa)
+        run: |
+          if [ -n "$NETLIFY_AUTH_TOKEN" ] && [ -n "$NETLIFY_SITE_ID" ]; then
+            npx --yes netlify-cli deploy --alias qa --dir=dist --message "QA deploy from GitHub Actions (${{ github.sha }})"
+          else
+            echo "::error::NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID missing. Add them in GitHub → Settings → Secrets."
+            exit 1
+          fi

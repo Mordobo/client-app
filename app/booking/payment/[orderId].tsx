@@ -3,11 +3,16 @@ import {
   createPayment,
   bookAndPay,
   getPaymentMethods,
+  getAzulConfig,
+  createAzulSession,
+  fetchPayment,
   PaymentMethod,
   ApiError as PaymentApiError,
 } from '@/services/payments';
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -127,6 +132,24 @@ export default function PaymentScreen() {
           color: colors.primary,
           marginLeft: 14,
         },
+        azulInfoCard: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 14,
+          backgroundColor: colors.bgCard,
+          borderRadius: 14,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: colors.cardBorder,
+        },
+        azulInfoContent: { flex: 1 },
+        azulInfoTitle: {
+          fontSize: 15,
+          fontWeight: '600',
+          color: colors.textPrimary,
+          marginBottom: 6,
+        },
+        azulInfoText: { fontSize: 13, lineHeight: 19, color: colors.textSecondary },
         securityContainer: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -238,11 +261,27 @@ export default function PaymentScreen() {
   const [loading, setLoading] = useState(true);
   const [showAddCardModal, setShowAddCardModal] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // When the API has AZUL enabled, the card is entered on AZUL's hosted page
+  // (redirect flow) instead of using saved payment methods.
+  const [azulEnabled, setAzulEnabled] = useState(false);
 
   const total = totalAmount ? parseFloat(totalAmount) : 125.0;
 
   useEffect(() => {
-    loadPaymentMethods();
+    const init = async () => {
+      try {
+        const azulConfig = await getAzulConfig();
+        if (azulConfig.enabled) {
+          setAzulEnabled(true);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Fall back to the standard flow
+      }
+      loadPaymentMethods();
+    };
+    init();
   }, []);
 
   const loadPaymentMethods = async () => {
@@ -266,7 +305,102 @@ export default function PaymentScreen() {
     }
   };
 
+  const handleAzulPayment = async () => {
+    try {
+      setProcessing(true);
+
+      const isWeb = Platform.OS === 'web';
+      // Native: the API redirects the browser to this deep link when AZUL
+      // returns, so the in-app browser closes and control comes back here.
+      const returnDeepLink = isWeb ? undefined : Linking.createURL('/booking/payment-result');
+
+      const session = await createAzulSession(
+        isNewBooking
+          ? {
+              service_id: serviceId!,
+              category_id: categoryId || undefined,
+              supplier_id: supplierId!,
+              scheduled_at: scheduledAt || undefined,
+              address: address || undefined,
+              notes: notes || undefined,
+              amount: total,
+              terms_accepted: true,
+              return_deep_link: returnDeepLink,
+            }
+          : {
+              order_id: orderId,
+              amount: total,
+              terms_accepted: true,
+              return_deep_link: returnDeepLink,
+            }
+      );
+
+      if (isWeb && typeof window !== 'undefined') {
+        // Full-page redirect: AZUL sends the browser back to the API, which
+        // redirects to /booking/success or /booking/payment-result.
+        window.location.assign(session.checkout_url);
+        return;
+      }
+
+      // Native: open the hosted page in an in-app browser session that closes
+      // automatically when the API redirects to our deep link.
+      const result = await WebBrowser.openAuthSessionAsync(session.checkout_url, returnDeepLink!);
+
+      if (result.type === 'success' && result.url) {
+        const { queryParams } = Linking.parse(result.url);
+        const status = typeof queryParams?.status === 'string' ? queryParams.status : '';
+        if (status === 'approved') {
+          router.replace({
+            pathname: '/booking/success/[orderId]',
+            params: { orderId: session.order_id, paymentId: session.payment_id },
+          });
+        } else {
+          router.replace({
+            pathname: '/booking/payment-result',
+            params: {
+              status: status || 'error',
+              orderId: session.order_id,
+              paymentId: session.payment_id,
+            },
+          });
+        }
+        return;
+      }
+
+      // Browser dismissed without reaching the deep link: check the payment status.
+      const payment = await fetchPayment(session.payment_id);
+      if (payment.status === 'completed') {
+        router.replace({
+          pathname: '/booking/success/[orderId]',
+          params: { orderId: session.order_id, paymentId: session.payment_id },
+        });
+      } else if (payment.status === 'failed') {
+        Alert.alert(t('common.error'), t('payment.azulPaymentDeclined'));
+      } else {
+        Alert.alert(t('payment.title'), t('payment.azulPaymentPending'));
+      }
+    } catch (err) {
+      if (err instanceof PaymentApiError) {
+        Alert.alert(t('common.error'), err.message);
+      } else {
+        Alert.alert(t('common.error'), t('payment.paymentFailed'));
+      }
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handlePayment = async () => {
+    if (isNewBooking && (!serviceId || !supplierId)) {
+      Alert.alert(t('common.error'), t('booking.missingBookingData'));
+      return;
+    }
+
+    if (azulEnabled) {
+      await handleAzulPayment();
+      return;
+    }
+
     if (!selectedMethodId) {
       Alert.alert(t('common.error'), t('payment.selectPaymentMethod'));
       return;
@@ -413,6 +547,17 @@ export default function PaymentScreen() {
         </View>
 
         {/* Payment Methods */}
+        {azulEnabled ? (
+          <View style={styles.section}>
+            <View style={styles.azulInfoCard}>
+              <Ionicons name="shield-checkmark" size={28} color={colors.secondary} />
+              <View style={styles.azulInfoContent}>
+                <Text style={styles.azulInfoTitle}>{t('payment.azulRedirectTitle')}</Text>
+                <Text style={styles.azulInfoText}>{t('payment.azulRedirectInfo')}</Text>
+              </View>
+            </View>
+          </View>
+        ) : (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('payment.selectPaymentMethod')}</Text>
           
@@ -464,6 +609,7 @@ export default function PaymentScreen() {
             <Text style={styles.addCardText}>{t('payment.addNewCard')}</Text>
           </TouchableOpacity>
         </View>
+        )}
 
         {/* Security Info */}
         <View style={styles.securityContainer}>
@@ -525,9 +671,12 @@ export default function PaymentScreen() {
       {/* Confirm Button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
-          style={[styles.confirmButton, (processing || !selectedMethodId || !termsAccepted) && styles.confirmButtonDisabled]}
+          style={[
+            styles.confirmButton,
+            (processing || (!azulEnabled && !selectedMethodId) || !termsAccepted) && styles.confirmButtonDisabled,
+          ]}
           onPress={handlePayment}
-          disabled={processing || !selectedMethodId || !termsAccepted}
+          disabled={processing || (!azulEnabled && !selectedMethodId) || !termsAccepted}
         >
           {processing ? (
             <ActivityIndicator size="small" color={colors.white} />

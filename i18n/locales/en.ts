@@ -642,6 +642,24 @@ export default {
     privacyPolicy: "Privacy Policy",
     refundPolicy: "Cancellations and Refunds Policy",
     confirmAndPayAmount: "Confirm and pay {{amount}}",
+    azulRedirectTitle: "Card payment via AZUL",
+    azulRedirectInfo:
+      "After confirming, you will be redirected to AZUL's secure payment page to enter your card details. Mordobo never stores your full card number.",
+    azulPaymentPending:
+      "The payment has not been completed yet. If you finished paying on the AZUL page, wait a few seconds and check your bookings.",
+    azulPaymentDeclined: "The payment was declined by the bank. Please try another card.",
+  },
+  paymentResult: {
+    declinedTitle: "Payment declined",
+    declinedMessage:
+      "Your bank declined the transaction. No charge was made. You can try again with another card.",
+    cancelledTitle: "Payment cancelled",
+    cancelledMessage: "You cancelled the payment before completing it. No charge was made.",
+    errorTitle: "We could not verify the payment",
+    errorMessage:
+      "There was a problem verifying the payment result. If the charge appears on your card, contact us at soporte@mordobo.com.",
+    viewBookings: "View my bookings",
+    goHome: "Go to home",
   },
   compliance: {
     paymentMarksA11y: "Accepted cards and 3-D Secure authentication marks",
