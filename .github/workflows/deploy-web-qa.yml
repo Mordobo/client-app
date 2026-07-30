@@ -114,67 +114,68 @@ jobs:
           fi
 
           echo "site_id=${QA_ID}" >> "$GITHUB_OUTPUT"
+          export QA_ID
 
-          # Detach qa.mordobo.com from the production site if it is listed there
-          curl -sS -H "${AUTH_HEADER}" \
-            "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_PROD}" \
-            | node -e "
-              const domain=process.env.QA_CUSTOM_DOMAIN;
-              let raw='';
-              process.stdin.on('data',d=>raw+=d);
-              process.stdin.on('end',async()=>{
-                const s=JSON.parse(raw);
-                const aliases=Array.isArray(s.domain_aliases)?s.domain_aliases:[];
-                const custom=s.custom_domain||'';
-                const hasAlias=aliases.includes(domain);
-                const isPrimary=custom===domain;
-                if (!hasAlias && !isPrimary) {
-                  console.log('Production site does not list', domain);
-                  return;
-                }
-                const body={domain_aliases:aliases.filter(d=>d!==domain)};
-                if (isPrimary) body.custom_domain=null;
-                const res=await fetch('https://api.netlify.com/api/v1/sites/'+s.id,{
-                  method:'PATCH',
-                  headers:{
-                    Authorization: process.env.AUTH,
-                    'Content-Type':'application/json'
-                  },
-                  body: JSON.stringify(body)
-                });
-                const text=await res.text();
-                if (!res.ok) { console.error('Failed removing domain from prod:', text); process.exit(1); }
-                console.log('Removed', domain, 'from production site');
+          # Best-effort: detach qa.mordobo.com from production and attach it to the
+          # QA site. Some Netlify tokens return 401 on domain PATCH — deploy still
+          # proceeds; finish the domain move in the Netlify UI if these warn.
+          node <<'NODE'
+          const token = process.env.NETLIFY_AUTH_TOKEN;
+          const prodId = process.env.NETLIFY_SITE_ID_PROD;
+          const qaId = process.env.QA_ID;
+          const domain = process.env.QA_CUSTOM_DOMAIN;
+          const headers = {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          };
+
+          async function main() {
+            const prodRes = await fetch(`https://api.netlify.com/api/v1/sites/${prodId}`, { headers });
+            const prod = await prodRes.json();
+            const aliases = Array.isArray(prod.domain_aliases) ? prod.domain_aliases : [];
+            const custom = prod.custom_domain || '';
+            if (aliases.includes(domain) || custom === domain) {
+              const body = { domain_aliases: aliases.filter((d) => d !== domain) };
+              if (custom === domain) body.custom_domain = null;
+              const res = await fetch(`https://api.netlify.com/api/v1/sites/${prodId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(body),
               });
-            " AUTH="Bearer ${NETLIFY_AUTH_TOKEN}"
+              if (!res.ok) {
+                console.warn(`WARN: could not remove ${domain} from production (${res.status}). Do it in Netlify UI.`);
+                console.warn(await res.text());
+              } else {
+                console.log(`Removed ${domain} from production site`);
+              }
+            } else {
+              console.log(`Production site does not list ${domain}`);
+            }
 
-          # Attach qa.mordobo.com to the QA site
-          curl -sS -H "${AUTH_HEADER}" \
-            "https://api.netlify.com/api/v1/sites/${QA_ID}" \
-            | node -e "
-              const domain=process.env.QA_CUSTOM_DOMAIN;
-              let raw='';
-              process.stdin.on('data',d=>raw+=d);
-              process.stdin.on('end',async()=>{
-                const s=JSON.parse(raw);
-                if (s.custom_domain===domain || (s.domain_aliases||[]).includes(domain)) {
-                  console.log(domain, 'already on QA site');
-                  return;
-                }
-                const res=await fetch('https://api.netlify.com/api/v1/sites/'+s.id,{
-                  method:'PATCH',
-                  headers:{
-                    Authorization: process.env.AUTH,
-                    'Content-Type':'application/json'
-                  },
-                  body: JSON.stringify({custom_domain: domain})
-                });
-                const text=await res.text();
-                if (!res.ok) { console.error('Failed attaching domain to QA site:', text); process.exit(1); }
-                console.log('Attached', domain, 'to QA site');
-              });
-            " AUTH="Bearer ${NETLIFY_AUTH_TOKEN}"
+            const qaRes = await fetch(`https://api.netlify.com/api/v1/sites/${qaId}`, { headers });
+            const qa = await qaRes.json();
+            console.log(`QA site url: ${qa.ssl_url || qa.url}`);
+            if (qa.custom_domain === domain || (qa.domain_aliases || []).includes(domain)) {
+              console.log(`${domain} already on QA site`);
+              return;
+            }
+            const attach = await fetch(`https://api.netlify.com/api/v1/sites/${qaId}`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({ custom_domain: domain }),
+            });
+            if (!attach.ok) {
+              console.warn(`WARN: could not attach ${domain} to QA site (${attach.status}). Add it in Netlify UI → mordobo-web-qa → Domain management.`);
+              console.warn(await attach.text());
+            } else {
+              console.log(`Attached ${domain} to QA site`);
+            }
+          }
 
+          main().catch((err) => {
+            console.warn('WARN: domain move failed:', err);
+          });
+          NODE
       - name: Deploy QA build to dedicated Netlify site
         env:
           NETLIFY_SITE_ID: ${{ steps.site.outputs.site_id }}
