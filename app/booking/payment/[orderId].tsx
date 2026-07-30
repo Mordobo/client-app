@@ -150,6 +150,25 @@ export default function PaymentScreen() {
           marginBottom: 6,
         },
         azulInfoText: { fontSize: 13, lineHeight: 19, color: colors.textSecondary },
+        errorBanner: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 10,
+          marginHorizontal: 20,
+          marginBottom: 12,
+          padding: 14,
+          borderRadius: 12,
+          backgroundColor: `${colors.danger}18`,
+          borderWidth: 1,
+          borderColor: `${colors.danger}55`,
+        },
+        errorBannerText: {
+          flex: 1,
+          fontSize: 13,
+          lineHeight: 19,
+          color: colors.danger,
+          fontWeight: '500',
+        },
         securityContainer: {
           flexDirection: 'row',
           alignItems: 'center',
@@ -264,8 +283,18 @@ export default function PaymentScreen() {
   // When the API has AZUL enabled, the card is entered on AZUL's hosted page
   // (redirect flow) instead of using saved payment methods.
   const [azulEnabled, setAzulEnabled] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const total = totalAmount ? parseFloat(totalAmount) : 125.0;
+
+  const notifyPaymentError = (message: string) => {
+    setPaymentError(message);
+    if (Platform.OS === 'web') {
+      // Alert.alert is unreliable on web; inline banner is the primary feedback.
+      return;
+    }
+    Alert.alert(t('payment.paymentFailedTitle'), message);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -308,6 +337,7 @@ export default function PaymentScreen() {
   const handleAzulPayment = async () => {
     try {
       setProcessing(true);
+      setPaymentError(null);
 
       const isWeb = Platform.OS === 'web';
       // Native: the API redirects the browser to this deep link when AZUL
@@ -375,16 +405,14 @@ export default function PaymentScreen() {
           params: { orderId: session.order_id, paymentId: session.payment_id },
         });
       } else if (payment.status === 'failed') {
-        Alert.alert(t('common.error'), t('payment.azulPaymentDeclined'));
+        notifyPaymentError(t('payment.azulPaymentDeclined'));
       } else {
-        Alert.alert(t('payment.title'), t('payment.azulPaymentPending'));
+        notifyPaymentError(t('payment.azulPaymentPending'));
       }
     } catch (err) {
-      if (err instanceof PaymentApiError) {
-        Alert.alert(t('common.error'), err.message);
-      } else {
-        Alert.alert(t('common.error'), t('payment.paymentFailed'));
-      }
+      console.error('[Payment] AZUL session failed:', err instanceof PaymentApiError ? err.message : err);
+      // Never surface raw gateway/DB details to the user.
+      notifyPaymentError(t('payment.azulSessionFailed'));
     } finally {
       setProcessing(false);
     }
@@ -408,6 +436,7 @@ export default function PaymentScreen() {
 
     try {
       setProcessing(true);
+      setPaymentError(null);
 
       const selectedMethod = paymentMethods.find((m) => m.id === selectedMethodId);
       if (!selectedMethod) throw new Error('Selected payment method not found');
@@ -465,10 +494,10 @@ export default function PaymentScreen() {
             ? t('payment.errorQuoteNotApproved')
             : data?.code === 'already_paid_or_confirmed'
               ? t('payment.errorAlreadyPaid')
-              : err.message;
-        Alert.alert(t('common.error'), message);
+              : err.message || t('payment.paymentFailed');
+        notifyPaymentError(message);
       } else {
-        Alert.alert(t('common.error'), t('payment.paymentFailed'));
+        notifyPaymentError(t('payment.paymentFailed'));
       }
     } finally {
       setProcessing(false);
@@ -670,6 +699,12 @@ export default function PaymentScreen() {
 
       {/* Confirm Button */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+        {paymentError ? (
+          <View style={styles.errorBanner} accessibilityRole="alert">
+            <Ionicons name="alert-circle" size={20} color={colors.danger} />
+            <Text style={styles.errorBannerText}>{paymentError}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity
           style={[
             styles.confirmButton,
@@ -682,7 +717,9 @@ export default function PaymentScreen() {
             <ActivityIndicator size="small" color={colors.white} />
           ) : (
             <Text style={styles.confirmButtonText}>
-              {t('payment.confirmAndPayAmount', { amount: formatDop(total) })}
+              {paymentError
+                ? t('payment.retryPayment')
+                : t('payment.confirmAndPayAmount', { amount: formatDop(total) })}
             </Text>
           )}
         </TouchableOpacity>

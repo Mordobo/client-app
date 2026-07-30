@@ -607,6 +607,9 @@ export default {
     securePayment: "Secure payment. Your information is encrypted.",
     confirmAndPay: "Confirm and Pay ${{amount}}",
     paymentFailed: "Failed to process payment",
+    paymentFailedTitle: "Payment could not be completed",
+    azulSessionFailed:
+      "We could not start the AZUL payment. No charge was made. Please try again in a few seconds. If the problem continues, contact soporte@mordobo.com.",
     errorQuoteNotApproved: "Please approve the quote first. Open the quote and tap \"Approve and pay\", then return here to complete payment.",
     errorAlreadyPaid: "This booking is already paid or confirmed.",
     connected: "connected",
@@ -648,6 +651,7 @@ export default {
     azulPaymentPending:
       "The payment has not been completed yet. If you finished paying on the AZUL page, wait a few seconds and check your bookings.",
     azulPaymentDeclined: "The payment was declined by the bank. Please try another card.",
+    retryPayment: "Retry payment",
   },
   paymentResult: {
     declinedTitle: "Payment declined",

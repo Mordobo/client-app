@@ -608,6 +608,9 @@ export default {
     securePayment: "Pago seguro. Tu información está encriptada.",
     confirmAndPay: "Confirmar y Pagar ${{amount}}",
     paymentFailed: "Error al procesar el pago",
+    paymentFailedTitle: "No se pudo completar el pago",
+    azulSessionFailed:
+      "No pudimos iniciar el pago con AZUL. No se realizó ningún cargo. Intenta de nuevo en unos segundos. Si el problema continúa, escribe a soporte@mordobo.com.",
     errorQuoteNotApproved: "Primero aprueba la cotización. Abre la cotización y toca \"Aprobar y pagar\", luego regresa aquí para completar el pago.",
     errorAlreadyPaid: "Esta reserva ya fue pagada o confirmada.",
     connected: "conectado",
@@ -649,6 +652,7 @@ export default {
     azulPaymentPending:
       "El pago aún no se ha completado. Si finalizaste el pago en la página de AZUL, espera unos segundos y revisa tus reservas.",
     azulPaymentDeclined: "El pago fue declinado por el banco. Intenta con otra tarjeta.",
+    retryPayment: "Reintentar pago",
   },
   paymentResult: {
     declinedTitle: "Pago declinado",
