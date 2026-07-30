@@ -1,9 +1,11 @@
 name: Deploy Web QA
 
-# QA web environment: same Netlify site as production but published as an
-# "alias deploy" (https://qa--<site-name>.netlify.app), built against the QA
-# API (mordobo-api-qa.onrender.com). Used for payment/AZUL testing without
-# touching mordobo.com or the production API.
+# QA web environment on a dedicated Netlify site (preferred), built against the
+# QA API (mordobo-api-qa.onrender.com). Falls back to an alias deploy on the
+# production site only if NETLIFY_SITE_ID_QA is not configured yet.
+#
+# Custom domain: https://qa.mordobo.com  (must belong to the QA site, NOT to
+# the production mordobo.com site — otherwise it keeps serving production).
 
 on:
   push:
@@ -13,7 +15,7 @@ on:
 
 jobs:
   build-and-deploy-qa:
-    name: Build and deploy QA web to Netlify (alias qa)
+    name: Build and deploy QA web to Netlify
     runs-on: ubuntu-latest
     env:
       EXPO_PUBLIC_ENV: staging
@@ -23,7 +25,8 @@ jobs:
       EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY }}
       EXPO_PUBLIC_COMPANY_ADDRESS: ${{ vars.EXPO_PUBLIC_COMPANY_ADDRESS }}
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      NETLIFY_SITE_ID_PROD: ${{ secrets.NETLIFY_SITE_ID }}
+      NETLIFY_SITE_ID_QA: ${{ secrets.NETLIFY_SITE_ID_QA }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,11 +43,27 @@ jobs:
       - name: Build static web export (QA API)
         run: npm run build:web
 
-      - name: Deploy to Netlify (alias qa)
+      - name: Deploy to Netlify QA
         run: |
-          if [ -n "$NETLIFY_AUTH_TOKEN" ] && [ -n "$NETLIFY_SITE_ID" ]; then
-            npx --yes netlify-cli deploy --alias qa --dir=dist --message "QA deploy from GitHub Actions (${{ github.sha }})"
+          if [ -z "${NETLIFY_AUTH_TOKEN:-}" ]; then
+            echo "::error::NETLIFY_AUTH_TOKEN missing."
+            exit 1
+          fi
+
+          # Prefer the dedicated QA site so qa.mordobo.com can be its primary
+          # domain. Alias deploys on the production site can never own that
+          # hostname — Netlify always serves production for domain aliases.
+          if [ -n "${NETLIFY_SITE_ID_QA:-}" ]; then
+            export NETLIFY_SITE_ID="${NETLIFY_SITE_ID_QA}"
+            echo "Deploying to dedicated QA site ${NETLIFY_SITE_ID}"
+            npx --yes netlify-cli deploy --no-build --prod --dir=dist \
+              --message "QA deploy from GitHub Actions (${{ github.sha }})"
+          elif [ -n "${NETLIFY_SITE_ID_PROD:-}" ]; then
+            export NETLIFY_SITE_ID="${NETLIFY_SITE_ID_PROD}"
+            echo "::warning::NETLIFY_SITE_ID_QA not set. Falling back to alias deploy on the production site. qa.mordobo.com will keep serving production until you run setup-qa-netlify-site.yml and add NETLIFY_SITE_ID_QA."
+            npx --yes netlify-cli deploy --no-build --alias qa --dir=dist \
+              --message "QA alias deploy from GitHub Actions (${{ github.sha }})"
           else
-            echo "::error::NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID missing. Add them in GitHub → Settings → Secrets."
+            echo "::error::Neither NETLIFY_SITE_ID_QA nor NETLIFY_SITE_ID is set."
             exit 1
           fi

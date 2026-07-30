@@ -1,0 +1,179 @@
+name: Setup QA Netlify site
+
+# One-shot (or re-runnable) helper: creates a dedicated Netlify site for QA web,
+# moves qa.mordobo.com off the production site onto that QA site, and deploys
+# the current qa branch build there. After the first successful run, add the
+# printed NETLIFY_SITE_ID_QA value as a GitHub Actions secret so deploy-web-qa.yml
+# keeps using the same site.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-and-deploy-qa-site:
+    name: Create QA Netlify site and attach qa.mordobo.com
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PUBLIC_ENV: staging
+      EXPO_PUBLIC_API_ENV: qa
+      EXPO_PUBLIC_API_URL: https://mordobo-api-qa.onrender.com
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: ${{ secrets.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID }}
+      EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY }}
+      EXPO_PUBLIC_COMPANY_ADDRESS: ${{ vars.EXPO_PUBLIC_COMPANY_ADDRESS }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_SITE_ID_PROD: ${{ secrets.NETLIFY_SITE_ID }}
+      NETLIFY_SITE_ID_QA: ${{ secrets.NETLIFY_SITE_ID_QA }}
+      QA_SITE_NAME: mordobo-web-qa
+      QA_CUSTOM_DOMAIN: qa.mordobo.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.4"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static web export (QA API)
+        run: npm run build:web
+
+      - name: Ensure dedicated QA Netlify site + domain
+        id: site
+        run: |
+          set -euo pipefail
+          if [ -z "${NETLIFY_AUTH_TOKEN:-}" ] || [ -z "${NETLIFY_SITE_ID_PROD:-}" ]; then
+            echo "::error::NETLIFY_AUTH_TOKEN / NETLIFY_SITE_ID missing"
+            exit 1
+          fi
+
+          AUTH_HEADER="Authorization: Bearer ${NETLIFY_AUTH_TOKEN}"
+
+          resolve_qa_site_id() {
+            if [ -n "${NETLIFY_SITE_ID_QA:-}" ]; then
+              echo "${NETLIFY_SITE_ID_QA}"
+              return
+            fi
+            # Reuse an existing site with this name if present
+            existing="$(curl -sS -H "${AUTH_HEADER}" \
+              "https://api.netlify.com/api/v1/sites?filter=all" \
+              | node -e "
+                const name=process.env.QA_SITE_NAME;
+                let raw='';
+                process.stdin.on('data',d=>raw+=d);
+                process.stdin.on('end',()=>{
+                  const sites=JSON.parse(raw);
+                  const hit=(sites||[]).find(s=>s.name===name || (s.ssl_url||'').includes(name) || (s.url||'').includes(name));
+                  process.stdout.write(hit ? hit.id : '');
+                });
+              ")"
+            if [ -n "${existing}" ]; then
+              echo "${existing}"
+              return
+            fi
+            # Create a new site under the same account as production
+            account_slug="$(curl -sS -H "${AUTH_HEADER}" \
+              "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_PROD}" \
+              | node -e "
+                let raw='';
+                process.stdin.on('data',d=>raw+=d);
+                process.stdin.on('end',()=>{
+                  const s=JSON.parse(raw);
+                  process.stdout.write(s.account_slug || s.account_id || '');
+                });
+              ")"
+            echo "Creating Netlify site '${QA_SITE_NAME}' (account=${account_slug})..." >&2
+            create_payload="$(node -e "
+              const body={name:process.env.QA_SITE_NAME};
+              if (process.env.ACCOUNT) body.account_slug=process.env.ACCOUNT;
+              process.stdout.write(JSON.stringify(body));
+            " ACCOUNT="${account_slug}")"
+            created="$(curl -sS -X POST -H "${AUTH_HEADER}" -H 'Content-Type: application/json' \
+              -d "${create_payload}" \
+              "https://api.netlify.com/api/v1/sites")"
+            echo "${created}" | node -e "
+              let raw='';
+              process.stdin.on('data',d=>raw+=d);
+              process.stdin.on('end',()=>{
+                const s=JSON.parse(raw);
+                if (!s.id) { console.error(raw); process.exit(1); }
+                process.stdout.write(s.id);
+              });
+            "
+          }
+
+          QA_ID="$(resolve_qa_site_id)"
+          echo "QA site id: ${QA_ID}"
+          echo "site_id=${QA_ID}" >> "$GITHUB_OUTPUT"
+
+          # Remove qa.mordobo.com from the production site domain aliases (if present)
+          prod_json="$(curl -sS -H "${AUTH_HEADER}" "https://api.netlify.com/api/v1/sites/${NETLIFY_SITE_ID_PROD}")"
+          echo "${prod_json}" | node -e "
+            const domain=process.env.QA_CUSTOM_DOMAIN;
+            let raw='';
+            process.stdin.on('data',d=>raw+=d);
+            process.stdin.on('end',async()=>{
+              const s=JSON.parse(raw);
+              const aliases=Array.isArray(s.domain_aliases)?s.domain_aliases:[];
+              const custom=s.custom_domain||'';
+              const hasAlias=aliases.includes(domain);
+              const isPrimary=custom===domain;
+              if (!hasAlias && !isPrimary) {
+                console.log('Production site does not list', domain, '- nothing to remove');
+                return;
+              }
+              const nextAliases=aliases.filter(d=>d!==domain);
+              const body={domain_aliases:nextAliases};
+              if (isPrimary) body.custom_domain=null;
+              const res=await fetch('https://api.netlify.com/api/v1/sites/'+s.id,{
+                method:'PATCH',
+                headers:{
+                  Authorization: process.env.AUTH,
+                  'Content-Type':'application/json'
+                },
+                body: JSON.stringify(body)
+              });
+              const text=await res.text();
+              if (!res.ok) { console.error(text); process.exit(1); }
+              console.log('Removed', domain, 'from production site');
+            });
+          " AUTH="Bearer ${NETLIFY_AUTH_TOKEN}"
+
+          # Attach qa.mordobo.com to the QA site as primary custom domain
+          qa_json="$(curl -sS -H "${AUTH_HEADER}" "https://api.netlify.com/api/v1/sites/${QA_ID}")"
+          echo "${qa_json}" | node -e "
+            const domain=process.env.QA_CUSTOM_DOMAIN;
+            let raw='';
+            process.stdin.on('data',d=>raw+=d);
+            process.stdin.on('end',async()=>{
+              const s=JSON.parse(raw);
+              if (s.custom_domain===domain || (s.domain_aliases||[]).includes(domain)) {
+                console.log(domain, 'already attached to QA site');
+                return;
+              }
+              const body={custom_domain:domain};
+              const res=await fetch('https://api.netlify.com/api/v1/sites/'+s.id,{
+                method:'PATCH',
+                headers:{
+                  Authorization: process.env.AUTH,
+                  'Content-Type':'application/json'
+                },
+                body: JSON.stringify(body)
+              });
+              const text=await res.text();
+              if (!res.ok) { console.error(text); process.exit(1); }
+              console.log('Attached', domain, 'to QA site');
+            });
+          " AUTH="Bearer ${NETLIFY_AUTH_TOKEN}"
+
+          echo "::notice::Add GitHub secret NETLIFY_SITE_ID_QA=${QA_ID} so future QA deploys reuse this site."
+
+      - name: Deploy QA build to dedicated site (production slot of QA site)
+        env:
+          NETLIFY_SITE_ID: ${{ steps.site.outputs.site_id }}
+        run: |
+          npx --yes netlify-cli deploy --no-build --prod --dir=dist \
+            --message "QA site setup deploy from GitHub Actions (${{ github.sha }})"
